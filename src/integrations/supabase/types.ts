@@ -14,16 +14,719 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      acionamentos_guincho: {
+        Row: {
+          associado_id: string
+          created_at: string
+          data_acionamento: string
+          destino: string | null
+          id: string
+          km_utilizado: number
+          observacoes: string | null
+          origem: string | null
+          veiculo_id: string
+        }
+        Insert: {
+          associado_id: string
+          created_at?: string
+          data_acionamento?: string
+          destino?: string | null
+          id?: string
+          km_utilizado: number
+          observacoes?: string | null
+          origem?: string | null
+          veiculo_id: string
+        }
+        Update: {
+          associado_id?: string
+          created_at?: string
+          data_acionamento?: string
+          destino?: string | null
+          id?: string
+          km_utilizado?: number
+          observacoes?: string | null
+          origem?: string | null
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acionamentos_guincho_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acionamentos_guincho_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      associados: {
+        Row: {
+          cep: string | null
+          cidade: string | null
+          consultor_id: string | null
+          cpf: string
+          created_at: string
+          data_nascimento: string | null
+          email: string
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome_completo: string
+          regiao_id: string | null
+          rg: string | null
+          status: Database["public"]["Enums"]["associate_status"]
+          telefone: string
+          termos_aceitos: boolean
+          termos_aceitos_em: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          cep?: string | null
+          cidade?: string | null
+          consultor_id?: string | null
+          cpf: string
+          created_at?: string
+          data_nascimento?: string | null
+          email: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_completo: string
+          regiao_id?: string | null
+          rg?: string | null
+          status?: Database["public"]["Enums"]["associate_status"]
+          telefone: string
+          termos_aceitos?: boolean
+          termos_aceitos_em?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          cep?: string | null
+          cidade?: string | null
+          consultor_id?: string | null
+          cpf?: string
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_completo?: string
+          regiao_id?: string | null
+          rg?: string | null
+          status?: Database["public"]["Enums"]["associate_status"]
+          telefone?: string
+          termos_aceitos?: boolean
+          termos_aceitos_em?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "associados_regiao_id_fkey"
+            columns: ["regiao_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          acao: string
+          created_at: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          ip_address: string | null
+          registro_id: string | null
+          tabela: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip_address?: string | null
+          registro_id?: string | null
+          tabela: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip_address?: string | null
+          registro_id?: string | null
+          tabela?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cotas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          fipe_max: number
+          fipe_min: number
+          id: string
+          mensalidade_carro: number
+          mensalidade_moto: number
+          mensalidade_pickup: number
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          fipe_max: number
+          fipe_min?: number
+          id?: string
+          mensalidade_carro: number
+          mensalidade_moto: number
+          mensalidade_pickup: number
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          fipe_max?: number
+          fipe_min?: number
+          id?: string
+          mensalidade_carro?: number
+          mensalidade_moto?: number
+          mensalidade_pickup?: number
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          consultor_id: string
+          convertido: boolean
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          regiao_id: string | null
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          consultor_id: string
+          convertido?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          regiao_id?: string | null
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          consultor_id?: string
+          convertido?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          regiao_id?: string | null
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_regiao_id_fkey"
+            columns: ["regiao_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          associado_id: string
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string
+          id: string
+          referencia: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+          veiculo_id: string | null
+        }
+        Insert: {
+          associado_id: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento: string
+          id?: string
+          referencia?: string | null
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor: number
+          veiculo_id?: string | null
+        }
+        Update: {
+          associado_id?: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string
+          id?: string
+          referencia?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          ativo: boolean
+          cpf: string | null
+          created_at: string
+          email: string
+          id: string
+          is_admin_principal: boolean
+          nome_completo: string
+          regiao_id: string | null
+          sede_id: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cpf?: string | null
+          created_at?: string
+          email: string
+          id: string
+          is_admin_principal?: boolean
+          nome_completo: string
+          regiao_id?: string | null
+          sede_id?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cpf?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_admin_principal?: boolean
+          nome_completo?: string
+          regiao_id?: string | null
+          sede_id?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_regiao_id_fkey"
+            columns: ["regiao_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      propostas: {
+        Row: {
+          aceita_em: string | null
+          associado_id: string | null
+          carro_reserva_adicional: number | null
+          carro_reserva_dias: number
+          consultor_id: string
+          cota_id: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          mensalidade: number
+          participacao: number
+          status: Database["public"]["Enums"]["proposal_status"]
+          updated_at: string
+          valor_fipe: number
+          veiculo_ano: number
+          veiculo_marca: string
+          veiculo_modelo: string
+          veiculo_tipo: Database["public"]["Enums"]["vehicle_type"]
+        }
+        Insert: {
+          aceita_em?: string | null
+          associado_id?: string | null
+          carro_reserva_adicional?: number | null
+          carro_reserva_dias?: number
+          consultor_id: string
+          cota_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          mensalidade: number
+          participacao: number
+          status?: Database["public"]["Enums"]["proposal_status"]
+          updated_at?: string
+          valor_fipe: number
+          veiculo_ano: number
+          veiculo_marca: string
+          veiculo_modelo: string
+          veiculo_tipo: Database["public"]["Enums"]["vehicle_type"]
+        }
+        Update: {
+          aceita_em?: string | null
+          associado_id?: string | null
+          carro_reserva_adicional?: number | null
+          carro_reserva_dias?: number
+          consultor_id?: string
+          cota_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          mensalidade?: number
+          participacao?: number
+          status?: Database["public"]["Enums"]["proposal_status"]
+          updated_at?: string
+          valor_fipe?: number
+          veiculo_ano?: number
+          veiculo_marca?: string
+          veiculo_modelo?: string
+          veiculo_tipo?: Database["public"]["Enums"]["vehicle_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_cota_id_fkey"
+            columns: ["cota_id"]
+            isOneToOne: false
+            referencedRelation: "cotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regioes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          sede_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          sede_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          sede_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regioes_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sedes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      veiculos: {
+        Row: {
+          ano: number
+          associado_id: string
+          carro_reserva_adicional: number | null
+          carro_reserva_dias: number
+          chassi: string | null
+          cor: string | null
+          cota_id: string | null
+          created_at: string
+          id: string
+          marca: string
+          mensalidade: number
+          modelo: string
+          placa: string
+          protecao_ativa: boolean
+          protecao_ativada_em: string | null
+          renavam: string | null
+          tipo: Database["public"]["Enums"]["vehicle_type"]
+          updated_at: string
+          valor_fipe: number
+        }
+        Insert: {
+          ano: number
+          associado_id: string
+          carro_reserva_adicional?: number | null
+          carro_reserva_dias?: number
+          chassi?: string | null
+          cor?: string | null
+          cota_id?: string | null
+          created_at?: string
+          id?: string
+          marca: string
+          mensalidade: number
+          modelo: string
+          placa: string
+          protecao_ativa?: boolean
+          protecao_ativada_em?: string | null
+          renavam?: string | null
+          tipo: Database["public"]["Enums"]["vehicle_type"]
+          updated_at?: string
+          valor_fipe: number
+        }
+        Update: {
+          ano?: number
+          associado_id?: string
+          carro_reserva_adicional?: number | null
+          carro_reserva_dias?: number
+          chassi?: string | null
+          cor?: string | null
+          cota_id?: string | null
+          created_at?: string
+          id?: string
+          marca?: string
+          mensalidade?: number
+          modelo?: string
+          placa?: string
+          protecao_ativa?: boolean
+          protecao_ativada_em?: string | null
+          renavam?: string | null
+          tipo?: Database["public"]["Enums"]["vehicle_type"]
+          updated_at?: string
+          valor_fipe?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_cota_id_fkey"
+            columns: ["cota_id"]
+            isOneToOne: false
+            referencedRelation: "cotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vistorias: {
+        Row: {
+          checklist: Json | null
+          created_at: string
+          data_agendada: string | null
+          data_realizada: string | null
+          fotos: string[] | null
+          id: string
+          observacoes: string | null
+          proposta_id: string | null
+          status: Database["public"]["Enums"]["inspection_status"]
+          updated_at: string
+          veiculo_id: string
+          vistoriador_id: string | null
+        }
+        Insert: {
+          checklist?: Json | null
+          created_at?: string
+          data_agendada?: string | null
+          data_realizada?: string | null
+          fotos?: string[] | null
+          id?: string
+          observacoes?: string | null
+          proposta_id?: string | null
+          status?: Database["public"]["Enums"]["inspection_status"]
+          updated_at?: string
+          veiculo_id: string
+          vistoriador_id?: string | null
+        }
+        Update: {
+          checklist?: Json | null
+          created_at?: string
+          data_agendada?: string | null
+          data_realizada?: string | null
+          fotos?: string[] | null
+          id?: string
+          observacoes?: string | null
+          proposta_id?: string | null
+          status?: Database["public"]["Enums"]["inspection_status"]
+          updated_at?: string
+          veiculo_id?: string
+          vistoriador_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vistorias_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vistorias_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_regiao: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin_principal"
+        | "admin_regional"
+        | "financeiro"
+        | "cadastro"
+        | "consultor_vendas"
+        | "vistoriador"
+        | "associado"
+      associate_status: "ativo" | "inadimplente" | "suspenso" | "cancelado"
+      inspection_status: "pendente" | "em_andamento" | "aprovada" | "reprovada"
+      proposal_status:
+        | "rascunho"
+        | "enviada"
+        | "aceita"
+        | "recusada"
+        | "cancelada"
+      vehicle_type: "carro" | "moto" | "pickup"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +853,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin_principal",
+        "admin_regional",
+        "financeiro",
+        "cadastro",
+        "consultor_vendas",
+        "vistoriador",
+        "associado",
+      ],
+      associate_status: ["ativo", "inadimplente", "suspenso", "cancelado"],
+      inspection_status: ["pendente", "em_andamento", "aprovada", "reprovada"],
+      proposal_status: [
+        "rascunho",
+        "enviada",
+        "aceita",
+        "recusada",
+        "cancelada",
+      ],
+      vehicle_type: ["carro", "moto", "pickup"],
+    },
   },
 } as const
