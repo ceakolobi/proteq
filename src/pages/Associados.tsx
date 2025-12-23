@@ -120,11 +120,14 @@ export default function Associados() {
     cota_id: '',
   });
 
-  const isConsultor = hasRole('consultor_vendas');
-  const isAdminRegional = hasRole('admin_regional');
+  const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !hasRole('admin_regional');
+  const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   const isCadastro = hasRole('cadastro');
-  const canCreate = isConsultor; // Only consultores can create
-  const canEdit = isAdminPrincipal || isAdminRegional || isCadastro || isConsultor;
+  
+  // Consultores can only create (not edit other's associados)
+  // Admin Regional and Admin Principal can edit anyone in their scope
+  const canCreate = isConsultor || isAdminRegional || isAdminPrincipal;
+  const canEditAll = isAdminPrincipal || isAdminRegional || isCadastro;
 
   useEffect(() => {
     if (isAllowed && !isChecking) {
@@ -519,77 +522,84 @@ export default function Associados() {
     veiculos: associados.reduce((acc, a) => acc + (a.veiculos_count || 0), 0),
   };
 
-  const AssociadoRow = ({ associado }: { associado: AssociadoWithDetails }) => (
-    <TableRow>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-sm font-medium text-primary">
-              {associado.nome_completo
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase()}
-            </span>
+  const AssociadoRow = ({ associado }: { associado: AssociadoWithDetails }) => {
+    // Consultor can edit their own associados
+    const canEditThisAssociado = canEditAll || (isConsultor && associado.consultor_id === user?.id);
+    
+    return (
+      <TableRow>
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-medium text-primary">
+                {associado.nome_completo
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <p className="font-medium">{associado.nome_completo}</p>
+              <p className="text-sm text-muted-foreground">CPF: {associado.cpf}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium">{associado.nome_completo}</p>
-            <p className="text-sm text-muted-foreground">CPF: {associado.cpf}</p>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1">
+            <p className="text-sm flex items-center gap-1">
+              <Mail className="h-3 w-3" />
+              {associado.email}
+            </p>
+            <p className="text-sm flex items-center gap-1 text-muted-foreground">
+              <Phone className="h-3 w-3" />
+              {associado.telefone}
+            </p>
           </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          <p className="text-sm flex items-center gap-1">
-            <Mail className="h-3 w-3" />
-            {associado.email}
-          </p>
-          <p className="text-sm flex items-center gap-1 text-muted-foreground">
-            <Phone className="h-3 w-3" />
-            {associado.telefone}
-          </p>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <Car className="h-4 w-4 text-muted-foreground" />
-          <span>{associado.veiculos_count || 0}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2"
-            onClick={() => handleOpenVeiculoDialog(associado)}
-          >
-            <Plus className="h-3 w-3" />
-          </Button>
-        </div>
-      </TableCell>
-      <TableCell>
-        {associado.consultor && (
-          <span className="text-sm">{associado.consultor.nome_completo}</span>
-        )}
-      </TableCell>
-      <TableCell>
-        <Badge variant={getStatusVariant(associado.status)}>
-          {associateStatusLabels[associado.status]}
-        </Badge>
-      </TableCell>
-      <TableCell className="text-right">
-        <div className="flex justify-end gap-2">
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleOpenDialog(associado)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Car className="h-4 w-4 text-muted-foreground" />
+            <span>{associado.veiculos_count || 0}</span>
+            {canEditThisAssociado && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2"
+                onClick={() => handleOpenVeiculoDialog(associado)}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          {associado.consultor && (
+            <span className="text-sm">{associado.consultor.nome_completo}</span>
           )}
-        </div>
-      </TableCell>
-    </TableRow>
-  );
+        </TableCell>
+        <TableCell>
+          <Badge variant={getStatusVariant(associado.status)}>
+            {associateStatusLabels[associado.status]}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-2">
+            {canEditThisAssociado && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleOpenDialog(associado)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <DashboardLayout>
@@ -851,7 +861,7 @@ export default function Associados() {
                                         <Badge variant={getStatusVariant(associado.status)} className="text-xs">
                                           {associateStatusLabels[associado.status]}
                                         </Badge>
-                                        {canEdit && (
+                                        {(canEditAll || (isConsultor && associado.consultor_id === user?.id)) && (
                                           <Button
                                             variant="ghost"
                                             size="icon"
@@ -1023,8 +1033,8 @@ export default function Associados() {
                 </div>
               </div>
 
-              {/* Status (only for edit) */}
-              {selectedAssociado && canEdit && (
+              {/* Status (only for admins, not consultores) */}
+              {selectedAssociado && canEditAll && !isConsultor && (
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Select
