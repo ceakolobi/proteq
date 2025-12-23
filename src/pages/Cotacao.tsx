@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ interface CotacaoResult {
 
 export default function Cotacao() {
   const { user } = useAuth();
+  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -168,6 +170,19 @@ export default function Cotacao() {
     { icon: Fuel, label: 'Pane Seca', desc: 'Combustível incluso' },
     { icon: CloudRain, label: 'Eventos da Natureza', desc: 'Proteção completa' },
   ];
+
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return null;
+  }
 
   return (
     <DashboardLayout>

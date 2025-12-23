@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,8 +62,8 @@ interface RegionalStats {
 }
 
 export default function RegionalDashboard() {
-  const { profile, hasRole } = useAuth();
-  const navigate = useNavigate();
+  const { profile, hasRole, isAdminPrincipal } = useAuth();
+  const { isAllowed, isChecking } = useAccessControl('admin_regional_or_above');
   const [sede, setSede] = useState<Sede | null>(null);
   const [consultores, setConsultores] = useState<ConsultorWithStats[]>([]);
   const [stats, setStats] = useState<RegionalStats>({
@@ -85,15 +85,7 @@ export default function RegionalDashboard() {
     ativo: true,
   });
 
-  const isAdminRegional = hasRole('admin_regional');
-
-  // Redirect if not admin regional
-  useEffect(() => {
-    if (!isAdminRegional) {
-      navigate('/dashboard');
-      toast.error('Acesso restrito a Admin Regional');
-    }
-  }, [isAdminRegional, navigate]);
+  const isAdminRegional = hasRole('admin_regional') || isAdminPrincipal;
 
   useEffect(() => {
     if (profile?.sede_id) {
@@ -320,10 +312,18 @@ export default function RegionalDashboard() {
       consultor.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!isAdminRegional) {
-    return null;
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
   }
 
+  if (!isAllowed) {
+    return null;
+  }
   return (
     <DashboardLayout>
       <div className="space-y-6">
