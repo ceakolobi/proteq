@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import type { Associado, Regiao, AssociateStatus, VehicleType, Cota, Profile } from '@/types/database';
 import { associateStatusLabels, vehicleTypeLabels } from '@/types/database';
+import { FipeRangeDetector, useFipeRange } from '@/components/FipeRangeDetector';
 
 interface AssociadoWithDetails extends Associado {
   veiculos_count?: number;
@@ -413,27 +414,31 @@ export default function Associados() {
       return;
     }
 
-    try {
-      // Find appropriate cota based on FIPE value
-      const cotaApropriada = cotas.find(
-        c => veiculoForm.valor_fipe >= c.fipe_min && veiculoForm.valor_fipe <= c.fipe_max
-      );
+    // Find appropriate cota based on FIPE value (must be active)
+    const cotaApropriada = cotas.find(
+      c => veiculoForm.valor_fipe >= c.fipe_min && veiculoForm.valor_fipe <= c.fipe_max && c.ativo
+    );
 
-      // Calculate mensalidade based on vehicle type
-      let mensalidade = 0;
-      if (cotaApropriada) {
-        switch (veiculoForm.tipo) {
-          case 'carro':
-            mensalidade = cotaApropriada.mensalidade_carro;
-            break;
-          case 'moto':
-            mensalidade = cotaApropriada.mensalidade_moto;
-            break;
-          case 'pickup':
-            mensalidade = cotaApropriada.mensalidade_pickup;
-            break;
-        }
-      }
+    if (!cotaApropriada) {
+      toast.error('Não existe faixa FIPE configurada para este valor. Contate o administrador.');
+      return;
+    }
+
+    // Calculate mensalidade based on vehicle type
+    let mensalidade = 0;
+    switch (veiculoForm.tipo) {
+      case 'carro':
+        mensalidade = cotaApropriada.mensalidade_carro;
+        break;
+      case 'moto':
+        mensalidade = cotaApropriada.mensalidade_moto;
+        break;
+      case 'pickup':
+        mensalidade = cotaApropriada.mensalidade_pickup;
+        break;
+    }
+
+    try {
 
       const { error } = await supabase
         .from('veiculos')
@@ -1085,10 +1090,13 @@ export default function Associados() {
                     onChange={(e) => setVeiculoForm({ ...veiculoForm, valor_fipe: parseFloat(e.target.value) || 0 })}
                     placeholder="Ex: 45000"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    A cota e mensalidade serão calculadas automaticamente
-                  </p>
                 </div>
+
+                <FipeRangeDetector
+                  valorFipe={veiculoForm.valor_fipe}
+                  tipoVeiculo={veiculoForm.tipo}
+                  cotas={cotas}
+                />
               </div>
             )}
 
@@ -1203,10 +1211,13 @@ export default function Associados() {
                   onChange={(e) => setVeiculoForm({ ...veiculoForm, valor_fipe: parseFloat(e.target.value) || 0 })}
                   placeholder="Ex: 45000"
                 />
-                <p className="text-xs text-muted-foreground">
-                  A cota e mensalidade serão calculadas automaticamente
-                </p>
               </div>
+
+              <FipeRangeDetector
+                valorFipe={veiculoForm.valor_fipe}
+                tipoVeiculo={veiculoForm.tipo}
+                cotas={cotas}
+              />
             </div>
 
             <DialogFooter>
