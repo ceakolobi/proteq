@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import Usuarios from "./pages/Usuarios";
 import Cotas from "./pages/Cotas";
 import Cotacao from "./pages/Cotacao";
+import Sedes from "./pages/Sedes";
+import RegionalDashboard from "./pages/RegionalDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +66,8 @@ const App = () => (
             <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
             <Route path="/cotas" element={<ProtectedRoute><Cotas /></ProtectedRoute>} />
             <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />
+            <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
+            <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

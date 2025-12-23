@@ -52,6 +52,12 @@ const navItems: NavItem[] = [
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
+    title: 'Painel Regional',
+    href: '/regional',
+    icon: <Building2 className="h-5 w-5" />,
+    roles: ['admin_regional'],
+  },
+  {
     title: 'Usuários',
     href: '/usuarios',
     icon: <Users className="h-5 w-5" />,
