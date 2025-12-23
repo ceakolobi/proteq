@@ -53,9 +53,10 @@ interface SedeWithResponsavel extends Sede {
 }
 
 export default function Sedes() {
-  // Access control: Only Admin Principal can access
-  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
-  const { isAdminPrincipal } = useAuth();
+  // Access control: Admin Principal (full access) + Admin Regional (only their sede)
+  const { isAllowed, isChecking, userSedeId } = useAccessControl('admin_regional_or_above');
+  const { isAdminPrincipal, hasRole, profile } = useAuth();
+  const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   
   const [sedes, setSedes] = useState<SedeWithResponsavel[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -95,10 +96,15 @@ export default function Sedes() {
   const fetchSedes = async () => {
     try {
       setIsLoading(true);
-      const { data: sedesData, error } = await supabase
-        .from('sedes')
-        .select('*')
-        .order('nome');
+      
+      // Admin Regional can only see their own sede
+      let query = supabase.from('sedes').select('*').order('nome');
+      
+      if (isAdminRegional && profile?.sede_id) {
+        query = query.eq('id', profile.sede_id);
+      }
+      
+      const { data: sedesData, error } = await query;
 
       if (error) throw error;
 
@@ -293,24 +299,29 @@ export default function Sedes() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  if (!isAdminPrincipal) {
-    return null;
-  }
+  // Admin Regional sees only their sede (read-only), Admin Principal has full control
+  const canCreate = isAdminPrincipal;
+  const canEdit = isAdminPrincipal;
+  const canDelete = isAdminPrincipal;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Sedes / Regionais</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {isAdminRegional ? 'Minha Regional' : 'Sedes / Regionais'}
+            </h1>
             <p className="text-muted-foreground">
-              Gerencie as regionais da associação
+              {isAdminRegional ? 'Visualize os dados da sua regional' : 'Gerencie as regionais da associação'}
             </p>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Regional
-          </Button>
+          {canCreate && (
+            <Button onClick={() => handleOpenDialog()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Regional
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -443,25 +454,31 @@ export default function Sedes() {
                         </TableCell>
                         <TableCell>{formatDate(sede.created_at)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(sede)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedSede(sede);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          {(canEdit || canDelete) && (
+                            <div className="flex justify-end gap-2">
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenDialog(sede)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedSede(sede);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
