@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,8 +39,9 @@ interface ConsultorStats {
 }
 
 export default function ConsultorDashboard() {
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile, hasRole, isAdminPrincipal } = useAuth();
   const navigate = useNavigate();
+  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   const [stats, setStats] = useState<ConsultorStats>({
     totalAssociados: 0,
     associadosAtivos: 0,
@@ -51,14 +53,7 @@ export default function ConsultorDashboard() {
   const [sede, setSede] = useState<Sede | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isConsultor = hasRole('consultor_vendas');
-
-  useEffect(() => {
-    if (!isConsultor) {
-      navigate('/dashboard');
-      toast.error('Acesso restrito a Consultores');
-    }
-  }, [isConsultor, navigate]);
+  const isConsultor = hasRole('consultor_vendas') || isAdminPrincipal;
 
   useEffect(() => {
     if (user?.id) {
@@ -163,7 +158,16 @@ export default function ConsultorDashboard() {
     }
   };
 
-  if (!isConsultor) {
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
     return null;
   }
 
