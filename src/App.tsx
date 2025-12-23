@@ -17,6 +17,7 @@ import ConsultorDashboard from "./pages/ConsultorDashboard";
 import Consultores from "./pages/Consultores";
 import Associados from "./pages/Associados";
 import Veiculos from "./pages/Veiculos";
+import Leads from "./pages/Leads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -86,6 +87,7 @@ const App = () => (
             {/* Consultor or above */}
             <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
             <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />
+            <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
             <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
