@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import Usuarios from "./pages/Usuarios";
 import Cotas from "./pages/Cotas";
 import Cotacao from "./pages/Cotacao";
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             
             {/* Admin Principal only */}
+            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
             <Route path="/cotas" element={<ProtectedRoute><Cotas /></ProtectedRoute>} />
             <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />

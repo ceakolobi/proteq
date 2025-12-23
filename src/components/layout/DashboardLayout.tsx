@@ -53,6 +53,12 @@ const navItems: NavItem[] = [
   },
   // Admin Principal ONLY
   {
+    title: 'Painel Admin',
+    href: '/admin',
+    icon: <Shield className="h-5 w-5" />,
+    roles: ['admin_principal'],
+  },
+  {
     title: 'Usuários',
     href: '/usuarios',
     icon: <Users className="h-5 w-5" />,
