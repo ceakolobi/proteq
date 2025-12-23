@@ -15,6 +15,7 @@ import RegionalDashboard from "./pages/RegionalDashboard";
 import ConsultorDashboard from "./pages/ConsultorDashboard";
 import Consultores from "./pages/Consultores";
 import Associados from "./pages/Associados";
+import Veiculos from "./pages/Veiculos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/consultores" element={<ProtectedRoute><Consultores /></ProtectedRoute>} />
             <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
+            <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
