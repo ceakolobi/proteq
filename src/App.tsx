@@ -13,6 +13,7 @@ import Cotacao from "./pages/Cotacao";
 import Sedes from "./pages/Sedes";
 import RegionalDashboard from "./pages/RegionalDashboard";
 import ConsultorDashboard from "./pages/ConsultorDashboard";
+import Consultores from "./pages/Consultores";
 import Associados from "./pages/Associados";
 import NotFound from "./pages/NotFound";
 
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
             <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
             <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
+            <Route path="/consultores" element={<ProtectedRoute><Consultores /></ProtectedRoute>} />
             <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
