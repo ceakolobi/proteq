@@ -64,20 +64,32 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Rotas públicas - apenas landing e autenticação */}
             <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
             <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+            
+            {/* Rotas protegidas - requerem autenticação */}
+            {/* Dashboard geral - todos os usuários autenticados */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            
+            {/* Admin Principal only */}
             <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
             <Route path="/cotas" element={<ProtectedRoute><Cotas /></ProtectedRoute>} />
-            <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />
             <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
+            
+            {/* Admin Regional or above */}
             <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
-            <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
             <Route path="/consultores" element={<ProtectedRoute><Consultores /></ProtectedRoute>} />
+            
+            {/* Consultor or above */}
+            <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
+            <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />
             <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
+            
+            {/* 404 - Rota não encontrada (protegida para não expor informações) */}
+            <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
