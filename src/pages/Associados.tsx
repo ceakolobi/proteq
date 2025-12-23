@@ -301,6 +301,12 @@ export default function Associados() {
   };
 
   const handleOpenNewAssociadoWizard = () => {
+    // Validação: Consultor deve estar vinculado a uma Regional
+    if (!profile?.regiao_id && !isAdminPrincipal) {
+      toast.error('Você não está vinculado a nenhuma Regional. Entre em contato com o administrador.');
+      return;
+    }
+    
     resetForms();
     setIsWizardMode(true);
     setIsDialogOpen(true);
@@ -349,20 +355,49 @@ export default function Associados() {
   };
 
   const handleSaveAssociado = async () => {
+    // Validação: Campos obrigatórios
     if (!formData.nome_completo.trim() || !formData.cpf.trim() || !formData.email.trim() || !formData.telefone.trim()) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
+    // Validação: CPF básico (11 dígitos)
+    const cpfLimpo = formData.cpf.replace(/\D/g, '');
+    if (cpfLimpo.length !== 11) {
+      toast.error('CPF deve ter 11 dígitos');
+      return;
+    }
+
+    // Validação: Email válido
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error('Email inválido');
+      return;
+    }
+
+    // Validação: Consultor deve ter regional (para criar novo)
+    if (!selectedAssociado && !isWizardMode === false) {
+      if (!profile?.regiao_id && !isAdminPrincipal) {
+        toast.error('Você não está vinculado a uma Regional. Entre em contato com o administrador.');
+        return;
+      }
+    }
+
     try {
-      // Get consultor's regiao automatically
-      let regiaoId = profile?.regiao_id || null;
+      // Get consultor's regiao automatically - OBRIGATÓRIO para novos cadastros
+      const regiaoId = profile?.regiao_id || null;
+
+      // Validação dupla: Não permitir criar associado sem regional (exceto admin principal)
+      if (!selectedAssociado && !regiaoId && !isAdminPrincipal) {
+        toast.error('Não é possível cadastrar associado sem estar vinculado a uma Regional.');
+        return;
+      }
 
       const associadoData = {
         nome_completo: formData.nome_completo.trim(),
-        cpf: formData.cpf.trim(),
+        cpf: cpfLimpo, // CPF limpo (só números)
         telefone: formData.telefone.trim(),
-        email: formData.email.trim(),
+        email: formData.email.trim().toLowerCase(),
         status: formData.status,
         regiao_id: regiaoId, // Auto-link to consultor's regional
       };
@@ -379,12 +414,18 @@ export default function Associados() {
         setIsDialogOpen(false);
         fetchAssociados();
       } else {
+        // Validação: Novo associado DEVE ter consultor_id
+        if (!user?.id) {
+          toast.error('Erro de autenticação. Faça login novamente.');
+          return;
+        }
+
         // Creating new associado - wizard mode
         const { data, error } = await supabase
           .from('associados')
           .insert({
             ...associadoData,
-            consultor_id: user!.id, // Link to current consultor
+            consultor_id: user.id, // OBRIGATÓRIO: Link to current consultor
           })
           .select()
           .single();
@@ -397,20 +438,41 @@ export default function Associados() {
       }
     } catch (error: any) {
       console.error('Error saving associado:', error);
-      toast.error(error.message || 'Erro ao salvar associado');
+      if (error.message?.includes('duplicate')) {
+        toast.error('Já existe um associado com este CPF');
+      } else {
+        toast.error(error.message || 'Erro ao salvar associado');
+      }
     }
   };
 
   const handleSaveVeiculo = async () => {
+    // Validação: Veículo DEVE ter associado
     const associadoId = isWizardMode ? newAssociadoId : selectedAssociado?.id;
     
     if (!associadoId) {
-      toast.error('Erro: Associado não encontrado');
+      toast.error('Erro: Veículo não pode existir sem um Associado vinculado');
       return;
     }
 
+    // Validação: Campos obrigatórios
     if (!veiculoForm.marca.trim() || !veiculoForm.modelo.trim() || !veiculoForm.placa.trim() || veiculoForm.valor_fipe <= 0) {
       toast.error('Preencha todos os campos obrigatórios do veículo');
+      return;
+    }
+
+    // Validação: Placa válida (formato brasileiro)
+    const placaLimpa = veiculoForm.placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const placaValida = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placaLimpa);
+    if (!placaValida) {
+      toast.error('Placa inválida. Use o formato ABC1234 ou ABC1D23 (Mercosul)');
+      return;
+    }
+
+    // Validação: Ano válido
+    const anoAtual = new Date().getFullYear();
+    if (veiculoForm.ano < 1900 || veiculoForm.ano > anoAtual + 1) {
+      toast.error(`Ano deve estar entre 1900 e ${anoAtual + 1}`);
       return;
     }
 
@@ -448,7 +510,7 @@ export default function Associados() {
           marca: veiculoForm.marca.trim(),
           modelo: veiculoForm.modelo.trim(),
           ano: veiculoForm.ano,
-          placa: veiculoForm.placa.trim().toUpperCase(),
+          placa: placaLimpa,
           valor_fipe: veiculoForm.valor_fipe,
           cota_id: cotaApropriada?.id || null,
           mensalidade: mensalidade,
@@ -644,10 +706,21 @@ export default function Associados() {
             </p>
           </div>
           {canCreate && (
-            <Button onClick={handleOpenNewAssociadoWizard}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Novo Associado
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button 
+                onClick={handleOpenNewAssociadoWizard}
+                disabled={!profile?.regiao_id && !isAdminPrincipal}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Novo Associado
+              </Button>
+              {!profile?.regiao_id && !isAdminPrincipal && (
+                <span className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Você não está vinculado a uma Regional
+                </span>
+              )}
+            </div>
           )}
         </div>
 
