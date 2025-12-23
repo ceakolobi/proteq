@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,9 @@ import { Cota } from '@/types/database';
 import { Plus, Pencil, Trash2, DollarSign } from 'lucide-react';
 
 export default function Cotas() {
-  const { isAdminPrincipal, isLoading: authLoading } = useAuth();
+  // Access control: Only Admin Principal can access
+  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
+  
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -81,15 +82,22 @@ export default function Cotas() {
   };
 
   useEffect(() => {
-    fetchCotas();
-  }, []);
+    if (isAllowed && !isChecking) {
+      fetchCotas();
+    }
+  }, [isAllowed, isChecking]);
 
-  if (authLoading) {
-    return <div>Carregando...</div>;
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
   }
 
-  if (!isAdminPrincipal) {
-    return <Navigate to="/dashboard" replace />;
+  if (!isAllowed) {
+    return null;
   }
 
   const formatCurrency = (value: number) => {

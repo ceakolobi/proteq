@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,10 @@ interface UserWithRole extends Profile {
 }
 
 export default function Usuarios() {
-  const { isAdminPrincipal, hasRole, isLoading: authLoading } = useAuth();
+  // Access control: Only Admin Principal and Admin Regional can access
+  const { isAllowed, isChecking, userSedeId } = useAccessControl('admin_regional_or_above');
+  const { isAdminPrincipal, hasRole, profile } = useAuth();
+  
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
@@ -59,25 +62,33 @@ export default function Usuarios() {
   });
 
   const fetchData = async () => {
+    if (!isAllowed) return;
+    
     try {
-      // Fetch profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      let profilesQuery = supabase
         .from('profiles')
         .select('*')
         .order('nome_completo');
+      
+      // Admin Regional can only see users in their sede
+      if (!isAdminPrincipal && hasRole('admin_regional') && profile?.sede_id) {
+        profilesQuery = profilesQuery.eq('sede_id', profile.sede_id);
+      }
+
+      const { data: profilesData, error: profilesError } = await profilesQuery;
 
       if (profilesError) throw profilesError;
 
       // Fetch roles for each user
       const usersWithRoles = await Promise.all(
-        (profilesData || []).map(async (profile) => {
+        (profilesData || []).map(async (userProfile) => {
           const { data: rolesData } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', profile.id);
+            .eq('user_id', userProfile.id);
 
           return {
-            ...profile,
+            ...userProfile,
             roles: rolesData?.map((r: { role: AppRole }) => r.role) || [],
           } as UserWithRole;
         })
@@ -85,18 +96,26 @@ export default function Usuarios() {
 
       setUsers(usersWithRoles);
 
-      // Fetch sedes
-      const { data: sedesData } = await supabase
-        .from('sedes')
-        .select('*')
-        .eq('ativo', true);
-      setSedes(sedesData as Sede[] || []);
+      // Fetch sedes - only Admin Principal can see all
+      if (isAdminPrincipal) {
+        const { data: sedesData } = await supabase
+          .from('sedes')
+          .select('*')
+          .eq('ativo', true);
+        setSedes(sedesData as Sede[] || []);
+      }
 
-      // Fetch regioes
-      const { data: regioesData } = await supabase
+      // Fetch regioes - filter by sede for Admin Regional
+      let regioesQuery = supabase
         .from('regioes')
         .select('*, sede:sedes(nome)')
         .eq('ativo', true);
+      
+      if (!isAdminPrincipal && profile?.sede_id) {
+        regioesQuery = regioesQuery.eq('sede_id', profile.sede_id);
+      }
+      
+      const { data: regioesData } = await regioesQuery;
       setRegioes(regioesData as Regiao[] || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -111,15 +130,22 @@ export default function Usuarios() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAllowed && !isChecking) {
+      fetchData();
+    }
+  }, [isAllowed, isChecking]);
 
-  if (authLoading) {
-    return <div>Carregando...</div>;
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
   }
 
-  if (!isAdminPrincipal && !hasRole('admin_regional')) {
-    return <Navigate to="/dashboard" replace />;
+  if (!isAllowed) {
+    return null;
   }
 
   const handleOpenDialog = (user: UserWithRole) => {
@@ -192,6 +218,8 @@ export default function Usuarios() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Admin Principal can assign any role except admin_principal
+  // Admin Regional can only assign consultor_vendas or vistoriador
   const availableRoles: AppRole[] = isAdminPrincipal
     ? ['admin_regional', 'financeiro', 'cadastro', 'consultor_vendas', 'vistoriador', 'associado']
     : ['consultor_vendas', 'vistoriador'];
