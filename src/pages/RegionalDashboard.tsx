@@ -44,8 +44,18 @@ import {
   Search,
   Edit,
   Phone,
-  Mail
+  Mail,
+  Calendar,
+  UserCheck
 } from 'lucide-react';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { Profile, Sede, AppRole } from '@/types/database';
 
 interface ConsultorWithStats extends Profile {
@@ -61,6 +71,18 @@ interface RegionalStats {
   conversaoMes: number;
 }
 
+interface GrowthData {
+  month: string;
+  associados: number;
+}
+
+interface RecentAssociado {
+  id: string;
+  nome_completo: string;
+  created_at: string;
+  status: string;
+}
+
 export default function RegionalDashboard() {
   const { profile, hasRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('admin_regional_or_above');
@@ -73,6 +95,8 @@ export default function RegionalDashboard() {
     propostasMes: 0,
     conversaoMes: 0,
   });
+  const [growthData, setGrowthData] = useState<GrowthData[]>([]);
+  const [recentAssociados, setRecentAssociados] = useState<RecentAssociado[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -92,6 +116,8 @@ export default function RegionalDashboard() {
       fetchSedeData();
       fetchConsultores();
       fetchStats();
+      fetchGrowthData();
+      fetchRecentAssociados();
     }
   }, [profile?.sede_id]);
 
@@ -245,6 +271,74 @@ export default function RegionalDashboard() {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchGrowthData = async () => {
+    if (!profile?.sede_id) return;
+
+    try {
+      // Get regioes for this sede
+      const { data: regioes } = await supabase
+        .from('regioes')
+        .select('id')
+        .eq('sede_id', profile.sede_id);
+
+      const regiaoIds = regioes?.map(r => r.id) || [];
+      if (regiaoIds.length === 0) {
+        setGrowthData([]);
+        return;
+      }
+
+      // Fetch growth data (last 6 months)
+      const months: GrowthData[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = subMonths(new Date(), i);
+        const end = endOfMonth(date);
+
+        const { count } = await supabase
+          .from('associados')
+          .select('*', { count: 'exact', head: true })
+          .in('regiao_id', regiaoIds)
+          .lte('created_at', end.toISOString());
+
+        months.push({
+          month: format(date, 'MMM', { locale: ptBR }),
+          associados: count || 0,
+        });
+      }
+      setGrowthData(months);
+    } catch (error) {
+      console.error('Error fetching growth data:', error);
+    }
+  };
+
+  const fetchRecentAssociados = async () => {
+    if (!profile?.sede_id) return;
+
+    try {
+      // Get regioes for this sede
+      const { data: regioes } = await supabase
+        .from('regioes')
+        .select('id')
+        .eq('sede_id', profile.sede_id);
+
+      const regiaoIds = regioes?.map(r => r.id) || [];
+      if (regiaoIds.length === 0) {
+        setRecentAssociados([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('associados')
+        .select('id, nome_completo, created_at, status')
+        .in('regiao_id', regiaoIds)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      setRecentAssociados(data || []);
+    } catch (error) {
+      console.error('Error fetching recent associados:', error);
     }
   };
 
@@ -532,86 +626,181 @@ export default function RegionalDashboard() {
           </TabsContent>
 
           <TabsContent value="relatorio">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Relatório da Regional
-                </CardTitle>
-                <CardDescription>
-                  Visão geral do desempenho da regional
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Performance Summary */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Resumo de Performance</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total de Consultores</span>
-                        <span className="font-bold">{stats.totalConsultores}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total de Associados</span>
-                        <span className="font-bold">{stats.totalAssociados}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Veículos Protegidos</span>
-                        <span className="font-bold">{stats.totalVeiculos}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Propostas este Mês</span>
-                        <span className="font-bold">{stats.propostasMes}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Média Associados/Consultor</span>
-                        <span className="font-bold">
-                          {stats.totalConsultores > 0
-                            ? (stats.totalAssociados / stats.totalConsultores).toFixed(1)
-                            : 0}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <div className="space-y-6">
+              {/* Growth Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Evolução de Associados
+                  </CardTitle>
+                  <CardDescription>
+                    Crescimento nos últimos 6 meses
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {growthData.length === 0 ? (
+                    <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                      Sem dados disponíveis
+                    </div>
+                  ) : (
+                    <ChartContainer config={{ associados: { label: "Associados", color: "hsl(var(--primary))" } }} className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorAssociadosRegional" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis 
+                            dataKey="month" 
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                          />
+                          <YAxis 
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Area
+                            type="monotone"
+                            dataKey="associados"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={2}
+                            fillOpacity={1}
+                            fill="url(#colorAssociadosRegional)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
 
-                  {/* Top Consultores */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Top Consultores</CardTitle>
-                      <CardDescription>Por número de associados</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {consultores
-                          .sort((a, b) => (b.associados_count || 0) - (a.associados_count || 0))
-                          .slice(0, 5)
-                          .map((consultor, index) => (
-                            <div key={consultor.id} className="flex items-center gap-3">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Recent Associados */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-green-600" />
+                      Últimos Associados
+                    </CardTitle>
+                    <CardDescription>
+                      Cadastrados recentemente na regional
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {recentAssociados.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-4">
+                        Nenhum associado cadastrado
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {recentAssociados.map((associado) => (
+                          <div
+                            key={associado.id}
+                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-green-500/10 rounded-md">
+                                <Users className="h-4 w-4 text-green-600" />
+                              </div>
+                              <div>
+                                <span className="font-medium">{associado.nome_completo}</span>
+                                <Badge variant={associado.status === 'ativo' ? 'default' : 'secondary'} className="ml-2 text-xs">
+                                  {associado.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(associado.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Consultores List */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserCheck className="h-5 w-5 text-primary" />
+                      Consultores da Regional
+                    </CardTitle>
+                    <CardDescription>Por número de associados</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {consultores
+                        .sort((a, b) => (b.associados_count || 0) - (a.associados_count || 0))
+                        .slice(0, 5)
+                        .map((consultor, index) => (
+                          <div 
+                            key={consultor.id} 
+                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold">
                                 {index + 1}
                               </div>
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{consultor.nome_completo}</p>
-                              </div>
-                              <Badge variant="secondary">
-                                {consultor.associados_count || 0} associados
-                              </Badge>
+                              <span className="font-medium">{consultor.nome_completo}</span>
                             </div>
-                          ))}
-                        {consultores.length === 0 && (
-                          <p className="text-muted-foreground text-center py-4">
-                            Nenhum consultor cadastrado
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
+                            <Badge variant="secondary">
+                              {consultor.associados_count || 0} associados
+                            </Badge>
+                          </div>
+                        ))}
+                      {consultores.length === 0 && (
+                        <p className="text-muted-foreground text-center py-4">
+                          Nenhum consultor cadastrado
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Performance Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Resumo de Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="p-4 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{stats.totalConsultores}</p>
+                      <p className="text-xs text-muted-foreground">Consultores</p>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{stats.totalAssociados}</p>
+                      <p className="text-xs text-muted-foreground">Associados</p>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{stats.totalVeiculos}</p>
+                      <p className="text-xs text-muted-foreground">Veículos</p>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">{stats.propostasMes}</p>
+                      <p className="text-xs text-muted-foreground">Propostas/Mês</p>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold">
+                        {stats.totalConsultores > 0
+                          ? (stats.totalAssociados / stats.totalConsultores).toFixed(1)
+                          : 0}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Média/Consultor</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 
