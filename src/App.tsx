@@ -12,6 +12,8 @@ import Cotas from "./pages/Cotas";
 import Cotacao from "./pages/Cotacao";
 import Sedes from "./pages/Sedes";
 import RegionalDashboard from "./pages/RegionalDashboard";
+import ConsultorDashboard from "./pages/ConsultorDashboard";
+import Associados from "./pages/Associados";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,9 @@ const App = () => (
             <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />
             <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
             <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
+            <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
+            <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
+            <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
