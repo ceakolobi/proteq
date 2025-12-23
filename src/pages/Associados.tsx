@@ -46,11 +46,12 @@ import {
   Edit, 
   Phone, 
   Mail,
-  MapPin,
   Car,
-  Eye,
   Building2,
-  Plus
+  Plus,
+  ChevronRight,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import type { Associado, Regiao, AssociateStatus, VehicleType, Cota, Profile } from '@/types/database';
 import { associateStatusLabels, vehicleTypeLabels } from '@/types/database';
@@ -67,15 +68,12 @@ interface VeiculoForm {
   modelo: string;
   ano: number;
   placa: string;
-  cor: string;
-  chassi: string;
-  renavam: string;
   valor_fipe: number;
-  cota_id: string;
 }
 
+type WizardStep = 'associado' | 'veiculo' | 'complete';
+
 export default function Associados() {
-  // Access control: Consultor, Admin Regional, or Admin Principal
   const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   const [associados, setAssociados] = useState<AssociadoWithDetails[]>([]);
@@ -92,18 +90,16 @@ export default function Associados() {
   const [selectedAssociado, setSelectedAssociado] = useState<AssociadoWithDetails | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
   
+  // Wizard state for new associado flow
+  const [wizardStep, setWizardStep] = useState<WizardStep>('associado');
+  const [newAssociadoId, setNewAssociadoId] = useState<string | null>(null);
+  const [isWizardMode, setIsWizardMode] = useState(false);
+  
   const [formData, setFormData] = useState({
     nome_completo: '',
     cpf: '',
-    rg: '',
-    data_nascimento: '',
     telefone: '',
     email: '',
-    endereco: '',
-    cidade: '',
-    estado: '',
-    cep: '',
-    regiao_id: '',
     status: 'ativo' as AssociateStatus,
   });
 
@@ -113,19 +109,13 @@ export default function Associados() {
     modelo: '',
     ano: new Date().getFullYear(),
     placa: '',
-    cor: '',
-    chassi: '',
-    renavam: '',
     valor_fipe: 0,
-    cota_id: '',
   });
 
   const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !hasRole('admin_regional');
   const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   const isCadastro = hasRole('cadastro');
   
-  // Consultores can only create (not edit other's associados)
-  // Admin Regional and Admin Principal can edit anyone in their scope
   const canCreate = isConsultor || isAdminRegional || isAdminPrincipal;
   const canEditAll = isAdminPrincipal || isAdminRegional || isCadastro;
 
@@ -135,7 +125,6 @@ export default function Associados() {
     }
   }, [user?.id, isAdminPrincipal, isConsultor, isAllowed, isChecking]);
 
-  // Show loading while checking access
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -162,11 +151,9 @@ export default function Associados() {
       setIsLoading(true);
       let query = supabase.from('associados').select('*');
 
-      // Filter based on role
       if (isConsultor && !isAdminPrincipal && !isAdminRegional) {
         query = query.eq('consultor_id', user!.id);
       } else if (isAdminRegional && profile?.sede_id) {
-        // Get regioes for this sede
         const { data: sedeRegioes } = await supabase
           .from('regioes')
           .select('id')
@@ -181,16 +168,13 @@ export default function Associados() {
 
       if (error) throw error;
 
-      // Get additional details for each associado
       const associadosWithDetails = await Promise.all(
         (data || []).map(async (associado) => {
-          // Get veiculos count
           const { count } = await supabase
             .from('veiculos')
             .select('*', { count: 'exact', head: true })
             .eq('associado_id', associado.id);
 
-          // Get consultor info
           let consultor: Profile | null = null;
           if (associado.consultor_id) {
             const { data: consultorData } = await supabase
@@ -201,7 +185,6 @@ export default function Associados() {
             consultor = consultorData;
           }
 
-          // Get regiao info
           let regiao: Regiao | null = null;
           if (associado.regiao_id) {
             const { data: regiaoData } = await supabase
@@ -272,7 +255,6 @@ export default function Associados() {
 
   const fetchConsultores = async () => {
     try {
-      // Get all users with consultor_vendas role
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -295,40 +277,44 @@ export default function Associados() {
     }
   };
 
-  const handleOpenDialog = (associado?: AssociadoWithDetails) => {
-    if (associado) {
-      setSelectedAssociado(associado);
-      setFormData({
-        nome_completo: associado.nome_completo,
-        cpf: associado.cpf,
-        rg: associado.rg || '',
-        data_nascimento: associado.data_nascimento || '',
-        telefone: associado.telefone,
-        email: associado.email,
-        endereco: associado.endereco || '',
-        cidade: associado.cidade || '',
-        estado: associado.estado || '',
-        cep: associado.cep || '',
-        regiao_id: associado.regiao_id || '',
-        status: associado.status,
-      });
-    } else {
-      setSelectedAssociado(null);
-      setFormData({
-        nome_completo: '',
-        cpf: '',
-        rg: '',
-        data_nascimento: '',
-        telefone: '',
-        email: '',
-        endereco: '',
-        cidade: '',
-        estado: '',
-        cep: '',
-        regiao_id: profile?.regiao_id || '',
-        status: 'ativo',
-      });
-    }
+  const resetForms = () => {
+    setFormData({
+      nome_completo: '',
+      cpf: '',
+      telefone: '',
+      email: '',
+      status: 'ativo',
+    });
+    setVeiculoForm({
+      tipo: 'carro',
+      marca: '',
+      modelo: '',
+      ano: new Date().getFullYear(),
+      placa: '',
+      valor_fipe: 0,
+    });
+    setWizardStep('associado');
+    setNewAssociadoId(null);
+    setIsWizardMode(false);
+    setSelectedAssociado(null);
+  };
+
+  const handleOpenNewAssociadoWizard = () => {
+    resetForms();
+    setIsWizardMode(true);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
+    setSelectedAssociado(associado);
+    setFormData({
+      nome_completo: associado.nome_completo,
+      cpf: associado.cpf,
+      telefone: associado.telefone,
+      email: associado.email,
+      status: associado.status,
+    });
+    setIsWizardMode(false);
     setIsDialogOpen(true);
   };
 
@@ -340,16 +326,28 @@ export default function Associados() {
       modelo: '',
       ano: new Date().getFullYear(),
       placa: '',
-      cor: '',
-      chassi: '',
-      renavam: '',
       valor_fipe: 0,
-      cota_id: '',
     });
     setIsVeiculoDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleCloseDialog = () => {
+    if (isWizardMode && wizardStep === 'veiculo' && newAssociadoId) {
+      // Confirm if user wants to close without adding vehicle
+      if (!confirm('O cadastro do veículo é obrigatório. Deseja cancelar o cadastro do associado?')) {
+        return;
+      }
+      // Delete the associado if user cancels
+      supabase.from('associados').delete().eq('id', newAssociadoId).then(() => {
+        toast.info('Cadastro cancelado');
+        fetchAssociados();
+      });
+    }
+    setIsDialogOpen(false);
+    resetForms();
+  };
+
+  const handleSaveAssociado = async () => {
     if (!formData.nome_completo.trim() || !formData.cpf.trim() || !formData.email.trim() || !formData.telefone.trim()) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
@@ -357,27 +355,19 @@ export default function Associados() {
 
     try {
       // Get consultor's regiao automatically
-      let regiaoId = formData.regiao_id;
-      if (!regiaoId && profile?.regiao_id) {
-        regiaoId = profile.regiao_id;
-      }
+      let regiaoId = profile?.regiao_id || null;
 
       const associadoData = {
         nome_completo: formData.nome_completo.trim(),
         cpf: formData.cpf.trim(),
-        rg: formData.rg.trim() || null,
-        data_nascimento: formData.data_nascimento || null,
         telefone: formData.telefone.trim(),
         email: formData.email.trim(),
-        endereco: formData.endereco.trim() || null,
-        cidade: formData.cidade.trim() || null,
-        estado: formData.estado.trim() || null,
-        cep: formData.cep.trim() || null,
-        regiao_id: regiaoId || null,
         status: formData.status,
+        regiao_id: regiaoId, // Auto-link to consultor's regional
       };
 
-      if (selectedAssociado) {
+      if (selectedAssociado && !isWizardMode) {
+        // Editing existing associado
         const { error } = await supabase
           .from('associados')
           .update(associadoData)
@@ -385,21 +375,25 @@ export default function Associados() {
 
         if (error) throw error;
         toast.success('Associado atualizado com sucesso');
+        setIsDialogOpen(false);
+        fetchAssociados();
       } else {
-        // Create new associado linked to current consultor
-        const { error } = await supabase
+        // Creating new associado - wizard mode
+        const { data, error } = await supabase
           .from('associados')
           .insert({
             ...associadoData,
-            consultor_id: user!.id,
-          });
+            consultor_id: user!.id, // Link to current consultor
+          })
+          .select()
+          .single();
 
         if (error) throw error;
-        toast.success('Associado cadastrado com sucesso');
+        
+        setNewAssociadoId(data.id);
+        setWizardStep('veiculo');
+        toast.success('Associado cadastrado! Agora cadastre o veículo.');
       }
-
-      setIsDialogOpen(false);
-      fetchAssociados();
     } catch (error: any) {
       console.error('Error saving associado:', error);
       toast.error(error.message || 'Erro ao salvar associado');
@@ -407,7 +401,12 @@ export default function Associados() {
   };
 
   const handleSaveVeiculo = async () => {
-    if (!selectedAssociado) return;
+    const associadoId = isWizardMode ? newAssociadoId : selectedAssociado?.id;
+    
+    if (!associadoId) {
+      toast.error('Erro: Associado não encontrado');
+      return;
+    }
 
     if (!veiculoForm.marca.trim() || !veiculoForm.modelo.trim() || !veiculoForm.placa.trim() || veiculoForm.valor_fipe <= 0) {
       toast.error('Preencha todos os campos obrigatórios do veículo');
@@ -439,26 +438,33 @@ export default function Associados() {
       const { error } = await supabase
         .from('veiculos')
         .insert({
-          associado_id: selectedAssociado.id,
+          associado_id: associadoId,
           tipo: veiculoForm.tipo,
           marca: veiculoForm.marca.trim(),
           modelo: veiculoForm.modelo.trim(),
           ano: veiculoForm.ano,
           placa: veiculoForm.placa.trim().toUpperCase(),
-          cor: veiculoForm.cor.trim() || null,
-          chassi: veiculoForm.chassi.trim() || null,
-          renavam: veiculoForm.renavam.trim() || null,
           valor_fipe: veiculoForm.valor_fipe,
-          cota_id: veiculoForm.cota_id || cotaApropriada?.id || null,
+          cota_id: cotaApropriada?.id || null,
           mensalidade: mensalidade,
           carro_reserva_dias: 15,
         });
 
       if (error) throw error;
 
-      toast.success('Veículo cadastrado com sucesso');
-      setIsVeiculoDialogOpen(false);
-      fetchAssociados();
+      if (isWizardMode) {
+        setWizardStep('complete');
+        toast.success('Cadastro completo! Associado e veículo cadastrados com sucesso.');
+        setTimeout(() => {
+          setIsDialogOpen(false);
+          resetForms();
+          fetchAssociados();
+        }, 1500);
+      } else {
+        toast.success('Veículo cadastrado com sucesso');
+        setIsVeiculoDialogOpen(false);
+        fetchAssociados();
+      }
     } catch (error: any) {
       console.error('Error saving veiculo:', error);
       toast.error(error.message || 'Erro ao salvar veículo');
@@ -493,7 +499,6 @@ export default function Associados() {
     return matchesSearch && matchesStatus && matchesRegiao && matchesConsultor;
   });
 
-  // Group associados by regiao and consultor
   const groupedByRegiao = regioes.reduce((acc, regiao) => {
     const regiaoAssociados = filteredAssociados.filter(a => a.regiao_id === regiao.id);
     if (regiaoAssociados.length > 0) {
@@ -523,7 +528,6 @@ export default function Associados() {
   };
 
   const AssociadoRow = ({ associado }: { associado: AssociadoWithDetails }) => {
-    // Consultor can edit their own associados
     const canEditThisAssociado = canEditAll || (isConsultor && associado.consultor_id === user?.id);
     
     return (
@@ -590,7 +594,7 @@ export default function Associados() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleOpenDialog(associado)}
+                onClick={() => handleOpenEditDialog(associado)}
               >
                 <Edit className="h-4 w-4" />
               </Button>
@@ -600,6 +604,26 @@ export default function Associados() {
       </TableRow>
     );
   };
+
+  // Wizard steps indicator
+  const WizardSteps = () => (
+    <div className="flex items-center justify-center gap-2 mb-6">
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+        wizardStep === 'associado' ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'
+      }`}>
+        {wizardStep !== 'associado' ? <Check className="h-4 w-4" /> : <span className="w-5 h-5 flex items-center justify-center">1</span>}
+        <span>Associado</span>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+        wizardStep === 'veiculo' ? 'bg-primary text-primary-foreground' : 
+        wizardStep === 'complete' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+      }`}>
+        {wizardStep === 'complete' ? <Check className="h-4 w-4" /> : <span className="w-5 h-5 flex items-center justify-center">2</span>}
+        <span>Veículo</span>
+      </div>
+    </div>
+  );
 
   return (
     <DashboardLayout>
@@ -615,7 +639,7 @@ export default function Associados() {
             </p>
           </div>
           {canCreate && (
-            <Button onClick={() => handleOpenDialog()}>
+            <Button onClick={handleOpenNewAssociadoWizard}>
               <UserPlus className="mr-2 h-4 w-4" />
               Novo Associado
             </Button>
@@ -780,7 +804,7 @@ export default function Associados() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => handleOpenDialog()}
+                                onClick={handleOpenNewAssociadoWizard}
                               >
                                 Cadastrar primeiro associado
                               </Button>
@@ -866,7 +890,7 @@ export default function Associados() {
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7"
-                                            onClick={() => handleOpenDialog(associado)}
+                                            onClick={() => handleOpenEditDialog(associado)}
                                           >
                                             <Edit className="h-3 w-3" />
                                           </Button>
@@ -888,200 +912,113 @@ export default function Associados() {
           </CardContent>
         </Card>
 
-        {/* Create/Edit Associado Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedAssociado ? 'Editar Associado' : 'Novo Associado'}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedAssociado
-                  ? 'Atualize os dados do associado'
-                  : 'Cadastre um novo associado vinculado automaticamente à sua regional'}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-4 py-4">
-              {/* Personal Info */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground">Dados Pessoais</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="nome">Nome Completo *</Label>
-                    <Input
-                      id="nome"
-                      value={formData.nome_completo}
-                      onChange={(e) =>
-                        setFormData({ ...formData, nome_completo: e.target.value })
-                      }
-                      placeholder="Nome completo do associado"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF / Documento *</Label>
-                    <Input
-                      id="cpf"
-                      value={formData.cpf}
-                      onChange={(e) =>
-                        setFormData({ ...formData, cpf: e.target.value })
-                      }
-                      placeholder="000.000.000-00"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rg">RG</Label>
-                    <Input
-                      id="rg"
-                      value={formData.rg}
-                      onChange={(e) =>
-                        setFormData({ ...formData, rg: e.target.value })
-                      }
-                      placeholder="00.000.000-0"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground">Contato</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="email@exemplo.com"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">Telefone *</Label>
-                    <Input
-                      id="telefone"
-                      value={formData.telefone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, telefone: e.target.value })
-                      }
-                      placeholder="(00) 00000-0000"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground">Endereço (opcional)</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="endereco">Endereço</Label>
-                    <Input
-                      id="endereco"
-                      value={formData.endereco}
-                      onChange={(e) =>
-                        setFormData({ ...formData, endereco: e.target.value })
-                      }
-                      placeholder="Rua, número, bairro"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <Input
-                      id="cidade"
-                      value={formData.cidade}
-                      onChange={(e) =>
-                        setFormData({ ...formData, cidade: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="estado">UF</Label>
-                      <Input
-                        id="estado"
-                        value={formData.estado}
-                        onChange={(e) =>
-                          setFormData({ ...formData, estado: e.target.value })
-                        }
-                        maxLength={2}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cep">CEP</Label>
-                      <Input
-                        id="cep"
-                        value={formData.cep}
-                        onChange={(e) =>
-                          setFormData({ ...formData, cep: e.target.value })
-                        }
-                        placeholder="00000-000"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status (only for admins, not consultores) */}
-              {selectedAssociado && canEditAll && !isConsultor && (
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: AssociateStatus) =>
-                      setFormData({ ...formData, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ativo">Ativo</SelectItem>
-                      <SelectItem value="inadimplente">Inadimplente</SelectItem>
-                      <SelectItem value="suspenso">Suspenso</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSave}>
-                {selectedAssociado ? 'Salvar' : 'Cadastrar'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Veiculo Dialog */}
-        <Dialog open={isVeiculoDialogOpen} onOpenChange={setIsVeiculoDialogOpen}>
+        {/* Create/Edit Associado Dialog with Wizard */}
+        <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Adicionar Veículo</DialogTitle>
+              <DialogTitle>
+                {isWizardMode 
+                  ? (wizardStep === 'complete' ? 'Cadastro Completo!' : 'Novo Associado + Veículo')
+                  : (selectedAssociado ? 'Editar Associado' : 'Novo Associado')}
+              </DialogTitle>
               <DialogDescription>
-                Vincule um veículo ao associado {selectedAssociado?.nome_completo}
+                {isWizardMode 
+                  ? (wizardStep === 'associado' 
+                      ? 'Passo 1: Cadastre os dados do associado' 
+                      : wizardStep === 'veiculo'
+                        ? 'Passo 2: Cadastre o veículo (obrigatório)'
+                        : 'Associado e veículo cadastrados com sucesso!')
+                  : (selectedAssociado 
+                      ? 'Atualize os dados do associado' 
+                      : 'Cadastre um novo associado')}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+            {isWizardMode && <WizardSteps />}
+
+            {/* Step: Associado Data */}
+            {((wizardStep === 'associado' && isWizardMode) || !isWizardMode) && (
+              <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label>Tipo *</Label>
+                  <Label htmlFor="nome">Nome Completo *</Label>
+                  <Input
+                    id="nome"
+                    value={formData.nome_completo}
+                    onChange={(e) => setFormData({ ...formData, nome_completo: e.target.value })}
+                    placeholder="Nome completo do associado"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cpf">CPF *</Label>
+                  <Input
+                    id="cpf"
+                    value={formData.cpf}
+                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="telefone">Telefone *</Label>
+                  <Input
+                    id="telefone"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+
+                {/* Status (only for editing and for admins) */}
+                {selectedAssociado && canEditAll && !isConsultor && (
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value: AssociateStatus) =>
+                        setFormData({ ...formData, status: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ativo">Ativo</SelectItem>
+                        <SelectItem value="inadimplente">Inadimplente</SelectItem>
+                        <SelectItem value="suspenso">Suspenso</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {isWizardMode && (
+                  <div className="bg-muted/50 rounded-lg p-3 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <p className="text-sm text-muted-foreground">
+                      O associado será vinculado automaticamente à sua regional e após o cadastro, será necessário cadastrar pelo menos um veículo.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step: Veiculo Data */}
+            {wizardStep === 'veiculo' && isWizardMode && (
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label>Tipo de Veículo *</Label>
                   <Select
                     value={veiculoForm.tipo}
                     onValueChange={(value: VehicleType) =>
@@ -1098,18 +1035,123 @@ export default function Associados() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Marca *</Label>
+                    <Input
+                      value={veiculoForm.marca}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, marca: e.target.value })}
+                      placeholder="Ex: Volkswagen"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Modelo *</Label>
+                    <Input
+                      value={veiculoForm.modelo}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, modelo: e.target.value })}
+                      placeholder="Ex: Gol"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Ano *</Label>
+                    <Input
+                      type="number"
+                      value={veiculoForm.ano}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, ano: parseInt(e.target.value) || 0 })}
+                      min={1900}
+                      max={new Date().getFullYear() + 1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Placa *</Label>
+                    <Input
+                      value={veiculoForm.placa}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, placa: e.target.value.toUpperCase() })}
+                      placeholder="ABC1234"
+                      maxLength={7}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label>Ano *</Label>
+                  <Label>Valor FIPE *</Label>
                   <Input
                     type="number"
-                    value={veiculoForm.ano}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, ano: parseInt(e.target.value) || 0 })
-                    }
-                    min={1900}
-                    max={new Date().getFullYear() + 1}
+                    value={veiculoForm.valor_fipe || ''}
+                    onChange={(e) => setVeiculoForm({ ...veiculoForm, valor_fipe: parseFloat(e.target.value) || 0 })}
+                    placeholder="Ex: 45000"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    A cota e mensalidade serão calculadas automaticamente
+                  </p>
                 </div>
+              </div>
+            )}
+
+            {/* Step: Complete */}
+            {wizardStep === 'complete' && (
+              <div className="py-8 flex flex-col items-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                  <Check className="h-8 w-8 text-green-600" />
+                </div>
+                <p className="text-center text-muted-foreground">
+                  O associado e o veículo foram cadastrados com sucesso!
+                </p>
+              </div>
+            )}
+
+            {wizardStep !== 'complete' && (
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseDialog}>
+                  Cancelar
+                </Button>
+                {wizardStep === 'associado' || !isWizardMode ? (
+                  <Button onClick={handleSaveAssociado}>
+                    {isWizardMode ? 'Próximo: Veículo' : (selectedAssociado ? 'Salvar' : 'Cadastrar')}
+                    {isWizardMode && <ChevronRight className="ml-1 h-4 w-4" />}
+                  </Button>
+                ) : (
+                  <Button onClick={handleSaveVeiculo}>
+                    Finalizar Cadastro
+                  </Button>
+                )}
+              </DialogFooter>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Standalone Add Veiculo Dialog (for existing associados) */}
+        <Dialog open={isVeiculoDialogOpen} onOpenChange={setIsVeiculoDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Adicionar Veículo</DialogTitle>
+              <DialogDescription>
+                Vincule um veículo ao associado {selectedAssociado?.nome_completo}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Tipo de Veículo *</Label>
+                <Select
+                  value={veiculoForm.tipo}
+                  onValueChange={(value: VehicleType) =>
+                    setVeiculoForm({ ...veiculoForm, tipo: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="carro">Carro</SelectItem>
+                    <SelectItem value="moto">Motocicleta</SelectItem>
+                    <SelectItem value="pickup">Pickup/Camionete</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1117,9 +1159,7 @@ export default function Associados() {
                   <Label>Marca *</Label>
                   <Input
                     value={veiculoForm.marca}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, marca: e.target.value })
-                    }
+                    onChange={(e) => setVeiculoForm({ ...veiculoForm, marca: e.target.value })}
                     placeholder="Ex: Volkswagen"
                   />
                 </div>
@@ -1127,9 +1167,7 @@ export default function Associados() {
                   <Label>Modelo *</Label>
                   <Input
                     value={veiculoForm.modelo}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, modelo: e.target.value })
-                    }
+                    onChange={(e) => setVeiculoForm({ ...veiculoForm, modelo: e.target.value })}
                     placeholder="Ex: Gol"
                   />
                 </div>
@@ -1137,24 +1175,22 @@ export default function Associados() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Placa *</Label>
+                  <Label>Ano *</Label>
                   <Input
-                    value={veiculoForm.placa}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, placa: e.target.value.toUpperCase() })
-                    }
-                    placeholder="ABC1234"
-                    maxLength={7}
+                    type="number"
+                    value={veiculoForm.ano}
+                    onChange={(e) => setVeiculoForm({ ...veiculoForm, ano: parseInt(e.target.value) || 0 })}
+                    min={1900}
+                    max={new Date().getFullYear() + 1}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cor</Label>
+                  <Label>Placa *</Label>
                   <Input
-                    value={veiculoForm.cor}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, cor: e.target.value })
-                    }
-                    placeholder="Ex: Prata"
+                    value={veiculoForm.placa}
+                    onChange={(e) => setVeiculoForm({ ...veiculoForm, placa: e.target.value.toUpperCase() })}
+                    placeholder="ABC1234"
+                    maxLength={7}
                   />
                 </div>
               </div>
@@ -1164,35 +1200,12 @@ export default function Associados() {
                 <Input
                   type="number"
                   value={veiculoForm.valor_fipe || ''}
-                  onChange={(e) =>
-                    setVeiculoForm({ ...veiculoForm, valor_fipe: parseFloat(e.target.value) || 0 })
-                  }
+                  onChange={(e) => setVeiculoForm({ ...veiculoForm, valor_fipe: parseFloat(e.target.value) || 0 })}
                   placeholder="Ex: 45000"
                 />
                 <p className="text-xs text-muted-foreground">
-                  A cota será calculada automaticamente com base no valor FIPE
+                  A cota e mensalidade serão calculadas automaticamente
                 </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Chassi</Label>
-                  <Input
-                    value={veiculoForm.chassi}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, chassi: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Renavam</Label>
-                  <Input
-                    value={veiculoForm.renavam}
-                    onChange={(e) =>
-                      setVeiculoForm({ ...veiculoForm, renavam: e.target.value })
-                    }
-                  />
-                </div>
               </div>
             </div>
 
