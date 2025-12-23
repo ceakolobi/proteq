@@ -41,8 +41,8 @@ interface UserWithRole extends Profile {
 }
 
 export default function Usuarios() {
-  // Access control: Only Admin Principal and Admin Regional can access
-  const { isAllowed, isChecking, userSedeId } = useAccessControl('admin_regional_or_above');
+  // Access control: ONLY Admin Principal can access user management
+  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
   const { isAdminPrincipal, hasRole, profile } = useAuth();
   
   const [users, setUsers] = useState<UserWithRole[]>([]);
@@ -65,15 +65,11 @@ export default function Usuarios() {
     if (!isAllowed) return;
     
     try {
+      // Admin Principal sees all users
       let profilesQuery = supabase
         .from('profiles')
         .select('*')
         .order('nome_completo');
-      
-      // Admin Regional can only see users in their sede
-      if (!isAdminPrincipal && hasRole('admin_regional') && profile?.sede_id) {
-        profilesQuery = profilesQuery.eq('sede_id', profile.sede_id);
-      }
 
       const { data: profilesData, error: profilesError } = await profilesQuery;
 
@@ -219,10 +215,7 @@ export default function Usuarios() {
   );
 
   // Admin Principal can assign any role except admin_principal
-  // Admin Regional can only assign consultor_vendas or vistoriador
-  const availableRoles: AppRole[] = isAdminPrincipal
-    ? ['admin_regional', 'financeiro', 'cadastro', 'consultor_vendas', 'vistoriador', 'associado']
-    : ['consultor_vendas', 'vistoriador'];
+  const availableRoles: AppRole[] = ['admin_regional', 'financeiro', 'cadastro', 'consultor_vendas', 'vistoriador', 'associado'];
 
   return (
     <DashboardLayout>

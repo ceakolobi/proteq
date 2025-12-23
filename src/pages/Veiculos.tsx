@@ -81,8 +81,9 @@ interface VeiculoWithDetails {
 }
 
 export default function Veiculos() {
-  const { profile, isAdminPrincipal, hasRole } = useAuth();
-  const { isAllowed, isChecking } = useAccessControl('admin_regional_or_above');
+  const { user, profile, isAdminPrincipal, hasRole } = useAuth();
+  // Consultor or above can access - they see only their own associados' vehicles
+  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   
   const [veiculos, setVeiculos] = useState<VeiculoWithDetails[]>([]);
   const [cotas, setCotas] = useState<Cota[]>([]);
@@ -106,7 +107,8 @@ export default function Veiculos() {
     protecao_ativa: false,
   });
 
-  const isAdminRegional = hasRole('admin_regional');
+  const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
+  const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !isAdminRegional;
   const isCadastro = hasRole('cadastro');
   const canEdit = isAdminPrincipal || isAdminRegional || isCadastro;
 
@@ -134,10 +136,15 @@ export default function Veiculos() {
 
   const fetchVeiculos = async () => {
     try {
-      // First get associados based on user's access level
+      // Get associados based on user's access level
       let associadosQuery = supabase.from('associados').select('*');
       
-      if (isAdminRegional && !isAdminPrincipal && profile?.sede_id) {
+      // Consultor: only their own associados
+      if (isConsultor && user?.id) {
+        associadosQuery = associadosQuery.eq('consultor_id', user.id);
+      }
+      // Admin Regional: only their sede's associados
+      else if (isAdminRegional && profile?.sede_id) {
         const { data: sedeRegioes } = await supabase
           .from('regioes')
           .select('id')
@@ -147,6 +154,7 @@ export default function Veiculos() {
           associadosQuery = associadosQuery.in('regiao_id', sedeRegioes.map(r => r.id));
         }
       }
+      // Admin Principal: all associados (no filter)
 
       const { data: associadosData, error: associadosError } = await associadosQuery;
       if (associadosError) throw associadosError;

@@ -51,11 +51,11 @@ const navItems: NavItem[] = [
     href: '/dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
-  // Admin Principal only
+  // Admin Principal ONLY
   {
-    title: 'Sedes',
-    href: '/sedes',
-    icon: <Building2 className="h-5 w-5" />,
+    title: 'Usuários',
+    href: '/usuarios',
+    icon: <Users className="h-5 w-5" />,
     roles: ['admin_principal'],
   },
   {
@@ -64,13 +64,13 @@ const navItems: NavItem[] = [
     icon: <DollarSign className="h-5 w-5" />,
     roles: ['admin_principal'],
   },
+  // Admin Principal + Regional (Regional vê apenas sua sede)
   {
-    title: 'Configurações',
-    href: '/configuracoes',
-    icon: <Settings className="h-5 w-5" />,
-    roles: ['admin_principal'],
+    title: 'Sedes',
+    href: '/sedes',
+    icon: <Building2 className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional'],
   },
-  // Admin Principal + Regional
   {
     title: 'Painel Regional',
     href: '/regional',
@@ -80,12 +80,6 @@ const navItems: NavItem[] = [
   {
     title: 'Consultores',
     href: '/consultores',
-    icon: <Users className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
-  },
-  {
-    title: 'Usuários',
-    href: '/usuarios',
     icon: <Users className="h-5 w-5" />,
     roles: ['admin_principal', 'admin_regional'],
   },
