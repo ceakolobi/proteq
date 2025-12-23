@@ -58,6 +58,12 @@ const navItems: NavItem[] = [
     roles: ['admin_regional'],
   },
   {
+    title: 'Painel Consultor',
+    href: '/consultor',
+    icon: <UserCircle className="h-5 w-5" />,
+    roles: ['consultor_vendas'],
+  },
+  {
     title: 'Usuários',
     href: '/usuarios',
     icon: <Users className="h-5 w-5" />,
