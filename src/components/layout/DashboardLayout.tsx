@@ -51,35 +51,12 @@ const navItems: NavItem[] = [
     href: '/dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
-  {
-    title: 'Painel Regional',
-    href: '/regional',
-    icon: <Building2 className="h-5 w-5" />,
-    roles: ['admin_regional'],
-  },
-  {
-    title: 'Painel Consultor',
-    href: '/consultor',
-    icon: <UserCircle className="h-5 w-5" />,
-    roles: ['consultor_vendas'],
-  },
-  {
-    title: 'Usuários',
-    href: '/usuarios',
-    icon: <Users className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
-  },
+  // Admin Principal only
   {
     title: 'Sedes',
     href: '/sedes',
     icon: <Building2 className="h-5 w-5" />,
     roles: ['admin_principal'],
-  },
-  {
-    title: 'Regiões',
-    href: '/regioes',
-    icon: <MapPin className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
   },
   {
     title: 'Cotas',
@@ -88,8 +65,34 @@ const navItems: NavItem[] = [
     roles: ['admin_principal'],
   },
   {
-    title: 'Leads',
-    href: '/leads',
+    title: 'Configurações',
+    href: '/configuracoes',
+    icon: <Settings className="h-5 w-5" />,
+    roles: ['admin_principal'],
+  },
+  // Admin Principal + Regional
+  {
+    title: 'Painel Regional',
+    href: '/regional',
+    icon: <Building2 className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional'],
+  },
+  {
+    title: 'Usuários',
+    href: '/usuarios',
+    icon: <Users className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional'],
+  },
+  {
+    title: 'Regiões',
+    href: '/regioes',
+    icon: <MapPin className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional'],
+  },
+  // Admin Principal + Regional + Consultor
+  {
+    title: 'Painel Consultor',
+    href: '/consultor',
     icon: <UserCircle className="h-5 w-5" />,
     roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
   },
@@ -97,18 +100,6 @@ const navItems: NavItem[] = [
     title: 'Associados',
     href: '/associados',
     icon: <Users className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'cadastro', 'consultor_vendas'],
-  },
-  {
-    title: 'Veículos',
-    href: '/veiculos',
-    icon: <Car className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'cadastro'],
-  },
-  {
-    title: 'Propostas',
-    href: '/propostas',
-    icon: <FileText className="h-5 w-5" />,
     roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
   },
   {
@@ -116,6 +107,25 @@ const navItems: NavItem[] = [
     href: '/cotacao',
     icon: <DollarSign className="h-5 w-5" />,
     roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+  },
+  {
+    title: 'Leads',
+    href: '/leads',
+    icon: <UserCircle className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+  },
+  {
+    title: 'Propostas',
+    href: '/propostas',
+    icon: <FileText className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+  },
+  // Other roles
+  {
+    title: 'Veículos',
+    href: '/veiculos',
+    icon: <Car className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional', 'cadastro'],
   },
   {
     title: 'Vistorias',
@@ -128,12 +138,6 @@ const navItems: NavItem[] = [
     href: '/financeiro',
     icon: <CreditCard className="h-5 w-5" />,
     roles: ['admin_principal', 'financeiro'],
-  },
-  {
-    title: 'Configurações',
-    href: '/configuracoes',
-    icon: <Settings className="h-5 w-5" />,
-    roles: ['admin_principal'],
   },
 ];
 
