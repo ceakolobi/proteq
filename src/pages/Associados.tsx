@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,8 @@ interface VeiculoForm {
 }
 
 export default function Associados() {
+  // Access control: Consultor, Admin Regional, or Admin Principal
+  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   const [associados, setAssociados] = useState<AssociadoWithDetails[]>([]);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
@@ -124,8 +127,23 @@ export default function Associados() {
   const canEdit = isAdminPrincipal || isAdminRegional || isCadastro || isConsultor;
 
   useEffect(() => {
-    fetchData();
-  }, [user?.id, isAdminPrincipal, isConsultor]);
+    if (isAllowed && !isChecking) {
+      fetchData();
+    }
+  }, [user?.id, isAdminPrincipal, isConsultor, isAllowed, isChecking]);
+
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return null;
+  }
 
   const fetchData = async () => {
     await Promise.all([

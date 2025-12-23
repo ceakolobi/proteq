@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,8 +53,10 @@ interface SedeWithResponsavel extends Sede {
 }
 
 export default function Sedes() {
+  // Access control: Only Admin Principal can access
+  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
   const { isAdminPrincipal } = useAuth();
-  const navigate = useNavigate();
+  
   const [sedes, setSedes] = useState<SedeWithResponsavel[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,13 +74,18 @@ export default function Sedes() {
     responsavel_id: '',
   });
 
-  // Redirect if not admin principal
-  useEffect(() => {
-    if (!isAdminPrincipal) {
-      navigate('/dashboard');
-      toast.error('Acesso restrito ao Admin Principal');
-    }
-  }, [isAdminPrincipal, navigate]);
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return null;
+  }
 
   useEffect(() => {
     fetchSedes();

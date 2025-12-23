@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,9 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { profile, roles, isAdminPrincipal } = useAuth();
+  const { profile, roles, isAdminPrincipal, user } = useAuth();
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalAssociados: 0,
     associadosAtivos: 0,
@@ -38,9 +41,11 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAllowed || isChecking) return;
+
     const fetchStats = async () => {
       try {
-        // Fetch associados count
+        // Fetch associados count - RLS will filter based on user role
         const { count: totalAssociados } = await supabase
           .from('associados')
           .select('*', { count: 'exact', head: true });
@@ -55,12 +60,12 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'inadimplente');
 
-        // Fetch veiculos count
+        // Fetch veiculos count - RLS will filter based on user role
         const { count: totalVeiculos } = await supabase
           .from('veiculos')
           .select('*', { count: 'exact', head: true });
 
-        // Fetch propostas hoje
+        // Fetch propostas hoje - only if user can see proposals
         const today = new Date().toISOString().split('T')[0];
         const { count: propostasHoje } = await supabase
           .from('propostas')
@@ -89,7 +94,20 @@ export default function Dashboard() {
     };
 
     fetchStats();
-  }, []);
+  }, [isAllowed, isChecking]);
+
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return null;
+  }
 
   const StatCard = ({ 
     title, 
