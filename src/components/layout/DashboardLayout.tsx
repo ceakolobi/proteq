@@ -98,7 +98,7 @@ const navSections: NavSection[] = [
         title: 'Vistorias',
         href: '/vistorias',
         icon: <ClipboardCheck className="h-5 w-5" />,
-        roles: ['admin_principal', 'admin_regional', 'vistoriador', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_regional', 'vistoriador'],
       },
       {
         title: 'Financeiro',

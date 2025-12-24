@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
@@ -82,9 +83,10 @@ interface VeiculoWithDetails {
 }
 
 export default function Veiculos() {
-  const { user, profile, isAdminPrincipal, hasRole } = useAuth();
-  // Consultor or above can access - they see only their own associados' vehicles
-  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
+  const navigate = useNavigate();
+  const { user, profile, isAdminPrincipal, hasRole, hasAnyRole } = useAuth();
+  // Acesso ao módulo de veículos (inclui Cadastro)
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   
   const [veiculos, setVeiculos] = useState<VeiculoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,6 +119,7 @@ export default function Veiculos() {
   const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !isAdminRegional;
   const isCadastro = hasRole('cadastro');
   const canEdit = isAdminPrincipal || isAdminRegional || isCadastro;
+  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
 
   if (isChecking) {
     return (
@@ -128,6 +131,24 @@ export default function Veiculos() {
 
   if (!isAllowed) {
     return null;
+  }
+
+  if (!canAccessPage) {
+    return (
+      <DashboardLayout>
+        <Card>
+          <CardHeader>
+            <CardTitle>Acesso restrito</CardTitle>
+            <CardDescription>
+              Você não tem permissão para acessar o módulo de Veículos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/dashboard')}>Voltar ao Dashboard</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
   }
 
   useEffect(() => {
