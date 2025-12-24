@@ -313,7 +313,7 @@ export default function Dashboard() {
 
               <Card 
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => navigate('/relatorios')}
+                onClick={() => navigate('/vistorias')}
               >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-yellow-500/10 rounded-lg">
