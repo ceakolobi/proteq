@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, Car, Users, Lock, ArrowRight } from 'lucide-react';
+import { Car, Users, Lock, ArrowRight } from 'lucide-react';
+import markaLogo from '@/assets/marka-logo.png';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -11,9 +12,7 @@ export default function Index() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary rounded-lg">
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src={markaLogo} alt="MARKA CRM" className="h-10 w-10 object-contain" />
             <span className="font-bold text-xl">MARKA CRM</span>
           </div>
           <Button onClick={() => navigate('/auth')}>
@@ -28,9 +27,12 @@ export default function Index() {
         <div className="container mx-auto px-4 py-16 text-center">
           <div className="max-w-3xl mx-auto space-y-8">
             <div className="space-y-4">
+              <div className="flex justify-center mb-6">
+                <img src={markaLogo} alt="MARKA CRM" className="h-24 w-24 object-contain" />
+              </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
                 <span className="text-primary">MARKA CRM</span>
-                <span className="block">Sistema de Gestão</span>
+                <span className="block text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">Sistema de Gestão</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Plataforma completa para gerenciar associados, veículos, cotações e toda a operação da sua associação de proteção veicular.
