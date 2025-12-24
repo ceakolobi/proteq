@@ -59,6 +59,26 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Rota que redireciona baseado no estado de autenticação
+function HomeRoute() {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
+  
+  // Usuário logado vai para dashboard, não logado vê a landing
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <Index />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -68,7 +88,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Rotas públicas - apenas landing e autenticação */}
-            <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
             
             {/* Rotas protegidas - requerem autenticação */}
@@ -94,8 +114,8 @@ const App = () => (
             <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             
-            {/* 404 - Rota não encontrada (protegida para não expor informações) */}
-            <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+            {/* 404 - Rota não encontrada - redireciona para home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
