@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useSedeAssociadosCounts, useSedeProfilesCounts } from '@/hooks/useSedeRegioes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,8 +49,6 @@ import type { Sede, Profile } from '@/types/database';
 
 interface SedeWithResponsavel extends Sede {
   responsavel?: Profile | null;
-  consultores_count?: number;
-  associados_count?: number;
 }
 
 export default function Sedes() {
@@ -74,6 +73,15 @@ export default function Sedes() {
     ativo: true,
     responsavel_id: '',
   });
+
+  // Hooks para contar consultores e associados por sede (batch)
+  const sedeIds = useMemo(() => sedes.map(s => s.id), [sedes]);
+  const { getCount: getConsultoresCount } = useSedeProfilesCounts(sedeIds);
+  const { getCount: getAssociadosCount } = useSedeAssociadosCounts(sedeIds);
+
+  // Totais calculados
+  const totalConsultores = useMemo(() => sedeIds.reduce((acc, id) => acc + getConsultoresCount(id), 0), [sedeIds, getConsultoresCount]);
+  const totalAssociados = useMemo(() => sedeIds.reduce((acc, id) => acc + getAssociadosCount(id), 0), [sedeIds, getAssociadosCount]);
 
   // Show loading while checking access
   if (isChecking) {
@@ -108,43 +116,13 @@ export default function Sedes() {
 
       if (error) throw error;
 
-      // Fetch counts for each sede
-      const sedesWithCounts = await Promise.all(
-        (sedesData || []).map(async (sede) => {
-          // Get regioes for this sede
-          const { data: regioes } = await supabase
-            .from('regioes')
-            .select('id')
-            .eq('sede_id', sede.id);
+      // Mapeia sedes com tipo correto
+      const sedesTyped = (sedesData || []).map(sede => ({
+        ...sede,
+        tipo: sede.tipo as 'matriz' | 'regional',
+      }));
 
-          const regiaoIds = regioes?.map(r => r.id) || [];
-
-          // Get consultores count (users with consultor_vendas role in this sede)
-          const { count: consultoresCount } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('sede_id', sede.id);
-
-          // Get associados count for this sede's regioes
-          let associadosCount = 0;
-          if (regiaoIds.length > 0) {
-            const { count } = await supabase
-              .from('associados')
-              .select('*', { count: 'exact', head: true })
-              .in('regiao_id', regiaoIds);
-            associadosCount = count || 0;
-          }
-
-          return {
-            ...sede,
-            tipo: sede.tipo as 'matriz' | 'regional',
-            consultores_count: consultoresCount || 0,
-            associados_count: associadosCount,
-          };
-        })
-      );
-
-      setSedes(sedesWithCounts);
+      setSedes(sedesTyped);
     } catch (error) {
       console.error('Error fetching sedes:', error);
       toast.error('Erro ao carregar sedes');
@@ -350,7 +328,7 @@ export default function Sedes() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {sedes.reduce((acc, s) => acc + (s.consultores_count || 0), 0)}
+                {totalConsultores}
               </div>
             </CardContent>
           </Card>
@@ -364,7 +342,7 @@ export default function Sedes() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {sedes.reduce((acc, s) => acc + (s.associados_count || 0), 0)}
+                {totalAssociados}
               </div>
             </CardContent>
           </Card>
@@ -442,10 +420,10 @@ export default function Sedes() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="font-medium">{sede.consultores_count || 0}</span>
+                          <span className="font-medium">{getConsultoresCount(sede.id)}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="font-medium">{sede.associados_count || 0}</span>
+                          <span className="font-medium">{getAssociadosCount(sede.id)}</span>
                         </TableCell>
                         <TableCell>
                           <Badge variant={sede.ativo ? 'default' : 'secondary'}>

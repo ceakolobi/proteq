@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,8 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Cota, VehicleType, vehicleTypeLabels } from '@/types/database';
+import { Cota, VehicleType } from '@/types/database';
 import { 
   Calculator, 
   Car, 
@@ -42,8 +42,7 @@ interface CotacaoResult {
 export default function Cotacao() {
   const { user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
-  const [cotas, setCotas] = useState<Cota[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cotas, isLoading } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
 
@@ -58,26 +57,8 @@ export default function Cotacao() {
 
   const [resultado, setResultado] = useState<CotacaoResult | null>(null);
 
-  useEffect(() => {
-    const fetchCotas = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('cotas')
-          .select('*')
-          .eq('ativo', true)
-          .order('fipe_min', { ascending: true });
-
-        if (error) throw error;
-        setCotas(data as Cota[]);
-      } catch (error) {
-        console.error('Error fetching cotas:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCotas();
-  }, []);
+  // Filtra apenas cotas ativas
+  const cotasAtivas = cotas.filter(c => c.ativo);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -100,7 +81,7 @@ export default function Cotacao() {
     const valorFipe = parseFloat(formData.valorFipe);
 
     // Find the correct cota based on FIPE value
-    const cotaEncontrada = cotas.find(
+    const cotaEncontrada = cotasAtivas.find(
       (cota) => valorFipe >= cota.fipe_min && valorFipe <= cota.fipe_max
     );
 
