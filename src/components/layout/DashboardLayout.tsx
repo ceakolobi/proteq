@@ -19,7 +19,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
-  Shield,
   LayoutDashboard,
   Users,
   Building2,
@@ -36,8 +35,10 @@ import {
   UserCircle,
   Bell,
   BarChart3,
+  Shield,
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
+import markaLogo from '@/assets/marka-logo.png';
 
 interface NavItem {
   title: string;
@@ -188,9 +189,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-        <div className="p-2 bg-primary rounded-lg">
-          <Shield className="h-6 w-6 text-primary-foreground" />
-        </div>
+        <img src={markaLogo} alt="MARKA CRM" className="h-10 w-10 object-contain" />
         <div>
           <h1 className="font-bold text-lg text-sidebar-foreground">MARKA CRM</h1>
           <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
@@ -281,7 +280,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
+            <img src={markaLogo} alt="MARKA CRM" className="h-8 w-8 object-contain" />
             <span className="font-bold">MARKA CRM</span>
           </div>
         </div>
