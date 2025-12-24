@@ -113,14 +113,22 @@ export default function Leads() {
   // Show loading while checking access
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (!isAllowed) {
-    return null;
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-pulse text-muted-foreground">Redirecionando...</div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   if (!canAccessPage) {
