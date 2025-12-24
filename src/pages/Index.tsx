@@ -14,7 +14,7 @@ export default function Index() {
             <div className="p-2 bg-primary rounded-lg">
               <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl">ProtecVeículo</span>
+            <span className="font-bold text-xl">MARKA CRM</span>
           </div>
           <Button onClick={() => navigate('/auth')}>
             Acessar Sistema
@@ -29,8 +29,8 @@ export default function Index() {
           <div className="max-w-3xl mx-auto space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                Sistema de Gestão para
-                <span className="text-primary block">Proteção Veicular</span>
+                <span className="text-primary">MARKA CRM</span>
+                <span className="block">Sistema de Gestão</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Plataforma completa para gerenciar associados, veículos, cotações e toda a operação da sua associação de proteção veicular.
