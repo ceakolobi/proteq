@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles([]);
   };
 
-  const isAdminPrincipal = profile?.is_admin_principal ?? false;
+  const isAdminPrincipal = roles.includes('admin_principal') || (profile?.is_admin_principal ?? false);
 
   const hasRole = (role: AppRole) => {
     if (isAdminPrincipal) return true;

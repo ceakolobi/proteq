@@ -116,8 +116,8 @@ const App = () => (
             <Route path="/vistorias" element={<ProtectedRoute><Vistorias /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             
-            {/* 404 - Rota não encontrada - redireciona para home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* 404 - Rota não encontrada */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
