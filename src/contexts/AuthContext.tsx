@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, Profile, UserRole } from '@/types/database';
@@ -68,34 +68,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Mantém o estado de loading ativo até roles/perfil carregarem (evita bloqueios temporários)
+  const loadIdRef = useRef(0);
+  const loadUserData = async (userId: string) => {
+    const loadId = ++loadIdRef.current;
+    setIsLoading(true);
+    await fetchProfile(userId);
+    if (loadId === loadIdRef.current) {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
+          // Deferir chamadas ao backend para evitar deadlocks no callback
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            loadUserData(session.user.id);
           }, 0);
         } else {
           setProfile(null);
           setRoles([]);
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await loadUserData(session.user.id);
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -131,19 +142,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles([]);
   };
 
-  // Admin Principal tem acesso total - verificar tanto pela role quanto pelo profile
-  const isAdminPrincipal = Boolean(
-    roles.includes('admin_principal') || profile?.is_admin_principal
-  );
+  // Admin Principal: sempre validado por role (evita escalonamento indevido via perfil)
+  const isAdminPrincipal = roles.includes('admin_principal');
 
   const hasRole = (role: AppRole) => {
-    // Admin Principal sempre tem todas as permissões
     if (isAdminPrincipal) return true;
     return roles.includes(role);
   };
 
   const hasAnyRole = (checkRoles: AppRole[]) => {
-    // Admin Principal sempre tem todas as permissões
     if (isAdminPrincipal) return true;
     return checkRoles.some(role => roles.includes(role));
   };
