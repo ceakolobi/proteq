@@ -17,7 +17,6 @@ import {
   Clock
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
-import { toast } from 'sonner';
 
 interface DashboardStats {
   totalAssociados: number;
@@ -30,7 +29,7 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, roles, isAdminPrincipal, user, hasAnyRole } = useAuth();
+  const { profile, roles, isAdminPrincipal, user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   
   const [stats, setStats] = useState<DashboardStats>({
@@ -111,19 +110,6 @@ export default function Dashboard() {
   if (!isAllowed) {
     return null;
   }
-
-  const canAccessCotacao = hasAnyRole(['admin_regional', 'consultor_vendas']);
-  const canAccessLeads = hasAnyRole(['admin_regional', 'consultor_vendas']);
-  const canAccessVeiculos = hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
-  const canAccessVistorias = hasAnyRole(['admin_regional', 'vistoriador']);
-
-  const goTo = (path: string, allowed: boolean, label: string) => {
-    if (!allowed) {
-      toast.error(`Acesso restrito: você não tem permissão para acessar ${label}.`);
-      return;
-    }
-    navigate(path);
-  };
 
   const StatCard = ({ 
     title, 
@@ -281,8 +267,13 @@ export default function Dashboard() {
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card 
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => goTo('/cotacao', canAccessCotacao, 'Cotações')}
+                onClick={() => navigate('/cotacao')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate('/cotacao');
+                }}
               >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-primary/10 rounded-lg">
@@ -296,8 +287,13 @@ export default function Dashboard() {
               </Card>
 
               <Card 
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => goTo('/leads', canAccessLeads, 'Leads')}
+                onClick={() => navigate('/leads')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate('/leads');
+                }}
               >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-green-500/10 rounded-lg">
@@ -311,8 +307,13 @@ export default function Dashboard() {
               </Card>
 
               <Card 
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => goTo('/veiculos', canAccessVeiculos, 'Veículos')}
+                onClick={() => navigate('/veiculos')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate('/veiculos');
+                }}
               >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-blue-500/10 rounded-lg">
@@ -326,8 +327,13 @@ export default function Dashboard() {
               </Card>
 
               <Card 
+                role="button"
+                tabIndex={0}
                 className="cursor-pointer hover:bg-accent transition-colors"
-                onClick={() => goTo('/vistorias', canAccessVistorias, 'Vistorias')}
+                onClick={() => navigate('/vistorias')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate('/vistorias');
+                }}
               >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-yellow-500/10 rounded-lg">
