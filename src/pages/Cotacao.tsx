@@ -42,7 +42,7 @@ interface CotacaoResult {
 
 export default function Cotacao() {
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { cotas, isLoading } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
   const [isCalculating, setIsCalculating] = useState(false);
@@ -180,7 +180,6 @@ export default function Cotacao() {
     );
   }
 
-  const { isAdminPrincipal } = useAuth();
   const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas']);
   if (!canAccessPage) {
     return (
