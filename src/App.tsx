@@ -20,6 +20,7 @@ import Veiculos from "./pages/Veiculos";
 import Leads from "./pages/Leads";
 import Relatorios from "./pages/Relatorios";
 import Vistorias from "./pages/Vistorias";
+import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -95,6 +96,9 @@ const App = () => (
             {/* Rotas protegidas - requerem autenticação */}
             {/* Dashboard geral - todos os usuários autenticados */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            
+            {/* Perfil do usuário - todos os usuários autenticados */}
+            <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
             
             {/* Admin Principal only */}
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
