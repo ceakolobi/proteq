@@ -142,8 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles([]);
   };
 
-  // Admin Principal: sempre validado por role (evita escalonamento indevido via perfil)
-  const isAdminPrincipal = roles.includes('admin_principal');
+  // Admin Principal: verifica role OU flag no perfil (para compatibilidade)
+  const isAdminPrincipal = roles.includes('admin_principal') || profile?.is_admin_principal === true;
 
   const hasRole = (role: AppRole) => {
     if (isAdminPrincipal) return true;
