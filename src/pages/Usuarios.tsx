@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useReferenceData } from '@/hooks/useReferenceData';
+import { useUserRolesBatch } from '@/hooks/useSedeRegioes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,8 +35,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, AppRole, roleLabels, Sede, Regiao } from '@/types/database';
-import { Users, UserPlus, Pencil, Shield, Search } from 'lucide-react';
+import { Profile, AppRole, roleLabels } from '@/types/database';
+import { Users, Pencil, Shield, Search } from 'lucide-react';
 
 interface UserWithRole extends Profile {
   roles: AppRole[];
@@ -43,16 +45,19 @@ interface UserWithRole extends Profile {
 export default function Usuarios() {
   // Access control: ONLY Admin Principal can access user management
   const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
-  const { isAdminPrincipal, hasRole, profile } = useAuth();
+  const { isAdminPrincipal } = useAuth();
   
-  const [users, setUsers] = useState<UserWithRole[]>([]);
-  const [sedes, setSedes] = useState<Sede[]>([]);
-  const [regioes, setRegioes] = useState<Regiao[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+
+  // Hooks centralizados
+  const { sedes, regioes } = useReferenceData({ loadSedes: true, loadRegioes: true, filterByUserAccess: false });
+  const userIds = useMemo(() => users.map(u => u.id), [users]);
+  const { getRoles, isLoading: rolesLoading } = useUserRolesBatch(userIds);
 
   const [formData, setFormData] = useState({
     role: '' as AppRole | '',
@@ -66,53 +71,14 @@ export default function Usuarios() {
     
     try {
       // Admin Principal sees all users
-      let profilesQuery = supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('nome_completo');
 
-      const { data: profilesData, error: profilesError } = await profilesQuery;
-
       if (profilesError) throw profilesError;
 
-      // Fetch roles for each user
-      const usersWithRoles = await Promise.all(
-        (profilesData || []).map(async (userProfile) => {
-          const { data: rolesData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userProfile.id);
-
-          return {
-            ...userProfile,
-            roles: rolesData?.map((r: { role: AppRole }) => r.role) || [],
-          } as UserWithRole;
-        })
-      );
-
-      setUsers(usersWithRoles);
-
-      // Fetch sedes - only Admin Principal can see all
-      if (isAdminPrincipal) {
-        const { data: sedesData } = await supabase
-          .from('sedes')
-          .select('*')
-          .eq('ativo', true);
-        setSedes(sedesData as Sede[] || []);
-      }
-
-      // Fetch regioes - filter by sede for Admin Regional
-      let regioesQuery = supabase
-        .from('regioes')
-        .select('*, sede:sedes(nome)')
-        .eq('ativo', true);
-      
-      if (!isAdminPrincipal && profile?.sede_id) {
-        regioesQuery = regioesQuery.eq('sede_id', profile.sede_id);
-      }
-      
-      const { data: regioesData } = await regioesQuery;
-      setRegioes(regioesData as Regiao[] || []);
+      setUsers(profilesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -289,10 +255,10 @@ export default function Usuarios() {
                           <div className="flex flex-wrap gap-1">
                             {user.is_admin_principal ? (
                               <Badge className="bg-primary">Admin Principal</Badge>
-                            ) : user.roles.length > 0 ? (
-                              user.roles.map((role) => (
+                            ) : getRoles(user.id).length > 0 ? (
+                              getRoles(user.id).map((role) => (
                                 <Badge key={role} variant="secondary">
-                                  {roleLabels[role]}
+                                  {roleLabels[role as AppRole]}
                                 </Badge>
                               ))
                             ) : (
@@ -310,7 +276,7 @@ export default function Usuarios() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleOpenDialog(user)}
+                              onClick={() => handleOpenDialog({ ...user, roles: getRoles(user.id) as AppRole[] })}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
