@@ -35,6 +35,7 @@ import {
   ChevronDown,
   UserCircle,
   Bell,
+  BarChart3,
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
 
@@ -144,6 +145,12 @@ const navItems: NavItem[] = [
     href: '/financeiro',
     icon: <CreditCard className="h-5 w-5" />,
     roles: ['admin_principal', 'financeiro'],
+  },
+  {
+    title: 'Relatórios',
+    href: '/relatorios',
+    icon: <BarChart3 className="h-5 w-5" />,
+    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
   },
 ];
 

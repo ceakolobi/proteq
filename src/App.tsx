@@ -18,6 +18,7 @@ import Consultores from "./pages/Consultores";
 import Associados from "./pages/Associados";
 import Veiculos from "./pages/Veiculos";
 import Leads from "./pages/Leads";
+import Relatorios from "./pages/Relatorios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             
             {/* 404 - Rota não encontrada (protegida para não expor informações) */}
             <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
