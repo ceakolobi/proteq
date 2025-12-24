@@ -28,7 +28,7 @@ interface AccessControlResult {
  * 4. Associado → Access to their own data only
  */
 export function useAccessControl(requiredAccess: PageAccess): AccessControlResult {
-  const { user, profile, roles, isAdminPrincipal, isLoading: authLoading } = useAuth();
+  const { user, profile, roles, isAdminPrincipal, isGlobalAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
   const [isAllowed, setIsAllowed] = useState(false);
@@ -51,6 +51,14 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
       // Store sede and regiao for filtering data
       setUserSedeId(profile?.sede_id || null);
       setUserRegiaoId(profile?.regiao_id || null);
+
+      // BYPASS GLOBAL: isGlobalAdmin (admin@system.com ou Admin Principal)
+      // Libera acesso total, ignora todas as validações
+      if (isGlobalAdmin) {
+        setIsAllowed(true);
+        setIsChecking(false);
+        return;
+      }
 
       let allowed = false;
 
@@ -98,7 +106,7 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
     };
 
     checkAccess();
-  }, [user, profile, roles, isAdminPrincipal, authLoading, requiredAccess, navigate]);
+  }, [user, profile, roles, isAdminPrincipal, isGlobalAdmin, authLoading, requiredAccess, navigate]);
 
   return {
     isAllowed,
@@ -112,9 +120,10 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
  * Check if user can view data for a specific sede
  */
 export function useCanAccessSede(sedeId: string | null): boolean {
-  const { profile, isAdminPrincipal, roles } = useAuth();
+  const { profile, isAdminPrincipal, isGlobalAdmin, roles } = useAuth();
   
-  if (isAdminPrincipal) return true;
+  // Global admin bypass
+  if (isGlobalAdmin || isAdminPrincipal) return true;
   if (!sedeId) return false;
   
   // Admin Regional can only access their own sede
@@ -129,9 +138,10 @@ export function useCanAccessSede(sedeId: string | null): boolean {
  * Check if user can view data for a specific regiao
  */
 export function useCanAccessRegiao(regiaoId: string | null): boolean {
-  const { profile, isAdminPrincipal, roles } = useAuth();
+  const { profile, isAdminPrincipal, isGlobalAdmin, roles } = useAuth();
   
-  if (isAdminPrincipal) return true;
+  // Global admin bypass
+  if (isGlobalAdmin || isAdminPrincipal) return true;
   if (!regiaoId) return false;
   
   // Admin Regional and Consultor can access their own regiao
@@ -146,9 +156,10 @@ export function useCanAccessRegiao(regiaoId: string | null): boolean {
  * Check if user can manage a specific associate
  */
 export function useCanManageAssociado(consultorId: string | null, regiaoId: string | null): boolean {
-  const { user, profile, isAdminPrincipal, roles } = useAuth();
+  const { user, profile, isAdminPrincipal, isGlobalAdmin, roles } = useAuth();
   
-  if (isAdminPrincipal) return true;
+  // Global admin bypass
+  if (isGlobalAdmin || isAdminPrincipal) return true;
   
   // Admin Regional can manage associados in their regiao
   if (roles.includes('admin_regional') && regiaoId && profile?.regiao_id === regiaoId) {

@@ -10,6 +10,7 @@ interface AuthContextType {
   roles: AppRole[];
   isLoading: boolean;
   isAdminPrincipal: boolean;
+  isGlobalAdmin: boolean; // Bypass global para admin@system.com ou Admin Principal
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -145,13 +146,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Admin Principal: verifica role OU flag no perfil (para compatibilidade)
   const isAdminPrincipal = roles.includes('admin_principal') || profile?.is_admin_principal === true;
 
+  // BYPASS GLOBAL: admin@system.com OU Admin Principal tem acesso total
+  // Ignora validações de role, sede e regional
+  const ADMIN_EMAIL = 'admin@system.com';
+  const isGlobalAdmin = user?.email === ADMIN_EMAIL || isAdminPrincipal;
+
   const hasRole = (role: AppRole) => {
-    if (isAdminPrincipal) return true;
+    // Global admin sempre tem todas as roles
+    if (isGlobalAdmin) return true;
     return roles.includes(role);
   };
 
   const hasAnyRole = (checkRoles: AppRole[]) => {
-    if (isAdminPrincipal) return true;
+    // Global admin sempre tem todas as roles
+    if (isGlobalAdmin) return true;
     return checkRoles.some(role => roles.includes(role));
   };
 
@@ -162,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     roles,
     isLoading,
     isAdminPrincipal,
+    isGlobalAdmin,
     hasRole,
     hasAnyRole,
     signIn,
