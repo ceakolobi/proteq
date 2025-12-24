@@ -1,8 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AppRole } from '@/types/database';
+import { toast } from 'sonner';
 
 export type PageAccess = 
   | 'admin_principal_only'
@@ -33,6 +34,7 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
   const [isAllowed, setIsAllowed] = useState(false);
   const [userSedeId, setUserSedeId] = useState<string | null>(null);
   const [userRegiaoId, setUserRegiaoId] = useState<string | null>(null);
+  const deniedToastShownRef = useRef(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -80,6 +82,13 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
       }
 
       if (!allowed) {
+        if (!deniedToastShownRef.current) {
+          deniedToastShownRef.current = true;
+          toast.error('Acesso restrito', {
+            description: 'Você não tem permissão para acessar esta página.',
+          });
+        }
+
         // Redirect unauthorized users to dashboard
         navigate('/dashboard', { replace: true });
       }
