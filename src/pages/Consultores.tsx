@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,9 +78,13 @@ export default function Consultores() {
   const { isAllowed, isChecking } = useAccessControl('admin_regional_or_above');
   
   const [consultores, setConsultores] = useState<ConsultorWithStats[]>([]);
-  const [regioes, setRegioes] = useState<Regiao[]>([]);
-  const [sedes, setSedes] = useState<Sede[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Hook centralizado para dados de referência
+  const { regioes, sedes, getRegiaoNome, getSedeNome } = useReferenceData({ 
+    loadRegioes: true, 
+    loadSedes: true 
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
@@ -110,16 +115,11 @@ export default function Consultores() {
   }
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    await Promise.all([fetchConsultores(), fetchRegioes(), fetchSedes()]);
-    setIsLoading(false);
-  };
+    fetchConsultores();
+  }, [getRegiaoNome, getSedeNome]);
 
   const fetchConsultores = async () => {
+    setIsLoading(true);
     try {
       // Get all profiles that have consultor_vendas role
       const { data: rolesData, error: rolesError } = await supabase
@@ -133,6 +133,7 @@ export default function Consultores() {
       
       if (consultorIds.length === 0) {
         setConsultores([]);
+        setIsLoading(false);
         return;
       }
 
@@ -152,89 +153,42 @@ export default function Consultores() {
 
       if (profilesError) throw profilesError;
 
-      // Get stats for each consultor
-      const consultoresWithStats = await Promise.all(
-        (profilesData || []).map(async (consultor) => {
-          // Get leads count
-          const { count: leadsCount } = await supabase
-            .from('leads')
-            .select('*', { count: 'exact', head: true })
-            .eq('consultor_id', consultor.id);
+      // Batch fetch all counts in parallel
+      const ids = (profilesData || []).map(c => c.id);
+      
+      // Fetch leads and associados counts in batch
+      const [leadsData, associadosData] = await Promise.all([
+        supabase.from('leads').select('consultor_id').in('consultor_id', ids),
+        supabase.from('associados').select('consultor_id').in('consultor_id', ids),
+      ]);
 
-          // Get associados count
-          const { count: associadosCount } = await supabase
-            .from('associados')
-            .select('*', { count: 'exact', head: true })
-            .eq('consultor_id', consultor.id);
+      // Build count maps
+      const leadsCountMap = new Map<string, number>();
+      const associadosCountMap = new Map<string, number>();
+      
+      (leadsData.data || []).forEach(l => {
+        leadsCountMap.set(l.consultor_id, (leadsCountMap.get(l.consultor_id) || 0) + 1);
+      });
+      
+      (associadosData.data || []).forEach(a => {
+        associadosCountMap.set(a.consultor_id, (associadosCountMap.get(a.consultor_id) || 0) + 1);
+      });
 
-          // Get regiao name
-          let regiaoNome = '';
-          if (consultor.regiao_id) {
-            const { data: regiao } = await supabase
-              .from('regioes')
-              .select('nome')
-              .eq('id', consultor.regiao_id)
-              .maybeSingle();
-            regiaoNome = regiao?.nome || '';
-          }
-
-          // Get sede name
-          let sedeNome = '';
-          if (consultor.sede_id) {
-            const { data: sede } = await supabase
-              .from('sedes')
-              .select('nome')
-              .eq('id', consultor.sede_id)
-              .maybeSingle();
-            sedeNome = sede?.nome || '';
-          }
-
-          return {
-            ...consultor,
-            leads_count: leadsCount || 0,
-            associados_count: associadosCount || 0,
-            regiao_nome: regiaoNome,
-            sede_nome: sedeNome,
-          };
-        })
-      );
+      // Map consultores with stats using reference data hook (no N+1)
+      const consultoresWithStats = (profilesData || []).map(consultor => ({
+        ...consultor,
+        leads_count: leadsCountMap.get(consultor.id) || 0,
+        associados_count: associadosCountMap.get(consultor.id) || 0,
+        regiao_nome: getRegiaoNome(consultor.regiao_id),
+        sede_nome: getSedeNome(consultor.sede_id),
+      }));
 
       setConsultores(consultoresWithStats);
     } catch (error) {
       console.error('Error fetching consultores:', error);
       toast.error('Erro ao carregar consultores');
-    }
-  };
-
-  const fetchRegioes = async () => {
-    try {
-      let query = supabase.from('regioes').select('*').eq('ativo', true).order('nome');
-
-      // Admin Regional can only see their sede's regions
-      if (isAdminRegional && !isAdminPrincipal && profile?.sede_id) {
-        query = query.eq('sede_id', profile.sede_id);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setRegioes(data || []);
-    } catch (error) {
-      console.error('Error fetching regioes:', error);
-    }
-  };
-
-  const fetchSedes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sedes')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (error) throw error;
-      setSedes((data || []).map(s => ({ ...s, tipo: s.tipo as 'matriz' | 'regional' })));
-    } catch (error) {
-      console.error('Error fetching sedes:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

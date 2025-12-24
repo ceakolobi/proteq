@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,10 +79,14 @@ export default function Associados() {
   const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   const [associados, setAssociados] = useState<AssociadoWithDetails[]>([]);
-  const [regioes, setRegioes] = useState<Regiao[]>([]);
-  const [cotas, setCotas] = useState<Cota[]>([]);
-  const [consultores, setConsultores] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Hook centralizado para dados de referência
+  const { regioes, cotas, consultores, getRegiaoNome, getConsultorNome } = useReferenceData({
+    loadRegioes: true,
+    loadCotas: true,
+    loadConsultores: true,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [regiaoFilter, setRegiaoFilter] = useState<string>('all');
@@ -139,12 +144,7 @@ export default function Associados() {
   }
 
   const fetchData = async () => {
-    await Promise.all([
-      fetchAssociados(),
-      fetchRegioes(),
-      fetchCotas(),
-      fetchConsultores(),
-    ]);
+    await fetchAssociados();
   };
 
   const fetchAssociados = async () => {
@@ -169,44 +169,32 @@ export default function Associados() {
 
       if (error) throw error;
 
-      const associadosWithDetails = await Promise.all(
-        (data || []).map(async (associado) => {
-          const { count } = await supabase
-            .from('veiculos')
-            .select('*', { count: 'exact', head: true })
-            .eq('associado_id', associado.id);
+      // Batch fetch veiculos count
+      const associadoIds = (data || []).map(a => a.id);
+      const { data: veiculosData } = await supabase
+        .from('veiculos')
+        .select('associado_id')
+        .in('associado_id', associadoIds);
 
-          let consultor: Profile | null = null;
-          if (associado.consultor_id) {
-            const { data: consultorData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', associado.consultor_id)
-              .maybeSingle();
-            consultor = consultorData;
-          }
+      // Build count map
+      const veiculosCountMap = new Map<string, number>();
+      (veiculosData || []).forEach(v => {
+        veiculosCountMap.set(v.associado_id, (veiculosCountMap.get(v.associado_id) || 0) + 1);
+      });
 
-          let regiao: Regiao | null = null;
-          if (associado.regiao_id) {
-            const { data: regiaoData } = await supabase
-              .from('regioes')
-              .select('*')
-              .eq('id', associado.regiao_id)
-              .maybeSingle();
-            if (regiaoData) {
-              regiao = { ...regiaoData, ativo: regiaoData.ativo };
-            }
-          }
+      // Map associados with details using reference data hook (no N+1)
+      const associadosWithDetails = (data || []).map(associado => {
+        const regiao = regioes.find(r => r.id === associado.regiao_id) || null;
+        const consultor = consultores.find(c => c.id === associado.consultor_id) || null;
 
-          return {
-            ...associado,
-            status: associado.status as AssociateStatus,
-            veiculos_count: count || 0,
-            consultor,
-            regiao,
-          };
-        })
-      );
+        return {
+          ...associado,
+          status: associado.status as AssociateStatus,
+          veiculos_count: veiculosCountMap.get(associado.id) || 0,
+          consultor,
+          regiao,
+        };
+      });
 
       setAssociados(associadosWithDetails);
     } catch (error) {
@@ -214,67 +202,6 @@ export default function Associados() {
       toast.error('Erro ao carregar associados');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchRegioes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('regioes')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (error) throw error;
-      setRegioes(data || []);
-    } catch (error) {
-      console.error('Error fetching regioes:', error);
-    }
-  };
-
-  const fetchCotas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('cotas')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (error) throw error;
-      setCotas((data || []).map(c => ({
-        ...c,
-        fipe_min: Number(c.fipe_min),
-        fipe_max: Number(c.fipe_max),
-        mensalidade_carro: Number(c.mensalidade_carro),
-        mensalidade_moto: Number(c.mensalidade_moto),
-        mensalidade_pickup: Number(c.mensalidade_pickup),
-      })));
-    } catch (error) {
-      console.error('Error fetching cotas:', error);
-    }
-  };
-
-  const fetchConsultores = async () => {
-    try {
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'consultor_vendas');
-
-      if (rolesError) throw rolesError;
-
-      if (rolesData && rolesData.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', rolesData.map(r => r.user_id))
-          .order('nome_completo');
-
-        if (profilesError) throw profilesError;
-        setConsultores(profilesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching consultores:', error);
     }
   };
 

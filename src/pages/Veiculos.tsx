@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,9 +87,14 @@ export default function Veiculos() {
   const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   
   const [veiculos, setVeiculos] = useState<VeiculoWithDetails[]>([]);
-  const [cotas, setCotas] = useState<Cota[]>([]);
-  const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Hook centralizado para dados de referência
+  const { regioes, cotas, consultores, getRegiaoNome, getCotaNome, getConsultorNome } = useReferenceData({
+    loadRegioes: true,
+    loadCotas: true,
+    loadConsultores: true,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [cotaFilter, setCotaFilter] = useState<string>('all');
@@ -125,26 +131,18 @@ export default function Veiculos() {
   }
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    await Promise.all([fetchVeiculos(), fetchCotas(), fetchRegioes()]);
-    setIsLoading(false);
-  };
+    fetchVeiculos();
+  }, [regioes, cotas, consultores]);
 
   const fetchVeiculos = async () => {
+    setIsLoading(true);
     try {
       // Get associados based on user's access level
       let associadosQuery = supabase.from('associados').select('*');
       
-      // Consultor: only their own associados
       if (isConsultor && user?.id) {
         associadosQuery = associadosQuery.eq('consultor_id', user.id);
-      }
-      // Admin Regional: only their sede's associados
-      else if (isAdminRegional && profile?.sede_id) {
+      } else if (isAdminRegional && profile?.sede_id) {
         const { data: sedeRegioes } = await supabase
           .from('regioes')
           .select('id')
@@ -154,7 +152,6 @@ export default function Veiculos() {
           associadosQuery = associadosQuery.in('regiao_id', sedeRegioes.map(r => r.id));
         }
       }
-      // Admin Principal: all associados (no filter)
 
       const { data: associadosData, error: associadosError } = await associadosQuery;
       if (associadosError) throw associadosError;
@@ -163,6 +160,7 @@ export default function Veiculos() {
       
       if (associadoIds.length === 0) {
         setVeiculos([]);
+        setIsLoading(false);
         return;
       }
 
@@ -174,103 +172,29 @@ export default function Veiculos() {
 
       if (veiculosError) throw veiculosError;
 
-      // Enrich with details
-      const veiculosWithDetails = await Promise.all(
-        (veiculosData || []).map(async (veiculo) => {
-          const associado = associadosData?.find(a => a.id === veiculo.associado_id);
-          
-          let cota: Cota | null = null;
-          if (veiculo.cota_id) {
-            const { data: cotaData } = await supabase
-              .from('cotas')
-              .select('*')
-              .eq('id', veiculo.cota_id)
-              .maybeSingle();
-            if (cotaData) {
-              cota = {
-                ...cotaData,
-                fipe_min: Number(cotaData.fipe_min),
-                fipe_max: Number(cotaData.fipe_max),
-                mensalidade_carro: Number(cotaData.mensalidade_carro),
-                mensalidade_moto: Number(cotaData.mensalidade_moto),
-                mensalidade_pickup: Number(cotaData.mensalidade_pickup),
-              };
-            }
-          }
+      // Map veiculos with details using reference data hook (no N+1)
+      const veiculosWithDetails = (veiculosData || []).map(veiculo => {
+        const associado = associadosData?.find(a => a.id === veiculo.associado_id);
+        const cota = cotas.find(c => c.id === veiculo.cota_id) || null;
+        const regiao = regioes.find(r => r.id === associado?.regiao_id) || null;
+        const consultor = consultores.find(c => c.id === associado?.consultor_id) || null;
 
-          let regiao: Regiao | null = null;
-          if (associado?.regiao_id) {
-            const { data: regiaoData } = await supabase
-              .from('regioes')
-              .select('*')
-              .eq('id', associado.regiao_id)
-              .maybeSingle();
-            if (regiaoData) {
-              regiao = regiaoData;
-            }
-          }
-
-          let consultor: Profile | null = null;
-          if (associado?.consultor_id) {
-            const { data: consultorData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', associado.consultor_id)
-              .maybeSingle();
-            consultor = consultorData;
-          }
-
-          return {
-            ...veiculo,
-            tipo: veiculo.tipo as VehicleType,
-            associado: associado ? { ...associado, status: associado.status as any } : null,
-            cota,
-            regiao,
-            consultor,
-          };
-        })
-      );
+        return {
+          ...veiculo,
+          tipo: veiculo.tipo as VehicleType,
+          associado: associado ? { ...associado, status: associado.status as any } : null,
+          cota,
+          regiao,
+          consultor,
+        };
+      });
 
       setVeiculos(veiculosWithDetails);
     } catch (error) {
       console.error('Error fetching veiculos:', error);
       toast.error('Erro ao carregar veículos');
-    }
-  };
-
-  const fetchCotas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('cotas')
-        .select('*')
-        .order('fipe_min');
-
-      if (error) throw error;
-      setCotas((data || []).map(c => ({
-        ...c,
-        fipe_min: Number(c.fipe_min),
-        fipe_max: Number(c.fipe_max),
-        mensalidade_carro: Number(c.mensalidade_carro),
-        mensalidade_moto: Number(c.mensalidade_moto),
-        mensalidade_pickup: Number(c.mensalidade_pickup),
-      })));
-    } catch (error) {
-      console.error('Error fetching cotas:', error);
-    }
-  };
-
-  const fetchRegioes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('regioes')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (error) throw error;
-      setRegioes(data || []);
-    } catch (error) {
-      console.error('Error fetching regioes:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

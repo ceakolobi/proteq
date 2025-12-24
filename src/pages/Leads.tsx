@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,8 +78,10 @@ export default function Leads() {
   const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
   
   const [leads, setLeads] = useState<LeadWithRegiao[]>([]);
-  const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Usar hook centralizado para regiões
+  const { regioes, getRegiaoNome, isLoading: refLoading } = useReferenceData({ loadRegioes: true });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'converted'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -110,16 +113,11 @@ export default function Leads() {
   }
 
   useEffect(() => {
-    fetchData();
+    fetchLeads();
   }, []);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    await Promise.all([fetchLeads(), fetchRegioes()]);
-    setIsLoading(false);
-  };
-
   const fetchLeads = async () => {
+    setIsLoading(true);
     try {
       let query = supabase
         .from('leads')
@@ -135,44 +133,18 @@ export default function Leads() {
 
       if (error) throw error;
 
-      // Get regiao names
-      const leadsWithRegiao = await Promise.all(
-        (data || []).map(async (lead) => {
-          let regiaoNome = '';
-          if (lead.regiao_id) {
-            const { data: regiao } = await supabase
-              .from('regioes')
-              .select('nome')
-              .eq('id', lead.regiao_id)
-              .maybeSingle();
-            regiaoNome = regiao?.nome || '';
-          }
-          return {
-            ...lead,
-            regiao_nome: regiaoNome,
-          };
-        })
-      );
+      // Map regiao names using the reference data hook (single query already done)
+      const leadsWithRegiao = (data || []).map(lead => ({
+        ...lead,
+        regiao_nome: getRegiaoNome(lead.regiao_id),
+      }));
 
       setLeads(leadsWithRegiao);
     } catch (error) {
       console.error('Error fetching leads:', error);
       toast.error('Erro ao carregar leads');
-    }
-  };
-
-  const fetchRegioes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('regioes')
-        .select('*')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (error) throw error;
-      setRegioes(data || []);
-    } catch (error) {
-      console.error('Error fetching regioes:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
