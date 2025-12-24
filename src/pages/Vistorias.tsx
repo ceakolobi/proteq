@@ -41,11 +41,11 @@ const statusConfig = {
 
 export default function Vistorias() {
   const navigate = useNavigate();
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
 
-  // Admin e Vistoriador podem acessar (Admin principal é incluído automaticamente via hasAnyRole)
-  const canAccessPage = hasAnyRole(['admin_regional', 'vistoriador']);
+  // Admin Principal tem acesso total, outros verificam roles específicas
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'vistoriador']);
 
   const [vistorias, setVistorias] = useState<Vistoria[]>([]);
   const [isLoading, setIsLoading] = useState(true);

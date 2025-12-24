@@ -119,7 +119,7 @@ export default function Veiculos() {
   const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !isAdminRegional;
   const isCadastro = hasRole('cadastro');
   const canEdit = isAdminPrincipal || isAdminRegional || isCadastro;
-  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
 
   useEffect(() => {
     document.title = 'Veículos | MARKA CRM';
