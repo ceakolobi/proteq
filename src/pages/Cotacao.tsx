@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
@@ -40,8 +41,9 @@ interface CotacaoResult {
 }
 
 export default function Cotacao() {
-  const { user } = useAuth();
-  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
+  const navigate = useNavigate();
+  const { hasAnyRole } = useAuth();
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { cotas, isLoading } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
@@ -163,6 +165,25 @@ export default function Cotacao() {
 
   if (!isAllowed) {
     return null;
+  }
+
+  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas']);
+  if (!canAccessPage) {
+    return (
+      <DashboardLayout>
+        <Card>
+          <CardHeader>
+            <CardTitle>Acesso restrito</CardTitle>
+            <CardDescription>
+              Você não tem permissão para acessar o módulo de Cotações.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/dashboard')}>Voltar ao Dashboard</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
   }
 
   return (

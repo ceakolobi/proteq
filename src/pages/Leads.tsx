@@ -73,9 +73,9 @@ interface LeadWithRegiao extends Lead {
 }
 
 export default function Leads() {
-  const { user, profile, isAdminPrincipal, hasRole } = useAuth();
+  const { user, profile, isAdminPrincipal, hasRole, hasAnyRole } = useAuth();
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   
   const [leads, setLeads] = useState<LeadWithRegiao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +112,24 @@ export default function Leads() {
     return null;
   }
 
+  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas']);
+  if (!canAccessPage) {
+    return (
+      <DashboardLayout>
+        <Card>
+          <CardHeader>
+            <CardTitle>Acesso restrito</CardTitle>
+            <CardDescription>
+              Você não tem permissão para acessar o módulo de Leads.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/dashboard')}>Voltar ao Dashboard</Button>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
   useEffect(() => {
     fetchLeads();
   }, []);
