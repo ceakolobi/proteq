@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -47,6 +47,11 @@ export default function Cotacao() {
   const { cotas, isLoading } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    document.title = 'Cotação | MARKA CRM';
+  }, []);
+
 
   const [formData, setFormData] = useState({
     marca: '',

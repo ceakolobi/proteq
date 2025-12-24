@@ -87,10 +87,10 @@ export default function Veiculos() {
   const { user, profile, isAdminPrincipal, hasRole, hasAnyRole } = useAuth();
   // Acesso ao módulo de veículos (inclui Cadastro)
   const { isAllowed, isChecking } = useAccessControl('authenticated');
-  
+
   const [veiculos, setVeiculos] = useState<VeiculoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Hook centralizado para dados de referência
   const { regioes, cotas, consultores, getRegiaoNome, getCotaNome, getConsultorNome } = useReferenceData({
     loadRegioes: true,
@@ -102,7 +102,7 @@ export default function Veiculos() {
   const [cotaFilter, setCotaFilter] = useState<string>('all');
   const [protecaoFilter, setProtecaoFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
-  
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedVeiculo, setSelectedVeiculo] = useState<VeiculoWithDetails | null>(null);
   const [formData, setFormData] = useState({
@@ -120,6 +120,16 @@ export default function Veiculos() {
   const isCadastro = hasRole('cadastro');
   const canEdit = isAdminPrincipal || isAdminRegional || isCadastro;
   const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
+
+  useEffect(() => {
+    document.title = 'Veículos | MARKA CRM';
+  }, []);
+
+  useEffect(() => {
+    if (isAllowed && !isChecking && canAccessPage) {
+      fetchVeiculos();
+    }
+  }, [isAllowed, isChecking, canAccessPage, regioes, cotas, consultores, user?.id, profile?.sede_id, isConsultor, isAdminRegional, isAdminPrincipal]);
 
   if (isChecking) {
     return (
@@ -151,16 +161,12 @@ export default function Veiculos() {
     );
   }
 
-  useEffect(() => {
-    fetchVeiculos();
-  }, [regioes, cotas, consultores]);
-
-  const fetchVeiculos = async () => {
+  async function fetchVeiculos() {
     setIsLoading(true);
     try {
       // Get associados based on user's access level
       let associadosQuery = supabase.from('associados').select('*');
-      
+
       if (isConsultor && user?.id) {
         associadosQuery = associadosQuery.eq('consultor_id', user.id);
       } else if (isAdminRegional && profile?.sede_id) {
@@ -168,7 +174,7 @@ export default function Veiculos() {
           .from('regioes')
           .select('id')
           .eq('sede_id', profile.sede_id);
-        
+
         if (sedeRegioes && sedeRegioes.length > 0) {
           associadosQuery = associadosQuery.in('regiao_id', sedeRegioes.map(r => r.id));
         }
@@ -178,7 +184,7 @@ export default function Veiculos() {
       if (associadosError) throw associadosError;
 
       const associadoIds = associadosData?.map(a => a.id) || [];
-      
+
       if (associadoIds.length === 0) {
         setVeiculos([]);
         setIsLoading(false);
@@ -217,7 +223,7 @@ export default function Veiculos() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const handleOpenEditDialog = (veiculo: VeiculoWithDetails) => {
     setSelectedVeiculo(veiculo);

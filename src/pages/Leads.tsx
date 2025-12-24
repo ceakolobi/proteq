@@ -98,6 +98,17 @@ export default function Leads() {
 
   const isConsultor = hasRole('consultor_vendas');
   const isAdminRegional = hasRole('admin_regional');
+  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas']);
+
+  useEffect(() => {
+    document.title = 'Leads | MARKA CRM';
+  }, []);
+
+  useEffect(() => {
+    if (isAllowed && !isChecking && canAccessPage) {
+      fetchLeads();
+    }
+  }, [isAllowed, isChecking, canAccessPage]);
 
   // Show loading while checking access
   if (isChecking) {
@@ -112,7 +123,6 @@ export default function Leads() {
     return null;
   }
 
-  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas']);
   if (!canAccessPage) {
     return (
       <DashboardLayout>
@@ -130,11 +140,8 @@ export default function Leads() {
       </DashboardLayout>
     );
   }
-  useEffect(() => {
-    fetchLeads();
-  }, []);
 
-  const fetchLeads = async () => {
+  async function fetchLeads() {
     setIsLoading(true);
     try {
       let query = supabase
@@ -164,7 +171,7 @@ export default function Leads() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const handleOpenDialog = (lead?: LeadWithRegiao) => {
     setFormErrors({});
