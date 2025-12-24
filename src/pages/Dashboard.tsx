@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -27,6 +28,7 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { profile, roles, isAdminPrincipal, user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   
@@ -264,7 +266,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="cursor-pointer hover:bg-accent transition-colors">
+              <Card 
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate('/cotacao')}
+              >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <FileText className="h-6 w-6 text-primary" />
@@ -276,7 +281,10 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:bg-accent transition-colors">
+              <Card 
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate('/leads')}
+              >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-green-500/10 rounded-lg">
                     <Users className="h-6 w-6 text-green-600" />
@@ -288,7 +296,10 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:bg-accent transition-colors">
+              <Card 
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate('/veiculos')}
+              >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-blue-500/10 rounded-lg">
                     <Car className="h-6 w-6 text-blue-600" />
@@ -300,7 +311,10 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:bg-accent transition-colors">
+              <Card 
+                className="cursor-pointer hover:bg-accent transition-colors"
+                onClick={() => navigate('/relatorios')}
+              >
                 <CardContent className="flex items-center gap-4 p-4">
                   <div className="p-3 bg-yellow-500/10 rounded-lg">
                     <Clock className="h-6 w-6 text-yellow-600" />
