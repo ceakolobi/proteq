@@ -98,7 +98,7 @@ export default function Leads() {
 
   const isConsultor = hasRole('consultor_vendas');
   const isAdminRegional = hasRole('admin_regional');
-  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas']);
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas']);
 
   useEffect(() => {
     document.title = 'Leads | MARKA CRM';

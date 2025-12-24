@@ -131,14 +131,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRoles([]);
   };
 
-  const isAdminPrincipal = roles.includes('admin_principal') || (profile?.is_admin_principal ?? false);
+  // Admin Principal tem acesso total - verificar tanto pela role quanto pelo profile
+  const isAdminPrincipal = Boolean(
+    roles.includes('admin_principal') || profile?.is_admin_principal
+  );
 
   const hasRole = (role: AppRole) => {
+    // Admin Principal sempre tem todas as permissões
     if (isAdminPrincipal) return true;
     return roles.includes(role);
   };
 
   const hasAnyRole = (checkRoles: AppRole[]) => {
+    // Admin Principal sempre tem todas as permissões
     if (isAdminPrincipal) return true;
     return checkRoles.some(role => roles.includes(role));
   };

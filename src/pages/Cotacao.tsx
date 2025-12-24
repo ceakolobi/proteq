@@ -180,7 +180,8 @@ export default function Cotacao() {
     );
   }
 
-  const canAccessPage = hasAnyRole(['admin_regional', 'consultor_vendas']);
+  const { isAdminPrincipal } = useAuth();
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas']);
   if (!canAccessPage) {
     return (
       <DashboardLayout>
