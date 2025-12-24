@@ -46,111 +46,131 @@ interface NavItem {
   roles?: string[];
 }
 
-const navItems: NavItem[] = [
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
   {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: <LayoutDashboard className="h-5 w-5" />,
-  },
-  // Admin Principal ONLY
-  {
-    title: 'Painel Admin',
-    href: '/admin',
-    icon: <Shield className="h-5 w-5" />,
-    roles: ['admin_principal'],
-  },
-  {
-    title: 'Usuários',
-    href: '/usuarios',
-    icon: <Users className="h-5 w-5" />,
-    roles: ['admin_principal'],
+    title: 'Principal',
+    items: [
+      {
+        title: 'Dashboard',
+        href: '/dashboard',
+        icon: <LayoutDashboard className="h-5 w-5" />,
+      },
+    ],
   },
   {
-    title: 'Cotas',
-    href: '/cotas',
-    icon: <DollarSign className="h-5 w-5" />,
-    roles: ['admin_principal'],
-  },
-  // Admin Principal + Regional (Regional vê apenas sua sede)
-  {
-    title: 'Sedes',
-    href: '/sedes',
-    icon: <Building2 className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
-  },
-  {
-    title: 'Painel Regional',
-    href: '/regional',
-    icon: <Building2 className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
-  },
-  {
-    title: 'Consultores',
-    href: '/consultores',
-    icon: <Users className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
-  },
-  {
-    title: 'Regiões',
-    href: '/regioes',
-    icon: <MapPin className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional'],
-  },
-  // Admin Principal + Regional + Consultor
-  {
-    title: 'Painel Consultor',
-    href: '/consultor',
-    icon: <UserCircle className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+    title: 'Comercial',
+    items: [
+      {
+        title: 'Leads',
+        href: '/leads',
+        icon: <UserCircle className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+      },
+      {
+        title: 'Cotações',
+        href: '/cotacao',
+        icon: <DollarSign className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+      },
+      {
+        title: 'Associados',
+        href: '/associados',
+        icon: <Users className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'cadastro'],
+      },
+      {
+        title: 'Veículos',
+        href: '/veiculos',
+        icon: <Car className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'cadastro'],
+      },
+    ],
   },
   {
-    title: 'Associados',
-    href: '/associados',
-    icon: <Users className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+    title: 'Operacional',
+    items: [
+      {
+        title: 'Vistorias',
+        href: '/relatorios',
+        icon: <ClipboardCheck className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'vistoriador'],
+      },
+      {
+        title: 'Financeiro',
+        href: '/relatorios',
+        icon: <CreditCard className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'financeiro'],
+      },
+      {
+        title: 'Relatórios',
+        href: '/relatorios',
+        icon: <BarChart3 className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+      },
+    ],
   },
   {
-    title: 'Cotação',
-    href: '/cotacao',
-    icon: <DollarSign className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+    title: 'Gestão',
+    items: [
+      {
+        title: 'Painel Regional',
+        href: '/regional',
+        icon: <Building2 className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional'],
+      },
+      {
+        title: 'Painel Consultor',
+        href: '/consultor',
+        icon: <UserCircle className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+      },
+      {
+        title: 'Consultores',
+        href: '/consultores',
+        icon: <Users className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional'],
+      },
+    ],
   },
   {
-    title: 'Leads',
-    href: '/leads',
-    icon: <UserCircle className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
-  },
-  {
-    title: 'Propostas',
-    href: '/propostas',
-    icon: <FileText className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
-  },
-  // Other roles
-  {
-    title: 'Veículos',
-    href: '/veiculos',
-    icon: <Car className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'cadastro'],
-  },
-  {
-    title: 'Vistorias',
-    href: '/vistorias',
-    icon: <ClipboardCheck className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'vistoriador'],
-  },
-  {
-    title: 'Financeiro',
-    href: '/financeiro',
-    icon: <CreditCard className="h-5 w-5" />,
-    roles: ['admin_principal', 'financeiro'],
-  },
-  {
-    title: 'Relatórios',
-    href: '/relatorios',
-    icon: <BarChart3 className="h-5 w-5" />,
-    roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+    title: 'Administração',
+    items: [
+      {
+        title: 'Painel Admin',
+        href: '/admin',
+        icon: <Shield className="h-5 w-5" />,
+        roles: ['admin_principal'],
+      },
+      {
+        title: 'Usuários',
+        href: '/usuarios',
+        icon: <Users className="h-5 w-5" />,
+        roles: ['admin_principal'],
+      },
+      {
+        title: 'Cotas',
+        href: '/cotas',
+        icon: <DollarSign className="h-5 w-5" />,
+        roles: ['admin_principal'],
+      },
+      {
+        title: 'Sedes',
+        href: '/sedes',
+        icon: <Building2 className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional'],
+      },
+      {
+        title: 'Configurações',
+        href: '/admin',
+        icon: <Settings className="h-5 w-5" />,
+        roles: ['admin_principal'],
+      },
+    ],
   },
 ];
 
@@ -169,11 +189,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate('/auth');
   };
 
-  const filteredNavItems = navItems.filter(item => {
+  const filterItem = (item: NavItem) => {
     if (!item.roles) return true;
     if (isAdminPrincipal) return true;
     return item.roles.some(role => roles.includes(role as any));
-  });
+  };
+
+  const filteredSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(filterItem),
+    }))
+    .filter(section => section.items.length > 0);
 
   const getInitials = (name: string) => {
     return name
@@ -199,22 +226,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
-        <nav className="px-3 space-y-1">
-          {filteredNavItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={() => setIsMobileOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                location.pathname === item.href
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              {item.icon}
-              {item.title}
-            </Link>
+        <nav className="px-3 space-y-4">
+          {filteredSections.map((section) => (
+            <div key={section.title}>
+              <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {section.title}
+              </p>
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <Link
+                    key={`${section.title}-${item.href}-${item.title}`}
+                    to={item.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                      location.pathname === item.href
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    )}
+                  >
+                    {item.icon}
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </ScrollArea>
