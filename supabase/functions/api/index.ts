@@ -218,19 +218,22 @@ serve(async (req) => {
         );
       }
 
-      // Consultar API Placas - usando Authorization Bearer no header
-      const placaUrl = `${API_PLACAS_BASE}/consulta/${encodeURIComponent(placa)}`;
-      console.log(`[PLACA API] URL: ${placaUrl}, Auth: Bearer ***`);
+      // Consultar API Placas - POST com JSON body
+      const placaUrl = `${API_PLACAS_BASE}/consulta`;
+      console.log(`[PLACA API] URL: ${placaUrl}, Placa: ${placa}`);
 
       const response = await fetch(placaUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiPlacasKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
         },
+        body: JSON.stringify({
+          placa: placa,
+          token: apiPlacasKey,
+        }),
       });
       const responseText = await response.text();
       const responseContentType = response.headers.get('content-type') || '';
