@@ -23,11 +23,13 @@ import {
   FileText,
   CheckCircle2,
   Settings2,
+  Search,
 } from 'lucide-react';
 import type { Cotacao, TipoBem, MetodoValoracao } from '@/types/cotacao';
 import { tipoBemLabels, metodoValoracaoLabels, tiposSemFipe } from '@/types/cotacao';
 import PlacaLookup, { PlacaStatus, VehicleData } from './PlacaLookup';
 import ValorBemInput from './ValorBemInput';
+import FipeSelector from './FipeSelector';
 
 // Validação
 const cotacaoSchema = z.object({
@@ -125,6 +127,27 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     if (status === 'not_found' || status === 'invalid' || status === 'found_no_fipe') {
       setFipeBloqueado(false);
     }
+  }, []);
+
+  // Handler quando valor FIPE é encontrado via seletor em cascata
+  const handleFipeValorFound = useCallback((data: {
+    marca: string;
+    modelo: string;
+    anoModelo: number;
+    valorFipe: number;
+    codigoFipe: string;
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      marca: data.marca,
+      modelo: data.modelo,
+      ano_fabricacao: String(data.anoModelo),
+      ano_modelo: String(data.anoModelo),
+      codigo_fipe: data.codigoFipe,
+      valor_bem: String(data.valorFipe),
+      metodo_valoracao: 'fipe' as MetodoValoracao,
+    }));
+    setFipeBloqueado(true);
   }, []);
 
   const formatCurrency = (value: number) => {
@@ -420,10 +443,21 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                 <CardDescription>
                   {placaStatus === 'found_fipe' 
                     ? 'Dados preenchidos automaticamente' 
-                    : 'Preencha os dados manualmente'}
+                    : fipeBloqueado
+                    ? 'Dados preenchidos via FIPE'
+                    : 'Preencha manualmente ou busque na tabela FIPE'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Busca FIPE em cascata - mostrar quando placa não encontrou */}
+                {tipoTemFipe && !fipeBloqueado && (placaStatus === 'not_found' || placaStatus === 'idle') && (
+                  <FipeSelector
+                    tipoBem={formData.tipo_bem as TipoBem}
+                    onValorFound={handleFipeValorFound}
+                    disabled={fipeBloqueado}
+                  />
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Marca *</Label>
