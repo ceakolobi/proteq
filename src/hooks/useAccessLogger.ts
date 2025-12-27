@@ -10,7 +10,8 @@ type ResourceType =
   | 'pagamento' 
   | 'vistoria' 
   | 'profile'
-  | 'relatorio';
+  | 'relatorio'
+  | 'cotacao';
 
 type ActionType = 
   | 'view' 

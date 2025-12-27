@@ -417,7 +417,9 @@ export type Database = {
           fipe_min: number
           id: string
           mensalidade_caminhao: number | null
+          mensalidade_carreta: number | null
           mensalidade_carro: number
+          mensalidade_implemento_agricola: number | null
           mensalidade_maquina_agricola: number | null
           mensalidade_maquina_industrial: number | null
           mensalidade_moto: number
@@ -433,7 +435,9 @@ export type Database = {
           fipe_min?: number
           id?: string
           mensalidade_caminhao?: number | null
+          mensalidade_carreta?: number | null
           mensalidade_carro: number
+          mensalidade_implemento_agricola?: number | null
           mensalidade_maquina_agricola?: number | null
           mensalidade_maquina_industrial?: number | null
           mensalidade_moto: number
@@ -449,7 +453,9 @@ export type Database = {
           fipe_min?: number
           id?: string
           mensalidade_caminhao?: number | null
+          mensalidade_carreta?: number | null
           mensalidade_carro?: number
+          mensalidade_implemento_agricola?: number | null
           mensalidade_maquina_agricola?: number | null
           mensalidade_maquina_industrial?: number | null
           mensalidade_moto?: number
@@ -1005,6 +1011,8 @@ export type Database = {
         | "utilitario"
         | "maquina_agricola"
         | "maquina_industrial"
+        | "carreta"
+        | "implemento_agricola"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1175,6 +1183,8 @@ export const Constants = {
         "utilitario",
         "maquina_agricola",
         "maquina_industrial",
+        "carreta",
+        "implemento_agricola",
       ],
     },
   },

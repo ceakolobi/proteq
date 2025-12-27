@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Usuarios from "./pages/Usuarios";
 import Cotas from "./pages/Cotas";
 import Cotacao from "./pages/Cotacao";
+import Cotacoes from "./pages/Cotacoes";
 import Sedes from "./pages/Sedes";
 import RegionalDashboard from "./pages/RegionalDashboard";
 import ConsultorDashboard from "./pages/ConsultorDashboard";
@@ -113,6 +114,7 @@ const App = () => (
             {/* Consultor or above */}
             <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
             <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />
+            <Route path="/cotacoes" element={<ProtectedRoute><Cotacoes /></ProtectedRoute>} />
             <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
             <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
