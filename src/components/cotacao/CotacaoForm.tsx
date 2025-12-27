@@ -29,11 +29,11 @@ import {
   Upload,
 } from 'lucide-react';
 import type { Cotacao, TipoBem, MetodoValoracao } from '@/types/cotacao';
-import { tipoBemLabels, metodoValoracaoLabels } from '@/types/cotacao';
+import { tipoBemLabels, metodoValoracaoLabels, tiposSemFipe } from '@/types/cotacao';
 
 // Validação
 const cotacaoSchema = z.object({
-  tipo_bem: z.enum(['carro', 'moto', 'pickup', 'caminhao', 'utilitario', 'maquina_agricola', 'maquina_industrial']),
+  tipo_bem: z.enum(['carro', 'moto', 'pickup', 'caminhao', 'utilitario', 'maquina_agricola', 'maquina_industrial', 'carreta', 'implemento_agricola']),
   marca: z.string().min(2, 'Marca obrigatória').max(100),
   modelo: z.string().min(2, 'Modelo obrigatório').max(100),
   ano_fabricacao: z.number().min(1900).max(new Date().getFullYear() + 1),
@@ -82,8 +82,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
   // Verificar se tipo precisa de FIPE ou permite manual
   const tipoTemFipe = useMemo(() => {
-    const tiposComFipe: TipoBem[] = ['carro', 'moto', 'pickup', 'caminhao', 'utilitario'];
-    return tiposComFipe.includes(formData.tipo_bem as TipoBem);
+    if (!formData.tipo_bem) return true;
+    return !tiposSemFipe.includes(formData.tipo_bem as TipoBem);
   }, [formData.tipo_bem]);
 
   // Quando tipo muda para máquina, força método manual
@@ -124,18 +124,23 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       return;
     }
 
-    // Buscar mensalidade pelo tipo
-    const mensalidadeMap: Record<TipoBem, keyof typeof cotaEncontrada> = {
-      carro: 'mensalidade_carro',
-      moto: 'mensalidade_moto',
-      pickup: 'mensalidade_pickup',
-      caminhao: 'mensalidade_caminhao' as keyof typeof cotaEncontrada,
-      utilitario: 'mensalidade_utilitario' as keyof typeof cotaEncontrada,
-      maquina_agricola: 'mensalidade_maquina_agricola' as keyof typeof cotaEncontrada,
-      maquina_industrial: 'mensalidade_maquina_industrial' as keyof typeof cotaEncontrada,
+    // Buscar mensalidade pelo tipo - usando fallback para pickup quando não existe campo específico
+    const getMensalidade = (tipo: TipoBem): number => {
+      switch (tipo) {
+        case 'carro': return Number(cotaEncontrada.mensalidade_carro) || 0;
+        case 'moto': return Number(cotaEncontrada.mensalidade_moto) || 0;
+        case 'pickup': return Number(cotaEncontrada.mensalidade_pickup) || 0;
+        case 'caminhao': return Number((cotaEncontrada as any).mensalidade_caminhao) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        case 'utilitario': return Number((cotaEncontrada as any).mensalidade_utilitario) || Number(cotaEncontrada.mensalidade_pickup) * 1.1;
+        case 'maquina_agricola': return Number((cotaEncontrada as any).mensalidade_maquina_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'maquina_industrial': return Number((cotaEncontrada as any).mensalidade_maquina_industrial) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'carreta': return Number((cotaEncontrada as any).mensalidade_carreta) || Number(cotaEncontrada.mensalidade_pickup) * 1.2;
+        case 'implemento_agricola': return Number((cotaEncontrada as any).mensalidade_implemento_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        default: return Number(cotaEncontrada.mensalidade_pickup) || 0;
+      }
     };
 
-    let mensalidade = Number(cotaEncontrada[mensalidadeMap[formData.tipo_bem as TipoBem]]) || 0;
+    let mensalidade = getMensalidade(formData.tipo_bem as TipoBem);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {

@@ -7,7 +7,9 @@ export type TipoBem =
   | 'caminhao'
   | 'utilitario'
   | 'maquina_agricola'
-  | 'maquina_industrial';
+  | 'maquina_industrial'
+  | 'carreta'
+  | 'implemento_agricola';
 
 export type CotacaoStatus = 
   | 'novo'
@@ -97,7 +99,17 @@ export const tipoBemLabels: Record<TipoBem, string> = {
   utilitario: 'Utilitário',
   maquina_agricola: 'Máquina Agrícola',
   maquina_industrial: 'Máquina Industrial',
+  carreta: 'Carreta / Implemento',
+  implemento_agricola: 'Implemento Agrícola',
 };
+
+// Tipos que NÃO têm FIPE (requer valor manual)
+export const tiposSemFipe: TipoBem[] = [
+  'maquina_agricola',
+  'maquina_industrial',
+  'carreta',
+  'implemento_agricola',
+];
 
 export const cotacaoStatusLabels: Record<CotacaoStatus, string> = {
   novo: 'Novo',

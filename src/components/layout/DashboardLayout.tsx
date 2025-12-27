@@ -73,6 +73,12 @@ const navSections: NavSection[] = [
       },
       {
         title: 'Cotações',
+        href: '/cotacoes',
+        icon: <FileText className="h-5 w-5" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+      },
+      {
+        title: 'Simulador',
         href: '/cotacao',
         icon: <DollarSign className="h-5 w-5" />,
         roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],

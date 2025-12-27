@@ -57,7 +57,8 @@ import {
   TrendingUp,
   UserCheck,
   Clock,
-  CheckCircle
+  CheckCircle,
+  FileText,
 } from 'lucide-react';
 import type { Lead, Regiao } from '@/types/database';
 import { z } from 'zod';
@@ -541,17 +542,31 @@ export default function Leads() {
                               <Edit className="h-4 w-4" />
                             </Button>
                             {!lead.convertido && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setSelectedLead(lead);
-                                  setIsConvertDialogOpen(true);
-                                }}
-                                title="Converter em Associado"
-                              >
-                                <UserCheck className="h-4 w-4 text-green-600" />
-                              </Button>
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    navigate('/cotacoes', { 
+                                      state: { leadId: lead.id, leadNome: lead.nome }
+                                    });
+                                  }}
+                                  title="Criar Cotação"
+                                >
+                                  <FileText className="h-4 w-4 text-blue-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedLead(lead);
+                                    setIsConvertDialogOpen(true);
+                                  }}
+                                  title="Converter em Associado"
+                                >
+                                  <UserCheck className="h-4 w-4 text-green-600" />
+                                </Button>
+                              </>
                             )}
                           </div>
                         </TableCell>
