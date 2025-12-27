@@ -76,7 +76,7 @@ export default function PlacaLookup({
     
     if (!validatePlaca(cleanPlaca)) {
       updateStatus('invalid');
-      setMessage('Placa inválida. Use formato ABC-1234 ou ABC1D23');
+      setMessage('Formato não reconhecido. Use AAA-1234 (antigo) ou ABC1D23 (Mercosul), com ou sem hífen.');
       return;
     }
 
@@ -100,7 +100,7 @@ export default function PlacaLookup({
     // Por padrão, simula que não encontrou na base
     // Quando API estiver integrada, aqui virá os dados reais
     updateStatus('not_found');
-    setMessage('Veículo não encontrado na base. Preencha os dados manualmente ou tente buscar pela FIPE.');
+    setMessage('Não foi possível buscar automaticamente os dados deste veículo. Preencha Marca / Modelo / Ano manualmente ou defina o valor FIPE manualmente.');
 
   }, [updateStatus, tipoTemFipe]);
 
@@ -152,16 +152,16 @@ export default function PlacaLookup({
         );
       case 'not_found':
         return (
-          <Badge variant="secondary" className="gap-1 bg-orange-500 text-orange-950">
+          <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
             <AlertCircle className="w-3 h-3" />
-            Não encontrado
+            Consulta indisponível
           </Badge>
         );
       case 'invalid':
         return (
-          <Badge variant="destructive" className="gap-1">
+          <Badge variant="outline" className="gap-1 border-muted-foreground/50 text-muted-foreground">
             <AlertCircle className="w-3 h-3" />
-            Placa inválida
+            Verifique o formato
           </Badge>
         );
       default:
@@ -217,9 +217,9 @@ export default function PlacaLookup({
         <p className={cn(
           "text-sm",
           status === 'found_fipe' && "text-green-600 dark:text-green-400",
-          status === 'found_no_fipe' && "text-yellow-600 dark:text-yellow-400",
-          status === 'not_found' && "text-orange-600 dark:text-orange-400",
-          status === 'invalid' && "text-destructive",
+          status === 'found_no_fipe' && "text-amber-600 dark:text-amber-400",
+          status === 'not_found' && "text-muted-foreground",
+          status === 'invalid' && "text-muted-foreground",
         )}>
           {message}
         </p>
