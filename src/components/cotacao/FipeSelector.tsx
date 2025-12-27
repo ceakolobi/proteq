@@ -83,7 +83,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/marcas?tipo=${tipoBem}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-fipe/marcas?tipo=${tipoBem}`
       );
       
       if (!response.ok) {
@@ -117,7 +117,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/modelos?tipo=${tipoBem}&marcaId=${marcaId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-fipe/modelos?tipo=${tipoBem}&marcaId=${marcaId}`
       );
       
       if (!response.ok) {
@@ -145,7 +145,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/anos?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${modeloId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-fipe/anos?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${modeloId}`
       );
       
       if (!response.ok) {
@@ -171,7 +171,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/valor?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${selectedModeloId}&anoId=${selectedAnoId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-fipe/valor?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${selectedModeloId}&anoId=${selectedAnoId}`
       );
       
       if (!response.ok) {
