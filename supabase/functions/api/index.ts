@@ -218,19 +218,18 @@ serve(async (req) => {
         );
       }
 
-      // Consultar API Placas
-      const placaUrl = `${API_PLACAS_BASE}/consulta?placa=${encodeURIComponent(placa)}&token=${encodeURIComponent(apiPlacasKey)}`;
-      console.log(`[PLACA API] URL: ${API_PLACAS_BASE}/consulta?placa=${placa}&token=***`);
+      // Consultar API Placas - usando Authorization Bearer no header
+      const placaUrl = `${API_PLACAS_BASE}/consulta/${encodeURIComponent(placa)}`;
+      console.log(`[PLACA API] URL: ${placaUrl}, Auth: Bearer ***`);
 
       const response = await fetch(placaUrl, {
+        method: 'GET',
         headers: {
-          // Alguns provedores (Cloudflare/WAF) bloqueiam requisições com UA "genérico"
+          'Authorization': `Bearer ${apiPlacasKey}`,
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-          'Referer': 'https://apiplacas.com.br/',
-          'Origin': 'https://apiplacas.com.br',
         },
       });
       const responseText = await response.text();
