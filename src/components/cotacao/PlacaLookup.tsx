@@ -99,8 +99,14 @@ export default function PlacaLookup({
 
       if (error) {
         console.error('[PlacaLookup] Erro na chamada:', error);
+        const detailed =
+          (error as any)?.context?.body?.error ||
+          (error as any)?.context?.error ||
+          (error as any)?.message ||
+          'Erro ao consultar. Preencha os dados manualmente.';
+
         updateStatus('error');
-        setMessage('Erro ao consultar. Preencha os dados manualmente.');
+        setMessage(detailed);
         return;
       }
 

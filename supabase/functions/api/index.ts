@@ -224,10 +224,13 @@ serve(async (req) => {
 
       const response = await fetch(placaUrl, {
         headers: {
-          'Accept': 'application/json',
-          // Alguns provedores (Cloudflare/WAF) bloqueiam requisições sem User-Agent
-          'User-Agent': 'Mozilla/5.0 (compatible; LovableCloud/1.0)',
+          // Alguns provedores (Cloudflare/WAF) bloqueiam requisições com UA "genérico"
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'Referer': 'https://apiplacas.com.br/',
+          'Origin': 'https://apiplacas.com.br',
         },
       });
       const responseText = await response.text();
@@ -236,6 +239,10 @@ serve(async (req) => {
 
       // Se não for JSON, retorna erro legível (evita "Resposta inválida" genérica)
       const looksLikeHtml = responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html');
+      if (looksLikeHtml) {
+        console.log('[PLACA API] HTML snippet:', responseText.slice(0, 200).replace(/\s+/g, ' ').trim());
+      }
+
       if (!response.ok || !responseContentType.includes('application/json') || looksLikeHtml) {
         const errorMsg = looksLikeHtml
           ? `API de placas retornou HTML (status ${response.status}). Possível bloqueio/validação do provedor (Cloudflare) ou token inválido.`
