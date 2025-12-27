@@ -214,6 +214,201 @@ export type Database = {
         }
         Relationships: []
       }
+      cotacao_contatos: {
+        Row: {
+          cotacao_id: string
+          created_at: string
+          data_contato: string
+          descricao: string
+          id: string
+          tipo: Database["public"]["Enums"]["tipo_contato"]
+          usuario_id: string
+        }
+        Insert: {
+          cotacao_id: string
+          created_at?: string
+          data_contato?: string
+          descricao: string
+          id?: string
+          tipo: Database["public"]["Enums"]["tipo_contato"]
+          usuario_id: string
+        }
+        Update: {
+          cotacao_id?: string
+          created_at?: string
+          data_contato?: string
+          descricao?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["tipo_contato"]
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacao_contatos_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotacoes: {
+        Row: {
+          ano_fabricacao: number
+          ano_modelo: number | null
+          aprovada_em: string | null
+          aprovada_por: string | null
+          associado_id: string | null
+          carro_reserva_adicional: number | null
+          carro_reserva_dias: number | null
+          categoria: string | null
+          chassi: string | null
+          codigo_fipe: string | null
+          consultor_id: string
+          cor: string | null
+          cota_id: string | null
+          created_at: string
+          data_valor_informado: string | null
+          id: string
+          lead_id: string | null
+          marca: string
+          mensalidade: number | null
+          metodo_valoracao: Database["public"]["Enums"]["metodo_valoracao"]
+          modelo: string
+          observacoes: string | null
+          participacao: number | null
+          placa: string | null
+          proposta_id: string | null
+          regiao_id: string | null
+          renavam: string | null
+          status: Database["public"]["Enums"]["cotacao_status"]
+          tipo_bem: Database["public"]["Enums"]["vehicle_type"]
+          updated_at: string
+          url_nota_fiscal: string | null
+          usuario_informou_valor: string | null
+          valor_bem: number
+          valor_fipe: number | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          ano_fabricacao: number
+          ano_modelo?: number | null
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          associado_id?: string | null
+          carro_reserva_adicional?: number | null
+          carro_reserva_dias?: number | null
+          categoria?: string | null
+          chassi?: string | null
+          codigo_fipe?: string | null
+          consultor_id: string
+          cor?: string | null
+          cota_id?: string | null
+          created_at?: string
+          data_valor_informado?: string | null
+          id?: string
+          lead_id?: string | null
+          marca: string
+          mensalidade?: number | null
+          metodo_valoracao?: Database["public"]["Enums"]["metodo_valoracao"]
+          modelo: string
+          observacoes?: string | null
+          participacao?: number | null
+          placa?: string | null
+          proposta_id?: string | null
+          regiao_id?: string | null
+          renavam?: string | null
+          status?: Database["public"]["Enums"]["cotacao_status"]
+          tipo_bem: Database["public"]["Enums"]["vehicle_type"]
+          updated_at?: string
+          url_nota_fiscal?: string | null
+          usuario_informou_valor?: string | null
+          valor_bem: number
+          valor_fipe?: number | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          ano_fabricacao?: number
+          ano_modelo?: number | null
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          associado_id?: string | null
+          carro_reserva_adicional?: number | null
+          carro_reserva_dias?: number | null
+          categoria?: string | null
+          chassi?: string | null
+          codigo_fipe?: string | null
+          consultor_id?: string
+          cor?: string | null
+          cota_id?: string | null
+          created_at?: string
+          data_valor_informado?: string | null
+          id?: string
+          lead_id?: string | null
+          marca?: string
+          mensalidade?: number | null
+          metodo_valoracao?: Database["public"]["Enums"]["metodo_valoracao"]
+          modelo?: string
+          observacoes?: string | null
+          participacao?: number | null
+          placa?: string | null
+          proposta_id?: string | null
+          regiao_id?: string | null
+          renavam?: string | null
+          status?: Database["public"]["Enums"]["cotacao_status"]
+          tipo_bem?: Database["public"]["Enums"]["vehicle_type"]
+          updated_at?: string
+          url_nota_fiscal?: string | null
+          usuario_informou_valor?: string | null
+          valor_bem?: number
+          valor_fipe?: number | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotacoes_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_cota_id_fkey"
+            columns: ["cota_id"]
+            isOneToOne: false
+            referencedRelation: "cotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_regiao_id_fkey"
+            columns: ["regiao_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotas: {
         Row: {
           ativo: boolean
@@ -221,9 +416,13 @@ export type Database = {
           fipe_max: number
           fipe_min: number
           id: string
+          mensalidade_caminhao: number | null
           mensalidade_carro: number
+          mensalidade_maquina_agricola: number | null
+          mensalidade_maquina_industrial: number | null
           mensalidade_moto: number
           mensalidade_pickup: number
+          mensalidade_utilitario: number | null
           nome: string
           updated_at: string
         }
@@ -233,9 +432,13 @@ export type Database = {
           fipe_max: number
           fipe_min?: number
           id?: string
+          mensalidade_caminhao?: number | null
           mensalidade_carro: number
+          mensalidade_maquina_agricola?: number | null
+          mensalidade_maquina_industrial?: number | null
           mensalidade_moto: number
           mensalidade_pickup: number
+          mensalidade_utilitario?: number | null
           nome: string
           updated_at?: string
         }
@@ -245,9 +448,13 @@ export type Database = {
           fipe_max?: number
           fipe_min?: number
           id?: string
+          mensalidade_caminhao?: number | null
           mensalidade_carro?: number
+          mensalidade_maquina_agricola?: number | null
+          mensalidade_maquina_industrial?: number | null
           mensalidade_moto?: number
           mensalidade_pickup?: number
+          mensalidade_utilitario?: number | null
           nome?: string
           updated_at?: string
         }
@@ -768,14 +975,36 @@ export type Database = {
         | "vistoriador"
         | "associado"
       associate_status: "ativo" | "inadimplente" | "suspenso" | "cancelado"
+      cotacao_status:
+        | "novo"
+        | "em_contato"
+        | "interessado"
+        | "aguardando_retorno"
+        | "aprovado"
+        | "perdido"
       inspection_status: "pendente" | "em_andamento" | "aprovada" | "reprovada"
+      metodo_valoracao: "fipe" | "venal" | "nota_fiscal"
       proposal_status:
         | "rascunho"
         | "enviada"
         | "aceita"
         | "recusada"
         | "cancelada"
-      vehicle_type: "carro" | "moto" | "pickup"
+      tipo_contato:
+        | "ligacao"
+        | "whatsapp"
+        | "retorno"
+        | "reuniao"
+        | "email"
+        | "visita"
+      vehicle_type:
+        | "carro"
+        | "moto"
+        | "pickup"
+        | "caminhao"
+        | "utilitario"
+        | "maquina_agricola"
+        | "maquina_industrial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -913,7 +1142,16 @@ export const Constants = {
         "associado",
       ],
       associate_status: ["ativo", "inadimplente", "suspenso", "cancelado"],
+      cotacao_status: [
+        "novo",
+        "em_contato",
+        "interessado",
+        "aguardando_retorno",
+        "aprovado",
+        "perdido",
+      ],
       inspection_status: ["pendente", "em_andamento", "aprovada", "reprovada"],
+      metodo_valoracao: ["fipe", "venal", "nota_fiscal"],
       proposal_status: [
         "rascunho",
         "enviada",
@@ -921,7 +1159,23 @@ export const Constants = {
         "recusada",
         "cancelada",
       ],
-      vehicle_type: ["carro", "moto", "pickup"],
+      tipo_contato: [
+        "ligacao",
+        "whatsapp",
+        "retorno",
+        "reuniao",
+        "email",
+        "visita",
+      ],
+      vehicle_type: [
+        "carro",
+        "moto",
+        "pickup",
+        "caminhao",
+        "utilitario",
+        "maquina_agricola",
+        "maquina_industrial",
+      ],
     },
   },
 } as const
