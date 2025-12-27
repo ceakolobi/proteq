@@ -2,36 +2,38 @@ import { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2, Search, CheckCircle2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Search, CheckCircle2, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import { TipoBem } from '@/types/cotacao';
+import { supabase } from '@/integrations/supabase/client';
 
-interface FipeMarca {
-  codigo: string;
+interface FipeItem {
+  id: string;
   nome: string;
 }
 
-interface FipeModelo {
-  codigo: number;
-  nome: string;
+interface FipeValorResult {
+  tipoVeiculo: string;
+  valor: number;
+  valorFormatado: string;
+  marca: string;
+  modelo: string;
+  anoModelo: number;
+  combustivel: string;
+  codigoFipe: string;
+  mesReferencia: string;
 }
 
-interface FipeAno {
-  codigo: string;
-  nome: string;
-}
-
-interface FipeValor {
-  Valor: string;
-  Marca: string;
-  Modelo: string;
-  AnoModelo: number;
-  Combustivel: string;
-  CodigoFipe: string;
-  MesReferencia: string;
-  TipoVeiculo: number;
-  SiglaCombustivel: string;
+interface FipeApiResponse {
+  success: boolean;
+  data: FipeItem[] | FipeValorResult;
+  meta: {
+    origem: string;
+    cache: boolean;
+    consultadoEm: string;
+    mesReferencia?: string;
+  };
+  error?: string;
 }
 
 interface FipeSelectorProps {
@@ -42,6 +44,11 @@ interface FipeSelectorProps {
     anoModelo: number;
     valorFipe: number;
     codigoFipe: string;
+    mesReferencia: string;
+    combustivel?: string;
+    origemDados: 'FIPE';
+    cacheHit: boolean;
+    consultadoEm: string;
   }) => void;
   disabled?: boolean;
   initialMarca?: string;
@@ -52,12 +59,10 @@ export default function FipeSelector({
   tipoBem,
   onValorFound,
   disabled = false,
-  initialMarca,
-  initialModelo,
 }: FipeSelectorProps) {
-  const [marcas, setMarcas] = useState<FipeMarca[]>([]);
-  const [modelos, setModelos] = useState<FipeModelo[]>([]);
-  const [anos, setAnos] = useState<FipeAno[]>([]);
+  const [marcas, setMarcas] = useState<FipeItem[]>([]);
+  const [modelos, setModelos] = useState<FipeItem[]>([]);
+  const [anos, setAnos] = useState<FipeItem[]>([]);
   
   const [selectedMarcaId, setSelectedMarcaId] = useState<string>('');
   const [selectedModeloId, setSelectedModeloId] = useState<string>('');
@@ -68,7 +73,38 @@ export default function FipeSelector({
   const [loadingAnos, setLoadingAnos] = useState(false);
   const [loadingValor, setLoadingValor] = useState(false);
   
-  const [valorEncontrado, setValorEncontrado] = useState<FipeValor | null>(null);
+  const [valorEncontrado, setValorEncontrado] = useState<FipeValorResult | null>(null);
+  const [cacheInfo, setCacheInfo] = useState<{ cache: boolean; consultadoEm: string } | null>(null);
+
+  // Função para fazer requisições à API FIPE com autenticação
+  const fetchFipe = async (endpoint: string, params: Record<string, string>) => {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/fipe/${endpoint}?${queryString}`;
+    
+    // Pegar token de autenticação
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
+        'Content-Type': 'application/json',
+        'x-origem': 'web',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ${response.status}`);
+    }
+    
+    const data: FipeApiResponse = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erro desconhecido');
+    }
+    
+    return data;
+  };
 
   // Buscar marcas ao montar ou quando tipo mudar
   const fetchMarcas = useCallback(async () => {
@@ -80,18 +116,11 @@ export default function FipeSelector({
     setSelectedModeloId('');
     setSelectedAnoId('');
     setValorEncontrado(null);
+    setCacheInfo(null);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/fipe/marcas?tipo=${tipoBem}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar marcas');
-      }
-      
-      const marcasData = await response.json();
-      setMarcas(marcasData || []);
+      const response = await fetchFipe('marcas', { tipo: tipoBem });
+      setMarcas(response.data as FipeItem[]);
     } catch (error) {
       console.error('Erro ao buscar marcas FIPE:', error);
       toast.error('Erro ao carregar marcas');
@@ -114,18 +143,11 @@ export default function FipeSelector({
     setSelectedModeloId('');
     setSelectedAnoId('');
     setValorEncontrado(null);
+    setCacheInfo(null);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/fipe/modelos?tipo=${tipoBem}&marcaId=${marcaId}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar modelos');
-      }
-      
-      const modelosData = await response.json();
-      setModelos(modelosData || []);
+      const response = await fetchFipe('modelos', { tipo: tipoBem, marcaId });
+      setModelos(response.data as FipeItem[]);
     } catch (error) {
       console.error('Erro ao buscar modelos FIPE:', error);
       toast.error('Erro ao carregar modelos');
@@ -142,18 +164,15 @@ export default function FipeSelector({
     setAnos([]);
     setSelectedAnoId('');
     setValorEncontrado(null);
+    setCacheInfo(null);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/fipe/anos?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${modeloId}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar anos');
-      }
-      
-      const anosData = await response.json();
-      setAnos(anosData || []);
+      const response = await fetchFipe('anos', { 
+        tipo: tipoBem, 
+        marcaId: selectedMarcaId, 
+        modeloId 
+      });
+      setAnos(response.data as FipeItem[]);
     } catch (error) {
       console.error('Erro ao buscar anos FIPE:', error);
       toast.error('Erro ao carregar anos');
@@ -168,36 +187,43 @@ export default function FipeSelector({
     
     setLoadingValor(true);
     setValorEncontrado(null);
+    setCacheInfo(null);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/fipe/valor?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${selectedModeloId}&anoId=${selectedAnoId}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Erro ao buscar valor');
-      }
-      
-      const valorData: FipeValor = await response.json();
-      setValorEncontrado(valorData);
-      
-      // Converter valor de "R$ 50.000,00" para número
-      const valorNumerico = parseFloat(
-        valorData.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.')
-      );
-      
-      onValorFound({
-        marca: valorData.Marca,
-        modelo: valorData.Modelo,
-        anoModelo: valorData.AnoModelo,
-        valorFipe: valorNumerico,
-        codigoFipe: valorData.CodigoFipe,
+      const response = await fetchFipe('valor', {
+        tipo: tipoBem,
+        marcaId: selectedMarcaId,
+        modeloId: selectedModeloId,
+        anoId: selectedAnoId,
       });
       
-      toast.success('Valor FIPE encontrado!');
+      const valorData = response.data as FipeValorResult;
+      setValorEncontrado(valorData);
+      setCacheInfo({
+        cache: response.meta.cache,
+        consultadoEm: response.meta.consultadoEm,
+      });
+      
+      onValorFound({
+        marca: valorData.marca,
+        modelo: valorData.modelo,
+        anoModelo: valorData.anoModelo,
+        valorFipe: valorData.valor,
+        codigoFipe: valorData.codigoFipe,
+        mesReferencia: valorData.mesReferencia,
+        combustivel: valorData.combustivel,
+        origemDados: 'FIPE',
+        cacheHit: response.meta.cache,
+        consultadoEm: response.meta.consultadoEm,
+      });
+      
+      toast.success(response.meta.cache 
+        ? 'Valor FIPE encontrado (cache)' 
+        : 'Valor FIPE encontrado!'
+      );
     } catch (error) {
       console.error('Erro ao buscar valor FIPE:', error);
-      toast.error('Erro ao buscar valor FIPE');
+      toast.error(error instanceof Error ? error.message : 'Erro ao buscar valor FIPE');
     } finally {
       setLoadingValor(false);
     }
@@ -224,9 +250,17 @@ export default function FipeSelector({
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">Buscar na Tabela FIPE</Label>
         {valorEncontrado && (
-          <div className="flex items-center gap-1 text-green-600 text-sm">
-            <CheckCircle2 className="w-4 h-4" />
-            FIPE encontrada
+          <div className="flex items-center gap-2">
+            {cacheInfo?.cache && (
+              <div className="flex items-center gap-1 text-blue-600 text-xs">
+                <Database className="w-3 h-3" />
+                cache
+              </div>
+            )}
+            <div className="flex items-center gap-1 text-green-600 text-sm">
+              <CheckCircle2 className="w-4 h-4" />
+              FIPE encontrada
+            </div>
           </div>
         )}
       </div>
@@ -245,7 +279,7 @@ export default function FipeSelector({
             </SelectTrigger>
             <SelectContent>
               {marcas.map((marca) => (
-                <SelectItem key={marca.codigo} value={marca.codigo}>
+                <SelectItem key={marca.id} value={marca.id}>
                   {marca.nome}
                 </SelectItem>
               ))}
@@ -266,7 +300,7 @@ export default function FipeSelector({
             </SelectTrigger>
             <SelectContent>
               {modelos.map((modelo) => (
-                <SelectItem key={modelo.codigo} value={String(modelo.codigo)}>
+                <SelectItem key={modelo.id} value={modelo.id}>
                   {modelo.nome}
                 </SelectItem>
               ))}
@@ -287,7 +321,7 @@ export default function FipeSelector({
             </SelectTrigger>
             <SelectContent>
               {anos.map((ano) => (
-                <SelectItem key={ano.codigo} value={ano.codigo}>
+                <SelectItem key={ano.id} value={ano.id}>
                   {ano.nome}
                 </SelectItem>
               ))}
@@ -320,21 +354,29 @@ export default function FipeSelector({
       {/* Resultado */}
       {valorEncontrado && (
         <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start">
             <div>
               <p className="font-medium text-green-800 dark:text-green-200">
-                {valorEncontrado.Marca} {valorEncontrado.Modelo}
+                {valorEncontrado.marca} {valorEncontrado.modelo}
               </p>
               <p className="text-sm text-green-600 dark:text-green-400">
-                Ano: {valorEncontrado.AnoModelo} | Código: {valorEncontrado.CodigoFipe}
+                Ano: {valorEncontrado.anoModelo} | Código: {valorEncontrado.codigoFipe}
               </p>
               <p className="text-xs text-green-600/70 dark:text-green-400/70">
-                Ref: {valorEncontrado.MesReferencia}
+                Ref: {valorEncontrado.mesReferencia}
               </p>
+              {valorEncontrado.combustivel && (
+                <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                  Combustível: {valorEncontrado.combustivel}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-xl font-bold text-green-700 dark:text-green-300">
-                {valorEncontrado.Valor}
+                {valorEncontrado.valorFormatado}
+              </p>
+              <p className="text-xs text-green-600/50 dark:text-green-400/50">
+                Origem: FIPE
               </p>
             </div>
           </div>

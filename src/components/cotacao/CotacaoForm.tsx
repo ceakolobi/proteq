@@ -136,6 +136,11 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     anoModelo: number;
     valorFipe: number;
     codigoFipe: string;
+    mesReferencia: string;
+    combustivel?: string;
+    origemDados: 'FIPE';
+    cacheHit: boolean;
+    consultadoEm: string;
   }) => {
     setFormData(prev => ({
       ...prev,
@@ -148,6 +153,13 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       metodo_valoracao: 'fipe' as MetodoValoracao,
     }));
     setFipeBloqueado(true);
+    
+    // Log para auditoria (dados já são registrados no backend)
+    console.log('[FIPE] Valor encontrado:', {
+      ...data,
+      cacheHit: data.cacheHit,
+      consultadoEm: data.consultadoEm,
+    });
   }, []);
 
   const formatCurrency = (value: number) => {
