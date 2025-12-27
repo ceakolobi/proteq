@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
+import { useDataMasking, useCanExport } from '@/hooks/useDataMasking';
+import { useAccessLogger } from '@/hooks/useAccessLogger';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,6 +83,11 @@ export default function Associados() {
   const [associados, setAssociados] = useState<AssociadoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Hooks de segurança
+  const masker = useDataMasking();
+  const { canExportAny } = useCanExport();
+  const { logViewList, logViewDetail } = useAccessLogger();
+  
   // Hook centralizado para dados de referência
   const { regioes, cotas, consultores, getRegiaoNome, getConsultorNome } = useReferenceData({
     loadRegioes: true,
@@ -98,6 +105,13 @@ export default function Associados() {
   
   // Wizard state for new associado flow
   const [wizardStep, setWizardStep] = useState<WizardStep>('associado');
+  
+  // Log de acesso quando lista é carregada
+  useEffect(() => {
+    if (associados.length > 0) {
+      logViewList('associado', associados.length, { statusFilter, regiaoFilter });
+    }
+  }, [associados.length, statusFilter, regiaoFilter, logViewList]);
   const [newAssociadoId, setNewAssociadoId] = useState<string | null>(null);
   const [isWizardMode, setIsWizardMode] = useState(false);
   
@@ -540,7 +554,7 @@ export default function Associados() {
             </div>
             <div>
               <p className="font-medium">{associado.nome_completo}</p>
-              <p className="text-sm text-muted-foreground">CPF: {associado.cpf}</p>
+              <p className="text-sm text-muted-foreground">CPF: {masker.cpf(associado.cpf)}</p>
             </div>
           </div>
         </TableCell>
@@ -548,11 +562,11 @@ export default function Associados() {
           <div className="space-y-1">
             <p className="text-sm flex items-center gap-1">
               <Mail className="h-3 w-3" />
-              {associado.email}
+              {masker.email(associado.email)}
             </p>
             <p className="text-sm flex items-center gap-1 text-muted-foreground">
               <Phone className="h-3 w-3" />
-              {associado.telefone}
+              {masker.telefone(associado.telefone)}
             </p>
           </div>
         </TableCell>
