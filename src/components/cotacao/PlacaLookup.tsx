@@ -92,21 +92,23 @@ export default function PlacaLookup({
     setMessage('Consultando veículo...');
 
     try {
-      // Chamar edge function /api/placa/{placa}
-      const { data, error } = await supabase.functions.invoke('api', {
-        body: null,
-        headers: {
-          'x-origem': 'cotacao',
-        },
-      });
+      // Obter token de autenticação
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
 
-      // A edge function é chamada via GET, então usamos fetch diretamente
+      if (!token) {
+        updateStatus('error');
+        setMessage('Sessão expirada. Faça login novamente.');
+        return;
+      }
+
+      // Chamar edge function /api/placa/{placa}
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/placa/${cleanPlaca}`,
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
             'x-origem': 'cotacao',
           },

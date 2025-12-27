@@ -34,11 +34,15 @@ interface FipeValorResponse {
   SiglaCombustivel: string;
 }
 
+// Interface para resposta da API Placas (campos em caixa alta)
 interface PlacaApiResponse {
+  // Campos principais (caixa alta)
+  MARCA?: string;
+  MODELO?: string;
+  SUBMODELO?: string;
+  VERSAO?: string;
+  // Campos em caixa baixa
   placa?: string;
-  marca?: string;
-  modelo?: string;
-  versao?: string;
   ano?: string;
   anoModelo?: string;
   cor?: string;
@@ -47,12 +51,24 @@ interface PlacaApiResponse {
   municipio?: string;
   uf?: string;
   situacao?: string;
-  // Campos FIPE que podem vir na resposta
-  fipe_codigo?: string;
-  fipe_valor?: string;
+  codigoSituacao?: string;
+  // Estrutura FIPE aninhada
+  fipe?: {
+    dados?: Array<{
+      ano_modelo?: string;
+      codigo_fipe?: string;
+      texto_valor?: string;
+      valorVeiculo?: number;
+      mes_referencia?: string;
+      texto_marca?: string;
+      texto_modelo?: string;
+      combustivel?: string;
+    }>;
+  };
   // Error handling
-  error?: string;
+  error?: boolean | string;
   message?: string;
+  msg?: string;
 }
 
 interface StandardResponse {
@@ -202,8 +218,8 @@ serve(async (req) => {
       }
 
       // Verificar erro na resposta
-      if (placaData.error || placaData.message) {
-        const errorMsg = placaData.message || placaData.error || 'Erro desconhecido';
+      if (placaData.error || placaData.message || placaData.msg) {
+        const errorMsg = placaData.message || placaData.msg || (typeof placaData.error === 'string' ? placaData.error : 'Erro desconhecido');
         console.error(`[PLACA API] Erro: ${errorMsg}`);
         
         // Log de auditoria para erro
@@ -233,23 +249,39 @@ serve(async (req) => {
         );
       }
 
-      console.log(`[PLACA API] Veículo encontrado: ${placaData.marca} ${placaData.modelo}`);
+      // Extrair marca/modelo (campos em caixa alta)
+      const marca = placaData.MARCA || null;
+      const modelo = placaData.MODELO || placaData.SUBMODELO || null;
+      const versao = placaData.VERSAO || null;
+
+      console.log(`[PLACA API] Veículo encontrado: ${marca} ${modelo}`);
 
       // Extrair ano de fabricação e modelo
       const anoFabricacao = placaData.ano ? parseInt(placaData.ano) : null;
       const anoModelo = placaData.anoModelo ? parseInt(placaData.anoModelo) : anoFabricacao;
 
-      // Parsear valor FIPE se disponível
+      // Extrair dados FIPE da estrutura aninhada
       let valorFipe: number | null = null;
-      if (placaData.fipe_valor) {
-        valorFipe = parseValorFipe(placaData.fipe_valor);
+      let codigoFipe: string | null = null;
+      let mesReferencia: string | null = null;
+      
+      if (placaData.fipe?.dados && placaData.fipe.dados.length > 0) {
+        const fipeData = placaData.fipe.dados[0];
+        codigoFipe = fipeData.codigo_fipe || null;
+        mesReferencia = fipeData.mes_referencia || null;
+        
+        if (fipeData.texto_valor) {
+          valorFipe = parseValorFipe(fipeData.texto_valor);
+        } else if (fipeData.valorVeiculo) {
+          valorFipe = fipeData.valorVeiculo;
+        }
       }
 
       const result = {
         placa: placaData.placa || placa,
-        marca: placaData.marca || null,
-        modelo: placaData.modelo || null,
-        versao: placaData.versao || null,
+        marca,
+        modelo,
+        versao,
         ano_fabricacao: anoFabricacao,
         ano_modelo: anoModelo,
         cor: placaData.cor || null,
@@ -258,9 +290,10 @@ serve(async (req) => {
         municipio: placaData.municipio || null,
         uf: placaData.uf || null,
         situacao: placaData.situacao || null,
-        codigo_fipe: placaData.fipe_codigo || null,
+        codigo_fipe: codigoFipe,
         valor_fipe: valorFipe,
-        fipeEncontrado: !!placaData.fipe_codigo || !!valorFipe,
+        mes_referencia: mesReferencia,
+        fipeEncontrado: !!codigoFipe || !!valorFipe,
       };
 
       // Log de auditoria para sucesso
