@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const FIPE_API_BASE = 'https://parallelum.com.br/fipe/api/v1';
-const API_PLACAS_BASE = 'https://apiplacas.com.br/api';
+const API_PLACAS_BASE = 'https://wdapi2.com.br';
 
 // Mapear tipos do sistema para tipos da API FIPE
 const tipoParaFipe: Record<string, string> = {
@@ -218,22 +218,17 @@ serve(async (req) => {
         );
       }
 
-      // Consultar API Placas - POST com JSON body
-      const placaUrl = `${API_PLACAS_BASE}/consulta`;
-      console.log(`[PLACA API] URL: ${placaUrl}, Placa: ${placa}`);
+      // Consultar API wdapi2 - GET com placa e token na URL
+      const placaUrl = `${API_PLACAS_BASE}/consulta/${encodeURIComponent(placa)}/${apiPlacasKey}`;
+      console.log(`[PLACA API] URL: ${API_PLACAS_BASE}/consulta/${placa}/***`);
 
       const response = await fetch(placaUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
-        body: JSON.stringify({
-          placa: placa,
-          token: apiPlacasKey,
-        }),
       });
       const responseText = await response.text();
       const responseContentType = response.headers.get('content-type') || '';
