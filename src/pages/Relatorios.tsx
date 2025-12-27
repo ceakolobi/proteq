@@ -3,6 +3,9 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
+import { useCanExport } from '@/hooks/useDataMasking';
+import { useAccessLogger } from '@/hooks/useAccessLogger';
+import { createMasker } from '@/lib/dataMasking';
 import {
   useReportData,
   RegionalReportItem,
@@ -29,7 +32,8 @@ import {
   Car,
   Filter,
   Loader2,
-  BarChart3
+  BarChart3,
+  Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,9 +41,14 @@ type ReportType = 'regional' | 'consultor' | 'inadimplencia' | 'sinistro';
 
 export default function Relatorios() {
   const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
-  const { isAdminPrincipal, hasRole, profile } = useAuth();
+  const { isAdminPrincipal, isGlobalAdmin, hasRole, profile, roles } = useAuth();
   const { regioes, consultores } = useReferenceData({ loadRegioes: true, loadConsultores: true });
   const { isLoading, fetchRegionalReport, fetchConsultorReport, fetchInadimplenciaReport, fetchSinistroReport } = useReportData();
+  
+  // Hooks de segurança
+  const { canExportFull, canExportAny } = useCanExport();
+  const { logExport } = useAccessLogger();
+  const masker = createMasker(roles, isGlobalAdmin);
 
   const [activeTab, setActiveTab] = useState<ReportType>('regional');
   const [filters, setFilters] = useState<ReportFilters>({
@@ -102,21 +111,39 @@ export default function Relatorios() {
 
   // Export handlers
   const handleExportExcel = () => {
+    if (!canExportAny) {
+      toast.error('Você não tem permissão para exportar dados');
+      return;
+    }
+    
     const { data, columns, filename } = getExportData();
     if (data.length === 0) {
       toast.warning('Nenhum dado para exportar');
       return;
     }
+    
+    // Log de acesso à exportação
+    logExport('relatorio', data.length, 'csv', { reportType: activeTab, filters });
+    
     exportToExcel(data, columns, filename);
     toast.success('Arquivo Excel gerado com sucesso');
   };
 
   const handleExportPDF = () => {
+    if (!canExportAny) {
+      toast.error('Você não tem permissão para exportar dados');
+      return;
+    }
+    
     const { data, columns, title } = getExportData();
     if (data.length === 0) {
       toast.warning('Nenhum dado para exportar');
       return;
     }
+    
+    // Log de acesso à exportação
+    logExport('relatorio', data.length, 'pdf', { reportType: activeTab, filters });
+    
     exportToPDF(data, columns, title);
   };
 
@@ -154,8 +181,14 @@ export default function Relatorios() {
           title: 'Relatório por Consultor',
         };
       case 'inadimplencia':
+        // Aplicar mascaramento nos dados sensíveis para exportação
+        const maskedInadimplencia = inadimplenciaData.map(item => ({
+          ...item,
+          cpf: canExportFull ? item.cpf : masker.cpf(item.cpf),
+          telefone: canExportFull ? item.telefone : masker.telefone(item.telefone),
+        }));
         return {
-          data: inadimplenciaData,
+          data: maskedInadimplencia,
           columns: [
             { header: 'Associado', accessor: 'associado_nome' },
             { header: 'CPF', accessor: 'cpf' },
@@ -169,8 +202,14 @@ export default function Relatorios() {
           title: 'Relatório de Inadimplência',
         };
       case 'sinistro':
+        // Aplicar mascaramento nos dados de localização para exportação
+        const maskedSinistro = sinistroData.map(item => ({
+          ...item,
+          origem: canExportFull ? item.origem : masker.endereco(item.origem),
+          destino: canExportFull ? item.destino : masker.endereco(item.destino),
+        }));
         return {
-          data: sinistroData,
+          data: maskedSinistro,
           columns: [
             { header: 'Data', accessor: 'data_acionamento', format: formatDate },
             { header: 'Associado', accessor: 'associado_nome' },

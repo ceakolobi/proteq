@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
+import { useDataMasking } from '@/hooks/useDataMasking';
+import { useAccessLogger } from '@/hooks/useAccessLogger';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,6 +82,10 @@ export default function Leads() {
   const [leads, setLeads] = useState<LeadWithRegiao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Hooks de segurança
+  const masker = useDataMasking();
+  const { logViewList } = useAccessLogger();
+  
   // Usar hook centralizado para regiões
   const { regioes, getRegiaoNome, isLoading: refLoading } = useReferenceData({ loadRegioes: true });
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +101,13 @@ export default function Leads() {
     regiao_id: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  
+  // Log de acesso quando lista é carregada
+  useEffect(() => {
+    if (leads.length > 0) {
+      logViewList('lead', leads.length, { filterStatus });
+    }
+  }, [leads.length, filterStatus, logViewList]);
 
   const isConsultor = hasRole('consultor_vendas');
   const isAdminRegional = hasRole('admin_regional');
@@ -495,12 +508,12 @@ export default function Leads() {
                           <div className="space-y-1">
                             <p className="text-sm flex items-center gap-1">
                               <Phone className="h-3 w-3" />
-                              {formatPhone(lead.telefone)}
+                              {masker.telefone(lead.telefone)}
                             </p>
                             {lead.email && (
                               <p className="text-sm flex items-center gap-1 text-muted-foreground">
                                 <Mail className="h-3 w-3" />
-                                {lead.email}
+                                {masker.email(lead.email)}
                               </p>
                             )}
                           </div>
