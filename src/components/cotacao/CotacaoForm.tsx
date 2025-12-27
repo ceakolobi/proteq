@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,17 +19,15 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import {
   Car,
-  Truck,
-  Bike,
   Calculator,
-  DollarSign,
   FileText,
   CheckCircle2,
-  AlertCircle,
-  Upload,
+  Settings2,
 } from 'lucide-react';
 import type { Cotacao, TipoBem, MetodoValoracao } from '@/types/cotacao';
 import { tipoBemLabels, metodoValoracaoLabels, tiposSemFipe } from '@/types/cotacao';
+import PlacaLookup, { PlacaStatus, VehicleData } from './PlacaLookup';
+import ValorBemInput from './ValorBemInput';
 
 // Validação
 const cotacaoSchema = z.object({
@@ -69,6 +67,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     observacoes: '',
   });
   
+  const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
+  const [fipeBloqueado, setFipeBloqueado] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [resultado, setResultado] = useState<{
@@ -93,8 +93,39 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         ...prev,
         metodo_valoracao: 'venal',
       }));
+      setFipeBloqueado(false);
     }
   }, [formData.tipo_bem, tipoTemFipe]);
+
+  // Handler quando veículo é encontrado via placa
+  const handleVehicleFound = useCallback((data: VehicleData) => {
+    setFormData(prev => ({
+      ...prev,
+      marca: data.marca,
+      modelo: data.modelo,
+      ano_fabricacao: data.ano_fabricacao,
+      ano_modelo: data.ano_modelo,
+      renavam: data.renavam || '',
+      chassi: data.chassi || '',
+      cor: data.cor || '',
+      codigo_fipe: data.codigo_fipe || '',
+      valor_bem: data.valor_fipe ? String(data.valor_fipe) : '',
+      metodo_valoracao: data.fipeEncontrado ? 'fipe' : 'venal',
+    }));
+    
+    if (data.fipeEncontrado && data.valor_fipe) {
+      setFipeBloqueado(true);
+    }
+  }, []);
+
+  const handlePlacaStatusChange = useCallback((status: PlacaStatus) => {
+    setPlacaStatus(status);
+    
+    // Se não encontrou ou é inválido, desbloqueia edição
+    if (status === 'not_found' || status === 'invalid' || status === 'found_no_fipe') {
+      setFipeBloqueado(false);
+    }
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -103,15 +134,49 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     }).format(value);
   };
 
+  const parseValorBem = (valor: string): number => {
+    // Trata tanto formato brasileiro (1.234,56) quanto americano (1234.56)
+    const cleaned = valor.replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleaned) || 0;
+  };
+
   const handleCalcular = async () => {
+    // Limpar erros anteriores
+    setErrors({});
+
     // Validar campos obrigatórios
-    if (!formData.tipo_bem || !formData.marca || !formData.modelo || !formData.ano_fabricacao || !formData.valor_bem) {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.tipo_bem) {
+      newErrors.tipo_bem = 'Selecione o tipo do bem';
+    }
+    if (!formData.marca || formData.marca.length < 2) {
+      newErrors.marca = 'Informe a marca';
+    }
+    if (!formData.modelo || formData.modelo.length < 2) {
+      newErrors.modelo = 'Informe o modelo';
+    }
+    if (!formData.ano_fabricacao) {
+      newErrors.ano_fabricacao = 'Informe o ano';
+    }
+    if (!formData.valor_bem) {
+      newErrors.valor_bem = 'Informe o valor do bem';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
     setIsCalculating(true);
-    const valorBem = parseFloat(formData.valor_bem);
+    const valorBem = parseValorBem(formData.valor_bem);
+
+    if (valorBem < 1000) {
+      setErrors({ valor_bem: 'Valor mínimo R$ 1.000,00' });
+      setIsCalculating(false);
+      return;
+    }
 
     // Encontrar cota baseada no valor
     const cotaEncontrada = cotasAtivas.find(
@@ -124,7 +189,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       return;
     }
 
-    // Buscar mensalidade pelo tipo - usando fallback para pickup quando não existe campo específico
+    // Buscar mensalidade pelo tipo
     const getMensalidade = (tipo: TipoBem): number => {
       switch (tipo) {
         case 'carro': return Number(cotaEncontrada.mensalidade_carro) || 0;
@@ -168,13 +233,15 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     }
 
     try {
+      const valorBem = parseValorBem(formData.valor_bem);
+      
       // Validar
       const parsed = cotacaoSchema.safeParse({
         tipo_bem: formData.tipo_bem,
         marca: formData.marca,
         modelo: formData.modelo,
         ano_fabricacao: parseInt(formData.ano_fabricacao),
-        valor_bem: parseFloat(formData.valor_bem),
+        valor_bem: valorBem,
       });
 
       if (!parsed.success) {
@@ -203,11 +270,11 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         cor: formData.cor || undefined,
         renavam: formData.renavam || undefined,
         metodo_valoracao: formData.metodo_valoracao,
-        valor_bem: parseFloat(formData.valor_bem),
-        valor_fipe: formData.metodo_valoracao === 'fipe' ? parseFloat(formData.valor_bem) : undefined,
+        valor_bem: valorBem,
+        valor_fipe: fipeBloqueado ? valorBem : undefined,
         codigo_fipe: formData.codigo_fipe || undefined,
-        usuario_informou_valor: formData.metodo_valoracao !== 'fipe' ? user?.id : undefined,
-        data_valor_informado: formData.metodo_valoracao !== 'fipe' ? new Date().toISOString() : undefined,
+        usuario_informou_valor: !fipeBloqueado ? user?.id : undefined,
+        data_valor_informado: !fipeBloqueado ? new Date().toISOString() : undefined,
         cota_id: resultado.cota.id,
         mensalidade: resultado.mensalidade,
         participacao: resultado.participacao,
@@ -266,6 +333,10 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     }
   };
 
+  // Verifica se pode calcular
+  const canCalculate = formData.tipo_bem && formData.marca && formData.modelo && 
+                       formData.ano_fabricacao && formData.valor_bem;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -285,240 +356,238 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Formulário */}
         <div className="space-y-6">
-          {/* Tipo do Bem */}
+          {/* ETAPA 1: Tipo do Bem */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Car className="w-5 h-5" />
-                Tipo do Bem
+                1. Tipo do Bem
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tipo *</Label>
-                <Select
-                  value={formData.tipo_bem}
-                  onValueChange={(value) => setFormData({ ...formData, tipo_bem: value as TipoBem })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(tipoBemLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.tipo_bem && <p className="text-sm text-destructive">{errors.tipo_bem}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Marca *</Label>
-                  <Input
-                    placeholder="Ex: Volkswagen"
-                    value={formData.marca}
-                    onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Modelo *</Label>
-                  <Input
-                    placeholder="Ex: Gol"
-                    value={formData.modelo}
-                    onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Ano Fabricação *</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 2020"
-                    value={formData.ano_fabricacao}
-                    onChange={(e) => setFormData({ ...formData, ano_fabricacao: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Ano Modelo</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 2021"
-                    value={formData.ano_modelo}
-                    onChange={(e) => setFormData({ ...formData, ano_modelo: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Placa</Label>
-                  <Input
-                    placeholder="ABC-1234"
-                    value={formData.placa}
-                    onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
-                    maxLength={8}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor</Label>
-                  <Input
-                    placeholder="Ex: Prata"
-                    value={formData.cor}
-                    onChange={(e) => setFormData({ ...formData, cor: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Chassi</Label>
-                  <Input
-                    placeholder="Número do chassi"
-                    value={formData.chassi}
-                    onChange={(e) => setFormData({ ...formData, chassi: e.target.value.toUpperCase() })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Renavam</Label>
-                  <Input
-                    placeholder="Número do Renavam"
-                    value={formData.renavam}
-                    onChange={(e) => setFormData({ ...formData, renavam: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Categoria/Complemento</Label>
-                <Input
-                  placeholder="Ex: Sedan, SUV, Bitruck..."
-                  value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Valoração */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Valoração
-              </CardTitle>
-              <CardDescription>
-                {tipoTemFipe ? 'FIPE disponível ou valor manual' : 'Somente valor manual (sem FIPE)'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Método de Valoração</Label>
-                <Select
-                  value={formData.metodo_valoracao}
-                  onValueChange={(value) => setFormData({ ...formData, metodo_valoracao: value as MetodoValoracao })}
-                  disabled={!tipoTemFipe}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tipoTemFipe && <SelectItem value="fipe">Tabela FIPE</SelectItem>}
-                    <SelectItem value="venal">Valor Venal</SelectItem>
-                    <SelectItem value="nota_fiscal">Nota Fiscal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.metodo_valoracao === 'fipe' && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-sm">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>Integração FIPE preparada para futura API</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Valor do Bem (R$) *</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0,00"
-                    className="pl-10"
-                    value={formData.valor_bem}
-                    onChange={(e) => setFormData({ ...formData, valor_bem: e.target.value })}
-                    disabled={formData.metodo_valoracao === 'fipe' && false} // Será bloqueado quando FIPE estiver integrada
-                  />
-                </div>
-              </div>
-
-              {formData.metodo_valoracao === 'fipe' && (
-                <div className="space-y-2">
-                  <Label>Código FIPE (opcional)</Label>
-                  <Input
-                    placeholder="Ex: 001234-5"
-                    value={formData.codigo_fipe}
-                    onChange={(e) => setFormData({ ...formData, codigo_fipe: e.target.value })}
-                  />
-                </div>
-              )}
-
-              {formData.metodo_valoracao === 'nota_fiscal' && (
-                <div className="space-y-2">
-                  <Label>Upload Nota Fiscal (opcional)</Label>
-                  <div className="border-2 border-dashed rounded-lg p-4 text-center text-muted-foreground">
-                    <Upload className="w-8 h-8 mx-auto mb-2" />
-                    <p className="text-sm">Funcionalidade de upload disponível em breve</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Carro Reserva</Label>
-                <Select
-                  value={formData.carro_reserva_extra}
-                  onValueChange={(value) => setFormData({ ...formData, carro_reserva_extra: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhum">15 dias (inclusos)</SelectItem>
-                    <SelectItem value="30dias">+30 dias (R$ 39,90/mês)</SelectItem>
-                    <SelectItem value="90dias">+90 dias (R$ 59,90/mês)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea
-                  placeholder="Anotações sobre a cotação..."
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <Button 
-                onClick={handleCalcular} 
-                className="w-full" 
-                disabled={isCalculating || cotasLoading}
+            <CardContent>
+              <Select
+                value={formData.tipo_bem}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, tipo_bem: value as TipoBem });
+                  setResultado(null);
+                }}
               >
-                <Calculator className="w-4 h-4 mr-2" />
-                {isCalculating ? 'Calculando...' : 'Calcular Cotação'}
-              </Button>
+                <SelectTrigger className={errors.tipo_bem ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Selecione o tipo do veículo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(tipoBemLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.tipo_bem && <p className="text-sm text-destructive mt-1">{errors.tipo_bem}</p>}
             </CardContent>
           </Card>
+
+          {/* ETAPA 2: Placa (Campo Principal) */}
+          {formData.tipo_bem && (
+            <Card className="border-2 border-primary/50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
+                  Identificação por Placa
+                </CardTitle>
+                <CardDescription>
+                  Digite a placa para consulta automática dos dados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PlacaLookup
+                  value={formData.placa}
+                  onChange={(value) => setFormData({ ...formData, placa: value })}
+                  onVehicleFound={handleVehicleFound}
+                  onStatusChange={handlePlacaStatusChange}
+                  tipoTemFipe={tipoTemFipe}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ETAPA 3: Dados do Veículo */}
+          {formData.tipo_bem && (
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Settings2 className="w-5 h-5" />
+                  3. Dados do Veículo
+                </CardTitle>
+                <CardDescription>
+                  {placaStatus === 'found_fipe' 
+                    ? 'Dados preenchidos automaticamente' 
+                    : 'Preencha os dados manualmente'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Marca *</Label>
+                    <Input
+                      placeholder="Ex: Volkswagen"
+                      value={formData.marca}
+                      onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                      disabled={fipeBloqueado}
+                      className={errors.marca ? 'border-destructive' : ''}
+                    />
+                    {errors.marca && <p className="text-xs text-destructive">{errors.marca}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Modelo *</Label>
+                    <Input
+                      placeholder="Ex: Gol"
+                      value={formData.modelo}
+                      onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
+                      disabled={fipeBloqueado}
+                      className={errors.modelo ? 'border-destructive' : ''}
+                    />
+                    {errors.modelo && <p className="text-xs text-destructive">{errors.modelo}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Ano Fabricação *</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 2020"
+                      value={formData.ano_fabricacao}
+                      onChange={(e) => setFormData({ ...formData, ano_fabricacao: e.target.value })}
+                      disabled={fipeBloqueado}
+                      className={errors.ano_fabricacao ? 'border-destructive' : ''}
+                    />
+                    {errors.ano_fabricacao && <p className="text-xs text-destructive">{errors.ano_fabricacao}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ano Modelo</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 2021"
+                      value={formData.ano_modelo}
+                      onChange={(e) => setFormData({ ...formData, ano_modelo: e.target.value })}
+                      disabled={fipeBloqueado}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Chassi</Label>
+                    <Input
+                      placeholder="Número do chassi"
+                      value={formData.chassi}
+                      onChange={(e) => setFormData({ ...formData, chassi: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Renavam</Label>
+                    <Input
+                      placeholder="Número do Renavam"
+                      value={formData.renavam}
+                      onChange={(e) => setFormData({ ...formData, renavam: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cor</Label>
+                    <Input
+                      placeholder="Ex: Prata"
+                      value={formData.cor}
+                      onChange={(e) => setFormData({ ...formData, cor: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Categoria/Complemento</Label>
+                    <Input
+                      placeholder="Ex: Sedan, SUV..."
+                      value={formData.categoria}
+                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ETAPA 4: Valoração */}
+          {formData.tipo_bem && (
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">4</span>
+                  Valoração do Bem
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ValorBemInput
+                  valorBem={formData.valor_bem}
+                  onValorChange={(value) => {
+                    setFormData({ ...formData, valor_bem: value });
+                    setResultado(null);
+                  }}
+                  metodoValoracao={formData.metodo_valoracao}
+                  onMetodoChange={(value) => setFormData({ ...formData, metodo_valoracao: value })}
+                  codigoFipe={formData.codigo_fipe}
+                  onCodigoFipeChange={(value) => setFormData({ ...formData, codigo_fipe: value })}
+                  fipeBloqueado={fipeBloqueado}
+                  tipoTemFipe={tipoTemFipe}
+                  error={errors.valor_bem}
+                />
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label>Carro Reserva</Label>
+                  <Select
+                    value={formData.carro_reserva_extra}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, carro_reserva_extra: value });
+                      setResultado(null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nenhum">15 dias (inclusos)</SelectItem>
+                      <SelectItem value="30dias">+30 dias (R$ 39,90/mês)</SelectItem>
+                      <SelectItem value="90dias">+90 dias (R$ 59,90/mês)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Observações</Label>
+                  <Textarea
+                    placeholder="Anotações sobre a cotação..."
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleCalcular} 
+                  className="w-full" 
+                  size="lg"
+                  disabled={isCalculating || cotasLoading || !canCalculate}
+                >
+                  <Calculator className="w-4 h-4 mr-2" />
+                  {isCalculating ? 'Calculando...' : 'Calcular Cotação'}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Resultado */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-6">
           {resultado ? (
             <Card className="border-primary">
               <CardHeader className="bg-primary text-primary-foreground rounded-t-lg">
@@ -528,6 +597,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                 </CardTitle>
                 <CardDescription className="text-primary-foreground/80">
                   {formData.marca} {formData.modelo} {formData.ano_fabricacao}
+                  {formData.placa && ` • ${formData.placa}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
@@ -544,7 +614,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Valor do Bem</p>
-                    <p className="font-semibold">{formatCurrency(parseFloat(formData.valor_bem))}</p>
+                    <p className="font-semibold">{formatCurrency(parseValorBem(formData.valor_bem))}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Participação (7%)</p>
@@ -561,8 +631,17 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Método:</span>
-                    <span>{metodoValoracaoLabels[formData.metodo_valoracao]}</span>
+                    <Badge variant={fipeBloqueado ? "default" : "secondary"} className="gap-1">
+                      {fipeBloqueado && <CheckCircle2 className="w-3 h-3" />}
+                      {metodoValoracaoLabels[formData.metodo_valoracao]}
+                    </Badge>
                   </div>
+                  {formData.placa && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Placa:</span>
+                      <span className="font-mono">{formData.placa}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Carro Reserva:</span>
                     <span>
@@ -587,7 +666,12 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 <Calculator className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Preencha os dados e calcule para ver o resultado</p>
+                <p className="font-medium">Aguardando dados</p>
+                <p className="text-sm mt-1">
+                  {!formData.tipo_bem 
+                    ? 'Selecione o tipo do bem para começar'
+                    : 'Preencha os dados e calcule para ver o resultado'}
+                </p>
               </CardContent>
             </Card>
           )}
