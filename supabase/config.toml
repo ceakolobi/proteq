@@ -1,1 +1,4 @@
 project_id = "sbtfhtllzpurjprivqoi"
+
+[functions.fipe]
+verify_jwt = false
