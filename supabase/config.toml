@@ -1,4 +1,4 @@
 project_id = "sbtfhtllzpurjprivqoi"
 
-[functions.api-fipe]
+[functions.api]
 verify_jwt = false
