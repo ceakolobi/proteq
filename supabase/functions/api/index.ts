@@ -160,15 +160,32 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    
+
+    // Permite chamada via POST (supabase.functions.invoke) com JSON: { route: 'placa', placa: 'ABC1234' }
+    let body: any = null;
+    if (req.method === 'POST') {
+      const ct = req.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        try {
+          body = await req.json();
+        } catch {
+          body = null;
+        }
+      }
+    }
+
     // Check if it's a placa endpoint
     const placaIndex = pathParts.indexOf('placa');
-    if (placaIndex >= 0 && pathParts[placaIndex + 1]) {
+    const placaFromPath = placaIndex >= 0 && pathParts[placaIndex + 1] ? pathParts[placaIndex + 1] : null;
+    const placaFromBody = typeof body?.placa === 'string' ? body.placa : null;
+    const isPlacaEndpoint = (body?.route === 'placa' && !!placaFromBody) || !!placaFromPath;
+
+    if (isPlacaEndpoint) {
       // ========== CONSULTA POR PLACA ==========
-      const placa = pathParts[placaIndex + 1].replace(/[^A-Z0-9]/gi, '').toUpperCase();
-      
+      const placa = (placaFromPath ?? placaFromBody ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+
       console.log(`[PLACA API] Consultando placa: ${placa}, User: ${userEmail || 'anonymous'}`);
-      
+
       // Validar formato da placa
       if (!validatePlaca(placa)) {
         return new Response(
@@ -204,17 +221,71 @@ serve(async (req) => {
       // Consultar API Placas
       const placaUrl = `${API_PLACAS_BASE}/consulta?placa=${encodeURIComponent(placa)}&token=${encodeURIComponent(apiPlacasKey)}`;
       console.log(`[PLACA API] URL: ${API_PLACAS_BASE}/consulta?placa=${placa}&token=***`);
-      
-      const response = await fetch(placaUrl);
+
+      const response = await fetch(placaUrl, {
+        headers: {
+          'Accept': 'application/json',
+          // Alguns provedores (Cloudflare/WAF) bloqueiam requisições sem User-Agent
+          'User-Agent': 'Mozilla/5.0 (compatible; LovableCloud/1.0)',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+        },
+      });
       const responseText = await response.text();
-      console.log(`[PLACA API] Status: ${response.status}`);
-      
+      const responseContentType = response.headers.get('content-type') || '';
+      console.log(`[PLACA API] Status: ${response.status} (${responseContentType})`);
+
+      // Se não for JSON, retorna erro legível (evita "Resposta inválida" genérica)
+      const looksLikeHtml = responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html');
+      if (!response.ok || !responseContentType.includes('application/json') || looksLikeHtml) {
+        const errorMsg = looksLikeHtml
+          ? `API de placas retornou HTML (status ${response.status}). Possível bloqueio/validação do provedor (Cloudflare) ou token inválido.`
+          : `API de placas retornou status ${response.status}.`;
+
+        console.error('[PLACA API] Erro HTTP/Conteúdo:', errorMsg);
+
+        await supabase.from('fipe_logs').insert({
+          user_id: userId,
+          user_email: userEmail,
+          endpoint: 'placa',
+          parametros: { placa, status: response.status },
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          origem,
+          sucesso: false,
+          erro: errorMsg,
+          cache_hit: false,
+        });
+
+        return new Response(
+          JSON.stringify(createStandardResponse(false, null, false, undefined, errorMsg, 'API_PLACAS')),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       let placaData: PlacaApiResponse;
       try {
         placaData = JSON.parse(responseText);
       } catch {
-        console.error('[PLACA API] Resposta inválida:', responseText);
-        throw new Error('Resposta inválida da API de placas');
+        const errorMsg = 'Não foi possível interpretar o JSON da API de placas.';
+        console.error('[PLACA API] Parse JSON falhou:', responseText.slice(0, 500));
+
+        await supabase.from('fipe_logs').insert({
+          user_id: userId,
+          user_email: userEmail,
+          endpoint: 'placa',
+          parametros: { placa, status: response.status },
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          origem,
+          sucesso: false,
+          erro: errorMsg,
+          cache_hit: false,
+        });
+
+        return new Response(
+          JSON.stringify(createStandardResponse(false, null, false, undefined, errorMsg, 'API_PLACAS')),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Verificar erro na resposta
@@ -571,13 +642,16 @@ serve(async (req) => {
         cache_hit: false,
       });
 
+    const origemResposta = endpoint === 'placa' ? 'API_PLACAS' : 'FIPE';
+
     return new Response(
       JSON.stringify(createStandardResponse(
         false,
         null,
         false,
         undefined,
-        error instanceof Error ? error.message : 'Erro desconhecido'
+        error instanceof Error ? error.message : 'Erro desconhecido',
+        origemResposta
       )),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
