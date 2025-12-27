@@ -82,14 +82,8 @@ export default function FipeSelector({
     setValorEncontrado(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('fipe', {
-        body: null,
-        method: 'GET',
-      });
-
-      // Use fetch directly since invoke doesn't support query params well for GET
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe?action=marcas&tipo=${tipoBem}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/marcas?tipo=${tipoBem}`
       );
       
       if (!response.ok) {
@@ -123,7 +117,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe?action=modelos&tipo=${tipoBem}&marcaId=${marcaId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/modelos?tipo=${tipoBem}&marcaId=${marcaId}`
       );
       
       if (!response.ok) {
@@ -151,7 +145,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe?action=anos&tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${modeloId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/anos?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${modeloId}`
       );
       
       if (!response.ok) {
@@ -177,7 +171,7 @@ export default function FipeSelector({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe?action=valor&tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${selectedModeloId}&anoId=${selectedAnoId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fipe/valor?tipo=${tipoBem}&marcaId=${selectedMarcaId}&modeloId=${selectedModeloId}&anoId=${selectedAnoId}`
       );
       
       if (!response.ok) {

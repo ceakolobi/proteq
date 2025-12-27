@@ -25,18 +25,26 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // Get endpoint from path: /fipe/marcas, /fipe/modelos, etc.
+    const endpoint = pathParts[pathParts.length - 1];
+    
+    // Get query params
     const tipo = url.searchParams.get('tipo') || 'carro';
+    const marcaId = url.searchParams.get('marcaId');
+    const modeloId = url.searchParams.get('modeloId');
+    const anoId = url.searchParams.get('anoId');
     
     const fipeTipo = tipoParaFipe[tipo] || 'carros';
     
-    console.log(`[FIPE] Action: ${action}, Tipo: ${tipo}, FipeTipo: ${fipeTipo}`);
+    console.log(`[FIPE] Endpoint: ${endpoint}, Tipo: ${tipo}, FipeTipo: ${fipeTipo}`);
 
     let result: unknown;
 
-    switch (action) {
+    switch (endpoint) {
       case 'marcas': {
-        // Buscar todas as marcas
+        // GET /marcas?tipo=carro|moto|caminhao
         const response = await fetch(`${FIPE_API_BASE}/${fipeTipo}/marcas`);
         if (!response.ok) {
           throw new Error(`Erro ao buscar marcas: ${response.status}`);
@@ -47,8 +55,7 @@ serve(async (req) => {
       }
 
       case 'modelos': {
-        // Buscar modelos de uma marca
-        const marcaId = url.searchParams.get('marcaId');
+        // GET /modelos?tipo=&marcaId=
         if (!marcaId) {
           return new Response(
             JSON.stringify({ error: 'marcaId é obrigatório' }),
@@ -68,10 +75,7 @@ serve(async (req) => {
       }
 
       case 'anos': {
-        // Buscar anos de um modelo
-        const marcaId = url.searchParams.get('marcaId');
-        const modeloId = url.searchParams.get('modeloId');
-        
+        // GET /anos?tipo=&marcaId=&modeloId=
         if (!marcaId || !modeloId) {
           return new Response(
             JSON.stringify({ error: 'marcaId e modeloId são obrigatórios' }),
@@ -89,11 +93,7 @@ serve(async (req) => {
       }
 
       case 'valor': {
-        // Buscar valor FIPE
-        const marcaId = url.searchParams.get('marcaId');
-        const modeloId = url.searchParams.get('modeloId');
-        const anoId = url.searchParams.get('anoId');
-        
+        // GET /valor?tipo=&marcaId=&modeloId=&anoId=
         if (!marcaId || !modeloId || !anoId) {
           return new Response(
             JSON.stringify({ error: 'marcaId, modeloId e anoId são obrigatórios' }),
@@ -111,8 +111,22 @@ serve(async (req) => {
       }
 
       default:
+        // Fallback: check action param for backward compatibility
+        const action = url.searchParams.get('action');
+        if (action) {
+          return handleLegacyAction(action, tipo, fipeTipo, marcaId, modeloId, anoId);
+        }
+        
         return new Response(
-          JSON.stringify({ error: 'Ação inválida. Use: marcas, modelos, anos ou valor' }),
+          JSON.stringify({ 
+            error: 'Endpoint inválido. Use: /marcas, /modelos, /anos ou /valor',
+            endpoints: {
+              marcas: 'GET /marcas?tipo=carro|moto|caminhao',
+              modelos: 'GET /modelos?tipo=&marcaId=',
+              anos: 'GET /anos?tipo=&marcaId=&modeloId=',
+              valor: 'GET /valor?tipo=&marcaId=&modeloId=&anoId='
+            }
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
@@ -130,3 +144,71 @@ serve(async (req) => {
     );
   }
 });
+
+// Legacy action handler for backward compatibility
+async function handleLegacyAction(
+  action: string, 
+  tipo: string, 
+  fipeTipo: string, 
+  marcaId: string | null, 
+  modeloId: string | null, 
+  anoId: string | null
+): Promise<Response> {
+  let result: unknown;
+
+  switch (action) {
+    case 'marcas': {
+      const response = await fetch(`${FIPE_API_BASE}/${fipeTipo}/marcas`);
+      if (!response.ok) throw new Error(`Erro ao buscar marcas: ${response.status}`);
+      result = await response.json();
+      break;
+    }
+    case 'modelos': {
+      if (!marcaId) {
+        return new Response(
+          JSON.stringify({ error: 'marcaId é obrigatório' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const response = await fetch(`${FIPE_API_BASE}/${fipeTipo}/marcas/${marcaId}/modelos`);
+      if (!response.ok) throw new Error(`Erro ao buscar modelos: ${response.status}`);
+      const data = await response.json();
+      result = data.modelos || data;
+      break;
+    }
+    case 'anos': {
+      if (!marcaId || !modeloId) {
+        return new Response(
+          JSON.stringify({ error: 'marcaId e modeloId são obrigatórios' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const response = await fetch(`${FIPE_API_BASE}/${fipeTipo}/marcas/${marcaId}/modelos/${modeloId}/anos`);
+      if (!response.ok) throw new Error(`Erro ao buscar anos: ${response.status}`);
+      result = await response.json();
+      break;
+    }
+    case 'valor': {
+      if (!marcaId || !modeloId || !anoId) {
+        return new Response(
+          JSON.stringify({ error: 'marcaId, modeloId e anoId são obrigatórios' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const response = await fetch(`${FIPE_API_BASE}/${fipeTipo}/marcas/${marcaId}/modelos/${modeloId}/anos/${anoId}`);
+      if (!response.ok) throw new Error(`Erro ao buscar valor: ${response.status}`);
+      result = await response.json();
+      break;
+    }
+    default:
+      return new Response(
+        JSON.stringify({ error: 'Ação inválida' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+  }
+
+  return new Response(
+    JSON.stringify(result),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
