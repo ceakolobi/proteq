@@ -466,6 +466,102 @@ export type Database = {
         }
         Relationships: []
       }
+      fipe_cache: {
+        Row: {
+          ano_id: string
+          ano_nome: string
+          codigo_fipe: string | null
+          combustivel: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          marca_id: string
+          marca_nome: string
+          mes_referencia: string
+          modelo_id: string
+          modelo_nome: string
+          tipo_veiculo: string
+          valor: number
+        }
+        Insert: {
+          ano_id: string
+          ano_nome: string
+          codigo_fipe?: string | null
+          combustivel?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          marca_id: string
+          marca_nome: string
+          mes_referencia: string
+          modelo_id: string
+          modelo_nome: string
+          tipo_veiculo: string
+          valor: number
+        }
+        Update: {
+          ano_id?: string
+          ano_nome?: string
+          codigo_fipe?: string | null
+          combustivel?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          marca_id?: string
+          marca_nome?: string
+          mes_referencia?: string
+          modelo_id?: string
+          modelo_nome?: string
+          tipo_veiculo?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      fipe_logs: {
+        Row: {
+          cache_hit: boolean
+          created_at: string
+          endpoint: string
+          erro: string | null
+          id: string
+          ip_address: string | null
+          origem: string
+          parametros: Json
+          sucesso: boolean
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cache_hit?: boolean
+          created_at?: string
+          endpoint: string
+          erro?: string | null
+          id?: string
+          ip_address?: string | null
+          origem?: string
+          parametros: Json
+          sucesso?: boolean
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cache_hit?: boolean
+          created_at?: string
+          endpoint?: string
+          erro?: string | null
+          id?: string
+          ip_address?: string | null
+          origem?: string
+          parametros?: Json
+          sucesso?: boolean
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           consultor_id: string
@@ -950,6 +1046,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_fipe_cache: { Args: never; Returns: number }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
