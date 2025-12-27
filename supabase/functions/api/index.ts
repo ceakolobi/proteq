@@ -105,11 +105,17 @@ serve(async (req) => {
           );
         }
         
-        const response = await fetch(`${FIPE_API_BASE}/${fipeTipo}/marcas/${marcaId}/modelos/${modeloId}/anos/${anoId}`);
+        const valorUrl = `${FIPE_API_BASE}/${fipeTipo}/marcas/${marcaId}/modelos/${modeloId}/anos/${anoId}`;
+        console.log(`[FIPE] Buscando valor em: ${valorUrl}`);
+        
+        const response = await fetch(valorUrl);
+        const responseText = await response.text();
+        console.log(`[FIPE] Response status: ${response.status}, body: ${responseText}`);
+        
         if (!response.ok) {
-          throw new Error(`Erro ao buscar valor: ${response.status}`);
+          throw new Error(`Erro ao buscar valor: ${response.status} - ${responseText}`);
         }
-        result = await response.json();
+        result = JSON.parse(responseText);
         console.log(`[FIPE] Valor encontrado:`, result);
         break;
       }
