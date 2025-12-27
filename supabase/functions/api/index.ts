@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const FIPE_API_BASE = 'https://parallelum.com.br/fipe/api/v1';
+const API_PLACAS_BASE = 'https://apiplacas.com.br/api';
 
 // Mapear tipos do sistema para tipos da API FIPE
 const tipoParaFipe: Record<string, string> = {
@@ -33,6 +34,27 @@ interface FipeValorResponse {
   SiglaCombustivel: string;
 }
 
+interface PlacaApiResponse {
+  placa?: string;
+  marca?: string;
+  modelo?: string;
+  versao?: string;
+  ano?: string;
+  anoModelo?: string;
+  cor?: string;
+  combustivel?: string;
+  chassi?: string;
+  municipio?: string;
+  uf?: string;
+  situacao?: string;
+  // Campos FIPE que podem vir na resposta
+  fipe_codigo?: string;
+  fipe_valor?: string;
+  // Error handling
+  error?: string;
+  message?: string;
+}
+
 interface StandardResponse {
   success: boolean;
   data: unknown;
@@ -51,13 +73,14 @@ function createStandardResponse(
   data: unknown,
   cache: boolean = false,
   mesReferencia?: string,
-  error?: string
+  error?: string,
+  origem: string = 'FIPE'
 ): StandardResponse {
   return {
     success,
     data,
     meta: {
-      origem: 'FIPE',
+      origem,
       cache,
       consultadoEm: new Date().toISOString(),
       ...(mesReferencia && { mesReferencia }),
@@ -75,6 +98,17 @@ function parseValorFipe(valor: string): number {
       .replace(',', '.')
       .trim()
   );
+}
+
+// Validação de placa brasileira
+function validatePlaca(placa: string): boolean {
+  const cleanPlaca = placa.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  // Padrão antigo: 3 letras + 4 números
+  const padraoAntigo = /^[A-Z]{3}[0-9]{4}$/;
+  // Padrão Mercosul: 3 letras + 1 número + 1 letra + 2 números
+  const padraoMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+  
+  return padraoAntigo.test(cleanPlaca) || padraoMercosul.test(cleanPlaca);
 }
 
 serve(async (req) => {
@@ -111,6 +145,144 @@ serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     
+    // Check if it's a placa endpoint
+    const placaIndex = pathParts.indexOf('placa');
+    if (placaIndex >= 0 && pathParts[placaIndex + 1]) {
+      // ========== CONSULTA POR PLACA ==========
+      const placa = pathParts[placaIndex + 1].replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      
+      console.log(`[PLACA API] Consultando placa: ${placa}, User: ${userEmail || 'anonymous'}`);
+      
+      // Validar formato da placa
+      if (!validatePlaca(placa)) {
+        return new Response(
+          JSON.stringify(createStandardResponse(
+            false,
+            null,
+            false,
+            undefined,
+            'Formato de placa inválido. Use AAA1234 (antigo) ou AAA1A23 (Mercosul)',
+            'API_PLACAS'
+          )),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Obter API key
+      const apiPlacasKey = Deno.env.get('API_PLACAS_KEY');
+      if (!apiPlacasKey) {
+        console.error('[PLACA API] API_PLACAS_KEY não configurada');
+        return new Response(
+          JSON.stringify(createStandardResponse(
+            false,
+            null,
+            false,
+            undefined,
+            'Consulta por placa não disponível. Configure a API key.',
+            'API_PLACAS'
+          )),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Consultar API Placas
+      const placaUrl = `${API_PLACAS_BASE}/consulta?placa=${encodeURIComponent(placa)}&token=${encodeURIComponent(apiPlacasKey)}`;
+      console.log(`[PLACA API] URL: ${API_PLACAS_BASE}/consulta?placa=${placa}&token=***`);
+      
+      const response = await fetch(placaUrl);
+      const responseText = await response.text();
+      console.log(`[PLACA API] Status: ${response.status}`);
+      
+      let placaData: PlacaApiResponse;
+      try {
+        placaData = JSON.parse(responseText);
+      } catch {
+        console.error('[PLACA API] Resposta inválida:', responseText);
+        throw new Error('Resposta inválida da API de placas');
+      }
+
+      // Verificar erro na resposta
+      if (placaData.error || placaData.message) {
+        const errorMsg = placaData.message || placaData.error || 'Erro desconhecido';
+        console.error(`[PLACA API] Erro: ${errorMsg}`);
+        
+        // Log de auditoria para erro
+        await supabase.from('fipe_logs').insert({
+          user_id: userId,
+          user_email: userEmail,
+          endpoint: 'placa',
+          parametros: { placa },
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          origem,
+          sucesso: false,
+          erro: errorMsg,
+          cache_hit: false,
+        });
+
+        return new Response(
+          JSON.stringify(createStandardResponse(
+            false,
+            null,
+            false,
+            undefined,
+            errorMsg,
+            'API_PLACAS'
+          )),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[PLACA API] Veículo encontrado: ${placaData.marca} ${placaData.modelo}`);
+
+      // Extrair ano de fabricação e modelo
+      const anoFabricacao = placaData.ano ? parseInt(placaData.ano) : null;
+      const anoModelo = placaData.anoModelo ? parseInt(placaData.anoModelo) : anoFabricacao;
+
+      // Parsear valor FIPE se disponível
+      let valorFipe: number | null = null;
+      if (placaData.fipe_valor) {
+        valorFipe = parseValorFipe(placaData.fipe_valor);
+      }
+
+      const result = {
+        placa: placaData.placa || placa,
+        marca: placaData.marca || null,
+        modelo: placaData.modelo || null,
+        versao: placaData.versao || null,
+        ano_fabricacao: anoFabricacao,
+        ano_modelo: anoModelo,
+        cor: placaData.cor || null,
+        combustivel: placaData.combustivel || null,
+        chassi: placaData.chassi || null,
+        municipio: placaData.municipio || null,
+        uf: placaData.uf || null,
+        situacao: placaData.situacao || null,
+        codigo_fipe: placaData.fipe_codigo || null,
+        valor_fipe: valorFipe,
+        fipeEncontrado: !!placaData.fipe_codigo || !!valorFipe,
+      };
+
+      // Log de auditoria para sucesso
+      await supabase.from('fipe_logs').insert({
+        user_id: userId,
+        user_email: userEmail,
+        endpoint: 'placa',
+        parametros: { placa, marca: result.marca, modelo: result.modelo },
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        origem,
+        sucesso: true,
+        cache_hit: false,
+      });
+
+      return new Response(
+        JSON.stringify(createStandardResponse(true, result, false, undefined, undefined, 'API_PLACAS')),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ========== ENDPOINTS FIPE ==========
     // Find 'fipe' in path and get the next segment as endpoint
     const fipeIndex = pathParts.indexOf('fipe');
     const endpoint = fipeIndex >= 0 && pathParts[fipeIndex + 1] ? pathParts[fipeIndex + 1] : null;
@@ -299,10 +471,13 @@ serve(async (req) => {
           JSON.stringify(createStandardResponse(
             false,
             {
-              marcas: 'GET /api/fipe/marcas?tipo=carro|moto|caminhao',
-              modelos: 'GET /api/fipe/modelos?tipo=&marcaId=',
-              anos: 'GET /api/fipe/anos?tipo=&marcaId=&modeloId=',
-              valor: 'GET /api/fipe/valor?tipo=&marcaId=&modeloId=&anoId='
+              fipe: {
+                marcas: 'GET /api/fipe/marcas?tipo=carro|moto|caminhao',
+                modelos: 'GET /api/fipe/modelos?tipo=&marcaId=',
+                anos: 'GET /api/fipe/anos?tipo=&marcaId=&modeloId=',
+                valor: 'GET /api/fipe/valor?tipo=&marcaId=&modeloId=&anoId='
+              },
+              placa: 'GET /api/placa/{placa}'
             },
             false,
             undefined,
@@ -333,13 +508,14 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[FIPE] Erro:', error);
+    console.error('[API] Erro:', error);
     
     // Registrar log de erro
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     const fipeIndex = pathParts.indexOf('fipe');
-    const endpoint = fipeIndex >= 0 && pathParts[fipeIndex + 1] ? pathParts[fipeIndex + 1] : 'unknown';
+    const placaIndex = pathParts.indexOf('placa');
+    const endpoint = placaIndex >= 0 ? 'placa' : (fipeIndex >= 0 && pathParts[fipeIndex + 1] ? pathParts[fipeIndex + 1] : 'unknown');
     
     await supabase
       .from('fipe_logs')
@@ -352,6 +528,7 @@ serve(async (req) => {
           marcaId: url.searchParams.get('marcaId'),
           modeloId: url.searchParams.get('modeloId'),
           anoId: url.searchParams.get('anoId'),
+          placa: placaIndex >= 0 ? pathParts[placaIndex + 1] : null,
         },
         ip_address: ipAddress,
         user_agent: userAgent,

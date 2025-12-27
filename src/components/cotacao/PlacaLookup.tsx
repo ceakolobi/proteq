@@ -5,15 +5,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search, CheckCircle2, AlertCircle, Car } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface VehicleData {
+  placa?: string;
   marca: string;
   modelo: string;
+  versao?: string;
   ano_fabricacao: string;
   ano_modelo: string;
   renavam?: string;
   chassi?: string;
   cor?: string;
+  combustivel?: string;
+  municipio?: string;
+  uf?: string;
+  situacao?: string;
   valor_fipe?: number;
   codigo_fipe?: string;
   fipeEncontrado: boolean;
@@ -25,7 +32,8 @@ export type PlacaStatus =
   | 'found_fipe' 
   | 'found_no_fipe' 
   | 'not_found' 
-  | 'invalid';
+  | 'invalid'
+  | 'error';
 
 interface PlacaLookupProps {
   value: string;
@@ -70,39 +78,90 @@ export default function PlacaLookup({
     onStatusChange(newStatus);
   }, [onStatusChange]);
 
-  // Simula consulta por placa (preparado para API futura)
+  // Consulta por placa via API
   const consultarPlaca = useCallback(async (placa: string) => {
     const cleanPlaca = placa.replace(/[^A-Z0-9]/gi, '').toUpperCase();
     
     if (!validatePlaca(cleanPlaca)) {
       updateStatus('invalid');
-      setMessage('Formato não reconhecido. Use AAA-1234 (antigo) ou ABC1D23 (Mercosul), com ou sem hífen.');
+      setMessage('Formato não reconhecido. Use AAA-1234 (antigo) ou ABC1D23 (Mercosul).');
       return;
     }
 
     updateStatus('loading');
-    setMessage('Consultando...');
+    setMessage('Consultando veículo...');
 
-    // Simula delay de API
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Chamar edge function /api/placa/{placa}
+      const { data, error } = await supabase.functions.invoke('api', {
+        body: null,
+        headers: {
+          'x-origem': 'cotacao',
+        },
+      });
 
-    // TODO: Integrar com API de consulta por placa
-    // Por enquanto, retorna "não encontrado" para simular o fluxo
-    // Quando a API estiver disponível, basta substituir este código
-    
-    // Simulação: se tipo não tem FIPE, vai direto para manual
-    if (!tipoTemFipe) {
-      updateStatus('found_no_fipe');
-      setMessage('Este tipo de bem não possui tabela FIPE. Informe o valor manualmente.');
-      return;
+      // A edge function é chamada via GET, então usamos fetch diretamente
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api/placa/${cleanPlaca}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+            'x-origem': 'cotacao',
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!result.success) {
+        console.log('[PlacaLookup] Erro na consulta:', result.error);
+        updateStatus('not_found');
+        setMessage(result.error || 'Veículo não encontrado. Preencha os dados manualmente.');
+        return;
+      }
+
+      const vehicleData = result.data;
+      console.log('[PlacaLookup] Veículo encontrado:', vehicleData);
+
+      // Determinar status baseado em se tem FIPE
+      if (vehicleData.fipeEncontrado && vehicleData.valor_fipe) {
+        updateStatus('found_fipe');
+        setMessage(`${vehicleData.marca} ${vehicleData.modelo} - FIPE: R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`);
+      } else if (!tipoTemFipe) {
+        updateStatus('found_no_fipe');
+        setMessage(`${vehicleData.marca} ${vehicleData.modelo} encontrado. Tipo sem tabela FIPE.`);
+      } else {
+        updateStatus('found_no_fipe');
+        setMessage(`${vehicleData.marca} ${vehicleData.modelo} encontrado. Valor FIPE não disponível.`);
+      }
+
+      // Callback com dados do veículo
+      onVehicleFound({
+        placa: vehicleData.placa,
+        marca: vehicleData.marca || '',
+        modelo: vehicleData.modelo || '',
+        versao: vehicleData.versao,
+        ano_fabricacao: vehicleData.ano_fabricacao?.toString() || '',
+        ano_modelo: vehicleData.ano_modelo?.toString() || '',
+        chassi: vehicleData.chassi,
+        cor: vehicleData.cor,
+        combustivel: vehicleData.combustivel,
+        municipio: vehicleData.municipio,
+        uf: vehicleData.uf,
+        situacao: vehicleData.situacao,
+        valor_fipe: vehicleData.valor_fipe,
+        codigo_fipe: vehicleData.codigo_fipe,
+        fipeEncontrado: vehicleData.fipeEncontrado,
+      });
+
+    } catch (err) {
+      console.error('[PlacaLookup] Erro:', err);
+      updateStatus('error');
+      setMessage('Erro ao consultar. Preencha os dados manualmente.');
     }
-
-    // Por padrão, simula que não encontrou na base
-    // Quando API estiver integrada, aqui virá os dados reais
-    updateStatus('not_found');
-    setMessage('Não foi possível buscar automaticamente os dados deste veículo. Preencha Marca / Modelo / Ano manualmente ou defina o valor FIPE manualmente.');
-
-  }, [updateStatus, tipoTemFipe]);
+  }, [updateStatus, tipoTemFipe, onVehicleFound]);
 
   const handleBlur = useCallback(() => {
     if (value.length >= 7) {
@@ -154,14 +213,21 @@ export default function PlacaLookup({
         return (
           <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
             <AlertCircle className="w-3 h-3" />
-            Consulta indisponível
+            Não encontrado
           </Badge>
         );
       case 'invalid':
         return (
           <Badge variant="outline" className="gap-1 border-muted-foreground/50 text-muted-foreground">
             <AlertCircle className="w-3 h-3" />
-            Verifique o formato
+            Formato inválido
+          </Badge>
+        );
+      case 'error':
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircle className="w-3 h-3" />
+            Erro
           </Badge>
         );
       default:
@@ -192,7 +258,9 @@ export default function PlacaLookup({
               "text-xl font-mono tracking-wider h-14 text-center uppercase",
               "border-2 transition-colors",
               status === 'found_fipe' && "border-green-500 bg-green-50 dark:bg-green-950",
+              status === 'found_no_fipe' && "border-yellow-500 bg-yellow-50 dark:bg-yellow-950",
               status === 'invalid' && "border-destructive bg-destructive/10",
+              status === 'error' && "border-destructive bg-destructive/10",
               status === 'idle' && value.length === 0 && "border-primary/50",
             )}
           />
@@ -217,9 +285,10 @@ export default function PlacaLookup({
         <p className={cn(
           "text-sm",
           status === 'found_fipe' && "text-green-600 dark:text-green-400",
-          status === 'found_no_fipe' && "text-amber-600 dark:text-amber-400",
+          status === 'found_no_fipe' && "text-yellow-600 dark:text-yellow-400",
           status === 'not_found' && "text-muted-foreground",
           status === 'invalid' && "text-muted-foreground",
+          status === 'error' && "text-destructive",
         )}>
           {message}
         </p>
