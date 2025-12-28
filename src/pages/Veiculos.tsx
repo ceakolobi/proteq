@@ -39,6 +39,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -54,11 +55,17 @@ import {
   Calendar,
   Plus,
   Bike,
-  Truck
+  Truck,
+  Clock,
+  CheckCircle,
+  XCircle,
+  FileText,
+  AlertTriangle,
+  Tractor
 } from 'lucide-react';
 import { FipeRangeDetector } from '@/components/FipeRangeDetector';
-import type { VehicleType, Cota, Regiao, Profile, Associado } from '@/types/database';
-import { vehicleTypeLabels } from '@/types/database';
+import type { VehicleType, VehicleStatus, Cota, Regiao, Profile, Associado, Sede } from '@/types/database';
+import { vehicleTypeLabels, vehicleStatusLabels, getVehicleStatusColor } from '@/types/database';
 
 interface VeiculoWithDetails {
   id: string;
@@ -67,59 +74,92 @@ interface VeiculoWithDetails {
   modelo: string;
   ano: number;
   placa: string;
+  chassi?: string;
+  renavam?: string;
+  cor?: string;
   valor_fipe: number;
   cota_id: string | null;
   mensalidade: number;
   protecao_ativa: boolean;
   protecao_ativada_em: string | null;
+  veiculo_status: VehicleStatus;
   carro_reserva_dias: number;
   carro_reserva_adicional: number | null;
   created_at: string;
   associado_id: string;
+  sede_id: string | null;
+  consultor_id: string | null;
+  cotacao_id: string | null;
+  lead_id: string | null;
+  codigo_fipe?: string;
   associado?: Associado | null;
   cota?: Cota | null;
   regiao?: Regiao | null;
+  sede?: Sede | null;
   consultor?: Profile | null;
 }
+
+const statusTransitions: Record<VehicleStatus, VehicleStatus[]> = {
+  cadastrado: ['aguardando_vistoria', 'cancelado'],
+  aguardando_vistoria: ['aprovado', 'reprovado', 'cancelado'],
+  aprovado: ['ativo', 'cancelado'],
+  reprovado: ['aguardando_vistoria', 'cancelado'],
+  ativo: ['cancelado'],
+  cancelado: []
+};
 
 export default function Veiculos() {
   const navigate = useNavigate();
   const { user, profile, isAdminPrincipal, hasRole, hasAnyRole } = useAuth();
-  // Acesso ao módulo de veículos (inclui Cadastro)
   const { isAllowed, isChecking } = useAccessControl('authenticated');
 
   const [veiculos, setVeiculos] = useState<VeiculoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Hook centralizado para dados de referência
-  const { regioes, cotas, consultores, getRegiaoNome, getCotaNome, getConsultorNome } = useReferenceData({
+  const { sedes, regioes, cotas, consultores, getRegiaoNome, getCotaNome, getConsultorNome, getSedeNome } = useReferenceData({
+    loadSedes: true,
     loadRegioes: true,
     loadCotas: true,
     loadConsultores: true,
   });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
-  const [cotaFilter, setCotaFilter] = useState<string>('all');
-  const [protecaoFilter, setProtecaoFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sedeFilter, setSedeFilter] = useState<string>('all');
+  const [consultorFilter, setConsultorFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedVeiculo, setSelectedVeiculo] = useState<VeiculoWithDetails | null>(null);
+  const [associados, setAssociados] = useState<Associado[]>([]);
+  
   const [formData, setFormData] = useState({
     marca: '',
     modelo: '',
     ano: new Date().getFullYear(),
     placa: '',
+    chassi: '',
+    renavam: '',
+    cor: '',
     valor_fipe: 0,
     tipo: 'carro' as VehicleType,
-    protecao_ativa: false,
+    veiculo_status: 'cadastrado' as VehicleStatus,
+    associado_id: '',
+    codigo_fipe: '',
   });
 
   const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !isAdminRegional;
   const isCadastro = hasRole('cadastro');
+  const isFinanceiro = hasRole('financeiro');
+  const isVistoriador = hasRole('vistoriador');
+  
+  const canCreate = isAdminPrincipal || isAdminRegional || isConsultor || isCadastro;
   const canEdit = isAdminPrincipal || isAdminRegional || isCadastro;
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
+  const canUpdateStatus = isAdminPrincipal || isAdminRegional || isCadastro;
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro', 'financeiro', 'vistoriador']);
 
   useEffect(() => {
     document.title = 'Veículos | MARKA CRM';
@@ -128,8 +168,33 @@ export default function Veiculos() {
   useEffect(() => {
     if (isAllowed && !isChecking && canAccessPage) {
       fetchVeiculos();
+      fetchAssociados();
     }
-  }, [isAllowed, isChecking, canAccessPage, regioes, cotas, consultores, user?.id, profile?.sede_id, isConsultor, isAdminRegional, isAdminPrincipal]);
+  }, [isAllowed, isChecking, canAccessPage, sedes, regioes, cotas, consultores, user?.id, profile?.sede_id, isConsultor, isAdminRegional, isAdminPrincipal, isVistoriador]);
+
+  async function fetchAssociados() {
+    try {
+      let query = supabase.from('associados').select('*').eq('status', 'ativo');
+      
+      if (isConsultor && user?.id) {
+        query = query.eq('consultor_id', user.id);
+      } else if (isAdminRegional && profile?.sede_id) {
+        const { data: sedeRegioes } = await supabase
+          .from('regioes')
+          .select('id')
+          .eq('sede_id', profile.sede_id);
+        if (sedeRegioes && sedeRegioes.length > 0) {
+          query = query.in('regiao_id', sedeRegioes.map(r => r.id));
+        }
+      }
+      
+      const { data, error } = await query.order('nome_completo');
+      if (error) throw error;
+      setAssociados((data || []).map(a => ({ ...a, status: a.status as any })));
+    } catch (error) {
+      console.error('Error fetching associados:', error);
+    }
+  }
 
   if (isChecking) {
     return (
@@ -141,17 +206,7 @@ export default function Veiculos() {
     );
   }
 
-  if (!isAllowed) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-pulse text-muted-foreground">Redirecionando...</div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (!canAccessPage) {
+  if (!isAllowed || !canAccessPage) {
     return (
       <DashboardLayout>
         <Card>
@@ -172,54 +227,39 @@ export default function Veiculos() {
   async function fetchVeiculos() {
     setIsLoading(true);
     try {
-      // Get associados based on user's access level
-      let associadosQuery = supabase.from('associados').select('*');
-
-      if (isConsultor && user?.id) {
-        associadosQuery = associadosQuery.eq('consultor_id', user.id);
-      } else if (isAdminRegional && profile?.sede_id) {
-        const { data: sedeRegioes } = await supabase
-          .from('regioes')
-          .select('id')
-          .eq('sede_id', profile.sede_id);
-
-        if (sedeRegioes && sedeRegioes.length > 0) {
-          associadosQuery = associadosQuery.in('regiao_id', sedeRegioes.map(r => r.id));
-        }
+      let query = supabase.from('veiculos').select('*');
+      
+      // Vistoriador só vê aguardando_vistoria
+      if (isVistoriador && !isAdminPrincipal && !isAdminRegional && !isCadastro) {
+        query = query.eq('veiculo_status', 'aguardando_vistoria');
       }
-
-      const { data: associadosData, error: associadosError } = await associadosQuery;
-      if (associadosError) throw associadosError;
-
-      const associadoIds = associadosData?.map(a => a.id) || [];
-
-      if (associadoIds.length === 0) {
-        setVeiculos([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: veiculosData, error: veiculosError } = await supabase
-        .from('veiculos')
-        .select('*')
-        .in('associado_id', associadoIds)
-        .order('created_at', { ascending: false });
-
+      
+      const { data: veiculosData, error: veiculosError } = await query.order('created_at', { ascending: false });
       if (veiculosError) throw veiculosError;
 
-      // Map veiculos with details using reference data hook (no N+1)
+      // Get associados for enrichment
+      const associadoIds = [...new Set((veiculosData || []).map(v => v.associado_id).filter(Boolean))];
+      let associadosData: any[] = [];
+      if (associadoIds.length > 0) {
+        const { data } = await supabase.from('associados').select('*').in('id', associadoIds);
+        associadosData = data || [];
+      }
+
       const veiculosWithDetails = (veiculosData || []).map(veiculo => {
-        const associado = associadosData?.find(a => a.id === veiculo.associado_id);
+        const associado = associadosData.find(a => a.id === veiculo.associado_id);
         const cota = cotas.find(c => c.id === veiculo.cota_id) || null;
         const regiao = regioes.find(r => r.id === associado?.regiao_id) || null;
-        const consultor = consultores.find(c => c.id === associado?.consultor_id) || null;
+        const sede = sedes.find(s => s.id === veiculo.sede_id || s.id === regiao?.sede_id) || null;
+        const consultor = consultores.find(c => c.id === veiculo.consultor_id || c.id === associado?.consultor_id) || null;
 
         return {
           ...veiculo,
           tipo: veiculo.tipo as VehicleType,
+          veiculo_status: (veiculo.veiculo_status || 'cadastrado') as VehicleStatus,
           associado: associado ? { ...associado, status: associado.status as any } : null,
           cota,
           regiao,
+          sede,
           consultor,
         };
       });
@@ -240,23 +280,44 @@ export default function Veiculos() {
       modelo: veiculo.modelo,
       ano: veiculo.ano,
       placa: veiculo.placa,
+      chassi: veiculo.chassi || '',
+      renavam: veiculo.renavam || '',
+      cor: veiculo.cor || '',
       valor_fipe: veiculo.valor_fipe,
       tipo: veiculo.tipo,
-      protecao_ativa: veiculo.protecao_ativa,
+      veiculo_status: veiculo.veiculo_status,
+      associado_id: veiculo.associado_id,
+      codigo_fipe: veiculo.codigo_fipe || '',
     });
     setIsDialogOpen(true);
+  };
+
+  const handleOpenCreateDialog = () => {
+    setFormData({
+      marca: '',
+      modelo: '',
+      ano: new Date().getFullYear(),
+      placa: '',
+      chassi: '',
+      renavam: '',
+      cor: '',
+      valor_fipe: 0,
+      tipo: 'carro',
+      veiculo_status: 'cadastrado',
+      associado_id: '',
+      codigo_fipe: '',
+    });
+    setIsCreateDialogOpen(true);
   };
 
   const handleSaveVeiculo = async () => {
     if (!selectedVeiculo) return;
 
-    // Validations
     if (!formData.marca.trim() || !formData.modelo.trim() || !formData.placa.trim() || formData.valor_fipe <= 0) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
-    // Placa validation
     const placaLimpa = formData.placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const placaValida = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placaLimpa);
     if (!placaValida) {
@@ -264,25 +325,14 @@ export default function Veiculos() {
       return;
     }
 
-    // Find appropriate cota
     const cotaApropriada = cotas.find(
       c => formData.valor_fipe >= c.fipe_min && formData.valor_fipe <= c.fipe_max && c.ativo
     );
 
-    // Calculate mensalidade
     let mensalidade = 0;
     if (cotaApropriada) {
-      switch (formData.tipo) {
-        case 'carro':
-          mensalidade = cotaApropriada.mensalidade_carro;
-          break;
-        case 'moto':
-          mensalidade = cotaApropriada.mensalidade_moto;
-          break;
-        case 'pickup':
-          mensalidade = cotaApropriada.mensalidade_pickup;
-          break;
-      }
+      const mensalidadeKey = `mensalidade_${formData.tipo}` as keyof Cota;
+      mensalidade = (cotaApropriada[mensalidadeKey] as number) || 0;
     }
 
     try {
@@ -291,18 +341,25 @@ export default function Veiculos() {
         modelo: formData.modelo.trim(),
         ano: formData.ano,
         placa: placaLimpa,
+        chassi: formData.chassi.trim() || null,
+        renavam: formData.renavam.trim() || null,
+        cor: formData.cor.trim() || null,
         valor_fipe: formData.valor_fipe,
         tipo: formData.tipo,
+        veiculo_status: formData.veiculo_status,
         cota_id: cotaApropriada?.id || null,
         mensalidade,
-        protecao_ativa: formData.protecao_ativa,
+        codigo_fipe: formData.codigo_fipe || null,
       };
 
-      // Set protecao_ativada_em if activating protection
-      if (formData.protecao_ativa && !selectedVeiculo.protecao_ativa) {
-        updateData.protecao_ativada_em = new Date().toISOString();
-      } else if (!formData.protecao_ativa) {
-        updateData.protecao_ativada_em = null;
+      // Set protecao_ativa based on status
+      if (formData.veiculo_status === 'ativo') {
+        updateData.protecao_ativa = true;
+        if (!selectedVeiculo.protecao_ativa) {
+          updateData.protecao_ativada_em = new Date().toISOString();
+        }
+      } else if (formData.veiculo_status === 'cancelado') {
+        updateData.protecao_ativa = false;
       }
 
       const { error } = await supabase
@@ -317,6 +374,83 @@ export default function Veiculos() {
     } catch (error: any) {
       console.error('Error saving veiculo:', error);
       toast.error(error.message || 'Erro ao salvar veículo');
+    }
+  };
+
+  const handleCreateVeiculo = async () => {
+    if (!formData.marca.trim() || !formData.modelo.trim() || !formData.placa.trim() || formData.valor_fipe <= 0 || !formData.associado_id) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    const placaLimpa = formData.placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const placaValida = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placaLimpa);
+    if (!placaValida) {
+      toast.error('Placa inválida. Use o formato ABC1234 ou ABC1D23 (Mercosul)');
+      return;
+    }
+
+    // Check if plate already exists
+    const { data: existing } = await supabase
+      .from('veiculos')
+      .select('id')
+      .eq('placa', placaLimpa)
+      .maybeSingle();
+    
+    if (existing) {
+      toast.error('Já existe um veículo cadastrado com esta placa');
+      return;
+    }
+
+    const cotaApropriada = cotas.find(
+      c => formData.valor_fipe >= c.fipe_min && formData.valor_fipe <= c.fipe_max && c.ativo
+    );
+
+    let mensalidade = 0;
+    if (cotaApropriada) {
+      const mensalidadeKey = `mensalidade_${formData.tipo}` as keyof Cota;
+      mensalidade = (cotaApropriada[mensalidadeKey] as number) || 0;
+    }
+
+    // Get associado details for sede_id
+    const selectedAssociado = associados.find(a => a.id === formData.associado_id);
+    let sedeId = null;
+    if (selectedAssociado?.regiao_id) {
+      const regiao = regioes.find(r => r.id === selectedAssociado.regiao_id);
+      sedeId = regiao?.sede_id || null;
+    }
+
+    try {
+      const insertData = {
+        marca: formData.marca.trim(),
+        modelo: formData.modelo.trim(),
+        ano: formData.ano,
+        placa: placaLimpa,
+        chassi: formData.chassi.trim() || null,
+        renavam: formData.renavam.trim() || null,
+        cor: formData.cor.trim() || null,
+        valor_fipe: formData.valor_fipe,
+        tipo: formData.tipo,
+        veiculo_status: formData.veiculo_status,
+        cota_id: cotaApropriada?.id || null,
+        mensalidade,
+        carro_reserva_dias: 15,
+        associado_id: formData.associado_id,
+        consultor_id: user?.id,
+        sede_id: sedeId,
+        codigo_fipe: formData.codigo_fipe || null,
+        protecao_ativa: false,
+      };
+
+      const { error } = await supabase.from('veiculos').insert(insertData);
+
+      if (error) throw error;
+      toast.success('Veículo cadastrado com sucesso');
+      setIsCreateDialogOpen(false);
+      fetchVeiculos();
+    } catch (error: any) {
+      console.error('Error creating veiculo:', error);
+      toast.error(error.message || 'Erro ao cadastrar veículo');
     }
   };
 
@@ -336,9 +470,33 @@ export default function Veiculos() {
       case 'moto':
         return <Bike className="h-4 w-4" />;
       case 'pickup':
+      case 'caminhao':
+      case 'utilitario':
         return <Truck className="h-4 w-4" />;
+      case 'maquina_agricola':
+      case 'implemento_agricola':
+        return <Tractor className="h-4 w-4" />;
       default:
         return <Car className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusIcon = (status: VehicleStatus) => {
+    switch (status) {
+      case 'cadastrado':
+        return <FileText className="h-3 w-3" />;
+      case 'aguardando_vistoria':
+        return <Clock className="h-3 w-3" />;
+      case 'aprovado':
+        return <CheckCircle className="h-3 w-3" />;
+      case 'reprovado':
+        return <XCircle className="h-3 w-3" />;
+      case 'ativo':
+        return <ShieldCheck className="h-3 w-3" />;
+      case 'cancelado':
+        return <AlertTriangle className="h-3 w-3" />;
+      default:
+        return <FileText className="h-3 w-3" />;
     }
   };
 
@@ -347,48 +505,24 @@ export default function Veiculos() {
       veiculo.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
       veiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
       veiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (veiculo.chassi?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       veiculo.associado?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesTipo = tipoFilter === 'all' || veiculo.tipo === tipoFilter;
-    const matchesCota = cotaFilter === 'all' || veiculo.cota_id === cotaFilter;
-    const matchesProtecao = 
-      protecaoFilter === 'all' || 
-      (protecaoFilter === 'ativa' && veiculo.protecao_ativa) ||
-      (protecaoFilter === 'inativa' && !veiculo.protecao_ativa);
+    const matchesStatus = statusFilter === 'all' || veiculo.veiculo_status === statusFilter;
+    const matchesSede = sedeFilter === 'all' || veiculo.sede?.id === sedeFilter || veiculo.regiao?.sede_id === sedeFilter;
+    const matchesConsultor = consultorFilter === 'all' || veiculo.consultor_id === consultorFilter || veiculo.consultor?.id === consultorFilter;
 
-    return matchesSearch && matchesTipo && matchesCota && matchesProtecao;
+    return matchesSearch && matchesTipo && matchesStatus && matchesSede && matchesConsultor;
   });
-
-  // Group by regiao -> cota
-  const groupedByRegiao = regioes.reduce((acc, regiao) => {
-    const regiaoVeiculos = filteredVeiculos.filter(v => v.regiao?.id === regiao.id);
-    if (regiaoVeiculos.length > 0) {
-      const byCota = cotas.reduce((cAcc, cota) => {
-        const cotaVeiculos = regiaoVeiculos.filter(v => v.cota_id === cota.id);
-        if (cotaVeiculos.length > 0) {
-          cAcc[cota.id] = { cota, veiculos: cotaVeiculos };
-        }
-        return cAcc;
-      }, {} as Record<string, { cota: Cota; veiculos: VeiculoWithDetails[] }>);
-
-      // Vehicles without cota
-      const semCota = regiaoVeiculos.filter(v => !v.cota_id);
-      if (semCota.length > 0) {
-        byCota['sem_cota'] = { cota: null as any, veiculos: semCota };
-      }
-
-      acc[regiao.id] = { regiao, veiculos: regiaoVeiculos, byCota };
-    }
-    return acc;
-  }, {} as Record<string, { regiao: Regiao; veiculos: VeiculoWithDetails[]; byCota: Record<string, { cota: Cota | null; veiculos: VeiculoWithDetails[] }> }>);
 
   const stats = {
     total: veiculos.length,
-    ativos: veiculos.filter(v => v.protecao_ativa).length,
-    carros: veiculos.filter(v => v.tipo === 'carro').length,
-    motos: veiculos.filter(v => v.tipo === 'moto').length,
-    pickups: veiculos.filter(v => v.tipo === 'pickup').length,
-    faturamento: veiculos.filter(v => v.protecao_ativa).reduce((acc, v) => acc + (v.mensalidade || 0), 0),
+    cadastrados: veiculos.filter(v => v.veiculo_status === 'cadastrado').length,
+    aguardando: veiculos.filter(v => v.veiculo_status === 'aguardando_vistoria').length,
+    ativos: veiculos.filter(v => v.veiculo_status === 'ativo').length,
+    reprovados: veiculos.filter(v => v.veiculo_status === 'reprovado').length,
+    faturamento: veiculos.filter(v => v.veiculo_status === 'ativo').reduce((acc, v) => acc + (v.mensalidade || 0), 0),
   };
 
   return (
@@ -399,18 +533,22 @@ export default function Veiculos() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Veículos</h1>
             <p className="text-muted-foreground">
-              Gerencie os veículos protegidos e suas faixas FIPE
+              Gerencie os veículos do sistema de proteção veicular
             </p>
           </div>
+          {canCreate && (
+            <Button onClick={handleOpenCreateDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Veículo
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
               <Car className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
@@ -420,82 +558,70 @@ export default function Veiculos() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Protegidos
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Cadastrados</CardTitle>
+              <FileText className="h-5 w-5 text-slate-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.cadastrados}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-amber-700">Aguardando Vistoria</CardTitle>
+              <Clock className="h-5 w-5 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-700">{stats.aguardando}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 bg-green-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-green-700">Ativos</CardTitle>
               <ShieldCheck className="h-5 w-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-600">{stats.ativos}</div>
+              <div className="text-3xl font-bold text-green-700">{stats.ativos}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-red-200 bg-red-50/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Carros
-              </CardTitle>
-              <Car className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-sm font-medium text-red-700">Reprovados</CardTitle>
+              <XCircle className="h-5 w-5 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stats.carros}</div>
+              <div className="text-3xl font-bold text-red-700">{stats.reprovados}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Motos
-              </CardTitle>
-              <Bike className="h-5 w-5 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.motos}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pickups
-              </CardTitle>
-              <Truck className="h-5 w-5 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.pickups}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Faturamento
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Faturamento</CardTitle>
               <DollarSign className="h-5 w-5 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-bold text-green-600">
-                {formatCurrency(stats.faturamento)}
-              </div>
+              <div className="text-xl font-bold text-green-600">{formatCurrency(stats.faturamento)}</div>
               <p className="text-xs text-muted-foreground mt-1">mensal</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters and View Toggle */}
+        {/* Filters and List */}
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle>Lista de Veículos</CardTitle>
                 <CardDescription>
-                  Todos os veículos cadastrados com enquadramento automático na faixa FIPE
+                  Gerencie veículos cadastrados com status e fluxo de aprovação
                 </CardDescription>
               </div>
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'grouped')}>
                 <TabsList>
                   <TabsTrigger value="list">Lista</TabsTrigger>
-                  <TabsTrigger value="grouped">Por Regional</TabsTrigger>
+                  <TabsTrigger value="grouped">Por Status</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -506,46 +632,60 @@ export default function Veiculos() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por placa, marca, modelo..."
+                  placeholder="Buscar por placa, chassi, marca..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  {Object.entries(vehicleStatusLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={tipoFilter} onValueChange={setTipoFilter}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="carro">Carro</SelectItem>
-                  <SelectItem value="moto">Moto</SelectItem>
-                  <SelectItem value="pickup">Pickup</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={cotaFilter} onValueChange={setCotaFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Faixa FIPE" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {cotas.map((cota) => (
-                    <SelectItem key={cota.id} value={cota.id}>
-                      {cota.nome}
-                    </SelectItem>
+                  <SelectItem value="all">Todos Tipos</SelectItem>
+                  {Object.entries(vehicleTypeLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={protecaoFilter} onValueChange={setProtecaoFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Proteção" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="ativa">Protegidos</SelectItem>
-                  <SelectItem value="inativa">Sem proteção</SelectItem>
-                </SelectContent>
-              </Select>
+              {(isAdminPrincipal || isAdminRegional) && (
+                <Select value={sedeFilter} onValueChange={setSedeFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Sede" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas Sedes</SelectItem>
+                    {sedes.filter(s => s.ativo).map((sede) => (
+                      <SelectItem key={sede.id} value={sede.id}>{sede.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {(isAdminPrincipal || isAdminRegional) && (
+                <Select value={consultorFilter} onValueChange={setConsultorFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Consultor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {consultores.filter(c => c.ativo).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* List View */}
@@ -556,43 +696,37 @@ export default function Veiculos() {
                     <TableRow>
                       <TableHead>Veículo</TableHead>
                       <TableHead>Associado</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Valor FIPE</TableHead>
-                      <TableHead>Faixa</TableHead>
                       <TableHead>Mensalidade</TableHead>
-                      <TableHead>Proteção</TableHead>
+                      <TableHead>Sede</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          Carregando...
-                        </TableCell>
+                        <TableCell colSpan={7} className="text-center py-8">Carregando...</TableCell>
                       </TableRow>
                     ) : filteredVeiculos.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8">
                           <div className="flex flex-col items-center gap-2">
                             <Car className="h-8 w-8 text-muted-foreground" />
-                            <p className="text-muted-foreground">
-                              Nenhum veículo encontrado
-                            </p>
+                            <p className="text-muted-foreground">Nenhum veículo encontrado</p>
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredVeiculos.map((veiculo) => (
-                        <TableRow key={veiculo.id}>
+                        <TableRow key={veiculo.id} className={veiculo.veiculo_status === 'aguardando_vistoria' ? 'bg-amber-50/50' : veiculo.veiculo_status === 'reprovado' ? 'bg-red-50/50' : ''}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-primary/10 rounded-lg">
                                 {getVehicleIcon(veiculo.tipo)}
                               </div>
                               <div>
-                                <p className="font-medium">
-                                  {veiculo.marca} {veiculo.modelo}
-                                </p>
+                                <p className="font-medium">{veiculo.marca} {veiculo.modelo}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <span>{veiculo.placa}</span>
                                   <span>•</span>
@@ -603,61 +737,43 @@ export default function Veiculos() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-medium text-sm">
-                                {veiculo.associado?.nome_completo || '-'}
-                              </p>
-                              {veiculo.regiao && (
+                              <p className="font-medium text-sm">{veiculo.associado?.nome_completo || '-'}</p>
+                              {veiculo.consultor && (
                                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Building2 className="h-3 w-3" />
-                                  {veiculo.regiao.nome}
+                                  <Users className="h-3 w-3" />
+                                  {veiculo.consultor.nome_completo}
                                 </p>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium">
-                              {formatCurrency(veiculo.valor_fipe)}
-                            </span>
+                            <Badge className={`${getVehicleStatusColor(veiculo.veiculo_status)} flex items-center gap-1 w-fit`}>
+                              {getStatusIcon(veiculo.veiculo_status)}
+                              {vehicleStatusLabels[veiculo.veiculo_status]}
+                            </Badge>
                           </TableCell>
                           <TableCell>
-                            {veiculo.cota ? (
-                              <Badge variant="outline">{veiculo.cota.nome}</Badge>
-                            ) : (
-                              <Badge variant="destructive">Sem faixa</Badge>
-                            )}
+                            <span className="font-medium">{formatCurrency(veiculo.valor_fipe)}</span>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-green-600">
-                              {formatCurrency(veiculo.mensalidade)}
-                            </span>
+                            <span className="font-medium text-green-600">{formatCurrency(veiculo.mensalidade)}</span>
                           </TableCell>
                           <TableCell>
-                            {veiculo.protecao_ativa ? (
-                              <div className="flex items-center gap-2">
-                                <Badge variant="default" className="bg-green-600">
-                                  <ShieldCheck className="h-3 w-3 mr-1" />
-                                  Ativa
-                                </Badge>
-                                {veiculo.protecao_ativada_em && (
-                                  <span className="text-xs text-muted-foreground">
-                                    desde {formatDate(veiculo.protecao_ativada_em)}
-                                  </span>
-                                )}
+                            {veiculo.sede ? (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                {veiculo.sede.nome}
                               </div>
-                            ) : (
-                              <Badge variant="secondary">
-                                <ShieldX className="h-3 w-3 mr-1" />
-                                Inativa
-                              </Badge>
-                            )}
+                            ) : veiculo.regiao ? (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                {veiculo.regiao.nome}
+                              </div>
+                            ) : '-'}
                           </TableCell>
                           <TableCell className="text-right">
                             {canEdit && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenEditDialog(veiculo)}
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(veiculo)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
@@ -672,125 +788,103 @@ export default function Veiculos() {
 
             {/* Grouped View */}
             {viewMode === 'grouped' && (
-              <Accordion type="multiple" className="space-y-4">
-                {Object.entries(groupedByRegiao).length === 0 ? (
-                  <div className="text-center py-8">
-                    <Car className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">Nenhum veículo encontrado</p>
-                  </div>
-                ) : (
-                  Object.entries(groupedByRegiao).map(([regiaoId, { regiao, veiculos: regiaoVeiculos, byCota }]) => (
-                    <AccordionItem key={regiaoId} value={regiaoId} className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Building2 className="h-5 w-5 text-primary" />
+              <div className="space-y-4">
+                {Object.entries(vehicleStatusLabels).map(([status, label]) => {
+                  const statusVeiculos = filteredVeiculos.filter(v => v.veiculo_status === status);
+                  if (statusVeiculos.length === 0) return null;
+                  
+                  return (
+                    <Accordion key={status} type="single" collapsible>
+                      <AccordionItem value={status} className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <Badge className={`${getVehicleStatusColor(status as VehicleStatus)} flex items-center gap-1`}>
+                              {getStatusIcon(status as VehicleStatus)}
+                              {label}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">{statusVeiculos.length} veículo(s)</span>
                           </div>
-                          <div className="text-left">
-                            <p className="font-medium">{regiao.nome}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {regiaoVeiculos.length} veículo(s) • {formatCurrency(regiaoVeiculos.filter(v => v.protecao_ativa).reduce((acc, v) => acc + v.mensalidade, 0))}/mês
-                            </p>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <Accordion type="multiple" className="ml-4">
-                          {Object.entries(byCota).map(([cotaId, { cota, veiculos: cotaVeiculos }]) => (
-                            <AccordionItem key={cotaId} value={cotaId} className="border-l-2 border-muted pl-4">
-                              <AccordionTrigger className="hover:no-underline py-2">
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 mt-2">
+                            {statusVeiculos.map((veiculo) => (
+                              <div key={veiculo.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-background rounded-lg">
+                                    {getVehicleIcon(veiculo.tipo)}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{veiculo.marca} {veiculo.modelo}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {veiculo.placa} • {veiculo.associado?.nome_completo}
+                                    </p>
+                                  </div>
+                                </div>
                                 <div className="flex items-center gap-2">
-                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium">
-                                    {cota ? cota.nome : 'Sem faixa definida'}
-                                  </span>
-                                  <Badge variant="secondary" className="ml-2">
-                                    {cotaVeiculos.length}
-                                  </Badge>
+                                  <span className="text-sm font-medium">{formatCurrency(veiculo.mensalidade)}</span>
+                                  {canEdit && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEditDialog(veiculo)}>
+                                      <Edit className="h-3 w-3" />
+                                    </Button>
+                                  )}
                                 </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="space-y-2 mt-2">
-                                  {cotaVeiculos.map((veiculo) => (
-                                    <div
-                                      key={veiculo.id}
-                                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-background rounded-lg">
-                                          {getVehicleIcon(veiculo.tipo)}
-                                        </div>
-                                        <div>
-                                          <p className="font-medium text-sm">
-                                            {veiculo.marca} {veiculo.modelo}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {veiculo.placa} • {veiculo.associado?.nome_completo}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium">
-                                          {formatCurrency(veiculo.mensalidade)}
-                                        </span>
-                                        {veiculo.protecao_ativa ? (
-                                          <ShieldCheck className="h-4 w-4 text-green-600" />
-                                        ) : (
-                                          <ShieldX className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                        {canEdit && (
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7"
-                                            onClick={() => handleOpenEditDialog(veiculo)}
-                                          >
-                                            <Edit className="h-3 w-3" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                        </Accordion>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))
-                )}
-              </Accordion>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
 
         {/* Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Veículo</DialogTitle>
-              <DialogDescription>
-                Atualize os dados do veículo. A faixa FIPE será recalculada automaticamente.
-              </DialogDescription>
+              <DialogDescription>Atualize os dados do veículo e seu status.</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
+              {canUpdateStatus && (
+                <div className="space-y-2">
+                  <Label>Status do Veículo</Label>
+                  <Select
+                    value={formData.veiculo_status}
+                    onValueChange={(value: VehicleStatus) => setFormData({ ...formData, veiculo_status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedVeiculo && statusTransitions[selectedVeiculo.veiculo_status]?.map(status => (
+                        <SelectItem key={status} value={status}>{vehicleStatusLabels[status]}</SelectItem>
+                      ))}
+                      <SelectItem value={selectedVeiculo?.veiculo_status || 'cadastrado'}>
+                        {vehicleStatusLabels[selectedVeiculo?.veiculo_status || 'cadastrado']} (atual)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Tipo de Veículo</Label>
                 <Select
                   value={formData.tipo}
-                  onValueChange={(value: VehicleType) =>
-                    setFormData({ ...formData, tipo: value })
-                  }
+                  onValueChange={(value: VehicleType) => setFormData({ ...formData, tipo: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="carro">Carro</SelectItem>
-                    <SelectItem value="moto">Motocicleta</SelectItem>
-                    <SelectItem value="pickup">Pickup/Camionete</SelectItem>
+                    {Object.entries(vehicleTypeLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -798,42 +892,39 @@ export default function Veiculos() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Marca *</Label>
-                  <Input
-                    value={formData.marca}
-                    onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                    placeholder="Ex: Volkswagen"
-                  />
+                  <Input value={formData.marca} onChange={(e) => setFormData({ ...formData, marca: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Modelo *</Label>
-                  <Input
-                    value={formData.modelo}
-                    onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                    placeholder="Ex: Gol"
-                  />
+                  <Input value={formData.modelo} onChange={(e) => setFormData({ ...formData, modelo: e.target.value })} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Ano *</Label>
-                  <Input
-                    type="number"
-                    value={formData.ano}
-                    onChange={(e) => setFormData({ ...formData, ano: parseInt(e.target.value) || 0 })}
-                    min={1900}
-                    max={new Date().getFullYear() + 1}
-                  />
+                  <Input type="number" value={formData.ano} onChange={(e) => setFormData({ ...formData, ano: parseInt(e.target.value) || 0 })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Placa *</Label>
-                  <Input
-                    value={formData.placa}
-                    onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
-                    placeholder="ABC1234"
-                    maxLength={7}
-                  />
+                  <Input value={formData.placa} onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })} maxLength={7} />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Chassi</Label>
+                  <Input value={formData.chassi} onChange={(e) => setFormData({ ...formData, chassi: e.target.value.toUpperCase() })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Renavam</Label>
+                  <Input value={formData.renavam} onChange={(e) => setFormData({ ...formData, renavam: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <Input value={formData.cor} onChange={(e) => setFormData({ ...formData, cor: e.target.value })} />
               </div>
 
               <div className="space-y-2">
@@ -842,47 +933,109 @@ export default function Veiculos() {
                   type="number"
                   value={formData.valor_fipe || ''}
                   onChange={(e) => setFormData({ ...formData, valor_fipe: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ex: 45000"
                 />
               </div>
 
-              <FipeRangeDetector
-                valorFipe={formData.valor_fipe}
-                tipoVeiculo={formData.tipo}
-                cotas={cotas.filter(c => c.ativo)}
-              />
-
-              <div className="flex items-center justify-between py-2 border-t">
-                <div className="space-y-0.5">
-                  <Label>Proteção Ativa</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Ativa a cobertura de proteção veicular
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {formData.protecao_ativa ? (
-                    <ShieldCheck className="h-5 w-5 text-green-600" />
-                  ) : (
-                    <ShieldX className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <Button
-                    variant={formData.protecao_ativa ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, protecao_ativa: !formData.protecao_ativa })}
-                  >
-                    {formData.protecao_ativa ? 'Ativa' : 'Inativa'}
-                  </Button>
-                </div>
-              </div>
+              <FipeRangeDetector valorFipe={formData.valor_fipe} tipoVeiculo={formData.tipo} cotas={cotas.filter(c => c.ativo)} />
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveVeiculo}>
-                Salvar
-              </Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSaveVeiculo}>Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Dialog */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Novo Veículo</DialogTitle>
+              <DialogDescription>Cadastre um novo veículo no sistema.</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Associado *</Label>
+                <Select value={formData.associado_id} onValueChange={(value) => setFormData({ ...formData, associado_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o associado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {associados.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.nome_completo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de Veículo</Label>
+                <Select value={formData.tipo} onValueChange={(value: VehicleType) => setFormData({ ...formData, tipo: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(vehicleTypeLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Marca *</Label>
+                  <Input value={formData.marca} onChange={(e) => setFormData({ ...formData, marca: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Modelo *</Label>
+                  <Input value={formData.modelo} onChange={(e) => setFormData({ ...formData, modelo: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Ano *</Label>
+                  <Input type="number" value={formData.ano} onChange={(e) => setFormData({ ...formData, ano: parseInt(e.target.value) || 0 })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Placa *</Label>
+                  <Input value={formData.placa} onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })} maxLength={7} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Chassi</Label>
+                  <Input value={formData.chassi} onChange={(e) => setFormData({ ...formData, chassi: e.target.value.toUpperCase() })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Renavam</Label>
+                  <Input value={formData.renavam} onChange={(e) => setFormData({ ...formData, renavam: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <Input value={formData.cor} onChange={(e) => setFormData({ ...formData, cor: e.target.value })} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Valor FIPE *</Label>
+                <Input
+                  type="number"
+                  value={formData.valor_fipe || ''}
+                  onChange={(e) => setFormData({ ...formData, valor_fipe: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+
+              <FipeRangeDetector valorFipe={formData.valor_fipe} tipoVeiculo={formData.tipo} cotas={cotas.filter(c => c.ativo)} />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleCreateVeiculo}>Cadastrar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

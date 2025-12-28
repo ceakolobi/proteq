@@ -7,7 +7,9 @@ export type AppRole =
   | 'vistoriador'
   | 'associado';
 
-export type VehicleType = 'carro' | 'moto' | 'pickup';
+export type VehicleType = 'carro' | 'moto' | 'pickup' | 'caminhao' | 'utilitario' | 'maquina_agricola' | 'maquina_industrial' | 'carreta' | 'implemento_agricola';
+
+export type VehicleStatus = 'cadastrado' | 'aguardando_vistoria' | 'aprovado' | 'reprovado' | 'ativo' | 'cancelado';
 
 export type ProposalStatus = 'rascunho' | 'enviada' | 'aceita' | 'recusada' | 'cancelada';
 
@@ -124,6 +126,13 @@ export interface Veiculo {
   carro_reserva_adicional: number;
   protecao_ativa: boolean;
   protecao_ativada_em?: string;
+  veiculo_status?: VehicleStatus;
+  sede_id?: string;
+  consultor_id?: string;
+  lead_id?: string;
+  cotacao_id?: string;
+  codigo_fipe?: string;
+  mes_referencia_fipe?: string;
   created_at: string;
   updated_at: string;
   cota?: Cota;
@@ -240,5 +249,32 @@ export const inspectionStatusLabels: Record<InspectionStatus, string> = {
 export const vehicleTypeLabels: Record<VehicleType, string> = {
   carro: 'Carro',
   moto: 'Motocicleta',
-  pickup: 'Pickup/Camionete'
+  pickup: 'Pickup/Camionete',
+  caminhao: 'Caminhão',
+  utilitario: 'Utilitário',
+  maquina_agricola: 'Máquina Agrícola',
+  maquina_industrial: 'Máquina Industrial',
+  carreta: 'Carreta',
+  implemento_agricola: 'Implemento Agrícola'
+};
+
+export const vehicleStatusLabels: Record<VehicleStatus, string> = {
+  cadastrado: 'Cadastrado',
+  aguardando_vistoria: 'Aguardando Vistoria',
+  aprovado: 'Aprovado',
+  reprovado: 'Reprovado',
+  ativo: 'Ativo',
+  cancelado: 'Cancelado'
+};
+
+export const getVehicleStatusColor = (status: VehicleStatus): string => {
+  const colors: Record<VehicleStatus, string> = {
+    cadastrado: 'bg-slate-100 text-slate-800 border-slate-200',
+    aguardando_vistoria: 'bg-amber-100 text-amber-800 border-amber-200',
+    aprovado: 'bg-blue-100 text-blue-800 border-blue-200',
+    reprovado: 'bg-red-100 text-red-800 border-red-200',
+    ativo: 'bg-green-100 text-green-800 border-green-200',
+    cancelado: 'bg-gray-100 text-gray-800 border-gray-200'
+  };
+  return colors[status] || colors.cadastrado;
 };
