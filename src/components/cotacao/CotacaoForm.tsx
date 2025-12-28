@@ -130,6 +130,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     }
 
     // Buscar valor base pelo tipo
+    const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
     const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
     
     const getValorBase = (tipo: TipoBem): number => {
@@ -149,8 +150,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
     const valorBase = getValorBase(formData.tipo_bem as TipoBem);
     
-    // Aplicar percentual extra: mensalidade = valor_base + (valor_base * percentual_extra / 100)
-    let mensalidade = valorBase + (valorBase * percentualExtra / 100);
+    // Aplicar percentuais: mensalidade = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
+    let mensalidade = valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
@@ -300,6 +301,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     }
 
     // Buscar valor base pelo tipo
+    const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
     const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
     
     const getValorBase = (tipo: TipoBem): number => {
@@ -319,8 +321,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
     const valorBase = getValorBase(formData.tipo_bem as TipoBem);
     
-    // Aplicar percentual extra: mensalidade = valor_base + (valor_base * percentual_extra / 100)
-    let mensalidade = valorBase + (valorBase * percentualExtra / 100);
+    // Aplicar percentuais: mensalidade = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
+    let mensalidade = valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
