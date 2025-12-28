@@ -19,6 +19,8 @@ export type TipoVistoria = 'pre_adesao' | 'renovacao' | 'reinspecao';
 
 export type AssociateStatus = 'ativo' | 'inadimplente' | 'suspenso' | 'cancelado';
 
+export type AtivacaoStatus = 'pendente_financeiro' | 'ativo' | 'suspenso' | 'cancelado';
+
 export interface Profile {
   id: string;
   nome_completo: string;
