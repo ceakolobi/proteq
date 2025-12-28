@@ -51,14 +51,13 @@ export default function Cotas() {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    nome: '',
+    cota_nome: '',
     fipe_min: '',
     fipe_max: '',
-    mensalidade_carro: '',
-    mensalidade_moto: '',
-    mensalidade_pickup: '',
+    valor_carro: '',
+    valor_moto: '',
+    valor_camionete: '',
     percentual_extra: '',
-    percentual_geral: '',
     ativo: true,
   });
 
@@ -113,27 +112,25 @@ export default function Cotas() {
     if (cota) {
       setEditingCota(cota);
       setFormData({
-        nome: cota.nome,
+        cota_nome: cota.cota_nome,
         fipe_min: cota.fipe_min.toString(),
         fipe_max: cota.fipe_max.toString(),
-        mensalidade_carro: cota.mensalidade_carro.toString(),
-        mensalidade_moto: cota.mensalidade_moto.toString(),
-        mensalidade_pickup: cota.mensalidade_pickup.toString(),
+        valor_carro: cota.valor_carro.toString(),
+        valor_moto: cota.valor_moto.toString(),
+        valor_camionete: cota.valor_camionete.toString(),
         percentual_extra: (cota.percentual_extra || 0).toString(),
-        percentual_geral: (cota.percentual_geral || 0).toString(),
         ativo: cota.ativo,
       });
     } else {
       setEditingCota(null);
       setFormData({
-        nome: '',
+        cota_nome: '',
         fipe_min: '',
         fipe_max: '',
-        mensalidade_carro: '',
-        mensalidade_moto: '',
-        mensalidade_pickup: '',
+        valor_carro: '',
+        valor_moto: '',
+        valor_camionete: '',
         percentual_extra: '0',
-        percentual_geral: '0',
         ativo: true,
       });
     }
@@ -145,14 +142,13 @@ export default function Cotas() {
     
     try {
       const cotaData = {
-        nome: formData.nome,
+        cota_nome: formData.cota_nome,
         fipe_min: parseFloat(formData.fipe_min),
         fipe_max: parseFloat(formData.fipe_max),
-        mensalidade_carro: parseFloat(formData.mensalidade_carro),
-        mensalidade_moto: parseFloat(formData.mensalidade_moto),
-        mensalidade_pickup: parseFloat(formData.mensalidade_pickup),
+        valor_carro: parseFloat(formData.valor_carro),
+        valor_moto: parseFloat(formData.valor_moto),
+        valor_camionete: parseFloat(formData.valor_camionete),
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
-        percentual_geral: parseFloat(formData.percentual_geral) || 0,
         ativo: formData.ativo,
       };
 
@@ -242,12 +238,12 @@ export default function Cotas() {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome da Cota</Label>
+                  <Label htmlFor="cota_nome">Nome da Cota</Label>
                   <Input
-                    id="nome"
+                    id="cota_nome"
                     placeholder="Ex: Cota Bronze, Cota Prata..."
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    value={formData.cota_nome}
+                    onChange={(e) => setFormData({ ...formData, cota_nome: e.target.value })}
                     required
                   />
                 </div>
@@ -280,76 +276,60 @@ export default function Cotas() {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-medium text-sm">Mensalidades por Tipo</h4>
+                  <h4 className="font-medium text-sm">Valores por Tipo</h4>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="mensalidade_carro">Carro (R$)</Label>
+                      <Label htmlFor="valor_carro">Carro (R$)</Label>
                       <Input
-                        id="mensalidade_carro"
+                        id="valor_carro"
                         type="number"
                         step="0.01"
                         placeholder="0.00"
-                        value={formData.mensalidade_carro}
-                        onChange={(e) => setFormData({ ...formData, mensalidade_carro: e.target.value })}
+                        value={formData.valor_carro}
+                        onChange={(e) => setFormData({ ...formData, valor_carro: e.target.value })}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="mensalidade_moto">Moto (R$)</Label>
+                      <Label htmlFor="valor_moto">Moto (R$)</Label>
                       <Input
-                        id="mensalidade_moto"
+                        id="valor_moto"
                         type="number"
                         step="0.01"
                         placeholder="0.00"
-                        value={formData.mensalidade_moto}
-                        onChange={(e) => setFormData({ ...formData, mensalidade_moto: e.target.value })}
+                        value={formData.valor_moto}
+                        onChange={(e) => setFormData({ ...formData, valor_moto: e.target.value })}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="mensalidade_pickup">Pickup (R$)</Label>
+                      <Label htmlFor="valor_camionete">Camionete (R$)</Label>
                       <Input
-                        id="mensalidade_pickup"
+                        id="valor_camionete"
                         type="number"
                         step="0.01"
                         placeholder="0.00"
-                        value={formData.mensalidade_pickup}
-                        onChange={(e) => setFormData({ ...formData, mensalidade_pickup: e.target.value })}
+                        value={formData.valor_camionete}
+                        onChange={(e) => setFormData({ ...formData, valor_camionete: e.target.value })}
                         required
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="percentual_geral">Percentual Geral (%)</Label>
-                    <Input
-                      id="percentual_geral"
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={formData.percentual_geral}
-                      onChange={(e) => setFormData({ ...formData, percentual_geral: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Aplicado a todos os veículos desta faixa
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="percentual_extra">Percentual Extra (%)</Label>
-                    <Input
-                      id="percentual_extra"
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={formData.percentual_extra}
-                      onChange={(e) => setFormData({ ...formData, percentual_extra: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Aumento individual adicional
-                    </p>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="percentual_extra">Percentual Extra (%)</Label>
+                  <Input
+                    id="percentual_extra"
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={formData.percentual_extra}
+                    onChange={(e) => setFormData({ ...formData, percentual_extra: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Aumento aplicado sobre o valor base: mensalidade = valor + (valor * % / 100)
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -416,8 +396,7 @@ export default function Cotas() {
                       <TableHead>Faixa FIPE</TableHead>
                       <TableHead>Carro</TableHead>
                       <TableHead>Moto</TableHead>
-                      <TableHead>Pickup</TableHead>
-                      <TableHead>% Geral</TableHead>
+                      <TableHead>Camionete</TableHead>
                       <TableHead>% Extra</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -426,14 +405,13 @@ export default function Cotas() {
                   <TableBody>
                     {cotas.map((cota) => (
                       <TableRow key={cota.id}>
-                        <TableCell className="font-medium">{cota.nome}</TableCell>
+                        <TableCell className="font-medium">{cota.cota_nome}</TableCell>
                         <TableCell>
                           {formatCurrency(cota.fipe_min)} - {formatCurrency(cota.fipe_max)}
                         </TableCell>
-                        <TableCell>{formatCurrency(cota.mensalidade_carro)}</TableCell>
-                        <TableCell>{formatCurrency(cota.mensalidade_moto)}</TableCell>
-                        <TableCell>{formatCurrency(cota.mensalidade_pickup)}</TableCell>
-                        <TableCell>{(cota.percentual_geral || 0).toFixed(1)}%</TableCell>
+                        <TableCell>{formatCurrency(cota.valor_carro)}</TableCell>
+                        <TableCell>{formatCurrency(cota.valor_moto)}</TableCell>
+                        <TableCell>{formatCurrency(cota.valor_camionete)}</TableCell>
                         <TableCell>{(cota.percentual_extra || 0).toFixed(1)}%</TableCell>
                         <TableCell>
                           <Badge variant={cota.ativo ? 'default' : 'secondary'}>

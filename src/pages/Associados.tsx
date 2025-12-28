@@ -427,19 +427,21 @@ export default function Associados() {
       return;
     }
 
-    // Calculate mensalidade based on vehicle type
-    let mensalidade = 0;
+    // Calculate mensalidade based on vehicle type with percentual_extra
+    const percentualExtra = Number((cotaApropriada as any).percentual_extra) || 0;
+    let valorBase = 0;
     switch (veiculoForm.tipo) {
       case 'carro':
-        mensalidade = cotaApropriada.mensalidade_carro;
+        valorBase = cotaApropriada.valor_carro;
         break;
       case 'moto':
-        mensalidade = cotaApropriada.mensalidade_moto;
+        valorBase = cotaApropriada.valor_moto;
         break;
       case 'pickup':
-        mensalidade = cotaApropriada.mensalidade_pickup;
+        valorBase = cotaApropriada.valor_camionete;
         break;
     }
+    const mensalidade = valorBase + (valorBase * percentualExtra / 100);
 
     try {
 

@@ -271,10 +271,10 @@ export function useCotacoes(): UseCotacoesResult {
       if (!cota) return 0;
 
       switch (tipoBem) {
-        case 'carro': return Number(cota.mensalidade_carro) || 0;
-        case 'moto': return Number(cota.mensalidade_moto) || 0;
-        case 'pickup': return Number(cota.mensalidade_pickup) || 0;
-        default: return Number(cota.mensalidade_pickup) || 0;
+        case 'carro': return Number(cota.valor_carro) || 0;
+        case 'moto': return Number(cota.valor_moto) || 0;
+        case 'pickup': return Number(cota.valor_camionete) || 0;
+        default: return Number(cota.valor_camionete) || 0;
       }
     } catch (error) {
       console.error('Erro ao buscar mensalidade:', error);

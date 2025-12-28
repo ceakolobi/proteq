@@ -96,9 +96,9 @@ export function useReferenceData(options: ReferenceDataOptions = {}): ReferenceD
         ...c,
         fipe_min: Number(c.fipe_min),
         fipe_max: Number(c.fipe_max),
-        mensalidade_carro: Number(c.mensalidade_carro),
-        mensalidade_moto: Number(c.mensalidade_moto),
-        mensalidade_pickup: Number(c.mensalidade_pickup),
+        valor_carro: Number(c.valor_carro),
+        valor_moto: Number(c.valor_moto),
+        valor_camionete: Number(c.valor_camionete),
       })));
     } catch (err) {
       console.error('Error fetching cotas:', err);
@@ -164,7 +164,7 @@ export function useReferenceData(options: ReferenceDataOptions = {}): ReferenceD
   // Memoized lookup functions
   const regioesMap = useMemo(() => new Map(regioes.map(r => [r.id, r.nome])), [regioes]);
   const sedesMap = useMemo(() => new Map(sedes.map(s => [s.id, s.nome])), [sedes]);
-  const cotasMap = useMemo(() => new Map(cotas.map(c => [c.id, c.nome])), [cotas]);
+  const cotasMap = useMemo(() => new Map(cotas.map(c => [c.id, c.cota_nome])), [cotas]);
   const consultoresMap = useMemo(() => new Map(consultores.map(c => [c.id, c.nome_completo])), [consultores]);
 
   const getRegiaoNome = useCallback((id: string | null) => id ? regioesMap.get(id) || '' : '', [regioesMap]);
