@@ -72,6 +72,7 @@ export interface Cota {
   valor_carro: number;
   valor_moto: number;
   valor_camionete: number;
+  percentual_geral: number;
   percentual_extra: number;
   ativo: boolean;
   created_at: string;

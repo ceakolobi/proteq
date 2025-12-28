@@ -524,6 +524,7 @@ export type Database = {
           mensalidade_maquina_industrial: number | null
           mensalidade_utilitario: number | null
           percentual_extra: number | null
+          percentual_geral: number | null
           updated_at: string
           valor_camionete: number
           valor_carro: number
@@ -543,6 +544,7 @@ export type Database = {
           mensalidade_maquina_industrial?: number | null
           mensalidade_utilitario?: number | null
           percentual_extra?: number | null
+          percentual_geral?: number | null
           updated_at?: string
           valor_camionete: number
           valor_carro: number
@@ -562,6 +564,7 @@ export type Database = {
           mensalidade_maquina_industrial?: number | null
           mensalidade_utilitario?: number | null
           percentual_extra?: number | null
+          percentual_geral?: number | null
           updated_at?: string
           valor_camionete?: number
           valor_carro?: number
