@@ -42,6 +42,7 @@ import {
   tipoVistoriaLabels,
   getInspectionStatusColor 
 } from '@/types/database';
+import VistoriaChecklist, { CHECKLIST_ITEMS, isChecklistComplete, fotosArrayToObject } from '@/components/vistoria/VistoriaChecklist';
 
 interface VistoriaDB {
   id: string;
@@ -94,17 +95,6 @@ const statusConfig = {
   aprovada: { label: 'Aprovada', variant: 'default' as const, icon: CheckCircle },
   reprovada: { label: 'Reprovada', variant: 'destructive' as const, icon: XCircle },
 };
-
-const CHECKLIST_ITEMS = [
-  { key: 'frente', label: 'Frente' },
-  { key: 'traseira', label: 'Traseira' },
-  { key: 'lateral_esquerda', label: 'Lateral Esquerda' },
-  { key: 'lateral_direita', label: 'Lateral Direita' },
-  { key: 'interior', label: 'Interior' },
-  { key: 'painel_km', label: 'Painel / KM' },
-  { key: 'motor', label: 'Motor' },
-  { key: 'chassi_etiqueta', label: 'Chassi / Etiqueta' },
-];
 
 export default function Vistorias() {
   const navigate = useNavigate();
@@ -273,6 +263,14 @@ export default function Vistorias() {
 
   const handleUpdateVistoria = async () => {
     if (!selectedVistoria) return;
+
+    // Validate checklist is complete before approving/rejecting
+    if ((formStatus === 'aprovada' || formStatus === 'reprovada')) {
+      if (!isChecklistComplete(selectedVistoria.checklist)) {
+        toast.error('Não é possível aprovar/reprovar sem o checklist completo com todas as fotos');
+        return;
+      }
+    }
 
     setIsSaving(true);
     try {
@@ -780,8 +778,13 @@ export default function Vistorias() {
                                         <Edit className="h-4 w-4" />
                                       </Button>
                                     )}
-                                    {(isVistoriador || canAssignVistoriador) && vistoria.status !== 'aprovada' && vistoria.status !== 'reprovada' && (
-                                      <Button variant="ghost" size="sm" onClick={() => openChecklistDialog(vistoria)}>
+                                    {vistoria.status !== 'aprovada' && vistoria.status !== 'reprovada' && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => openChecklistDialog(vistoria)}
+                                        title={vistoria.status === 'em_andamento' && isVistoriador ? 'Preencher Checklist' : 'Ver Checklist'}
+                                      >
                                         <Camera className="h-4 w-4" />
                                       </Button>
                                     )}
@@ -856,23 +859,42 @@ export default function Vistorias() {
                     <p className="font-medium">{selectedVistoria.parecer_tecnico || '-'}</p>
                   </div>
                 </div>
-                {selectedVistoria.checklist && Object.keys(selectedVistoria.checklist).length > 0 && (
-                  <div>
-                    <Label className="text-muted-foreground">Checklist</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {CHECKLIST_ITEMS.map((item) => (
-                        <div key={item.key} className="flex items-center gap-2">
-                          {selectedVistoria.checklist?.[item.key] ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                {/* Checklist with photos */}
+                <div>
+                  <Label className="text-muted-foreground mb-3 block">Checklist de Fotos</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {CHECKLIST_ITEMS.map((item) => {
+                      const photos = fotosArrayToObject(selectedVistoria.fotos, selectedVistoria.id);
+                      const hasPhoto = !!photos[item.key];
+                      const isChecked = selectedVistoria.checklist?.[item.key];
+                      
+                      return (
+                        <div key={item.key} className={`border rounded-lg p-2 ${hasPhoto ? 'border-green-300 bg-green-50/50' : 'border-muted'}`}>
+                          <div className="flex items-center gap-1 mb-2">
+                            {isChecked || hasPhoto ? (
+                              <CheckCircle className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <XCircle className="h-3 w-3 text-red-600" />
+                            )}
+                            <span className="text-xs font-medium">{item.label}</span>
+                          </div>
+                          {hasPhoto ? (
+                            <img 
+                              src={photos[item.key]} 
+                              alt={item.label}
+                              className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80"
+                              onClick={() => window.open(photos[item.key], '_blank')}
+                            />
                           ) : (
-                            <XCircle className="h-4 w-4 text-red-600" />
+                            <div className="w-full h-20 bg-muted/30 rounded flex items-center justify-center">
+                              <Camera className="h-6 w-6 text-muted-foreground/50" />
+                            </div>
                           )}
-                          <span className="text-sm">{item.label}</span>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
               </div>
             )}
             <DialogFooter>
@@ -969,54 +991,22 @@ export default function Vistorias() {
           </DialogContent>
         </Dialog>
 
-        {/* Checklist Dialog */}
-        <Dialog open={isChecklistDialogOpen} onOpenChange={setIsChecklistDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Checklist de Vistoria</DialogTitle>
-              <DialogDescription>Marque os itens verificados com fotos</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                {CHECKLIST_ITEMS.map((item) => (
-                  <div 
-                    key={item.key}
-                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      formChecklist[item.key] ? 'bg-green-50 border-green-200' : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => setFormChecklist(prev => ({
-                      ...prev,
-                      [item.key]: !prev[item.key]
-                    }))}
-                  >
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                      formChecklist[item.key] ? 'bg-green-500 border-green-500' : 'border-muted-foreground'
-                    }`}>
-                      {formChecklist[item.key] && <CheckCircle className="h-3 w-3 text-white" />}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Camera className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-3 bg-muted/30 rounded-lg">
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  O upload de fotos será implementado em uma próxima etapa.
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsChecklistDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSaveChecklist} disabled={isSaving}>
-                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Salvar Checklist
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Checklist Dialog - uses new component with photo upload */}
+        {selectedVistoria && (
+          <VistoriaChecklist
+            isOpen={isChecklistDialogOpen}
+            onClose={() => {
+              setIsChecklistDialogOpen(false);
+              setSelectedVistoria(null);
+            }}
+            vistoriaId={selectedVistoria.id}
+            vistoriaStatus={selectedVistoria.status}
+            existingPhotos={fotosArrayToObject(selectedVistoria.fotos, selectedVistoria.id)}
+            existingChecklist={selectedVistoria.checklist || {}}
+            canEdit={isVistoriador}
+            onSave={fetchData}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
