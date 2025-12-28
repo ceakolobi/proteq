@@ -147,6 +147,18 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
     let mensalidade = getMensalidade(formData.tipo_bem as TipoBem);
 
+    // Aplicar percentual geral da cota
+    const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
+    if (percentualGeral > 0) {
+      mensalidade = mensalidade * (1 + percentualGeral / 100);
+    }
+
+    // Aplicar percentual extra da cota
+    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
+    if (percentualExtra > 0) {
+      mensalidade = mensalidade * (1 + percentualExtra / 100);
+    }
+
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
       mensalidade += 39.90;
@@ -311,6 +323,18 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     };
 
     let mensalidade = getMensalidade(formData.tipo_bem as TipoBem);
+
+    // Aplicar percentual geral da cota
+    const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
+    if (percentualGeral > 0) {
+      mensalidade = mensalidade * (1 + percentualGeral / 100);
+    }
+
+    // Aplicar percentual extra da cota
+    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
+    if (percentualExtra > 0) {
+      mensalidade = mensalidade * (1 + percentualExtra / 100);
+    }
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
