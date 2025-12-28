@@ -970,20 +970,27 @@ export type Database = {
           carro_reserva_adicional: number | null
           carro_reserva_dias: number
           chassi: string | null
+          codigo_fipe: string | null
+          consultor_id: string | null
           cor: string | null
           cota_id: string | null
+          cotacao_id: string | null
           created_at: string
           id: string
+          lead_id: string | null
           marca: string
           mensalidade: number
+          mes_referencia_fipe: string | null
           modelo: string
           placa: string
           protecao_ativa: boolean
           protecao_ativada_em: string | null
           renavam: string | null
+          sede_id: string | null
           tipo: Database["public"]["Enums"]["vehicle_type"]
           updated_at: string
           valor_fipe: number
+          veiculo_status: Database["public"]["Enums"]["vehicle_status"] | null
         }
         Insert: {
           ano: number
@@ -991,20 +998,27 @@ export type Database = {
           carro_reserva_adicional?: number | null
           carro_reserva_dias?: number
           chassi?: string | null
+          codigo_fipe?: string | null
+          consultor_id?: string | null
           cor?: string | null
           cota_id?: string | null
+          cotacao_id?: string | null
           created_at?: string
           id?: string
+          lead_id?: string | null
           marca: string
           mensalidade: number
+          mes_referencia_fipe?: string | null
           modelo: string
           placa: string
           protecao_ativa?: boolean
           protecao_ativada_em?: string | null
           renavam?: string | null
+          sede_id?: string | null
           tipo: Database["public"]["Enums"]["vehicle_type"]
           updated_at?: string
           valor_fipe: number
+          veiculo_status?: Database["public"]["Enums"]["vehicle_status"] | null
         }
         Update: {
           ano?: number
@@ -1012,20 +1026,27 @@ export type Database = {
           carro_reserva_adicional?: number | null
           carro_reserva_dias?: number
           chassi?: string | null
+          codigo_fipe?: string | null
+          consultor_id?: string | null
           cor?: string | null
           cota_id?: string | null
+          cotacao_id?: string | null
           created_at?: string
           id?: string
+          lead_id?: string | null
           marca?: string
           mensalidade?: number
+          mes_referencia_fipe?: string | null
           modelo?: string
           placa?: string
           protecao_ativa?: boolean
           protecao_ativada_em?: string | null
           renavam?: string | null
+          sede_id?: string | null
           tipo?: Database["public"]["Enums"]["vehicle_type"]
           updated_at?: string
           valor_fipe?: number
+          veiculo_status?: Database["public"]["Enums"]["vehicle_status"] | null
         }
         Relationships: [
           {
@@ -1040,6 +1061,27 @@ export type Database = {
             columns: ["cota_id"]
             isOneToOne: false
             referencedRelation: "cotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
             referencedColumns: ["id"]
           },
         ]
@@ -1121,6 +1163,10 @@ export type Database = {
         Args: { _sede_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_veiculo: {
+        Args: { _user_id: string; _veiculo_id: string }
+        Returns: boolean
+      }
       can_create_lead: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
@@ -1187,6 +1233,13 @@ export type Database = {
         | "reuniao"
         | "email"
         | "visita"
+      vehicle_status:
+        | "cadastrado"
+        | "aguardando_vistoria"
+        | "aprovado"
+        | "reprovado"
+        | "ativo"
+        | "cancelado"
       vehicle_type:
         | "carro"
         | "moto"
@@ -1369,6 +1422,14 @@ export const Constants = {
         "reuniao",
         "email",
         "visita",
+      ],
+      vehicle_status: [
+        "cadastrado",
+        "aguardando_vistoria",
+        "aprovado",
+        "reprovado",
+        "ativo",
+        "cancelado",
       ],
       vehicle_type: [
         "carro",
