@@ -150,8 +150,9 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
     const valorBase = getValorBase(formData.tipo_bem as TipoBem);
     
-    // Aplicar percentuais: mensalidade = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
-    let mensalidade = valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
+    // Aplicar percentual_geral primeiro, depois percentual_extra sobre o valor ajustado
+    const valorAjustado = valorBase + (valorBase * percentualGeral / 100);
+    let mensalidade = valorAjustado + (valorAjustado * percentualExtra / 100);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
@@ -321,8 +322,9 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
     const valorBase = getValorBase(formData.tipo_bem as TipoBem);
     
-    // Aplicar percentuais: mensalidade = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
-    let mensalidade = valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
+    // Aplicar percentual_geral primeiro, depois percentual_extra sobre o valor ajustado
+    const valorAjustado = valorBase + (valorBase * percentualGeral / 100);
+    let mensalidade = valorAjustado + (valorAjustado * percentualExtra / 100);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
