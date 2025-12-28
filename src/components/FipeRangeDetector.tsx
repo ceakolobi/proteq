@@ -27,6 +27,7 @@ export function FipeRangeDetector({
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
     
+    const percentualGeral = Number((detectedCota as any).percentual_geral) || 0;
     const percentualExtra = Number((detectedCota as any).percentual_extra) || 0;
     let valorBase = 0;
     
@@ -44,8 +45,8 @@ export function FipeRangeDetector({
         valorBase = 0;
     }
     
-    // Aplicar percentual extra: mensalidade = valor_base + (valor_base * percentual_extra / 100)
-    return valorBase + (valorBase * percentualExtra / 100);
+    // Aplicar percentuais: mensalidade = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
+    return valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
   }, [detectedCota, tipoVeiculo]);
 
   const formatCurrency = (value: number) => {
@@ -120,6 +121,7 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
     
+    const percentualGeral = Number((detectedCota as any).percentual_geral) || 0;
     const percentualExtra = Number((detectedCota as any).percentual_extra) || 0;
     let valorBase = 0;
     
@@ -137,7 +139,8 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
         valorBase = 0;
     }
     
-    return valorBase + (valorBase * percentualExtra / 100);
+    // Aplicar percentuais: mensalidade = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
+    return valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
   }, [detectedCota, tipoVeiculo]);
 
   return {
