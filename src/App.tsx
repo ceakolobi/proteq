@@ -21,6 +21,7 @@ import Veiculos from "./pages/Veiculos";
 import Leads from "./pages/Leads";
 import Relatorios from "./pages/Relatorios";
 import Vistorias from "./pages/Vistorias";
+import Ativacoes from "./pages/Ativacoes";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 
@@ -120,6 +121,7 @@ const App = () => (
             <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
             <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
             <Route path="/vistorias" element={<ProtectedRoute><Vistorias /></ProtectedRoute>} />
+            <Route path="/ativacoes" element={<ProtectedRoute><Ativacoes /></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             
             {/* 404 - Rota não encontrada */}

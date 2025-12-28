@@ -178,6 +178,106 @@ export type Database = {
           },
         ]
       }
+      ativacoes: {
+        Row: {
+          associado_id: string
+          ativado_em: string | null
+          ativado_por: string | null
+          cancelado_em: string | null
+          cancelado_por: string | null
+          categoria: string | null
+          cobertura_resumida: string | null
+          consultor_id: string | null
+          created_at: string
+          data_ativacao: string
+          data_vencimento: string | null
+          id: string
+          motivo_cancelamento: string | null
+          motivo_suspensao: string | null
+          numero_contrato: string
+          observacoes: string | null
+          plano: string | null
+          sede_id: string | null
+          status: Database["public"]["Enums"]["ativacao_status"]
+          suspenso_em: string | null
+          suspenso_por: string | null
+          updated_at: string
+          veiculo_id: string
+        }
+        Insert: {
+          associado_id: string
+          ativado_em?: string | null
+          ativado_por?: string | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          categoria?: string | null
+          cobertura_resumida?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          data_ativacao?: string
+          data_vencimento?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          motivo_suspensao?: string | null
+          numero_contrato: string
+          observacoes?: string | null
+          plano?: string | null
+          sede_id?: string | null
+          status?: Database["public"]["Enums"]["ativacao_status"]
+          suspenso_em?: string | null
+          suspenso_por?: string | null
+          updated_at?: string
+          veiculo_id: string
+        }
+        Update: {
+          associado_id?: string
+          ativado_em?: string | null
+          ativado_por?: string | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          categoria?: string | null
+          cobertura_resumida?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          data_ativacao?: string
+          data_vencimento?: string | null
+          id?: string
+          motivo_cancelamento?: string | null
+          motivo_suspensao?: string | null
+          numero_contrato?: string
+          observacoes?: string | null
+          plano?: string | null
+          sede_id?: string | null
+          status?: Database["public"]["Enums"]["ativacao_status"]
+          suspenso_em?: string | null
+          suspenso_por?: string | null
+          updated_at?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ativacoes_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ativacoes_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ativacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: true
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           acao: string
@@ -1226,6 +1326,11 @@ export type Database = {
         | "vistoriador"
         | "associado"
       associate_status: "ativo" | "inadimplente" | "suspenso" | "cancelado"
+      ativacao_status:
+        | "pendente_financeiro"
+        | "ativo"
+        | "suspenso"
+        | "cancelado"
       cotacao_status:
         | "novo"
         | "em_contato"
@@ -1418,6 +1523,12 @@ export const Constants = {
         "associado",
       ],
       associate_status: ["ativo", "inadimplente", "suspenso", "cancelado"],
+      ativacao_status: [
+        "pendente_financeiro",
+        "ativo",
+        "suspenso",
+        "cancelado",
+      ],
       cotacao_status: [
         "novo",
         "em_contato",
