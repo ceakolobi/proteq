@@ -1089,42 +1089,60 @@ export type Database = {
       vistorias: {
         Row: {
           checklist: Json | null
+          consultor_id: string | null
           created_at: string
           data_agendada: string | null
           data_realizada: string | null
           fotos: string[] | null
           id: string
+          local_vistoria: string | null
           observacoes: string | null
+          parecer_tecnico: string | null
           proposta_id: string | null
+          sede_id: string | null
+          solicitada_em: string | null
           status: Database["public"]["Enums"]["inspection_status"]
+          tipo_vistoria: Database["public"]["Enums"]["tipo_vistoria"] | null
           updated_at: string
           veiculo_id: string
           vistoriador_id: string | null
         }
         Insert: {
           checklist?: Json | null
+          consultor_id?: string | null
           created_at?: string
           data_agendada?: string | null
           data_realizada?: string | null
           fotos?: string[] | null
           id?: string
+          local_vistoria?: string | null
           observacoes?: string | null
+          parecer_tecnico?: string | null
           proposta_id?: string | null
+          sede_id?: string | null
+          solicitada_em?: string | null
           status?: Database["public"]["Enums"]["inspection_status"]
+          tipo_vistoria?: Database["public"]["Enums"]["tipo_vistoria"] | null
           updated_at?: string
           veiculo_id: string
           vistoriador_id?: string | null
         }
         Update: {
           checklist?: Json | null
+          consultor_id?: string | null
           created_at?: string
           data_agendada?: string | null
           data_realizada?: string | null
           fotos?: string[] | null
           id?: string
+          local_vistoria?: string | null
           observacoes?: string | null
+          parecer_tecnico?: string | null
           proposta_id?: string | null
+          sede_id?: string | null
+          solicitada_em?: string | null
           status?: Database["public"]["Enums"]["inspection_status"]
+          tipo_vistoria?: Database["public"]["Enums"]["tipo_vistoria"] | null
           updated_at?: string
           veiculo_id?: string
           vistoriador_id?: string | null
@@ -1135,6 +1153,13 @@ export type Database = {
             columns: ["proposta_id"]
             isOneToOne: false
             referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vistorias_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
             referencedColumns: ["id"]
           },
           {
@@ -1208,7 +1233,12 @@ export type Database = {
         | "aguardando_retorno"
         | "aprovado"
         | "perdido"
-      inspection_status: "pendente" | "em_andamento" | "aprovada" | "reprovada"
+      inspection_status:
+        | "pendente"
+        | "agendada"
+        | "em_andamento"
+        | "aprovada"
+        | "reprovada"
       lead_origem:
         | "instagram"
         | "facebook"
@@ -1233,6 +1263,7 @@ export type Database = {
         | "reuniao"
         | "email"
         | "visita"
+      tipo_vistoria: "pre_adesao" | "renovacao" | "reinspecao"
       vehicle_status:
         | "cadastrado"
         | "aguardando_vistoria"
@@ -1395,7 +1426,13 @@ export const Constants = {
         "aprovado",
         "perdido",
       ],
-      inspection_status: ["pendente", "em_andamento", "aprovada", "reprovada"],
+      inspection_status: [
+        "pendente",
+        "agendada",
+        "em_andamento",
+        "aprovada",
+        "reprovada",
+      ],
       lead_origem: [
         "instagram",
         "facebook",
@@ -1423,6 +1460,7 @@ export const Constants = {
         "email",
         "visita",
       ],
+      tipo_vistoria: ["pre_adesao", "renovacao", "reinspecao"],
       vehicle_status: [
         "cadastrado",
         "aguardando_vistoria",
