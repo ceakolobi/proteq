@@ -129,34 +129,32 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       return;
     }
 
-    // Buscar mensalidade pelo tipo e aplicar percentual geral
+    // Buscar valor base pelo tipo
     const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
-    const aplicarPercentual = (valor: number) => valor + (valor * percentualGeral / 100);
+    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
     
-    const getMensalidade = (tipo: TipoBem): number => {
-      let valor = 0;
+    const getValorBase = (tipo: TipoBem): number => {
       switch (tipo) {
-        case 'carro': valor = Number(cotaEncontrada.mensalidade_carro) || 0; break;
-        case 'moto': valor = Number(cotaEncontrada.mensalidade_moto) || 0; break;
-        case 'pickup': valor = Number(cotaEncontrada.mensalidade_pickup) || 0; break;
-        case 'caminhao': valor = Number((cotaEncontrada as any).mensalidade_caminhao) || Number(cotaEncontrada.mensalidade_pickup) * 1.3; break;
-        case 'utilitario': valor = Number((cotaEncontrada as any).mensalidade_utilitario) || Number(cotaEncontrada.mensalidade_pickup) * 1.1; break;
-        case 'maquina_agricola': valor = Number((cotaEncontrada as any).mensalidade_maquina_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.5; break;
-        case 'maquina_industrial': valor = Number((cotaEncontrada as any).mensalidade_maquina_industrial) || Number(cotaEncontrada.mensalidade_pickup) * 1.5; break;
-        case 'carreta': valor = Number((cotaEncontrada as any).mensalidade_carreta) || Number(cotaEncontrada.mensalidade_pickup) * 1.2; break;
-        case 'implemento_agricola': valor = Number((cotaEncontrada as any).mensalidade_implemento_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.3; break;
-        default: valor = Number(cotaEncontrada.mensalidade_pickup) || 0;
+        case 'carro': return Number(cotaEncontrada.mensalidade_carro) || 0;
+        case 'moto': return Number(cotaEncontrada.mensalidade_moto) || 0;
+        case 'pickup': return Number(cotaEncontrada.mensalidade_pickup) || 0;
+        case 'caminhao': return Number((cotaEncontrada as any).mensalidade_caminhao) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        case 'utilitario': return Number((cotaEncontrada as any).mensalidade_utilitario) || Number(cotaEncontrada.mensalidade_pickup) * 1.1;
+        case 'maquina_agricola': return Number((cotaEncontrada as any).mensalidade_maquina_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'maquina_industrial': return Number((cotaEncontrada as any).mensalidade_maquina_industrial) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'carreta': return Number((cotaEncontrada as any).mensalidade_carreta) || Number(cotaEncontrada.mensalidade_pickup) * 1.2;
+        case 'implemento_agricola': return Number((cotaEncontrada as any).mensalidade_implemento_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        default: return Number(cotaEncontrada.mensalidade_pickup) || 0;
       }
-      return aplicarPercentual(valor);
     };
 
-    let mensalidade = getMensalidade(formData.tipo_bem as TipoBem);
-
-    // Aplicar percentual extra da cota (adicional individual)
-    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
-    if (percentualExtra > 0) {
-      mensalidade = mensalidade + (mensalidade * percentualExtra / 100);
-    }
+    const valorBase = getValorBase(formData.tipo_bem as TipoBem);
+    
+    // Aplicar percentual geral: valor = valor_base + (valor_base * percentual_geral / 100)
+    let mensalidade = valorBase + (valorBase * percentualGeral / 100);
+    
+    // Aplicar percentual extra sobre o valor base: mensalidade = valor_base + (valor_base * percentual_extra / 100)
+    mensalidade = mensalidade + (valorBase * percentualExtra / 100);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
@@ -305,34 +303,32 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       return;
     }
 
-    // Buscar mensalidade pelo tipo e aplicar percentual geral
+    // Buscar valor base pelo tipo
     const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
-    const aplicarPercentual = (valor: number) => valor + (valor * percentualGeral / 100);
+    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
     
-    const getMensalidade = (tipo: TipoBem): number => {
-      let valor = 0;
+    const getValorBase = (tipo: TipoBem): number => {
       switch (tipo) {
-        case 'carro': valor = Number(cotaEncontrada.mensalidade_carro) || 0; break;
-        case 'moto': valor = Number(cotaEncontrada.mensalidade_moto) || 0; break;
-        case 'pickup': valor = Number(cotaEncontrada.mensalidade_pickup) || 0; break;
-        case 'caminhao': valor = Number((cotaEncontrada as any).mensalidade_caminhao) || Number(cotaEncontrada.mensalidade_pickup) * 1.3; break;
-        case 'utilitario': valor = Number((cotaEncontrada as any).mensalidade_utilitario) || Number(cotaEncontrada.mensalidade_pickup) * 1.1; break;
-        case 'maquina_agricola': valor = Number((cotaEncontrada as any).mensalidade_maquina_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.5; break;
-        case 'maquina_industrial': valor = Number((cotaEncontrada as any).mensalidade_maquina_industrial) || Number(cotaEncontrada.mensalidade_pickup) * 1.5; break;
-        case 'carreta': valor = Number((cotaEncontrada as any).mensalidade_carreta) || Number(cotaEncontrada.mensalidade_pickup) * 1.2; break;
-        case 'implemento_agricola': valor = Number((cotaEncontrada as any).mensalidade_implemento_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.3; break;
-        default: valor = Number(cotaEncontrada.mensalidade_pickup) || 0;
+        case 'carro': return Number(cotaEncontrada.mensalidade_carro) || 0;
+        case 'moto': return Number(cotaEncontrada.mensalidade_moto) || 0;
+        case 'pickup': return Number(cotaEncontrada.mensalidade_pickup) || 0;
+        case 'caminhao': return Number((cotaEncontrada as any).mensalidade_caminhao) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        case 'utilitario': return Number((cotaEncontrada as any).mensalidade_utilitario) || Number(cotaEncontrada.mensalidade_pickup) * 1.1;
+        case 'maquina_agricola': return Number((cotaEncontrada as any).mensalidade_maquina_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'maquina_industrial': return Number((cotaEncontrada as any).mensalidade_maquina_industrial) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'carreta': return Number((cotaEncontrada as any).mensalidade_carreta) || Number(cotaEncontrada.mensalidade_pickup) * 1.2;
+        case 'implemento_agricola': return Number((cotaEncontrada as any).mensalidade_implemento_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        default: return Number(cotaEncontrada.mensalidade_pickup) || 0;
       }
-      return aplicarPercentual(valor);
     };
 
-    let mensalidade = getMensalidade(formData.tipo_bem as TipoBem);
-
-    // Aplicar percentual extra da cota (adicional individual)
-    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
-    if (percentualExtra > 0) {
-      mensalidade = mensalidade + (mensalidade * percentualExtra / 100);
-    }
+    const valorBase = getValorBase(formData.tipo_bem as TipoBem);
+    
+    // Aplicar percentual geral: valor = valor_base + (valor_base * percentual_geral / 100)
+    let mensalidade = valorBase + (valorBase * percentualGeral / 100);
+    
+    // Aplicar percentual extra sobre o valor base: mensalidade = valor_base + (valor_base * percentual_extra / 100)
+    mensalidade = mensalidade + (valorBase * percentualExtra / 100);
 
     // Adicionar carro reserva extra
     if (formData.carro_reserva_extra === '30dias') {
