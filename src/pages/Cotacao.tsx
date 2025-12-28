@@ -102,19 +102,21 @@ export default function Cotacao() {
       return;
     }
 
-    // Get mensalidade based on vehicle type
-    let mensalidade = 0;
+    // Get mensalidade based on vehicle type with percentual_extra
+    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
+    let valorBase = 0;
     switch (formData.tipo) {
       case 'carro':
-        mensalidade = cotaEncontrada.mensalidade_carro;
+        valorBase = cotaEncontrada.valor_carro;
         break;
       case 'moto':
-        mensalidade = cotaEncontrada.mensalidade_moto;
+        valorBase = cotaEncontrada.valor_moto;
         break;
       case 'pickup':
-        mensalidade = cotaEncontrada.mensalidade_pickup;
+        valorBase = cotaEncontrada.valor_camionete;
         break;
     }
+    let mensalidade = valorBase + (valorBase * percentualExtra / 100);
 
     // Add carro reserva extra if selected
     let carroReservaAdicional = 0;
@@ -336,7 +338,7 @@ export default function Cotacao() {
                     <p className="text-4xl font-bold text-primary">
                       {formatCurrency(resultado.mensalidade)}
                     </p>
-                    <Badge className="mt-2">{resultado.cota.nome}</Badge>
+                    <Badge className="mt-2">{resultado.cota.cota_nome}</Badge>
                   </div>
 
                   <Separator />

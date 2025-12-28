@@ -66,14 +66,13 @@ export interface Regiao {
 
 export interface Cota {
   id: string;
-  nome: string;
+  cota_nome: string;
   fipe_min: number;
   fipe_max: number;
-  mensalidade_carro: number;
-  mensalidade_moto: number;
-  mensalidade_pickup: number;
+  valor_carro: number;
+  valor_moto: number;
+  valor_camionete: number;
   percentual_extra: number;
-  percentual_geral: number;
   ativo: boolean;
   created_at: string;
   updated_at: string;

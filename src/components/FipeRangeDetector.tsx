@@ -27,16 +27,25 @@ export function FipeRangeDetector({
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
     
+    const percentualExtra = Number((detectedCota as any).percentual_extra) || 0;
+    let valorBase = 0;
+    
     switch (tipoVeiculo) {
       case 'carro':
-        return detectedCota.mensalidade_carro;
+        valorBase = detectedCota.valor_carro;
+        break;
       case 'moto':
-        return detectedCota.mensalidade_moto;
+        valorBase = detectedCota.valor_moto;
+        break;
       case 'pickup':
-        return detectedCota.mensalidade_pickup;
+        valorBase = detectedCota.valor_camionete;
+        break;
       default:
-        return 0;
+        valorBase = 0;
     }
+    
+    // Aplicar percentual extra: mensalidade = valor_base + (valor_base * percentual_extra / 100)
+    return valorBase + (valorBase * percentualExtra / 100);
   }, [detectedCota, tipoVeiculo]);
 
   const formatCurrency = (value: number) => {
@@ -78,7 +87,7 @@ export function FipeRangeDetector({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium">Faixa detectada:</span>
           <Badge variant="default" className="font-semibold">
-            {detectedCota.nome}
+            {detectedCota.cota_nome}
           </Badge>
         </div>
       </div>
@@ -111,16 +120,24 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
     
+    const percentualExtra = Number((detectedCota as any).percentual_extra) || 0;
+    let valorBase = 0;
+    
     switch (tipoVeiculo) {
       case 'carro':
-        return detectedCota.mensalidade_carro;
+        valorBase = detectedCota.valor_carro;
+        break;
       case 'moto':
-        return detectedCota.mensalidade_moto;
+        valorBase = detectedCota.valor_moto;
+        break;
       case 'pickup':
-        return detectedCota.mensalidade_pickup;
+        valorBase = detectedCota.valor_camionete;
+        break;
       default:
-        return 0;
+        valorBase = 0;
     }
+    
+    return valorBase + (valorBase * percentualExtra / 100);
   }, [detectedCota, tipoVeiculo]);
 
   return {

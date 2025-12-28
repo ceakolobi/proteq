@@ -81,7 +81,7 @@ interface VeiculoAprovado {
   } | null;
   cotas?: {
     id: string;
-    nome: string;
+    cota_nome: string;
   } | null;
 }
 
@@ -170,7 +170,7 @@ export default function Ativacoes() {
       // Fetch veiculos aprovados (para ativação) - que ainda não têm ativação
       const { data: veiculosData, error: veiculosError } = await supabase
         .from('veiculos')
-        .select('id, marca, modelo, placa, ano, associado_id, veiculo_status, valor_fipe, cota_id, sede_id, consultor_id, associados(id, nome_completo), cotas(id, nome)')
+        .select('id, marca, modelo, placa, ano, associado_id, veiculo_status, valor_fipe, cota_id, sede_id, consultor_id, associados(id, nome_completo), cotas(id, cota_nome)')
         .eq('veiculo_status', 'aprovado')
         .order('created_at', { ascending: false });
 
@@ -274,7 +274,7 @@ export default function Ativacoes() {
         sede_id: veiculo.sede_id || userSedeId || null,
         consultor_id: isConsultor ? user?.id : veiculo.consultor_id,
         numero_contrato: formNumeroContrato,
-        plano: formPlano || veiculo.cotas?.nome || null,
+        plano: formPlano || veiculo.cotas?.cota_nome || null,
         categoria: formCategoria || null,
         cobertura_resumida: formCobertura || null,
         data_ativacao: new Date().toISOString().split('T')[0],

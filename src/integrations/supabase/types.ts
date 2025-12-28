@@ -512,63 +512,60 @@ export type Database = {
       cotas: {
         Row: {
           ativo: boolean
+          cota_nome: string
           created_at: string
           fipe_max: number
           fipe_min: number
           id: string
           mensalidade_caminhao: number | null
           mensalidade_carreta: number | null
-          mensalidade_carro: number
           mensalidade_implemento_agricola: number | null
           mensalidade_maquina_agricola: number | null
           mensalidade_maquina_industrial: number | null
-          mensalidade_moto: number
-          mensalidade_pickup: number
           mensalidade_utilitario: number | null
-          nome: string
           percentual_extra: number | null
-          percentual_geral: number | null
           updated_at: string
+          valor_camionete: number
+          valor_carro: number
+          valor_moto: number
         }
         Insert: {
           ativo?: boolean
+          cota_nome: string
           created_at?: string
           fipe_max: number
           fipe_min?: number
           id?: string
           mensalidade_caminhao?: number | null
           mensalidade_carreta?: number | null
-          mensalidade_carro: number
           mensalidade_implemento_agricola?: number | null
           mensalidade_maquina_agricola?: number | null
           mensalidade_maquina_industrial?: number | null
-          mensalidade_moto: number
-          mensalidade_pickup: number
           mensalidade_utilitario?: number | null
-          nome: string
           percentual_extra?: number | null
-          percentual_geral?: number | null
           updated_at?: string
+          valor_camionete: number
+          valor_carro: number
+          valor_moto: number
         }
         Update: {
           ativo?: boolean
+          cota_nome?: string
           created_at?: string
           fipe_max?: number
           fipe_min?: number
           id?: string
           mensalidade_caminhao?: number | null
           mensalidade_carreta?: number | null
-          mensalidade_carro?: number
           mensalidade_implemento_agricola?: number | null
           mensalidade_maquina_agricola?: number | null
           mensalidade_maquina_industrial?: number | null
-          mensalidade_moto?: number
-          mensalidade_pickup?: number
           mensalidade_utilitario?: number | null
-          nome?: string
           percentual_extra?: number | null
-          percentual_geral?: number | null
           updated_at?: string
+          valor_camionete?: number
+          valor_carro?: number
+          valor_moto?: number
         }
         Relationships: []
       }
