@@ -58,6 +58,7 @@ export default function Cotas() {
     mensalidade_moto: '',
     mensalidade_pickup: '',
     percentual_extra: '',
+    percentual_geral: '',
     ativo: true,
   });
 
@@ -119,6 +120,7 @@ export default function Cotas() {
         mensalidade_moto: cota.mensalidade_moto.toString(),
         mensalidade_pickup: cota.mensalidade_pickup.toString(),
         percentual_extra: (cota.percentual_extra || 0).toString(),
+        percentual_geral: (cota.percentual_geral || 0).toString(),
         ativo: cota.ativo,
       });
     } else {
@@ -131,6 +133,7 @@ export default function Cotas() {
         mensalidade_moto: '',
         mensalidade_pickup: '',
         percentual_extra: '0',
+        percentual_geral: '0',
         ativo: true,
       });
     }
@@ -149,6 +152,7 @@ export default function Cotas() {
         mensalidade_moto: parseFloat(formData.mensalidade_moto),
         mensalidade_pickup: parseFloat(formData.mensalidade_pickup),
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
+        percentual_geral: parseFloat(formData.percentual_geral) || 0,
         ativo: formData.ativo,
       };
 
@@ -317,19 +321,35 @@ export default function Cotas() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="percentual_extra">Percentual Extra (%)</Label>
-                  <Input
-                    id="percentual_extra"
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={formData.percentual_extra}
-                    onChange={(e) => setFormData({ ...formData, percentual_extra: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Aumento individual aplicado sobre a mensalidade calculada
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="percentual_geral">Percentual Geral (%)</Label>
+                    <Input
+                      id="percentual_geral"
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={formData.percentual_geral}
+                      onChange={(e) => setFormData({ ...formData, percentual_geral: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Aplicado a todos os veículos desta faixa
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="percentual_extra">Percentual Extra (%)</Label>
+                    <Input
+                      id="percentual_extra"
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={formData.percentual_extra}
+                      onChange={(e) => setFormData({ ...formData, percentual_extra: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Aumento individual adicional
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -397,6 +417,7 @@ export default function Cotas() {
                       <TableHead>Carro</TableHead>
                       <TableHead>Moto</TableHead>
                       <TableHead>Pickup</TableHead>
+                      <TableHead>% Geral</TableHead>
                       <TableHead>% Extra</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -412,6 +433,7 @@ export default function Cotas() {
                         <TableCell>{formatCurrency(cota.mensalidade_carro)}</TableCell>
                         <TableCell>{formatCurrency(cota.mensalidade_moto)}</TableCell>
                         <TableCell>{formatCurrency(cota.mensalidade_pickup)}</TableCell>
+                        <TableCell>{(cota.percentual_geral || 0).toFixed(1)}%</TableCell>
                         <TableCell>{(cota.percentual_extra || 0).toFixed(1)}%</TableCell>
                         <TableCell>
                           <Badge variant={cota.ativo ? 'default' : 'secondary'}>
