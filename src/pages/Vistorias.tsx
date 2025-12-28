@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -8,8 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import {
   ClipboardCheck,
   Search,
@@ -18,66 +22,365 @@ import {
   XCircle,
   Loader2,
   Calendar,
+  Plus,
+  Eye,
+  Edit,
+  User,
+  Car,
+  MapPin,
+  Camera,
+  FileText,
+  AlertTriangle,
+  CalendarClock,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { 
+  InspectionStatus, 
+  TipoVistoria, 
+  inspectionStatusLabels, 
+  tipoVistoriaLabels,
+  getInspectionStatusColor 
+} from '@/types/database';
 
-interface Vistoria {
+interface VistoriaDB {
   id: string;
   veiculo_id: string;
-  status: 'pendente' | 'em_andamento' | 'aprovada' | 'reprovada';
+  vistoriador_id: string | null;
+  proposta_id: string | null;
+  status: InspectionStatus;
+  tipo_vistoria: TipoVistoria | null;
   data_agendada: string | null;
   data_realizada: string | null;
+  solicitada_em: string | null;
+  local_vistoria: string | null;
   observacoes: string | null;
+  parecer_tecnico: string | null;
+  checklist: Record<string, boolean> | null;
+  fotos: string[] | null;
+  sede_id: string | null;
+  consultor_id: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+interface VeiculoOption {
+  id: string;
+  marca: string;
+  modelo: string;
+  placa: string;
+  ano: number;
+  associado_id: string;
+  veiculo_status: string | null;
+  associados?: {
+    nome_completo: string;
+  } | null;
+}
+
+interface VistoriadorOption {
+  id: string;
+  nome_completo: string;
+}
+
+interface SedeOption {
+  id: string;
+  nome: string;
 }
 
 const statusConfig = {
   pendente: { label: 'Pendente', variant: 'secondary' as const, icon: Clock },
+  agendada: { label: 'Agendada', variant: 'default' as const, icon: CalendarClock },
   em_andamento: { label: 'Em Andamento', variant: 'default' as const, icon: Loader2 },
   aprovada: { label: 'Aprovada', variant: 'default' as const, icon: CheckCircle },
   reprovada: { label: 'Reprovada', variant: 'destructive' as const, icon: XCircle },
 };
 
+const CHECKLIST_ITEMS = [
+  { key: 'frente', label: 'Frente' },
+  { key: 'traseira', label: 'Traseira' },
+  { key: 'lateral_esquerda', label: 'Lateral Esquerda' },
+  { key: 'lateral_direita', label: 'Lateral Direita' },
+  { key: 'interior', label: 'Interior' },
+  { key: 'painel_km', label: 'Painel / KM' },
+  { key: 'motor', label: 'Motor' },
+  { key: 'chassi_etiqueta', label: 'Chassi / Etiqueta' },
+];
+
 export default function Vistorias() {
   const navigate = useNavigate();
-  const { hasAnyRole, isAdminPrincipal } = useAuth();
-  const { isAllowed, isChecking } = useAccessControl('authenticated');
+  const { user, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
+  const { isAllowed, isChecking, userSedeId } = useAccessControl('authenticated');
 
-  // Admin Principal tem acesso total, outros verificam roles específicas
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'vistoriador']);
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'vistoriador', 'consultor_vendas', 'cadastro', 'financeiro']);
+  const canCreateVistoria = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
+  const canAssignVistoriador = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro']);
+  const canApproveReject = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro', 'vistoriador']);
+  const isVistoriador = hasRole('vistoriador');
+  const isFinanceiro = hasRole('financeiro');
 
-  const [vistorias, setVistorias] = useState<Vistoria[]>([]);
+  const [vistorias, setVistorias] = useState<VistoriaDB[]>([]);
+  const [veiculos, setVeiculos] = useState<VeiculoOption[]>([]);
+  const [vistoriadores, setVistoriadores] = useState<VistoriadorOption[]>([]);
+  const [sedes, setSedes] = useState<SedeOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tipoFilter, setTipoFilter] = useState<string>('all');
+  const [sedeFilter, setSedeFilter] = useState<string>('all');
+  const [vistoriadorFilter, setVistoriadorFilter] = useState<string>('all');
+
+  // Dialog states
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isChecklistDialogOpen, setIsChecklistDialogOpen] = useState(false);
+  const [selectedVistoria, setSelectedVistoria] = useState<VistoriaDB | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form states
+  const [formVeiculoId, setFormVeiculoId] = useState('');
+  const [formTipoVistoria, setFormTipoVistoria] = useState<TipoVistoria>('pre_adesao');
+  const [formLocalVistoria, setFormLocalVistoria] = useState('');
+  const [formObservacoes, setFormObservacoes] = useState('');
+  const [formDataAgendada, setFormDataAgendada] = useState('');
+  const [formVistoriadorId, setFormVistoriadorId] = useState('');
+  const [formStatus, setFormStatus] = useState<InspectionStatus>('pendente');
+  const [formParecerTecnico, setFormParecerTecnico] = useState('');
+  const [formChecklist, setFormChecklist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    document.title = 'Vistorias | MARKA CRM';
+    document.title = 'Vistorias | Sistema de Proteção Veicular';
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Fetch vistorias
+      const { data: vistoriasData, error: vistoriasError } = await supabase
+        .from('vistorias')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (vistoriasError) throw vistoriasError;
+      setVistorias((vistoriasData || []) as VistoriaDB[]);
+
+      // Fetch veiculos for dropdown
+      const { data: veiculosData, error: veiculosError } = await supabase
+        .from('veiculos')
+        .select('id, marca, modelo, placa, ano, associado_id, veiculo_status, associados(nome_completo)')
+        .order('created_at', { ascending: false });
+
+      if (veiculosError) throw veiculosError;
+      setVeiculos((veiculosData || []) as VeiculoOption[]);
+
+      // Fetch vistoriadores (users with vistoriador role)
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'vistoriador');
+
+      if (rolesError) throw rolesError;
+
+      if (rolesData && rolesData.length > 0) {
+        const userIds = rolesData.map(r => r.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, nome_completo')
+          .in('id', userIds)
+          .eq('ativo', true);
+
+        if (profilesError) throw profilesError;
+        setVistoriadores((profilesData || []) as VistoriadorOption[]);
+      }
+
+      // Fetch sedes
+      const { data: sedesData, error: sedesError } = await supabase
+        .from('sedes')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (sedesError) throw sedesError;
+      setSedes((sedesData || []) as SedeOption[]);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     if (isAllowed && !isChecking && canAccessPage) {
-      fetchVistorias();
+      fetchData();
     }
-  }, [isAllowed, isChecking, canAccessPage]);
+  }, [isAllowed, isChecking, canAccessPage, fetchData]);
 
-  const fetchVistorias = async () => {
-    setIsLoading(true);
-    try {
-      // Importante: consulta somente na tabela vistorias para respeitar permissões (evita joins que podem falhar por RLS)
-      const { data, error } = await supabase
-        .from('vistorias')
-        .select('id, veiculo_id, status, data_agendada, data_realizada, observacoes, created_at')
-        .order('created_at', { ascending: false });
+  const resetForm = () => {
+    setFormVeiculoId('');
+    setFormTipoVistoria('pre_adesao');
+    setFormLocalVistoria('');
+    setFormObservacoes('');
+    setFormDataAgendada('');
+    setFormVistoriadorId('');
+    setFormStatus('pendente');
+    setFormParecerTecnico('');
+    setFormChecklist({});
+  };
+
+  const handleCreateVistoria = async () => {
+    if (!formVeiculoId) {
+      toast.error('Selecione um veículo');
+      return;
+    }
+
+    setIsSaving(true);
+    try {      
+      const insertData = {
+        veiculo_id: formVeiculoId,
+        tipo_vistoria: formTipoVistoria as TipoVistoria,
+        local_vistoria: formLocalVistoria || null,
+        observacoes: formObservacoes || null,
+        status: (formVistoriadorId && formDataAgendada ? 'agendada' : 'pendente') as InspectionStatus,
+        consultor_id: user?.id || null,
+        sede_id: userSedeId || null,
+        vistoriador_id: formVistoriadorId || null,
+        data_agendada: formDataAgendada || null,
+      };
+
+      const { error } = await supabase.from('vistorias').insert(insertData);
 
       if (error) throw error;
-      setVistorias((data || []) as Vistoria[]);
+
+      // Update vehicle status to aguardando_vistoria
+      await supabase
+        .from('veiculos')
+        .update({ veiculo_status: 'aguardando_vistoria' })
+        .eq('id', formVeiculoId);
+
+      toast.success('Vistoria solicitada com sucesso!');
+      setIsCreateDialogOpen(false);
+      resetForm();
+      fetchData();
     } catch (error) {
-      console.error('Error fetching vistorias:', error);
+      console.error('Error creating vistoria:', error);
+      toast.error('Erro ao solicitar vistoria');
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
+  };
+
+  const handleUpdateVistoria = async () => {
+    if (!selectedVistoria) return;
+
+    setIsSaving(true);
+    try {
+      const updateData: Record<string, unknown> = {
+        status: formStatus,
+        local_vistoria: formLocalVistoria || null,
+        observacoes: formObservacoes || null,
+        parecer_tecnico: formParecerTecnico || null,
+      };
+
+      if (formVistoriadorId) {
+        updateData.vistoriador_id = formVistoriadorId;
+      }
+      if (formDataAgendada) {
+        updateData.data_agendada = formDataAgendada;
+        if (formStatus === 'pendente' && formVistoriadorId) {
+          updateData.status = 'agendada';
+        }
+      }
+      if (formStatus === 'aprovada' || formStatus === 'reprovada') {
+        updateData.data_realizada = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('vistorias')
+        .update(updateData)
+        .eq('id', selectedVistoria.id);
+
+      if (error) throw error;
+
+      toast.success('Vistoria atualizada com sucesso!');
+      setIsEditDialogOpen(false);
+      setSelectedVistoria(null);
+      resetForm();
+      fetchData();
+    } catch (error) {
+      console.error('Error updating vistoria:', error);
+      toast.error('Erro ao atualizar vistoria');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveChecklist = async () => {
+    if (!selectedVistoria) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('vistorias')
+        .update({ 
+          checklist: formChecklist,
+          status: 'em_andamento'
+        })
+        .eq('id', selectedVistoria.id);
+
+      if (error) throw error;
+
+      toast.success('Checklist salvo com sucesso!');
+      setIsChecklistDialogOpen(false);
+      setSelectedVistoria(null);
+      fetchData();
+    } catch (error) {
+      console.error('Error saving checklist:', error);
+      toast.error('Erro ao salvar checklist');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditDialog = (vistoria: VistoriaDB) => {
+    setSelectedVistoria(vistoria);
+    setFormStatus(vistoria.status);
+    setFormLocalVistoria(vistoria.local_vistoria || '');
+    setFormObservacoes(vistoria.observacoes || '');
+    setFormParecerTecnico(vistoria.parecer_tecnico || '');
+    setFormVistoriadorId(vistoria.vistoriador_id || '');
+    setFormDataAgendada(vistoria.data_agendada ? vistoria.data_agendada.split('T')[0] : '');
+    setIsEditDialogOpen(true);
+  };
+
+  const openChecklistDialog = (vistoria: VistoriaDB) => {
+    setSelectedVistoria(vistoria);
+    setFormChecklist(vistoria.checklist || {});
+    setIsChecklistDialogOpen(true);
+  };
+
+  const openViewDialog = (vistoria: VistoriaDB) => {
+    setSelectedVistoria(vistoria);
+    setIsViewDialogOpen(true);
+  };
+
+  const getVeiculoDisplay = (veiculoId: string) => {
+    const veiculo = veiculos.find(v => v.id === veiculoId);
+    if (!veiculo) return veiculoId.slice(0, 8);
+    return `${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
+  };
+
+  const getVistoriadorDisplay = (vistoriadorId: string | null) => {
+    if (!vistoriadorId) return 'Não atribuído';
+    const vistoriador = vistoriadores.find(v => v.id === vistoriadorId);
+    return vistoriador?.nome_completo || 'Desconhecido';
+  };
+
+  const getSedeDisplay = (sedeId: string | null) => {
+    if (!sedeId) return '-';
+    const sede = sedes.find(s => s.id === sedeId);
+    return sede?.nome || '-';
   };
 
   if (isChecking) {
@@ -120,23 +423,31 @@ export default function Vistorias() {
 
   const filteredVistorias = vistorias.filter((v) => {
     const search = searchTerm.toLowerCase();
+    const veiculoInfo = getVeiculoDisplay(v.veiculo_id).toLowerCase();
     const matchesSearch =
       v.id.toLowerCase().includes(search) ||
-      v.veiculo_id.toLowerCase().includes(search) ||
-      (v.observacoes || '').toLowerCase().includes(search);
+      veiculoInfo.includes(search) ||
+      (v.observacoes || '').toLowerCase().includes(search) ||
+      (v.local_vistoria || '').toLowerCase().includes(search);
 
     const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
+    const matchesTipo = tipoFilter === 'all' || v.tipo_vistoria === tipoFilter;
+    const matchesSede = sedeFilter === 'all' || v.sede_id === sedeFilter;
+    const matchesVistoriador = vistoriadorFilter === 'all' || v.vistoriador_id === vistoriadorFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesTipo && matchesSede && matchesVistoriador;
   });
 
   const stats = {
     total: vistorias.length,
     pendentes: vistorias.filter((v) => v.status === 'pendente').length,
+    agendadas: vistorias.filter((v) => v.status === 'agendada').length,
     emAndamento: vistorias.filter((v) => v.status === 'em_andamento').length,
     aprovadas: vistorias.filter((v) => v.status === 'aprovada').length,
     reprovadas: vistorias.filter((v) => v.status === 'reprovada').length,
   };
+
+  const veiculosAguardandoVistoria = veiculos.filter(v => v.veiculo_status === 'aguardando_vistoria');
 
   return (
     <DashboardLayout>
@@ -147,84 +458,229 @@ export default function Vistorias() {
               <ClipboardCheck className="h-8 w-8 text-primary" />
               Vistorias
             </h1>
-            <p className="text-muted-foreground">Gerenciamento de vistorias</p>
+            <p className="text-muted-foreground">Gerenciamento de vistorias veiculares</p>
           </div>
+          {canCreateVistoria && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { resetForm(); setIsCreateDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Solicitar Vistoria
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Solicitar Nova Vistoria</DialogTitle>
+                  <DialogDescription>Preencha os dados para solicitar uma vistoria</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Veículo *</Label>
+                    <Select value={formVeiculoId} onValueChange={setFormVeiculoId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o veículo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {veiculos.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.marca} {v.modelo} - {v.placa} ({v.ano})
+                            {v.associados?.nome_completo && ` - ${v.associados.nome_completo}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tipo de Vistoria</Label>
+                    <Select value={formTipoVistoria} onValueChange={(v) => setFormTipoVistoria(v as TipoVistoria)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pre_adesao">Pré-adesão</SelectItem>
+                        <SelectItem value="renovacao">Renovação</SelectItem>
+                        <SelectItem value="reinspecao">Reinspeção</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Local da Vistoria</Label>
+                    <Input
+                      value={formLocalVistoria}
+                      onChange={(e) => setFormLocalVistoria(e.target.value)}
+                      placeholder="Endereço ou 'Remoto'"
+                    />
+                  </div>
+                  {canAssignVistoriador && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Vistoriador</Label>
+                        <Select value={formVistoriadorId} onValueChange={setFormVistoriadorId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Atribuir vistoriador (opcional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vistoriadores.map((v) => (
+                              <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Data Agendada</Label>
+                        <Input
+                          type="date"
+                          value={formDataAgendada}
+                          onChange={(e) => setFormDataAgendada(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="space-y-2">
+                    <Label>Observações</Label>
+                    <Textarea
+                      value={formObservacoes}
+                      onChange={(e) => setFormObservacoes(e.target.value)}
+                      placeholder="Informações adicionais..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleCreateVistoria} disabled={isSaving}>
+                    {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Solicitar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </header>
 
-        <section className="grid gap-4 md:grid-cols-5" aria-label="Indicadores de vistorias">
+        {/* Stats Cards */}
+        <section className="grid gap-4 md:grid-cols-6" aria-label="Indicadores de vistorias">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Total</CardDescription>
               <CardTitle className="text-2xl">{stats.total}</CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border-amber-200 bg-amber-50/50">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
-                <Clock className="h-4 w-4" /> Pendentes
+                <Clock className="h-4 w-4 text-amber-600" /> Pendentes
               </CardDescription>
-              <CardTitle className="text-2xl">{stats.pendentes}</CardTitle>
+              <CardTitle className="text-2xl text-amber-700">{stats.pendentes}</CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border-blue-200 bg-blue-50/50">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
-                <Loader2 className="h-4 w-4" /> Em Andamento
+                <CalendarClock className="h-4 w-4 text-blue-600" /> Agendadas
               </CardDescription>
-              <CardTitle className="text-2xl">{stats.emAndamento}</CardTitle>
+              <CardTitle className="text-2xl text-blue-700">{stats.agendadas}</CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border-purple-200 bg-purple-50/50">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" /> Aprovadas
+                <Loader2 className="h-4 w-4 text-purple-600" /> Em Andamento
               </CardDescription>
-              <CardTitle className="text-2xl">{stats.aprovadas}</CardTitle>
+              <CardTitle className="text-2xl text-purple-700">{stats.emAndamento}</CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border-green-200 bg-green-50/50">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1">
-                <XCircle className="h-4 w-4" /> Reprovadas
+                <CheckCircle className="h-4 w-4 text-green-600" /> Aprovadas
               </CardDescription>
-              <CardTitle className="text-2xl">{stats.reprovadas}</CardTitle>
+              <CardTitle className="text-2xl text-green-700">{stats.aprovadas}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="border-red-200 bg-red-50/50">
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1">
+                <XCircle className="h-4 w-4 text-red-600" /> Reprovadas
+              </CardDescription>
+              <CardTitle className="text-2xl text-red-700">{stats.reprovadas}</CardTitle>
             </CardHeader>
           </Card>
         </section>
 
+        {/* Filters */}
         <section aria-label="Filtros">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Filtros</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por ID, veiculo_id ou observações..."
+                    placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
+                  <SelectTrigger>
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="all">Todos os Status</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="agendada">Agendada</SelectItem>
                     <SelectItem value="em_andamento">Em Andamento</SelectItem>
                     <SelectItem value="aprovada">Aprovada</SelectItem>
                     <SelectItem value="reprovada">Reprovada</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Tipos</SelectItem>
+                    <SelectItem value="pre_adesao">Pré-adesão</SelectItem>
+                    <SelectItem value="renovacao">Renovação</SelectItem>
+                    <SelectItem value="reinspecao">Reinspeção</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(isAdminPrincipal || hasRole('admin_regional')) && (
+                  <Select value={sedeFilter} onValueChange={setSedeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sede" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as Sedes</SelectItem>
+                      {sedes.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {canAssignVistoriador && (
+                  <Select value={vistoriadorFilter} onValueChange={setVistoriadorFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vistoriador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Vistoriadores</SelectItem>
+                      {vistoriadores.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </CardContent>
           </Card>
         </section>
 
+        {/* Vistorias Table */}
         <main>
           <Card>
             <CardHeader>
@@ -246,20 +702,59 @@ export default function Vistorias() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>ID</TableHead>
                         <TableHead>Veículo</TableHead>
-                        <TableHead>Data Agendada</TableHead>
+                        <TableHead>Tipo</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Criado em</TableHead>
+                        <TableHead>Vistoriador</TableHead>
+                        <TableHead>Data Agendada</TableHead>
+                        <TableHead>Sede</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredVistorias.map((vistoria) => {
-                        const StatusIcon = statusConfig[vistoria.status].icon;
+                        const StatusIcon = statusConfig[vistoria.status]?.icon || Clock;
+                        const isPending = vistoria.status === 'pendente';
+                        const isEmAndamento = vistoria.status === 'em_andamento';
+                        const isReprovada = vistoria.status === 'reprovada';
+                        
                         return (
-                          <TableRow key={vistoria.id}>
-                            <TableCell className="font-mono text-xs">{vistoria.id}</TableCell>
-                            <TableCell className="font-mono text-xs">{vistoria.veiculo_id}</TableCell>
+                          <TableRow 
+                            key={vistoria.id}
+                            className={
+                              isPending ? 'bg-amber-50/30' : 
+                              isEmAndamento ? 'bg-purple-50/30' :
+                              isReprovada ? 'bg-red-50/30' : ''
+                            }
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Car className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{getVeiculoDisplay(vistoria.veiculo_id)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {vistoria.tipo_vistoria ? (
+                                <Badge variant="outline">
+                                  {tipoVistoriaLabels[vistoria.tipo_vistoria]}
+                                </Badge>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={statusConfig[vistoria.status]?.variant || 'secondary'}
+                                className={`flex items-center gap-1 w-fit ${getInspectionStatusColor(vistoria.status)}`}
+                              >
+                                <StatusIcon className="h-3 w-3" />
+                                {inspectionStatusLabels[vistoria.status]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{getVistoriadorDisplay(vistoria.vistoriador_id)}</span>
+                              </div>
+                            </TableCell>
                             <TableCell>
                               {vistoria.data_agendada ? (
                                 <div className="flex items-center gap-1 text-sm">
@@ -271,16 +766,28 @@ export default function Vistorias() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant={statusConfig[vistoria.status].variant}
-                                className="flex items-center gap-1 w-fit"
-                              >
-                                <StatusIcon className="h-3 w-3" />
-                                {statusConfig[vistoria.status].label}
-                              </Badge>
+                              <span className="text-sm">{getSedeDisplay(vistoria.sede_id)}</span>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(vistoria.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => openViewDialog(vistoria)}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {!isFinanceiro && (
+                                  <>
+                                    {canApproveReject && (
+                                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(vistoria)}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                    {(isVistoriador || canAssignVistoriador) && vistoria.status !== 'aprovada' && vistoria.status !== 'reprovada' && (
+                                      <Button variant="ghost" size="sm" onClick={() => openChecklistDialog(vistoria)}>
+                                        <Camera className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -292,6 +799,224 @@ export default function Vistorias() {
             </CardContent>
           </Card>
         </main>
+
+        {/* View Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Detalhes da Vistoria</DialogTitle>
+            </DialogHeader>
+            {selectedVistoria && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Veículo</Label>
+                    <p className="font-medium">{getVeiculoDisplay(selectedVistoria.veiculo_id)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Tipo</Label>
+                    <p className="font-medium">{selectedVistoria.tipo_vistoria ? tipoVistoriaLabels[selectedVistoria.tipo_vistoria] : '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <Badge className={getInspectionStatusColor(selectedVistoria.status)}>
+                      {inspectionStatusLabels[selectedVistoria.status]}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Vistoriador</Label>
+                    <p className="font-medium">{getVistoriadorDisplay(selectedVistoria.vistoriador_id)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Data Agendada</Label>
+                    <p className="font-medium">
+                      {selectedVistoria.data_agendada 
+                        ? format(new Date(selectedVistoria.data_agendada), 'dd/MM/yyyy', { locale: ptBR })
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Data Realizada</Label>
+                    <p className="font-medium">
+                      {selectedVistoria.data_realizada 
+                        ? format(new Date(selectedVistoria.data_realizada), 'dd/MM/yyyy', { locale: ptBR })
+                        : '-'}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Local</Label>
+                    <p className="font-medium">{selectedVistoria.local_vistoria || '-'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Observações</Label>
+                    <p className="font-medium">{selectedVistoria.observacoes || '-'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Parecer Técnico</Label>
+                    <p className="font-medium">{selectedVistoria.parecer_tecnico || '-'}</p>
+                  </div>
+                </div>
+                {selectedVistoria.checklist && Object.keys(selectedVistoria.checklist).length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Checklist</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {CHECKLIST_ITEMS.map((item) => (
+                        <div key={item.key} className="flex items-center gap-2">
+                          {selectedVistoria.checklist?.[item.key] ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-600" />
+                          )}
+                          <span className="text-sm">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Editar Vistoria</DialogTitle>
+              <DialogDescription>Atualize os dados da vistoria</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={formStatus} onValueChange={(v) => setFormStatus(v as InspectionStatus)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="agendada">Agendada</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    {canApproveReject && (
+                      <>
+                        <SelectItem value="aprovada">Aprovada</SelectItem>
+                        <SelectItem value="reprovada">Reprovada</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              {canAssignVistoriador && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Vistoriador</Label>
+                    <Select value={formVistoriadorId} onValueChange={setFormVistoriadorId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Atribuir vistoriador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vistoriadores.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data Agendada</Label>
+                    <Input
+                      type="date"
+                      value={formDataAgendada}
+                      onChange={(e) => setFormDataAgendada(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label>Local da Vistoria</Label>
+                <Input
+                  value={formLocalVistoria}
+                  onChange={(e) => setFormLocalVistoria(e.target.value)}
+                  placeholder="Endereço ou 'Remoto'"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Textarea
+                  value={formObservacoes}
+                  onChange={(e) => setFormObservacoes(e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Parecer Técnico</Label>
+                <Textarea
+                  value={formParecerTecnico}
+                  onChange={(e) => setFormParecerTecnico(e.target.value)}
+                  placeholder="Parecer do vistoriador..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleUpdateVistoria} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Checklist Dialog */}
+        <Dialog open={isChecklistDialogOpen} onOpenChange={setIsChecklistDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Checklist de Vistoria</DialogTitle>
+              <DialogDescription>Marque os itens verificados com fotos</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                {CHECKLIST_ITEMS.map((item) => (
+                  <div 
+                    key={item.key}
+                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      formChecklist[item.key] ? 'bg-green-50 border-green-200' : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => setFormChecklist(prev => ({
+                      ...prev,
+                      [item.key]: !prev[item.key]
+                    }))}
+                  >
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                      formChecklist[item.key] ? 'bg-green-500 border-green-500' : 'border-muted-foreground'
+                    }`}>
+                      {formChecklist[item.key] && <CheckCircle className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 bg-muted/30 rounded-lg">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  O upload de fotos será implementado em uma próxima etapa.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsChecklistDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSaveChecklist} disabled={isSaving}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Salvar Checklist
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

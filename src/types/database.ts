@@ -13,7 +13,9 @@ export type VehicleStatus = 'cadastrado' | 'aguardando_vistoria' | 'aprovado' | 
 
 export type ProposalStatus = 'rascunho' | 'enviada' | 'aceita' | 'recusada' | 'cancelada';
 
-export type InspectionStatus = 'pendente' | 'em_andamento' | 'aprovada' | 'reprovada';
+export type InspectionStatus = 'pendente' | 'agendada' | 'em_andamento' | 'aprovada' | 'reprovada';
+
+export type TipoVistoria = 'pre_adesao' | 'renovacao' | 'reinspecao';
 
 export type AssociateStatus = 'ativo' | 'inadimplente' | 'suspenso' | 'cancelado';
 
@@ -165,13 +167,39 @@ export interface Vistoria {
   vistoriador_id?: string;
   proposta_id?: string;
   status: InspectionStatus;
+  tipo_vistoria?: TipoVistoria;
   data_agendada?: string;
   data_realizada?: string;
+  solicitada_em?: string;
+  local_vistoria?: string;
   observacoes?: string;
+  parecer_tecnico?: string;
   checklist?: Record<string, boolean>;
   fotos?: string[];
+  sede_id?: string;
+  consultor_id?: string;
   created_at: string;
   updated_at: string;
+  // Joined fields
+  veiculo?: {
+    id: string;
+    marca: string;
+    modelo: string;
+    placa: string;
+    ano: number;
+    associado_id: string;
+    associados?: {
+      nome_completo: string;
+    };
+  };
+  vistoriador?: {
+    id: string;
+    nome_completo: string;
+  };
+  sede?: {
+    id: string;
+    nome: string;
+  };
 }
 
 export interface Pagamento {
@@ -241,9 +269,27 @@ export const proposalStatusLabels: Record<ProposalStatus, string> = {
 
 export const inspectionStatusLabels: Record<InspectionStatus, string> = {
   pendente: 'Pendente',
+  agendada: 'Agendada',
   em_andamento: 'Em Andamento',
   aprovada: 'Aprovada',
   reprovada: 'Reprovada'
+};
+
+export const tipoVistoriaLabels: Record<TipoVistoria, string> = {
+  pre_adesao: 'Pré-adesão',
+  renovacao: 'Renovação',
+  reinspecao: 'Reinspeção'
+};
+
+export const getInspectionStatusColor = (status: InspectionStatus): string => {
+  const colors: Record<InspectionStatus, string> = {
+    pendente: 'bg-amber-100 text-amber-800 border-amber-200',
+    agendada: 'bg-blue-100 text-blue-800 border-blue-200',
+    em_andamento: 'bg-purple-100 text-purple-800 border-purple-200',
+    aprovada: 'bg-green-100 text-green-800 border-green-200',
+    reprovada: 'bg-red-100 text-red-800 border-red-200'
+  };
+  return colors[status] || colors.pendente;
 };
 
 export const vehicleTypeLabels: Record<VehicleType, string> = {
