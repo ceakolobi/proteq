@@ -175,6 +175,10 @@ export default function VistoriaChecklist({
                 <AlertTriangle className="h-4 w-4" />
                 O checklist só pode ser preenchido quando o status for "Em andamento"
               </span>
+            ) : !canEdit ? (
+              <span className="flex items-center gap-2 text-muted-foreground">
+                Somente o vistoriador atribuído pode preencher o checklist
+              </span>
             ) : (
               'Visualização do checklist'
             )}

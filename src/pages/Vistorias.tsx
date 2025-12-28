@@ -841,16 +841,25 @@ export default function Vistorias() {
                                         <Edit className="h-4 w-4" />
                                       </Button>
                                     )}
-                                    {vistoria.status !== 'aprovada' && vistoria.status !== 'reprovada' && (
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        onClick={() => openChecklistDialog(vistoria)}
-                                        title={vistoria.status === 'em_andamento' && isVistoriador ? 'Preencher Checklist' : 'Ver Checklist'}
-                                      >
-                                        <Camera className="h-4 w-4" />
-                                      </Button>
-                                    )}
+                                    {/* Checklist button - always visible for viewing, editable only for vistoriador in em_andamento */}
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => openChecklistDialog(vistoria)}
+                                      title={
+                                        vistoria.status === 'em_andamento' && isVistoriador && vistoria.vistoriador_id === user?.id 
+                                          ? 'Preencher Checklist' 
+                                          : 'Ver Checklist'
+                                      }
+                                    >
+                                      <Camera className={`h-4 w-4 ${
+                                        vistoria.status === 'em_andamento' && isVistoriador && vistoria.vistoriador_id === user?.id
+                                          ? 'text-primary'
+                                          : isChecklistComplete(vistoria.checklist)
+                                            ? 'text-green-600'
+                                            : ''
+                                      }`} />
+                                    </Button>
                                   </>
                                 )}
                               </div>
@@ -1087,7 +1096,7 @@ export default function Vistorias() {
             vistoriaStatus={selectedVistoria.status}
             existingPhotos={fotosArrayToObject(selectedVistoria.fotos, selectedVistoria.id)}
             existingChecklist={selectedVistoria.checklist || {}}
-            canEdit={isVistoriador}
+            canEdit={isVistoriador && selectedVistoria.vistoriador_id === user?.id}
             onSave={fetchData}
           />
         )}
