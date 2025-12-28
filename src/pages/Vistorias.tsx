@@ -83,6 +83,11 @@ interface VistoriadorOption {
   nome_completo: string;
 }
 
+interface ConsultorOption {
+  id: string;
+  nome_completo: string;
+}
+
 interface SedeOption {
   id: string;
   nome: string;
@@ -104,13 +109,17 @@ export default function Vistorias() {
   const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'vistoriador', 'consultor_vendas', 'cadastro', 'financeiro']);
   const canCreateVistoria = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
   const canAssignVistoriador = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro']);
-  const canApproveReject = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro', 'vistoriador']);
+  // Só AdminSede, Backoffice (cadastro) ou AdminPrincipal podem Aprovar/Reprovar
+  const canApproveReject = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro']);
   const isVistoriador = hasRole('vistoriador');
   const isFinanceiro = hasRole('financeiro');
+  // Vistoriador só pode mudar para "Em andamento" quando atribuído
+  const canStartInspection = isVistoriador;
 
   const [vistorias, setVistorias] = useState<VistoriaDB[]>([]);
   const [veiculos, setVeiculos] = useState<VeiculoOption[]>([]);
   const [vistoriadores, setVistoriadores] = useState<VistoriadorOption[]>([]);
+  const [consultores, setConsultores] = useState<ConsultorOption[]>([]);
   const [sedes, setSedes] = useState<SedeOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,15 +173,15 @@ export default function Vistorias() {
       setVeiculos((veiculosData || []) as VeiculoOption[]);
 
       // Fetch vistoriadores (users with vistoriador role)
-      const { data: rolesData, error: rolesError } = await supabase
+      const { data: vistoriadorRoles, error: vistoriadorRolesError } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'vistoriador');
 
-      if (rolesError) throw rolesError;
+      if (vistoriadorRolesError) throw vistoriadorRolesError;
 
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
+      if (vistoriadorRoles && vistoriadorRoles.length > 0) {
+        const userIds = vistoriadorRoles.map(r => r.user_id);
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, nome_completo')
@@ -181,6 +190,26 @@ export default function Vistorias() {
 
         if (profilesError) throw profilesError;
         setVistoriadores((profilesData || []) as VistoriadorOption[]);
+      }
+
+      // Fetch consultores (users with consultor_vendas role)
+      const { data: consultorRoles, error: consultorRolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'consultor_vendas');
+
+      if (consultorRolesError) throw consultorRolesError;
+
+      if (consultorRoles && consultorRoles.length > 0) {
+        const consultorIds = consultorRoles.map(r => r.user_id);
+        const { data: consultorProfiles, error: consultorProfilesError } = await supabase
+          .from('profiles')
+          .select('id, nome_completo')
+          .in('id', consultorIds)
+          .eq('ativo', true);
+
+        if (consultorProfilesError) throw consultorProfilesError;
+        setConsultores((consultorProfiles || []) as ConsultorOption[]);
       }
 
       // Fetch sedes
@@ -379,6 +408,28 @@ export default function Vistorias() {
     if (!sedeId) return '-';
     const sede = sedes.find(s => s.id === sedeId);
     return sede?.nome || '-';
+  };
+
+  const getConsultorDisplay = (consultorId: string | null) => {
+    if (!consultorId) return '-';
+    const consultor = consultores.find(c => c.id === consultorId);
+    return consultor?.nome_completo || '-';
+  };
+
+  // Status transition rules based on role
+  const getAllowedStatusTransitions = (currentStatus: InspectionStatus): InspectionStatus[] => {
+    if (canApproveReject) {
+      // Admin Principal, Admin Regional, Cadastro can do all transitions
+      return ['pendente', 'agendada', 'em_andamento', 'aprovada', 'reprovada'];
+    }
+    if (canStartInspection) {
+      // Vistoriador can only move to "em_andamento"
+      if (currentStatus === 'agendada') {
+        return ['agendada', 'em_andamento'];
+      }
+      return [currentStatus];
+    }
+    return [currentStatus];
   };
 
   if (isChecking) {
@@ -703,9 +754,11 @@ export default function Vistorias() {
                         <TableHead>Veículo</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Solicitação</TableHead>
                         <TableHead>Vistoriador</TableHead>
                         <TableHead>Data Agendada</TableHead>
                         <TableHead>Sede</TableHead>
+                        <TableHead>Consultor</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -748,6 +801,13 @@ export default function Vistorias() {
                               </Badge>
                             </TableCell>
                             <TableCell>
+                              {vistoria.solicitada_em ? (
+                                <span className="text-sm">
+                                  {format(new Date(vistoria.solicitada_em), 'dd/MM/yy', { locale: ptBR })}
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
                               <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm">{getVistoriadorDisplay(vistoria.vistoriador_id)}</span>
@@ -766,6 +826,9 @@ export default function Vistorias() {
                             <TableCell>
                               <span className="text-sm">{getSedeDisplay(vistoria.sede_id)}</span>
                             </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{getConsultorDisplay(vistoria.consultor_id)}</span>
+                            </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <Button variant="ghost" size="sm" onClick={() => openViewDialog(vistoria)}>
@@ -773,7 +836,7 @@ export default function Vistorias() {
                                 </Button>
                                 {!isFinanceiro && (
                                   <>
-                                    {canApproveReject && (
+                                    {(canApproveReject || (isVistoriador && vistoria.vistoriador_id === user?.id)) && (
                                       <Button variant="ghost" size="sm" onClick={() => openEditDialog(vistoria)}>
                                         <Edit className="h-4 w-4" />
                                       </Button>
@@ -827,8 +890,24 @@ export default function Vistorias() {
                     </Badge>
                   </div>
                   <div>
+                    <Label className="text-muted-foreground">Data de Solicitação</Label>
+                    <p className="font-medium">
+                      {selectedVistoria.solicitada_em 
+                        ? format(new Date(selectedVistoria.solicitada_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
                     <Label className="text-muted-foreground">Vistoriador</Label>
                     <p className="font-medium">{getVistoriadorDisplay(selectedVistoria.vistoriador_id)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Consultor Responsável</Label>
+                    <p className="font-medium">{getConsultorDisplay(selectedVistoria.consultor_id)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Sede Responsável</Label>
+                    <p className="font-medium">{getSedeDisplay(selectedVistoria.sede_id)}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Data Agendada</Label>
@@ -842,11 +921,11 @@ export default function Vistorias() {
                     <Label className="text-muted-foreground">Data Realizada</Label>
                     <p className="font-medium">
                       {selectedVistoria.data_realizada 
-                        ? format(new Date(selectedVistoria.data_realizada), 'dd/MM/yyyy', { locale: ptBR })
+                        ? format(new Date(selectedVistoria.data_realizada), 'dd/MM/yyyy HH:mm', { locale: ptBR })
                         : '-'}
                     </p>
                   </div>
-                  <div className="col-span-2">
+                  <div>
                     <Label className="text-muted-foreground">Local</Label>
                     <p className="font-medium">{selectedVistoria.local_vistoria || '-'}</p>
                   </div>
@@ -913,22 +992,27 @@ export default function Vistorias() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={formStatus} onValueChange={(v) => setFormStatus(v as InspectionStatus)}>
+                <Select 
+                  value={formStatus} 
+                  onValueChange={(v) => setFormStatus(v as InspectionStatus)}
+                  disabled={!canApproveReject && !canStartInspection}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="agendada">Agendada</SelectItem>
-                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    {canApproveReject && (
-                      <>
-                        <SelectItem value="aprovada">Aprovada</SelectItem>
-                        <SelectItem value="reprovada">Reprovada</SelectItem>
-                      </>
-                    )}
+                    {getAllowedStatusTransitions(selectedVistoria?.status || 'pendente').map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {inspectionStatusLabels[status]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {isVistoriador && !canApproveReject && (
+                  <p className="text-xs text-muted-foreground">
+                    Vistoriadores só podem alterar para "Em Andamento" quando a vistoria estiver agendada.
+                  </p>
+                )}
               </div>
               {canAssignVistoriador && (
                 <>
