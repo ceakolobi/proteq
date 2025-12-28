@@ -72,6 +72,7 @@ export interface Cota {
   mensalidade_carro: number;
   mensalidade_moto: number;
   mensalidade_pickup: number;
+  percentual_extra: number;
   ativo: boolean;
   created_at: string;
   updated_at: string;
