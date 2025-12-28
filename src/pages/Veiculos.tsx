@@ -167,6 +167,31 @@ export default function Veiculos() {
   const canUpdateStatus = isAdminPrincipal || isAdminRegional || isCadastro;
   const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro', 'financeiro', 'vistoriador']);
 
+  // Handler para quando dados do veículo são encontrados pela placa
+  // IMPORTANTE: Hooks devem ser declarados ANTES de qualquer early return
+  const handleVehicleFound = useCallback((data: VehicleData) => {
+    setFormData(prev => ({
+      ...prev,
+      marca: data.marca || prev.marca,
+      modelo: data.modelo || prev.modelo,
+      ano: parseInt(data.ano_modelo) || parseInt(data.ano_fabricacao) || prev.ano,
+      chassi: data.chassi || prev.chassi,
+      cor: data.cor || prev.cor,
+      valor_fipe: data.valor_fipe || prev.valor_fipe,
+      codigo_fipe: data.codigo_fipe || prev.codigo_fipe,
+      mes_referencia_fipe: data.valor_fipe ? new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : prev.mes_referencia_fipe,
+    }));
+    setFipeLoaded(!!data.valor_fipe);
+  }, []);
+
+  const handlePlacaChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, placa: value }));
+  }, []);
+
+  const handlePlacaStatusChange = useCallback((status: PlacaStatus) => {
+    setPlacaStatus(status);
+  }, []);
+
   useEffect(() => {
     document.title = 'Veículos | MARKA CRM';
   }, []);
@@ -320,30 +345,6 @@ export default function Veiculos() {
     setFipeLoaded(false);
     setIsCreateDialogOpen(true);
   };
-
-  // Handler para quando dados do veículo são encontrados pela placa
-  const handleVehicleFound = useCallback((data: VehicleData) => {
-    setFormData(prev => ({
-      ...prev,
-      marca: data.marca || prev.marca,
-      modelo: data.modelo || prev.modelo,
-      ano: parseInt(data.ano_modelo) || parseInt(data.ano_fabricacao) || prev.ano,
-      chassi: data.chassi || prev.chassi,
-      cor: data.cor || prev.cor,
-      valor_fipe: data.valor_fipe || prev.valor_fipe,
-      codigo_fipe: data.codigo_fipe || prev.codigo_fipe,
-      mes_referencia_fipe: data.valor_fipe ? new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : prev.mes_referencia_fipe,
-    }));
-    setFipeLoaded(!!data.valor_fipe);
-  }, []);
-
-  const handlePlacaChange = useCallback((value: string) => {
-    setFormData(prev => ({ ...prev, placa: value }));
-  }, []);
-
-  const handlePlacaStatusChange = useCallback((status: PlacaStatus) => {
-    setPlacaStatus(status);
-  }, []);
 
   const handleSaveVeiculo = async () => {
     if (!selectedVeiculo) return;
