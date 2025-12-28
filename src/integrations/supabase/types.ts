@@ -562,41 +562,97 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_interacoes: {
+        Row: {
+          created_at: string
+          data_interacao: string
+          descricao: string
+          id: string
+          lead_id: string
+          tipo: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_interacao?: string
+          descricao: string
+          id?: string
+          lead_id: string
+          tipo: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          data_interacao?: string
+          descricao?: string
+          id?: string
+          lead_id?: string
+          tipo?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_interacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          cidade: string | null
           consultor_id: string
           convertido: boolean
           created_at: string
           email: string | null
+          estado: string | null
           id: string
           nome: string
           observacoes: string | null
+          origem: Database["public"]["Enums"]["lead_origem"] | null
           regiao_id: string | null
+          sede_id: string | null
+          status: Database["public"]["Enums"]["lead_status"] | null
           telefone: string
+          tipo_veiculo: Database["public"]["Enums"]["vehicle_type"] | null
           updated_at: string
         }
         Insert: {
+          cidade?: string | null
           consultor_id: string
           convertido?: boolean
           created_at?: string
           email?: string | null
+          estado?: string | null
           id?: string
           nome: string
           observacoes?: string | null
+          origem?: Database["public"]["Enums"]["lead_origem"] | null
           regiao_id?: string | null
+          sede_id?: string | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
           telefone: string
+          tipo_veiculo?: Database["public"]["Enums"]["vehicle_type"] | null
           updated_at?: string
         }
         Update: {
+          cidade?: string | null
           consultor_id?: string
           convertido?: boolean
           created_at?: string
           email?: string | null
+          estado?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
+          origem?: Database["public"]["Enums"]["lead_origem"] | null
           regiao_id?: string | null
+          sede_id?: string | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
           telefone?: string
+          tipo_veiculo?: Database["public"]["Enums"]["vehicle_type"] | null
           updated_at?: string
         }
         Relationships: [
@@ -605,6 +661,13 @@ export type Database = {
             columns: ["regiao_id"]
             isOneToOne: false
             referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_sede_id_fkey"
+            columns: ["sede_id"]
+            isOneToOne: false
+            referencedRelation: "sedes"
             referencedColumns: ["id"]
           },
         ]
@@ -1046,6 +1109,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_lead: {
+        Args: { _lead_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_regiao: {
         Args: { _regiao_id: string; _user_id: string }
         Returns: boolean
@@ -1054,6 +1121,7 @@ export type Database = {
         Args: { _sede_id: string; _user_id: string }
         Returns: boolean
       }
+      can_create_lead: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
@@ -1095,6 +1163,16 @@ export type Database = {
         | "aprovado"
         | "perdido"
       inspection_status: "pendente" | "em_andamento" | "aprovada" | "reprovada"
+      lead_origem:
+        | "instagram"
+        | "facebook"
+        | "indicacao"
+        | "site"
+        | "whatsapp"
+        | "telefone"
+        | "presencial"
+        | "outro"
+      lead_status: "novo" | "em_contato" | "cotado" | "convertido" | "perdido"
       metodo_valoracao: "fipe" | "venal" | "nota_fiscal"
       proposal_status:
         | "rascunho"
@@ -1265,6 +1343,17 @@ export const Constants = {
         "perdido",
       ],
       inspection_status: ["pendente", "em_andamento", "aprovada", "reprovada"],
+      lead_origem: [
+        "instagram",
+        "facebook",
+        "indicacao",
+        "site",
+        "whatsapp",
+        "telefone",
+        "presencial",
+        "outro",
+      ],
+      lead_status: ["novo", "em_contato", "cotado", "convertido", "perdido"],
       metodo_valoracao: ["fipe", "venal", "nota_fiscal"],
       proposal_status: [
         "rascunho",
