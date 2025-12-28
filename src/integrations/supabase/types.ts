@@ -527,6 +527,7 @@ export type Database = {
           mensalidade_utilitario: number | null
           nome: string
           percentual_extra: number | null
+          percentual_geral: number | null
           updated_at: string
         }
         Insert: {
@@ -546,6 +547,7 @@ export type Database = {
           mensalidade_utilitario?: number | null
           nome: string
           percentual_extra?: number | null
+          percentual_geral?: number | null
           updated_at?: string
         }
         Update: {
@@ -565,6 +567,7 @@ export type Database = {
           mensalidade_utilitario?: number | null
           nome?: string
           percentual_extra?: number | null
+          percentual_geral?: number | null
           updated_at?: string
         }
         Relationships: []
