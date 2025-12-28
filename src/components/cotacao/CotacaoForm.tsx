@@ -78,6 +78,13 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     mensalidade: number;
     participacao: number;
   } | null>(null);
+  
+  // Estado para prévia da mensalidade (cálculo automático)
+  const [previewMensalidade, setPreviewMensalidade] = useState<{
+    cota: any;
+    mensalidade: number;
+    participacao: number;
+  } | null>(null);
 
   // Cotas ativas
   const cotasAtivas = useMemo(() => cotas.filter(c => c.ativo), [cotas]);
@@ -98,6 +105,69 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       setFipeBloqueado(false);
     }
   }, [formData.tipo_bem, tipoTemFipe]);
+
+  // Função auxiliar para calcular mensalidade
+  const calcularMensalidadeAutomatica = useCallback(() => {
+    if (!formData.tipo_bem || !formData.valor_bem) {
+      setPreviewMensalidade(null);
+      return;
+    }
+
+    const valorBem = parseValorBem(formData.valor_bem);
+    if (valorBem < 1000) {
+      setPreviewMensalidade(null);
+      return;
+    }
+
+    // Encontrar cota baseada no valor
+    const cotaEncontrada = cotasAtivas.find(
+      (cota) => valorBem >= cota.fipe_min && valorBem <= cota.fipe_max
+    );
+
+    if (!cotaEncontrada) {
+      setPreviewMensalidade(null);
+      return;
+    }
+
+    // Buscar mensalidade pelo tipo
+    const getMensalidade = (tipo: TipoBem): number => {
+      switch (tipo) {
+        case 'carro': return Number(cotaEncontrada.mensalidade_carro) || 0;
+        case 'moto': return Number(cotaEncontrada.mensalidade_moto) || 0;
+        case 'pickup': return Number(cotaEncontrada.mensalidade_pickup) || 0;
+        case 'caminhao': return Number((cotaEncontrada as any).mensalidade_caminhao) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        case 'utilitario': return Number((cotaEncontrada as any).mensalidade_utilitario) || Number(cotaEncontrada.mensalidade_pickup) * 1.1;
+        case 'maquina_agricola': return Number((cotaEncontrada as any).mensalidade_maquina_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'maquina_industrial': return Number((cotaEncontrada as any).mensalidade_maquina_industrial) || Number(cotaEncontrada.mensalidade_pickup) * 1.5;
+        case 'carreta': return Number((cotaEncontrada as any).mensalidade_carreta) || Number(cotaEncontrada.mensalidade_pickup) * 1.2;
+        case 'implemento_agricola': return Number((cotaEncontrada as any).mensalidade_implemento_agricola) || Number(cotaEncontrada.mensalidade_pickup) * 1.3;
+        default: return Number(cotaEncontrada.mensalidade_pickup) || 0;
+      }
+    };
+
+    let mensalidade = getMensalidade(formData.tipo_bem as TipoBem);
+
+    // Adicionar carro reserva extra
+    if (formData.carro_reserva_extra === '30dias') {
+      mensalidade += 39.90;
+    } else if (formData.carro_reserva_extra === '90dias') {
+      mensalidade += 59.90;
+    }
+
+    // Participação (7% do valor)
+    const participacao = valorBem * 0.07;
+
+    setPreviewMensalidade({
+      cota: cotaEncontrada,
+      mensalidade,
+      participacao,
+    });
+  }, [formData.tipo_bem, formData.valor_bem, formData.carro_reserva_extra, cotasAtivas]);
+
+  // Atualizar prévia da mensalidade automaticamente
+  useEffect(() => {
+    calcularMensalidadeAutomatica();
+  }, [calcularMensalidadeAutomatica]);
 
   // Handler quando veículo é encontrado via placa
   const handleVehicleFound = useCallback((data: VehicleData) => {
@@ -264,6 +334,12 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
   const handleSalvar = async () => {
     if (!resultado) {
       toast.error('Calcule a cotação primeiro');
+      return;
+    }
+    
+    // Validar que tem mensalidade calculada
+    if (!resultado.mensalidade || resultado.mensalidade <= 0) {
+      toast.error('Não é possível salvar cotação sem mensalidade calculada');
       return;
     }
 
@@ -708,6 +784,58 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                 </div>
               </CardContent>
             </Card>
+          ) : previewMensalidade ? (
+            <Card className="border-dashed border-2 border-primary/50">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calculator className="w-5 h-5 text-primary" />
+                  Prévia da Mensalidade
+                </CardTitle>
+                <CardDescription>
+                  Valor calculado automaticamente • Confirme para salvar
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Mensalidade Estimada</p>
+                  <p className="text-3xl font-bold text-primary">
+                    {formatCurrency(previewMensalidade.mensalidade)}
+                  </p>
+                  <Badge variant="outline" className="mt-2">{previewMensalidade.cota.nome}</Badge>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-4 text-center text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Valor FIPE</p>
+                    <p className="font-medium">{formatCurrency(parseValorBem(formData.valor_bem))}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Participação (7%)</p>
+                    <p className="font-medium">{formatCurrency(previewMensalidade.participacao)}</p>
+                  </div>
+                </div>
+
+                {formData.carro_reserva_extra !== 'nenhum' && (
+                  <div className="text-center text-xs text-muted-foreground">
+                    Inclui carro reserva adicional: {formData.carro_reserva_extra === '30dias' ? '+30 dias' : '+90 dias'}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <Button 
+                    onClick={handleCalcular} 
+                    className="w-full" 
+                    size="lg"
+                    disabled={isCalculating || cotasLoading || !canCalculate}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    {isCalculating ? 'Calculando...' : 'Confirmar e Salvar'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
@@ -716,7 +844,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                 <p className="text-sm mt-1">
                   {!formData.tipo_bem 
                     ? 'Selecione o tipo do bem para começar'
-                    : 'Preencha os dados e calcule para ver o resultado'}
+                    : 'Preencha os dados do veículo e valor FIPE'}
                 </p>
               </CardContent>
             </Card>

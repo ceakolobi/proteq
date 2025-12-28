@@ -265,7 +265,11 @@ export default function CotacaoList({
                         {formatCurrency(cotacao.valor_bem)}
                       </TableCell>
                       <TableCell>
-                        {formatCurrency(cotacao.mensalidade)}
+                        <span className={!cotacao.mensalidade || cotacao.mensalidade <= 0 ? 'text-destructive' : 'font-medium text-primary'}>
+                          {cotacao.mensalidade && cotacao.mensalidade > 0 
+                            ? formatCurrency(cotacao.mensalidade)
+                            : 'Não calculada'}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Badge className={`${cotacaoStatusColors[cotacao.status]} gap-1`}>
