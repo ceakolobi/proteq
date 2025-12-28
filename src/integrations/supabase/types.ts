@@ -1048,13 +1048,6 @@ export type Database = {
     Functions: {
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
       is_protected_admin: { Args: { _user_id: string }; Returns: boolean }
