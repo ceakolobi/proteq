@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -61,9 +61,11 @@ import {
   XCircle,
   FileText,
   AlertTriangle,
-  Tractor
+  Tractor,
+  Loader2
 } from 'lucide-react';
 import { FipeRangeDetector } from '@/components/FipeRangeDetector';
+import PlacaLookup, { VehicleData, PlacaStatus } from '@/components/cotacao/PlacaLookup';
 import type { VehicleType, VehicleStatus, Cota, Regiao, Profile, Associado, Sede } from '@/types/database';
 import { vehicleTypeLabels, vehicleStatusLabels, getVehicleStatusColor } from '@/types/database';
 
@@ -148,7 +150,11 @@ export default function Veiculos() {
     veiculo_status: 'cadastrado' as VehicleStatus,
     associado_id: '',
     codigo_fipe: '',
+    mes_referencia_fipe: '',
   });
+  
+  const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
+  const [fipeLoaded, setFipeLoaded] = useState(false);
 
   const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !isAdminRegional;
@@ -288,7 +294,9 @@ export default function Veiculos() {
       veiculo_status: veiculo.veiculo_status,
       associado_id: veiculo.associado_id,
       codigo_fipe: veiculo.codigo_fipe || '',
+      mes_referencia_fipe: (veiculo as any).mes_referencia_fipe || '',
     });
+    setFipeLoaded(veiculo.valor_fipe > 0);
     setIsDialogOpen(true);
   };
 
@@ -306,9 +314,36 @@ export default function Veiculos() {
       veiculo_status: 'cadastrado',
       associado_id: '',
       codigo_fipe: '',
+      mes_referencia_fipe: '',
     });
+    setPlacaStatus('idle');
+    setFipeLoaded(false);
     setIsCreateDialogOpen(true);
   };
+
+  // Handler para quando dados do veículo são encontrados pela placa
+  const handleVehicleFound = useCallback((data: VehicleData) => {
+    setFormData(prev => ({
+      ...prev,
+      marca: data.marca || prev.marca,
+      modelo: data.modelo || prev.modelo,
+      ano: parseInt(data.ano_modelo) || parseInt(data.ano_fabricacao) || prev.ano,
+      chassi: data.chassi || prev.chassi,
+      cor: data.cor || prev.cor,
+      valor_fipe: data.valor_fipe || prev.valor_fipe,
+      codigo_fipe: data.codigo_fipe || prev.codigo_fipe,
+      mes_referencia_fipe: data.valor_fipe ? new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : prev.mes_referencia_fipe,
+    }));
+    setFipeLoaded(!!data.valor_fipe);
+  }, []);
+
+  const handlePlacaChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, placa: value }));
+  }, []);
+
+  const handlePlacaStatusChange = useCallback((status: PlacaStatus) => {
+    setPlacaStatus(status);
+  }, []);
 
   const handleSaveVeiculo = async () => {
     if (!selectedVeiculo) return;
@@ -335,6 +370,12 @@ export default function Veiculos() {
       mensalidade = (cotaApropriada[mensalidadeKey] as number) || 0;
     }
 
+    // Block status change to 'ativo' without FIPE
+    if (formData.veiculo_status === 'ativo' && formData.valor_fipe <= 0) {
+      toast.error('Não é possível ativar o veículo sem valor FIPE preenchido');
+      return;
+    }
+
     try {
       const updateData: any = {
         marca: formData.marca.trim(),
@@ -350,6 +391,7 @@ export default function Veiculos() {
         cota_id: cotaApropriada?.id || null,
         mensalidade,
         codigo_fipe: formData.codigo_fipe || null,
+        mes_referencia_fipe: formData.mes_referencia_fipe || null,
       };
 
       // Set protecao_ativa based on status
@@ -439,6 +481,7 @@ export default function Veiculos() {
         consultor_id: user?.id,
         sede_id: sedeId,
         codigo_fipe: formData.codigo_fipe || null,
+        mes_referencia_fipe: formData.mes_referencia_fipe || null,
         protecao_ativa: false,
       };
 
@@ -927,13 +970,42 @@ export default function Veiculos() {
                 <Input value={formData.cor} onChange={(e) => setFormData({ ...formData, cor: e.target.value })} />
               </div>
 
-              <div className="space-y-2">
-                <Label>Valor FIPE *</Label>
-                <Input
-                  type="number"
-                  value={formData.valor_fipe || ''}
-                  onChange={(e) => setFormData({ ...formData, valor_fipe: parseFloat(e.target.value) || 0 })}
-                />
+              {/* FIPE Section */}
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <Label className="text-base font-semibold">Dados FIPE</Label>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Valor FIPE *</Label>
+                    <Input
+                      type="number"
+                      value={formData.valor_fipe || ''}
+                      onChange={(e) => setFormData({ ...formData, valor_fipe: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mês/Ano Referência</Label>
+                    <Input
+                      value={formData.mes_referencia_fipe}
+                      onChange={(e) => setFormData({ ...formData, mes_referencia_fipe: e.target.value })}
+                      placeholder="Ex: dezembro de 2024"
+                    />
+                  </div>
+                </div>
+
+                {formData.codigo_fipe && (
+                  <div className="text-sm text-muted-foreground">
+                    Código FIPE: <span className="font-mono">{formData.codigo_fipe}</span>
+                  </div>
+                )}
+
+                {/* Warning for ativo status without FIPE */}
+                {formData.veiculo_status === 'ativo' && formData.valor_fipe <= 0 && (
+                  <div className="flex items-center gap-2 p-2 border rounded bg-destructive/10 border-destructive/30">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm text-destructive">Não é possível ativar veículo sem valor FIPE</span>
+                  </div>
+                )}
               </div>
 
               <FipeRangeDetector valorFipe={formData.valor_fipe} tipoVeiculo={formData.tipo} cotas={cotas.filter(c => c.ativo)} />
@@ -951,7 +1023,7 @@ export default function Veiculos() {
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Novo Veículo</DialogTitle>
-              <DialogDescription>Cadastre um novo veículo no sistema.</DialogDescription>
+              <DialogDescription>Cadastre um novo veículo. Digite a placa para buscar automaticamente os dados FIPE.</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -983,32 +1055,63 @@ export default function Veiculos() {
                 </Select>
               </div>
 
+              {/* PlacaLookup with auto-fill */}
+              <PlacaLookup
+                value={formData.placa}
+                onChange={handlePlacaChange}
+                onVehicleFound={handleVehicleFound}
+                onStatusChange={handlePlacaStatusChange}
+                tipoTemFipe={['carro', 'moto', 'pickup', 'caminhao', 'utilitario'].includes(formData.tipo)}
+              />
+
+              {/* Show auto-filled or manual fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Marca *</Label>
-                  <Input value={formData.marca} onChange={(e) => setFormData({ ...formData, marca: e.target.value })} />
+                  <Input 
+                    value={formData.marca} 
+                    onChange={(e) => setFormData({ ...formData, marca: e.target.value })} 
+                    className={fipeLoaded ? 'bg-muted' : ''}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Modelo *</Label>
-                  <Input value={formData.modelo} onChange={(e) => setFormData({ ...formData, modelo: e.target.value })} />
+                  <Input 
+                    value={formData.modelo} 
+                    onChange={(e) => setFormData({ ...formData, modelo: e.target.value })} 
+                    className={fipeLoaded ? 'bg-muted' : ''}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Ano *</Label>
-                  <Input type="number" value={formData.ano} onChange={(e) => setFormData({ ...formData, ano: parseInt(e.target.value) || 0 })} />
+                  <Input 
+                    type="number" 
+                    value={formData.ano} 
+                    onChange={(e) => setFormData({ ...formData, ano: parseInt(e.target.value) || 0 })} 
+                    className={fipeLoaded ? 'bg-muted' : ''}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Placa *</Label>
-                  <Input value={formData.placa} onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })} maxLength={7} />
+                  <Label>Cor</Label>
+                  <Input 
+                    value={formData.cor} 
+                    onChange={(e) => setFormData({ ...formData, cor: e.target.value })} 
+                    className={fipeLoaded && formData.cor ? 'bg-muted' : ''}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Chassi</Label>
-                  <Input value={formData.chassi} onChange={(e) => setFormData({ ...formData, chassi: e.target.value.toUpperCase() })} />
+                  <Input 
+                    value={formData.chassi} 
+                    onChange={(e) => setFormData({ ...formData, chassi: e.target.value.toUpperCase() })} 
+                    className={fipeLoaded && formData.chassi ? 'bg-muted' : ''}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Renavam</Label>
@@ -1016,26 +1119,67 @@ export default function Veiculos() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Cor</Label>
-                <Input value={formData.cor} onChange={(e) => setFormData({ ...formData, cor: e.target.value })} />
-              </div>
+              {/* FIPE Section */}
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Dados FIPE</Label>
+                  {fipeLoaded ? (
+                    <Badge className="bg-green-500">Preenchido automaticamente</Badge>
+                  ) : placaStatus === 'found_no_fipe' || placaStatus === 'not_found' ? (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800">Preenchimento manual</Badge>
+                  ) : null}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Valor FIPE *</Label>
+                    <Input
+                      type="number"
+                      value={formData.valor_fipe || ''}
+                      onChange={(e) => setFormData({ ...formData, valor_fipe: parseFloat(e.target.value) || 0 })}
+                      className={fipeLoaded ? 'bg-background border-green-500' : ''}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mês/Ano Referência</Label>
+                    <Input
+                      value={formData.mes_referencia_fipe}
+                      onChange={(e) => setFormData({ ...formData, mes_referencia_fipe: e.target.value })}
+                      placeholder="Ex: dezembro de 2024"
+                      className={fipeLoaded ? 'bg-background border-green-500' : ''}
+                    />
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Valor FIPE *</Label>
-                <Input
-                  type="number"
-                  value={formData.valor_fipe || ''}
-                  onChange={(e) => setFormData({ ...formData, valor_fipe: parseFloat(e.target.value) || 0 })}
-                />
+                {formData.codigo_fipe && (
+                  <div className="text-sm text-muted-foreground">
+                    Código FIPE: <span className="font-mono">{formData.codigo_fipe}</span>
+                  </div>
+                )}
               </div>
 
               <FipeRangeDetector valorFipe={formData.valor_fipe} tipoVeiculo={formData.tipo} cotas={cotas.filter(c => c.ativo)} />
+
+              {/* Warning if no FIPE */}
+              {!fipeLoaded && formData.valor_fipe <= 0 && (placaStatus === 'found_no_fipe' || placaStatus === 'not_found' || placaStatus === 'idle') && (
+                <div className="flex items-center gap-2 p-3 border rounded-lg bg-amber-50 dark:bg-amber-950 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm text-amber-700 dark:text-amber-300">
+                    Preencha o valor FIPE manualmente para continuar
+                  </span>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreateVeiculo}>Cadastrar</Button>
+              <Button 
+                onClick={handleCreateVeiculo}
+                disabled={placaStatus === 'loading'}
+              >
+                {placaStatus === 'loading' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Cadastrar
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
