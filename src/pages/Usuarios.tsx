@@ -126,6 +126,16 @@ export default function Usuarios() {
     
     if (!editingUser) return;
 
+    // Proteção extra: não permitir edição de admin protegido (email admin@system.com)
+    if (editingUser.email === 'admin@system.com') {
+      toast({
+        variant: 'destructive',
+        title: 'Operação não permitida',
+        description: 'Este usuário administrador não pode ser alterado.',
+      });
+      return;
+    }
+
     try {
       // Update profile
       const { error: profileError } = await supabase
@@ -167,6 +177,17 @@ export default function Usuarios() {
       fetchData();
     } catch (error: any) {
       console.error('Error updating user:', error);
+      
+      // Capturar erro do trigger de proteção
+      if (error.message?.includes('admin principal') || error.message?.includes('protected admin')) {
+        toast({
+          variant: 'destructive',
+          title: 'Operação bloqueada',
+          description: 'Este usuário administrador está protegido e não pode ser alterado.',
+        });
+        return;
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',

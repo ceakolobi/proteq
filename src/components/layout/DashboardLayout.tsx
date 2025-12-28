@@ -116,7 +116,7 @@ const navSections: NavSection[] = [
         title: 'Relatórios',
         href: '/relatorios',
         icon: <BarChart3 className="h-5 w-5" />,
-        roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'financeiro'],
       },
     ],
   },

@@ -9,6 +9,9 @@ export type PageAccess =
   | 'admin_principal_only'
   | 'admin_regional_or_above'
   | 'consultor_or_above'
+  | 'cadastro_or_above'
+  | 'financeiro_only'
+  | 'vistoriador_or_above'
   | 'authenticated';
 
 interface AccessControlResult {
@@ -78,6 +81,27 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
                    roles.includes('consultor_vendas');
+          break;
+
+        case 'cadastro_or_above':
+          // Admin Principal OR Admin Regional OR Cadastro (backoffice)
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_regional') || 
+                   roles.includes('cadastro');
+          break;
+
+        case 'financeiro_only':
+          // Admin Principal OR Admin Regional OR Financeiro
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_regional') || 
+                   roles.includes('financeiro');
+          break;
+
+        case 'vistoriador_or_above':
+          // Admin Principal OR Admin Regional OR Vistoriador
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_regional') || 
+                   roles.includes('vistoriador');
           break;
 
         case 'authenticated':
