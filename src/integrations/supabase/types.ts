@@ -782,9 +782,9 @@ export type Database = {
           percentual_extra: number | null
           percentual_geral: number | null
           updated_at: string
-          valor_camionete: number
-          valor_carro: number
-          valor_moto: number
+          valor_camionete: number | null
+          valor_carro: number | null
+          valor_moto: number | null
         }
         Insert: {
           aplica_caminhonete?: boolean
@@ -808,9 +808,9 @@ export type Database = {
           percentual_extra?: number | null
           percentual_geral?: number | null
           updated_at?: string
-          valor_camionete: number
-          valor_carro: number
-          valor_moto: number
+          valor_camionete?: number | null
+          valor_carro?: number | null
+          valor_moto?: number | null
         }
         Update: {
           aplica_caminhonete?: boolean
@@ -834,9 +834,9 @@ export type Database = {
           percentual_extra?: number | null
           percentual_geral?: number | null
           updated_at?: string
-          valor_camionete?: number
-          valor_carro?: number
-          valor_moto?: number
+          valor_camionete?: number | null
+          valor_carro?: number | null
+          valor_moto?: number | null
         }
         Relationships: [
           {

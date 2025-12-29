@@ -149,6 +149,8 @@ export default function Cotas() {
       });
     } else {
       setEditingCota(null);
+      // Ao criar nova cota, inicializar apenas a categoria do filtro selecionado (ou CARRO se 'TODAS')
+      const defaultCategoria = categoriaFilter !== 'TODAS' ? categoriaFilter : 'CARRO';
       setFormData({
         cota_nome: '',
         fipe_min: '',
@@ -159,10 +161,10 @@ export default function Cotas() {
         percentual_geral: '0',
         percentual_extra: '0',
         ativo: true,
-        categoria: categoriaFilter !== 'TODAS' ? categoriaFilter : 'CARRO',
-        aplica_carro: true,
-        aplica_moto: true,
-        aplica_caminhonete: true,
+        categoria: defaultCategoria,
+        aplica_carro: defaultCategoria === 'CARRO',
+        aplica_moto: defaultCategoria === 'MOTO',
+        aplica_caminhonete: defaultCategoria === 'CAMINHONETE',
       });
     }
     setIsDialogOpen(true);
@@ -217,9 +219,9 @@ export default function Cotas() {
         cota_nome: formData.cota_nome,
         fipe_min: parseFloat(formData.fipe_min),
         fipe_max: parseFloat(formData.fipe_max),
-        valor_carro: formData.aplica_carro ? parseFloat(formData.valor_carro) || 0 : 0,
-        valor_moto: formData.aplica_moto ? parseFloat(formData.valor_moto) || 0 : 0,
-        valor_camionete: formData.aplica_caminhonete ? parseFloat(formData.valor_camionete) || 0 : 0,
+        valor_carro: formData.aplica_carro ? parseFloat(formData.valor_carro) || 0 : null,
+        valor_moto: formData.aplica_moto ? parseFloat(formData.valor_moto) || 0 : null,
+        valor_camionete: formData.aplica_caminhonete ? parseFloat(formData.valor_camionete) || 0 : null,
         percentual_geral: parseFloat(formData.percentual_geral) || 0,
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
         ativo: formData.ativo,

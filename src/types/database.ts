@@ -71,9 +71,9 @@ export interface Cota {
   cota_nome: string;
   fipe_min: number;
   fipe_max: number;
-  valor_carro: number;
-  valor_moto: number;
-  valor_camionete: number;
+  valor_carro: number | null;
+  valor_moto: number | null;
+  valor_camionete: number | null;
   percentual_geral: number;
   percentual_extra: number;
   ativo: boolean;
