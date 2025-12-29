@@ -25,6 +25,7 @@ import Ativacoes from "./pages/Ativacoes";
 import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
+import ValidarProposta from "./pages/ValidarProposta";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => (
             {/* Rotas públicas - apenas landing e autenticação */}
             <Route path="/" element={<HomeRoute />} />
             <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+            <Route path="/validar-proposta" element={<ValidarProposta />} />
             
             {/* Rotas protegidas - requerem autenticação */}
             {/* Dashboard geral - todos os usuários autenticados */}

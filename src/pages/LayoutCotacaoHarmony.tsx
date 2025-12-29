@@ -27,6 +27,7 @@ import {
   User,
   Calendar,
   Share2,
+  QrCode,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ import html2pdf from "html2pdf.js";
 import { toast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/cotacao/SignaturePad";
 import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
+import { QRCodeSVG } from "qrcode.react";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -671,7 +673,30 @@ export default function LayoutCotacaoHarmony() {
             </div>
           </section>
 
-          {/* 7️⃣ Rodapé */}
+          {/* 7️⃣ QR Code de Validação */}
+          {cotacaoId && (
+            <section className="px-6 md:px-8 pb-6">
+              <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-gradient-to-br from-harmony-orange/5 to-harmony-green/5 border">
+                <div className="flex items-center gap-2 mb-3">
+                  <QrCode className="w-5 h-5 text-harmony-orange" />
+                  <span className="text-sm font-semibold">Validar Proposta</span>
+                </div>
+                <div className="bg-card p-3 rounded-lg shadow-sm">
+                  <QRCodeSVG
+                    value={`${window.location.origin}/validar-proposta?id=${cotacaoId}`}
+                    size={100}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center max-w-[200px]">
+                  Escaneie o QR Code para validar a autenticidade desta proposta
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* 8️⃣ Rodapé */}
           <footer className="bg-gradient-to-r from-harmony-green to-harmony-orange p-6 text-card">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
