@@ -152,6 +152,29 @@ export default function LayoutCotacaoHarmony() {
   const temContracapa = !!settings.pdf_contracapa;
   const contracapaImage = settings.pdf_contracapa || "/pdf-back-cover.png";
   
+  // Capa do PDF - selecionar baseado no cover_mode
+  const getSelectedCover = (): string | null => {
+    const covers = [settings.cover_1, settings.cover_2, settings.cover_3, settings.cover_4].filter(Boolean) as string[];
+    if (covers.length === 0) return null;
+    
+    const mode = settings.cover_mode || "single";
+    
+    if (mode === "single") {
+      return settings.cover_1 || null;
+    } else if (mode === "random") {
+      return covers[Math.floor(Math.random() * covers.length)];
+    } else if (mode === "sequential") {
+      // Usa o ID da cotação para determinar qual cover usar de forma sequencial
+      if (!cotacaoId) return covers[0];
+      const hash = cotacaoId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return covers[hash % covers.length];
+    }
+    return covers[0];
+  };
+  
+  const selectedCover = getSelectedCover();
+  const temCapa = !!selectedCover;
+  
   // Inicializar condições com texto do settings
   useEffect(() => {
     if (!condicoesInitialized && !settingsLoading && settings.texto_institucional) {
@@ -418,6 +441,35 @@ export default function LayoutCotacaoHarmony() {
       {/* Página de Cotação */}
       <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
         <div ref={pdfContentRef} className="bg-card rounded-xl shadow-lg print:shadow-none print:rounded-none overflow-hidden">
+          
+          {/* 0️⃣ CAPA (primeira página do PDF) */}
+          {temCapa && (
+            <div 
+              className="pdf-cover"
+              style={{
+                width: "210mm",
+                height: "297mm",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#ffffff",
+                overflow: "hidden",
+                pageBreakAfter: "always",
+              }}
+            >
+              <img
+                src={selectedCover}
+                alt="Capa"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  width: "auto",
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+          )}
           
           {/* 1️⃣ Cabeçalho */}
           <header className={cn(
