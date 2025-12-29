@@ -158,8 +158,22 @@ _Harmony Agro - Proteção Veicular_`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
-      // Fallback quando o navegador bloqueia pop-ups
-      window.location.assign(whatsappUrl);
+      // Evita navegar a aba atual (isso parece "recarregar" o app). Em vez disso, copiamos o link.
+      navigator.clipboard
+        ?.writeText(whatsappUrl)
+        .then(() => {
+          toast({
+            title: "Pop-up bloqueado",
+            description: "Link do WhatsApp copiado. Cole no navegador para abrir.",
+          });
+        })
+        .catch(() => {
+          toast({
+            title: "Pop-up bloqueado",
+            description: "Permita pop-ups ou copie o link manualmente.",
+            variant: "destructive",
+          });
+        });
       return;
     }
 
