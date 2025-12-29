@@ -191,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Preparar opções do e-mail
     const emailOptions: any = {
-      from: "Harmony Agro <onboarding@resend.dev>",
+      from: "Harmony Agro <contato@harmonyagro.com.br>",
       to: [to],
       subject: `Proposta de Cotação – ${modelo || 'Harmony Agro'}`,
       html: htmlContent,
