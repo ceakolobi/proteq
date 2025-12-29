@@ -39,6 +39,7 @@ export interface CompanySettings {
 export interface SystemSettings {
   id: string;
   empresa_nome: string;
+  cnpj: string | null;
   empresa_logo: string | null;
   empresa_logo_branca: string | null;
   cor_primaria: string;
@@ -64,6 +65,7 @@ export interface SystemSettings {
 const defaultSettings: SystemSettings = {
   id: "",
   empresa_nome: "Harmony Agro",
+  cnpj: null,
   empresa_logo: null,
   empresa_logo_branca: null,
   cor_primaria: "#F97316",
@@ -91,6 +93,7 @@ function companyToSettings(company: CompanySettings): SystemSettings {
   return {
     id: company.id,
     empresa_nome: company.nome,
+    cnpj: company.cnpj,
     empresa_logo: company.logo,
     empresa_logo_branca: company.logo_branca,
     cor_primaria: company.cor_primaria,
@@ -210,6 +213,7 @@ export function useCompanySettings() {
       const companyUpdates: Record<string, unknown> = {};
       
       if (updates.empresa_nome !== undefined) companyUpdates.nome = updates.empresa_nome;
+      if (updates.cnpj !== undefined) companyUpdates.cnpj = updates.cnpj;
       if (updates.empresa_logo !== undefined) companyUpdates.logo = updates.empresa_logo;
       if (updates.empresa_logo_branca !== undefined) companyUpdates.logo_branca = updates.empresa_logo_branca;
       if (updates.cor_primaria !== undefined) companyUpdates.cor_primaria = updates.cor_primaria;

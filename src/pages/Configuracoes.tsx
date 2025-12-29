@@ -42,6 +42,7 @@ export default function Configuracoes() {
   
   const [formData, setFormData] = useState({
     empresa_nome: "",
+    cnpj: "",
     cor_primaria: "",
     cor_secundaria: "",
     cor_destaque: "",
@@ -68,6 +69,7 @@ export default function Configuracoes() {
   if (!isFormInitialized && !isLoading && settings.id) {
     setFormData({
       empresa_nome: settings.empresa_nome || "",
+      cnpj: settings.cnpj || "",
       cor_primaria: settings.cor_primaria || "#F97316",
       cor_secundaria: settings.cor_secundaria || "#22C55E",
       cor_destaque: settings.cor_destaque || "#F59E0B",
@@ -217,9 +219,9 @@ export default function Configuracoes() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Nome da Empresa */}
+              {/* Razão Social */}
               <div className="space-y-2">
-                <Label htmlFor="empresa_nome">Nome da Empresa</Label>
+                <Label htmlFor="empresa_nome">Razão Social / Nome da Empresa</Label>
                 <div className="flex gap-2">
                   <Building2 className="w-4 h-4 text-muted-foreground mt-3" />
                   <Input
@@ -228,7 +230,23 @@ export default function Configuracoes() {
                     onChange={(e) =>
                       setFormData({ ...formData, empresa_nome: e.target.value })
                     }
-                    placeholder="Nome da empresa"
+                    placeholder="Razão Social da empresa"
+                  />
+                </div>
+              </div>
+
+              {/* CNPJ */}
+              <div className="space-y-2">
+                <Label htmlFor="cnpj">CNPJ</Label>
+                <div className="flex gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground mt-3" />
+                  <Input
+                    id="cnpj"
+                    value={formData.cnpj}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cnpj: e.target.value })
+                    }
+                    placeholder="00.000.000/0000-00"
                   />
                 </div>
               </div>
