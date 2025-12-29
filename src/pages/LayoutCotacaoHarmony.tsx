@@ -40,6 +40,7 @@ import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
 import { QRCodeSVG } from "qrcode.react";
 import harmonyAgroLogoColorida from "@/assets/harmony-agro-logo-colorida.png";
 import harmonyAgroLogoBranca from "@/assets/harmony-agro-logo-branca.png";
+import { PDF_BACK_COVER_IMAGE, PDF_BACK_COVER_ENABLED } from "@/config/pdfBackCover";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -244,6 +245,12 @@ export default function LayoutCotacaoHarmony() {
       const element = pdfContentRef.current;
       const filename = `Proposta_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
 
+      // Mostrar contra-capa temporariamente para inclusão no PDF
+      const backCoverElement = element.querySelector('.pdf-back-cover') as HTMLElement;
+      if (backCoverElement && PDF_BACK_COVER_ENABLED) {
+        backCoverElement.style.display = 'flex';
+      }
+
       // Configurações otimizadas para alta qualidade + tamanho leve
       const opt = {
         margin: 0,
@@ -272,6 +279,11 @@ export default function LayoutCotacaoHarmony() {
       // Gerar PDF como Blob
       const pdfInstance = html2pdf().set(opt).from(element);
       const blob = await pdfInstance.outputPdf("blob");
+
+      // Esconder contra-capa novamente após geração
+      if (backCoverElement && PDF_BACK_COVER_ENABLED) {
+        backCoverElement.style.display = 'none';
+      }
       
       setPdfBlob(blob);
       setPdfFilename(filename);
@@ -735,6 +747,35 @@ export default function LayoutCotacaoHarmony() {
               </div>
             </div>
           </footer>
+
+          {/* 9️⃣ Contra-Capa (só aparece no PDF) */}
+          {PDF_BACK_COVER_ENABLED && (
+            <div 
+              className="pdf-back-cover hidden"
+              style={{
+                pageBreakBefore: "always",
+                width: "210mm",
+                height: "297mm",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#ffffff",
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src={PDF_BACK_COVER_IMAGE}
+                alt="Contra-capa"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  width: "auto",
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
