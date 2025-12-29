@@ -6,6 +6,18 @@ export interface ExportColumn {
   format?: (value: any) => string;
 }
 
+/**
+ * Escapa caracteres HTML para prevenir XSS
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -69,16 +81,18 @@ export function exportToPDF<T extends Record<string, any>>(
     `<tr>${columns.map(col => {
       const value = item[col.accessor];
       const formatted = col.format ? col.format(value) : String(value ?? '-');
-      return `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${formatted}</td>`;
+      return `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${escapeHtml(formatted)}</td>`;
     }).join('')}</tr>`
   ).join('');
 
+  const safeTitle = escapeHtml(title);
+  
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>${title}</title>
+      <title>${safeTitle}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         h1 { color: #333; margin-bottom: 10px; }
@@ -94,11 +108,11 @@ export function exportToPDF<T extends Record<string, any>>(
       </style>
     </head>
     <body>
-      <h1>${title}</h1>
+      <h1>${safeTitle}</h1>
       <p class="meta">Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
       <table>
         <thead>
-          <tr>${columns.map(c => `<th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5;">${c.header}</th>`).join('')}</tr>
+          <tr>${columns.map(c => `<th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5;">${escapeHtml(c.header)}</th>`).join('')}</tr>
         </thead>
         <tbody>
           ${tableRows}
