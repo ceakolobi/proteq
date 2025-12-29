@@ -184,6 +184,23 @@ _Harmony Agro - Proteção Veicular_`;
     });
   };
 
+  // Extrair erro retornado pela Function (quando status != 2xx)
+  const extractFunctionErrorBody = (err: any): any | null => {
+    const body = err?.context?.body;
+    if (!body) return null;
+
+    if (typeof body === "string") {
+      try {
+        return JSON.parse(body);
+      } catch {
+        return { error: body };
+      }
+    }
+
+    if (typeof body === "object") return body;
+    return null;
+  };
+
   // Enviar por e-mail via edge function
   const handleSendEmail = async () => {
     if (!emailDestinatario) {
@@ -224,27 +241,47 @@ _Harmony Agro - Proteção Veicular_`;
         },
       });
 
-      // Verificar erros da Edge Function
+      // Quando a Function retorna status != 2xx, o SDK preenche `error`.
       if (error) {
-        throw error;
+        const body = extractFunctionErrorBody(error);
+        const errorMessage = body?.error || body?.message || error.message || "Erro desconhecido";
+        const errorType = body?.errorType || "desconhecido";
+
+        let description = errorMessage;
+        if (errorType === "api_key") {
+          description = "Erro de configuração do serviço de e-mail. Entre em contato com o suporte.";
+        } else if (errorType === "remetente") {
+          description = errorMessage;
+        } else if (errorType === "destinatario") {
+          description = "E-mail do destinatário inválido ou não permitido.";
+        } else if (errorType === "pdf") {
+          description = "Erro ao processar o PDF. Tente gerar novamente.";
+        }
+
+        toast({
+          title: "Erro ao enviar e-mail",
+          description,
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Verificar resposta da Edge Function
+      // Verificar resposta da Edge Function (fallback)
       if (data && !data.success) {
         const errorMessage = data.error || "Erro desconhecido";
         const errorType = data.errorType || "desconhecido";
-        
+
         let description = errorMessage;
-        if (errorType === 'api_key') {
+        if (errorType === "api_key") {
           description = "Erro de configuração do serviço de e-mail. Entre em contato com o suporte.";
-        } else if (errorType === 'remetente') {
-          description = "É necessário configurar um domínio verificado para enviar e-mails.";
-        } else if (errorType === 'destinatario') {
+        } else if (errorType === "remetente") {
+          description = errorMessage;
+        } else if (errorType === "destinatario") {
           description = "E-mail do destinatário inválido ou não permitido.";
-        } else if (errorType === 'pdf') {
+        } else if (errorType === "pdf") {
           description = "Erro ao processar o PDF. Tente gerar novamente.";
         }
-        
+
         toast({
           title: "Erro ao enviar e-mail",
           description,
@@ -255,14 +292,16 @@ _Harmony Agro - Proteção Veicular_`;
 
       // Registrar envio no histórico da cotação
       if (cotacaoId) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         await supabase
-          .from('cotacoes')
+          .from("cotacoes")
           .update({
             proposta_enviada_em: new Date().toISOString(),
             proposta_enviada_por: user?.id,
           })
-          .eq('id', cotacaoId);
+          .eq("id", cotacaoId);
       }
 
       toast({
@@ -271,9 +310,13 @@ _Harmony Agro - Proteção Veicular_`;
       });
     } catch (error: any) {
       console.error("Erro ao enviar e-mail:", error);
+
+      const body = extractFunctionErrorBody(error);
+      const msg = body?.error || body?.message || error.message || "Tente novamente ou use outro método.";
+
       toast({
         title: "Erro ao enviar e-mail",
-        description: error.message || "Tente novamente ou use outro método.",
+        description: msg,
         variant: "destructive",
       });
     } finally {
