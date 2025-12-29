@@ -1,11 +1,16 @@
-import { Link, NavLinkProps, useMatch, useResolvedPath } from "react-router-dom";
-import { forwardRef } from "react";
+import { Link, To, useMatch, useResolvedPath } from "react-router-dom";
+import { forwardRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-interface NavLinkCompatProps extends Omit<NavLinkProps, "className"> {
+interface NavLinkCompatProps {
+  to: To;
   className?: string;
   activeClassName?: string;
   pendingClassName?: string;
+  end?: boolean;
+  caseSensitive?: boolean;
+  children?: ReactNode;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
 }
 
 const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
@@ -17,6 +22,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
       to,
       end,
       caseSensitive,
+      children,
       ...props
     },
     ref,
@@ -29,7 +35,6 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
     });
 
     const isActive = Boolean(match);
-    // `isPending` só existe no NavLink de Data Router; aqui mantemos compatibilidade de API.
     const isPending = false;
 
     return (
@@ -38,7 +43,9 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
         to={to}
         className={cn(className, isActive && activeClassName, isPending && pendingClassName)}
         {...props}
-      />
+      >
+        {children}
+      </Link>
     );
   },
 );
