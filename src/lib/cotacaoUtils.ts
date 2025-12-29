@@ -63,9 +63,10 @@ export function getValorBasePorTipo(
 }
 
 /**
- * Calcula a mensalidade aplicando os percentuais de forma aditiva
+ * Calcula a mensalidade aplicando os percentuais
  * Fórmula:
- *   valor_final = valor_base + (valor_base * percentual_geral / 100) + (valor_base * percentual_extra / 100)
+ *   total_percentual = percentual_geral + percentual_extra
+ *   valor_final = valor_base + (valor_base * total_percentual / 100)
  */
 export function calcularMensalidade(
   cota: CotaExtendida,
@@ -76,8 +77,9 @@ export function calcularMensalidade(
   const percentualGeral = Number(cota.percentual_geral) || 0;
   const percentualExtra = Number(cota.percentual_extra) || 0;
 
-  // Aplicar ambos percentuais sobre o valor base (aditivo)
-  let mensalidade = valorBase + (valorBase * percentualGeral / 100) + (valorBase * percentualExtra / 100);
+  // Somar percentuais e aplicar sobre o valor base
+  const totalPercentual = percentualGeral + percentualExtra;
+  let mensalidade = valorBase + (valorBase * totalPercentual / 100);
 
   // Adicionar carro reserva extra
   if (carroReservaExtra === '30dias') {
