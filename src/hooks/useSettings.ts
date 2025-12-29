@@ -17,6 +17,11 @@ export interface SystemSettings {
   site: string | null;
   modo_white_label: boolean;
   esconder_marca_harmony: boolean;
+  cover_1: string | null;
+  cover_2: string | null;
+  cover_3: string | null;
+  cover_4: string | null;
+  cover_mode: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +41,11 @@ const defaultSettings: SystemSettings = {
   site: "www.harmonyagro.com.br",
   modo_white_label: false,
   esconder_marca_harmony: false,
+  cover_1: null,
+  cover_2: null,
+  cover_3: null,
+  cover_4: null,
+  cover_mode: "single",
   created_at: "",
   updated_at: "",
 };
@@ -100,7 +110,7 @@ export function useSettings() {
 
   const uploadImage = async (
     file: File,
-    type: "logo" | "logo_branca" | "contracapa"
+    type: "logo" | "logo_branca" | "contracapa" | "cover_1" | "cover_2" | "cover_3" | "cover_4"
   ): Promise<string | null> => {
     try {
       const fileExt = file.name.split(".").pop();

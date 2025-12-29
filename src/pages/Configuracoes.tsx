@@ -35,6 +35,10 @@ export default function Configuracoes() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const logoBrancaInputRef = useRef<HTMLInputElement>(null);
   const contracapaInputRef = useRef<HTMLInputElement>(null);
+  const cover1InputRef = useRef<HTMLInputElement>(null);
+  const cover2InputRef = useRef<HTMLInputElement>(null);
+  const cover3InputRef = useRef<HTMLInputElement>(null);
+  const cover4InputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     empresa_nome: "",
@@ -47,12 +51,17 @@ export default function Configuracoes() {
     site: "",
     modo_white_label: false,
     esconder_marca_harmony: false,
+    cover_mode: "single",
   });
   
   const [isFormInitialized, setIsFormInitialized] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingLogoBranca, setUploadingLogoBranca] = useState(false);
   const [uploadingContracapa, setUploadingContracapa] = useState(false);
+  const [uploadingCover1, setUploadingCover1] = useState(false);
+  const [uploadingCover2, setUploadingCover2] = useState(false);
+  const [uploadingCover3, setUploadingCover3] = useState(false);
+  const [uploadingCover4, setUploadingCover4] = useState(false);
 
   // Inicializar form com dados do settings
   if (!isFormInitialized && !isLoading && settings.id) {
@@ -67,6 +76,7 @@ export default function Configuracoes() {
       site: settings.site || "",
       modo_white_label: settings.modo_white_label || false,
       esconder_marca_harmony: settings.esconder_marca_harmony || false,
+      cover_mode: settings.cover_mode || "single",
     });
     setIsFormInitialized(true);
   }
@@ -109,6 +119,30 @@ export default function Configuracoes() {
       await updateSettings({ pdf_contracapa: url });
     }
     setUploadingContracapa(false);
+  };
+
+  const handleCoverUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    coverNum: 1 | 2 | 3 | 4
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const setUploading = {
+      1: setUploadingCover1,
+      2: setUploadingCover2,
+      3: setUploadingCover3,
+      4: setUploadingCover4,
+    }[coverNum];
+
+    const coverField = `cover_${coverNum}` as "cover_1" | "cover_2" | "cover_3" | "cover_4";
+
+    setUploading(true);
+    const url = await uploadImage(file, coverField);
+    if (url) {
+      await updateSettings({ [coverField]: url });
+    }
+    setUploading(false);
   };
 
   if (isChecking || isLoading) {
@@ -456,6 +490,182 @@ export default function Configuracoes() {
                 <p className="text-xs text-muted-foreground">
                   Este texto aparece na seção "Condições Importantes" do PDF
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Covers do PDF */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="w-5 h-5 text-primary" />
+                Capas do PDF
+              </CardTitle>
+              <CardDescription>
+                Configure até 4 imagens de capa para as propostas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Cover Mode */}
+              <div className="space-y-2">
+                <Label htmlFor="cover_mode">Modo de Exibição</Label>
+                <select
+                  id="cover_mode"
+                  value={formData.cover_mode}
+                  onChange={(e) =>
+                    setFormData({ ...formData, cover_mode: e.target.value })
+                  }
+                  className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background"
+                >
+                  <option value="single">Única (usa Cover 1)</option>
+                  <option value="random">Aleatório</option>
+                  <option value="sequential">Sequencial</option>
+                </select>
+              </div>
+
+              <Separator />
+
+              {/* Covers Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Cover 1 */}
+                <div className="space-y-2">
+                  <Label>Cover 1</Label>
+                  <div
+                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    onClick={() => cover1InputRef.current?.click()}
+                  >
+                    <input
+                      ref={cover1InputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCoverUpload(e, 1)}
+                      className="hidden"
+                    />
+                    {settings.cover_1 ? (
+                      <img
+                        src={settings.cover_1}
+                        alt="Cover 1"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                        {uploadingCover1 ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 mb-1" />
+                            <p className="text-xs">Upload</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cover 2 */}
+                <div className="space-y-2">
+                  <Label>Cover 2</Label>
+                  <div
+                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    onClick={() => cover2InputRef.current?.click()}
+                  >
+                    <input
+                      ref={cover2InputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCoverUpload(e, 2)}
+                      className="hidden"
+                    />
+                    {settings.cover_2 ? (
+                      <img
+                        src={settings.cover_2}
+                        alt="Cover 2"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                        {uploadingCover2 ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 mb-1" />
+                            <p className="text-xs">Upload</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cover 3 */}
+                <div className="space-y-2">
+                  <Label>Cover 3</Label>
+                  <div
+                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    onClick={() => cover3InputRef.current?.click()}
+                  >
+                    <input
+                      ref={cover3InputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCoverUpload(e, 3)}
+                      className="hidden"
+                    />
+                    {settings.cover_3 ? (
+                      <img
+                        src={settings.cover_3}
+                        alt="Cover 3"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                        {uploadingCover3 ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 mb-1" />
+                            <p className="text-xs">Upload</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cover 4 */}
+                <div className="space-y-2">
+                  <Label>Cover 4</Label>
+                  <div
+                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    onClick={() => cover4InputRef.current?.click()}
+                  >
+                    <input
+                      ref={cover4InputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCoverUpload(e, 4)}
+                      className="hidden"
+                    />
+                    {settings.cover_4 ? (
+                      <img
+                        src={settings.cover_4}
+                        alt="Cover 4"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                        {uploadingCover4 ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 mb-1" />
+                            <p className="text-xs">Upload</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
