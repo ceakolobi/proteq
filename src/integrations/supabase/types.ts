@@ -1068,6 +1068,11 @@ export type Database = {
           cor_destaque: string
           cor_primaria: string
           cor_secundaria: string
+          cover_1: string | null
+          cover_2: string | null
+          cover_3: string | null
+          cover_4: string | null
+          cover_mode: string | null
           created_at: string
           email: string | null
           empresa_logo: string | null
@@ -1086,6 +1091,11 @@ export type Database = {
           cor_destaque?: string
           cor_primaria?: string
           cor_secundaria?: string
+          cover_1?: string | null
+          cover_2?: string | null
+          cover_3?: string | null
+          cover_4?: string | null
+          cover_mode?: string | null
           created_at?: string
           email?: string | null
           empresa_logo?: string | null
@@ -1104,6 +1114,11 @@ export type Database = {
           cor_destaque?: string
           cor_primaria?: string
           cor_secundaria?: string
+          cover_1?: string | null
+          cover_2?: string | null
+          cover_3?: string | null
+          cover_4?: string | null
+          cover_mode?: string | null
           created_at?: string
           email?: string | null
           empresa_logo?: string | null
