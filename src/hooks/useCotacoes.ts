@@ -6,9 +6,15 @@ import type { Cotacao, CotacaoContato, TipoBem } from '@/types/cotacao';
 
 interface CotacaoWithRelations extends Cotacao {
   lead_nome?: string;
+  lead_email?: string;
+  lead_telefone?: string;
   regiao_nome?: string;
   consultor_nome?: string;
   contatos?: CotacaoContato[];
+  cliente_nome?: string;
+  cliente_email?: string;
+  cliente_whatsapp?: string;
+  proposta_enviada_em?: string;
 }
 
 interface UseCotacoesResult {
@@ -47,16 +53,20 @@ export function useCotacoes(): UseCotacoesResult {
       // Fetch related data
       const cotacoesWithRelations: CotacaoWithRelations[] = await Promise.all(
         (data || []).map(async (cotacao: Cotacao) => {
-          let lead_nome = undefined;
-          let regiao_nome = undefined;
+          let lead_nome: string | undefined = undefined;
+          let lead_email: string | undefined = undefined;
+          let lead_telefone: string | undefined = undefined;
+          let regiao_nome: string | undefined = undefined;
           
           if (cotacao.lead_id) {
             const { data: lead } = await supabase
               .from('leads')
-              .select('nome')
+              .select('nome, email, telefone')
               .eq('id', cotacao.lead_id)
               .maybeSingle();
             lead_nome = lead?.nome;
+            lead_email = lead?.email || undefined;
+            lead_telefone = lead?.telefone || undefined;
           }
           
           if (cotacao.regiao_id) {
@@ -78,6 +88,8 @@ export function useCotacoes(): UseCotacoesResult {
           return {
             ...cotacao,
             lead_nome,
+            lead_email,
+            lead_telefone,
             regiao_nome,
             contatos: contatos || [],
           };

@@ -74,6 +74,13 @@ export interface Cotacao {
   aprovada_em?: string;
   aprovada_por?: string;
   
+  // Dados do cliente
+  cliente_nome?: string;
+  cliente_email?: string;
+  cliente_whatsapp?: string;
+  proposta_enviada_em?: string;
+  proposta_enviada_por?: string;
+  
   // Metadados
   observacoes?: string;
   created_at: string;

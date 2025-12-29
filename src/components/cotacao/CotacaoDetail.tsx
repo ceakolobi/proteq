@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -49,6 +51,10 @@ import {
   Clock,
   Edit,
   Trash2,
+  FileDown,
+  Send,
+  User,
+  Loader2,
 } from 'lucide-react';
 import type { Cotacao, CotacaoContato, CotacaoStatus, TipoContato } from '@/types/cotacao';
 import { 
@@ -64,6 +70,12 @@ interface CotacaoDetailProps {
     lead_nome?: string; 
     regiao_nome?: string;
     contatos?: CotacaoContato[];
+    lead_email?: string;
+    lead_telefone?: string;
+    cliente_nome?: string;
+    cliente_email?: string;
+    cliente_whatsapp?: string;
+    proposta_enviada_em?: string;
   };
   onBack: () => void;
   onUpdate: () => void;
@@ -71,6 +83,7 @@ interface CotacaoDetailProps {
 
 export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDetailProps) {
   const { user, isAdminPrincipal, hasRole } = useAuth();
+  const navigate = useNavigate();
   const [isContatoDialogOpen, setIsContatoDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
@@ -80,6 +93,17 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   });
   const [newStatus, setNewStatus] = useState<CotacaoStatus>(cotacao.status);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para dados do cliente
+  const [clienteNome, setClienteNome] = useState(cotacao.cliente_nome || cotacao.lead_nome || '');
+  const [clienteEmail, setClienteEmail] = useState(cotacao.cliente_email || cotacao.lead_email || '');
+  const [clienteWhatsapp, setClienteWhatsapp] = useState(cotacao.cliente_whatsapp || cotacao.lead_telefone || '');
+  const [isDadosClienteModificados, setIsDadosClienteModificados] = useState(false);
+  const [isSavingCliente, setIsSavingCliente] = useState(false);
+  
+  // Estados para envio de proposta
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const canManage = isAdminPrincipal || hasRole('admin_regional') || cotacao.consultor_id === user?.id;
   const canApprove = cotacao.status !== 'aprovado' && cotacao.status !== 'perdido' && canManage;
@@ -221,6 +245,121 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     }
   };
 
+  // Salvar dados do cliente
+  const handleSaveCliente = async () => {
+    setIsSavingCliente(true);
+    try {
+      const { error } = await supabase
+        .from('cotacoes')
+        .update({
+          cliente_nome: clienteNome || null,
+          cliente_email: clienteEmail || null,
+          cliente_whatsapp: clienteWhatsapp || null,
+        })
+        .eq('id', cotacao.id);
+
+      if (error) throw error;
+
+      toast.success('Dados do cliente salvos');
+      setIsDadosClienteModificados(false);
+      onUpdate();
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao salvar dados do cliente');
+    } finally {
+      setIsSavingCliente(false);
+    }
+  };
+
+  // Formatar número para WhatsApp
+  const formatWhatsappNumber = (numero: string): string => {
+    let digits = numero.replace(/\D/g, "");
+    if (!digits.startsWith("55") && digits.length <= 11) {
+      digits = "55" + digits;
+    }
+    return digits;
+  };
+
+  // Gerar PDF - redirecionar para página de layout
+  const handleGerarPdf = () => {
+    navigate(`/layout-cotacao-harmony?id=${cotacao.id}`);
+  };
+
+  // Enviar por e-mail
+  const handleEnviarEmail = async () => {
+    if (!clienteEmail) {
+      toast.error('Informe o e-mail do cliente para enviar a proposta');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-proposta-email", {
+        body: {
+          to: clienteEmail,
+          clienteNome: clienteNome,
+          modelo: `${cotacao.marca} ${cotacao.modelo}`,
+          mensalidade: formatCurrency(cotacao.mensalidade),
+          validadeDias: 7,
+          pdfUrl: null, // Será gerado na página de layout
+          filename: `Proposta_HarmonyAgro_${cotacao.modelo}.pdf`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Atualizar cotação com data de envio
+      await supabase
+        .from('cotacoes')
+        .update({
+          proposta_enviada_em: new Date().toISOString(),
+          proposta_enviada_por: user?.id,
+        })
+        .eq('id', cotacao.id);
+
+      toast.success('Proposta enviada com sucesso!');
+      onUpdate();
+    } catch (error: any) {
+      console.error('Erro ao enviar e-mail:', error);
+      toast.error(error.message || 'Erro ao enviar e-mail');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  // Enviar por WhatsApp
+  const handleEnviarWhatsApp = () => {
+    if (!clienteWhatsapp || clienteWhatsapp.replace(/\D/g, "").length < 10) {
+      toast.error('Informe o WhatsApp do cliente para enviar a cotação');
+      return;
+    }
+
+    const numeroFormatado = formatWhatsappNumber(clienteWhatsapp);
+    const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
+    
+    const mensagem = `${saudacao}, tudo bem?
+Aqui é da *Harmony Agro*.
+Segue sua *Proposta de Cotação* preparada especialmente para o seu ${cotacao.marca} ${cotacao.modelo} 🚗🚜🚚
+
+✔️ Proteção completa
+✔️ Assistência 24h
+✔️ Coberturas reais e objetivas
+✔️ Mensalidade: *${formatCurrency(cotacao.mensalidade)}*
+
+Para ver o PDF completo, acesse o sistema e gere a proposta.
+
+Qualquer dúvida estou à disposição 🙏
+
+⏳ *Validade da proposta:* 7 dias
+
+🤝 Conte com a gente!
+_Harmony Agro - Proteção Veicular_`;
+
+    const whatsappUrl = `https://web.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
+    window.open(whatsappUrl, "_blank");
+
+    toast.success(`WhatsApp Web aberto para ${clienteWhatsapp}`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -359,6 +498,152 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
               <p>Lead: {cotacao.lead_nome}</p>
             )}
           </CardFooter>
+        </Card>
+      </div>
+
+      {/* Dados do Cliente e Envio da Proposta */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Dados do Cliente */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Dados do Cliente
+            </CardTitle>
+            <CardDescription>
+              {cotacao.lead_id ? 'Dados preenchidos a partir do Lead vinculado' : 'Preencha os dados do cliente'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="clienteNome">Nome do Cliente</Label>
+              <Input
+                id="clienteNome"
+                value={clienteNome}
+                onChange={(e) => {
+                  setClienteNome(e.target.value);
+                  setIsDadosClienteModificados(true);
+                }}
+                placeholder="Nome completo"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clienteEmail">E-mail do Cliente</Label>
+              <Input
+                id="clienteEmail"
+                type="email"
+                value={clienteEmail}
+                onChange={(e) => {
+                  setClienteEmail(e.target.value);
+                  setIsDadosClienteModificados(true);
+                }}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clienteWhatsapp">WhatsApp</Label>
+              <Input
+                id="clienteWhatsapp"
+                type="tel"
+                value={clienteWhatsapp}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  if (value.length <= 11) {
+                    const formatted = value
+                      .replace(/(\d{2})(\d)/, "($1) $2")
+                      .replace(/(\d{5})(\d)/, "$1-$2");
+                    setClienteWhatsapp(formatted);
+                    setIsDadosClienteModificados(true);
+                  }
+                }}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            {isDadosClienteModificados && (
+              <Button 
+                onClick={handleSaveCliente} 
+                disabled={isSavingCliente}
+                className="w-full"
+              >
+                {isSavingCliente ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Salvar Dados do Cliente
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Envio da Proposta */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5" />
+              Envio da Proposta
+            </CardTitle>
+            <CardDescription>
+              Gere e compartilhe a proposta com o cliente
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Status de envio */}
+            <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${
+              cotacao.proposta_enviada_em 
+                ? 'bg-green-50 text-green-800 border border-green-200' 
+                : 'bg-muted text-muted-foreground'
+            }`}>
+              {cotacao.proposta_enviada_em ? (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Proposta enviada em {formatDateTime(cotacao.proposta_enviada_em)}</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4" />
+                  <span>Proposta ainda não enviada</span>
+                </>
+              )}
+            </div>
+
+            {/* Botões de ação */}
+            <div className="space-y-3">
+              <Button 
+                onClick={handleGerarPdf}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Gerar PDF
+              </Button>
+
+              <Button 
+                onClick={handleEnviarEmail}
+                disabled={isSendingEmail || !clienteEmail}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                {isSendingEmail ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="w-4 h-4 mr-2" />
+                )}
+                Enviar por E-mail
+                {!clienteEmail && <span className="ml-auto text-xs text-muted-foreground">(informe o e-mail)</span>}
+              </Button>
+
+              <Button 
+                onClick={handleEnviarWhatsApp}
+                disabled={!clienteWhatsapp}
+                className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enviar pelo WhatsApp
+                {!clienteWhatsapp && <span className="ml-auto text-xs opacity-80">(informe o WhatsApp)</span>}
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
 
