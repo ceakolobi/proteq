@@ -399,7 +399,7 @@ export default function LayoutCotacaoHarmony() {
                   "text-sm md:text-base",
                   usarLogoColorida ? "text-muted-foreground" : "text-card/90"
                 )}>
-                  Proteção Veicular • Caminhões • Motos • Máquinas Agrícolas
+                  Proteção Veicular • Carros • Motos • Camionetes • Caminhões • Máquinas Agrícolas
                 </p>
               </div>
             </div>
