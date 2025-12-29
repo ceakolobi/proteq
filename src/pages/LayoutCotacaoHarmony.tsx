@@ -73,6 +73,9 @@ interface CotacaoData {
   cota_id: string | null;
   created_at: string;
   observacoes: string | null;
+  cliente_nome: string | null;
+  cliente_email: string | null;
+  cliente_whatsapp: string | null;
 }
 
 interface CotaData {
@@ -1020,10 +1023,13 @@ export default function LayoutCotacaoHarmony() {
         pdfBlob={pdfBlob}
         pdfUrl={pdfUrl}
         filename={pdfFilename}
-        clienteNome={nomeCliente}
+        clienteNome={nomeCliente || cotacao?.cliente_nome || ""}
+        clienteEmail={cotacao?.cliente_email || ""}
+        clienteWhatsapp={cotacao?.cliente_whatsapp || ""}
         validadeDias={7}
         modelo={cotacao?.modelo || ""}
         mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
+        cotacaoId={cotacao?.id}
       />
 
       {/* Modal de Seleção de Capa */}

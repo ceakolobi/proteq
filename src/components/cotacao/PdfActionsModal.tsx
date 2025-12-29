@@ -33,6 +33,7 @@ interface PdfActionsModalProps {
   validadeDias?: number;
   modelo?: string;
   mensalidade?: string;
+  cotacaoId?: string;
 }
 
 export const PdfActionsModal = ({
@@ -47,6 +48,7 @@ export const PdfActionsModal = ({
   validadeDias = 7,
   modelo = "",
   mensalidade = "",
+  cotacaoId,
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -193,15 +195,21 @@ _Harmony Agro - Proteção Veicular_`;
       return;
     }
 
+    // Validar se tem PDF
+    if (!pdfBlob) {
+      toast({
+        title: "PDF não disponível",
+        description: "Gere o PDF novamente antes de enviar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSendingEmail(true);
 
     try {
-      let pdfBase64: string | undefined;
-      
-      // Converter PDF para base64 se disponível
-      if (pdfBlob) {
-        pdfBase64 = await blobToBase64(pdfBlob);
-      }
+      // Converter PDF para base64
+      const pdfBase64 = await blobToBase64(pdfBlob);
 
       const { data, error } = await supabase.functions.invoke("send-proposta-email", {
         body: {
@@ -216,8 +224,45 @@ _Harmony Agro - Proteção Veicular_`;
         },
       });
 
+      // Verificar erros da Edge Function
       if (error) {
         throw error;
+      }
+
+      // Verificar resposta da Edge Function
+      if (data && !data.success) {
+        const errorMessage = data.error || "Erro desconhecido";
+        const errorType = data.errorType || "desconhecido";
+        
+        let description = errorMessage;
+        if (errorType === 'api_key') {
+          description = "Erro de configuração do serviço de e-mail. Entre em contato com o suporte.";
+        } else if (errorType === 'remetente') {
+          description = "É necessário configurar um domínio verificado para enviar e-mails.";
+        } else if (errorType === 'destinatario') {
+          description = "E-mail do destinatário inválido ou não permitido.";
+        } else if (errorType === 'pdf') {
+          description = "Erro ao processar o PDF. Tente gerar novamente.";
+        }
+        
+        toast({
+          title: "Erro ao enviar e-mail",
+          description,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Registrar envio no histórico da cotação
+      if (cotacaoId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase
+          .from('cotacoes')
+          .update({
+            proposta_enviada_em: new Date().toISOString(),
+            proposta_enviada_por: user?.id,
+          })
+          .eq('id', cotacaoId);
       }
 
       toast({
