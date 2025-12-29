@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,12 +24,15 @@ import {
   Square,
   FileDown,
   Loader2,
+  User,
+  Calendar,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { tipoBemLabels, TipoBem } from "@/types/cotacao";
 import html2pdf from "html2pdf.js";
 import { toast } from "@/hooks/use-toast";
+import { SignaturePad } from "@/components/cotacao/SignaturePad";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -93,6 +97,16 @@ export default function LayoutCotacaoHarmony() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [cotacao, setCotacao] = useState<CotacaoData | null>(null);
   const [cotaNome, setCotaNome] = useState<string | null>(null);
+  
+  // Estados para assinatura
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [cpfCliente, setCpfCliente] = useState("");
+  const [assinaturaCliente, setAssinaturaCliente] = useState<string | null>(null);
+  const [assinaturaRepresentante, setAssinaturaRepresentante] = useState<string | null>(null);
+  const [dataAssinatura, setDataAssinatura] = useState(
+    new Date().toLocaleDateString("pt-BR")
+  );
+  
   const [condicoes, setCondicoes] = useState(
     "Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente no momento da contratação. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade."
   );
@@ -479,22 +493,122 @@ export default function LayoutCotacaoHarmony() {
 
           {/* 6️⃣ Assinaturas */}
           <section className="px-6 md:px-8 py-8">
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="h-16 border-b-2 border-foreground/30 mb-2" />
-                <p className="text-sm font-medium">Assinatura do Cliente</p>
-                <p className="text-xs text-muted-foreground">Nome:</p>
+            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+              <User className="w-5 h-5 text-harmony-green" />
+              Assinatura e Aceite
+            </h3>
+            
+            {/* Dados do Cliente */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="space-y-2">
+                <Label htmlFor="nomeCliente" className="text-sm font-medium">
+                  Nome Completo do Cliente *
+                </Label>
+                <Input
+                  id="nomeCliente"
+                  value={nomeCliente}
+                  onChange={(e) => setNomeCliente(e.target.value)}
+                  placeholder="Digite o nome completo"
+                  className="print:border-none print:p-0 print:shadow-none"
+                />
+                {/* Exibir nome no PDF */}
+                <p className="hidden print:block font-medium">{nomeCliente || "________________"}</p>
               </div>
-              <div className="text-center">
-                <div className="h-16 border-b-2 border-foreground/30 mb-2" />
-                <p className="text-sm font-medium">Harmony Agro</p>
-                <p className="text-xs text-muted-foreground">Representante</p>
+              <div className="space-y-2">
+                <Label htmlFor="cpfCliente" className="text-sm font-medium">
+                  CPF *
+                </Label>
+                <Input
+                  id="cpfCliente"
+                  value={cpfCliente}
+                  onChange={(e) => {
+                    // Formatar CPF
+                    const value = e.target.value.replace(/\D/g, "");
+                    if (value.length <= 11) {
+                      const formatted = value
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d)/, "$1.$2")
+                        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                      setCpfCliente(formatted);
+                    }
+                  }}
+                  placeholder="000.000.000-00"
+                  className="print:border-none print:p-0 print:shadow-none"
+                />
+                {/* Exibir CPF no PDF */}
+                <p className="hidden print:block font-medium">{cpfCliente || "___.___.___-__"}</p>
               </div>
-              <div className="text-center">
-                <div className="h-16 border-b-2 border-foreground/30 mb-2" />
-                <p className="text-sm font-medium">Data</p>
-                <p className="text-xs text-muted-foreground">___/___/______</p>
+            </div>
+
+            {/* Área de Assinaturas */}
+            <div className="grid md:grid-cols-2 gap-8 mb-6">
+              {/* Assinatura do Cliente */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Assinatura do Cliente *</Label>
+                <div className="print:hidden">
+                  <SignaturePad
+                    onSignatureChange={setAssinaturaCliente}
+                    width={300}
+                    height={100}
+                  />
+                </div>
+                {/* Exibir assinatura no PDF */}
+                <div className="hidden print:block">
+                  {assinaturaCliente ? (
+                    <img 
+                      src={assinaturaCliente} 
+                      alt="Assinatura do Cliente" 
+                      className="h-20 object-contain border-b-2 border-foreground/30"
+                    />
+                  ) : (
+                    <div className="h-20 border-b-2 border-foreground/30" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  {nomeCliente || "Nome do Cliente"}
+                </p>
               </div>
+
+              {/* Assinatura Representante */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Assinatura Harmony Agro</Label>
+                <div className="print:hidden">
+                  <SignaturePad
+                    onSignatureChange={setAssinaturaRepresentante}
+                    width={300}
+                    height={100}
+                  />
+                </div>
+                {/* Exibir assinatura no PDF */}
+                <div className="hidden print:block">
+                  {assinaturaRepresentante ? (
+                    <img 
+                      src={assinaturaRepresentante} 
+                      alt="Assinatura Representante" 
+                      className="h-20 object-contain border-b-2 border-foreground/30"
+                    />
+                  ) : (
+                    <div className="h-20 border-b-2 border-foreground/30" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Representante Harmony Agro
+                </p>
+              </div>
+            </div>
+
+            {/* Data */}
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">Data:</Label>
+              </div>
+              <Input
+                type="text"
+                value={dataAssinatura}
+                onChange={(e) => setDataAssinatura(e.target.value)}
+                className="w-40 text-center print:border-none print:p-0 print:shadow-none"
+              />
             </div>
           </section>
 
