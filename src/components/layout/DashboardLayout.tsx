@@ -179,7 +179,7 @@ const navSections: NavSection[] = [
       },
       {
         title: 'Configurações',
-        href: '/admin',
+        href: '/configuracoes',
         icon: <Settings className="h-5 w-5" />,
         roles: ['admin_principal'],
       },
