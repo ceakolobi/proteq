@@ -37,6 +37,7 @@ import html2pdf from "html2pdf.js";
 import { toast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/cotacao/SignaturePad";
 import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
+import { CoverSelectorModal, CoverOption } from "@/components/cotacao/CoverSelectorModal";
 import { QRCodeSVG } from "qrcode.react";
 import harmonyAgroLogoColorida from "@/assets/harmony-agro-logo-colorida.png";
 import harmonyAgroLogoBranca from "@/assets/harmony-agro-logo-branca.png";
@@ -154,11 +155,25 @@ export default function LayoutCotacaoHarmony() {
   const temContracapa = !!settings.pdf_contracapa;
   const contracapaImage = settings.pdf_contracapa || "/pdf-back-cover.png";
   
-  // Capa do PDF - selecionar baseado no cover_mode
-  const availableCovers = [settings.cover_1, settings.cover_2, settings.cover_3, settings.cover_4].filter(Boolean) as string[];
+  // Configuração de capas do PDF
+  const coverOptions: CoverOption[] = [
+    { index: 1, url: settings.cover_1, label: "Capa 1" },
+    { index: 2, url: settings.cover_2, label: "Capa 2" },
+    { index: 3, url: settings.cover_3, label: "Capa 3" },
+    { index: 4, url: settings.cover_4, label: "Capa 4" },
+  ];
   
+  // Capas disponíveis (com URL configurada)
+  const availableCovers = coverOptions.filter((c) => c.url !== null) as { index: number; url: string; label: string }[];
+  
+  /**
+   * Seleciona a capa baseado no modo configurado:
+   * - fixed: usa a capa definida em cover_fixed_index
+   * - random: escolhe aleatoriamente entre as disponíveis
+   * - select: retorna null para forçar exibição do modal
+   */
   const getSelectedCover = (): string | null => {
-    // Se há uma capa selecionada manualmente, usar ela
+    // Se há uma capa selecionada manualmente (via modal), usar ela
     if (selectedCoverOverride) return selectedCoverOverride;
     
     // Se não há capas configuradas, retorna null (usará capa padrão gerada)
@@ -169,15 +184,19 @@ export default function LayoutCotacaoHarmony() {
     if (mode === "fixed") {
       // Usa a capa fixa selecionada nas configurações
       const fixedIndex = (settings.cover_fixed_index || 1) - 1;
-      const coverKeys = [settings.cover_1, settings.cover_2, settings.cover_3, settings.cover_4];
-      return coverKeys[fixedIndex] || availableCovers[0] || null;
+      const cover = coverOptions[fixedIndex];
+      return cover?.url || availableCovers[0]?.url || null;
     } else if (mode === "random") {
-      return availableCovers[Math.floor(Math.random() * availableCovers.length)];
+      // Escolhe aleatoriamente entre as capas disponíveis
+      const randomCover = availableCovers[Math.floor(Math.random() * availableCovers.length)];
+      return randomCover?.url || null;
     } else if (mode === "select") {
-      // Modo seleção: se não há override, retorna a primeira disponível
-      return availableCovers[0] || null;
+      // Modo seleção: retorna a primeira disponível como fallback
+      // O modal será exibido antes da geração do PDF
+      return availableCovers[0]?.url || null;
     }
-    return availableCovers[0];
+    
+    return availableCovers[0]?.url || null;
   };
   
   const selectedCover = getSelectedCover();
@@ -305,11 +324,15 @@ export default function LayoutCotacaoHarmony() {
     }
   };
 
-  // Iniciar geração de PDF com verificação de modo
+  // Iniciar geração de PDF com verificação de modo de capa
   const initiateGeneratePdf = () => {
-    if (settings.cover_mode === "select" && availableCovers.length > 1) {
+    const mode = settings.cover_mode || "fixed";
+    
+    // Se modo é "select" e há mais de uma capa disponível, mostrar modal
+    if (mode === "select" && availableCovers.length > 0) {
       setShowCoverSelector(true);
     } else {
+      // Para modos "fixed" ou "random", ou se não há capas, gerar direto
       handleGeneratePdf();
     }
   };
@@ -1004,36 +1027,29 @@ export default function LayoutCotacaoHarmony() {
       />
 
       {/* Modal de Seleção de Capa */}
-      {showCoverSelector && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
-          <div className="bg-card rounded-xl p-6 max-w-2xl w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">Escolha a Capa da Proposta</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {availableCovers.map((cover, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSelectCoverAndGenerate(cover)}
-                  className="relative aspect-[210/297] border-2 border-border rounded-lg overflow-hidden hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <img
-                    src={cover}
-                    alt={`Capa ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-sm py-1 px-2">
-                    Capa {index + 1}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowCoverSelector(false)}>
-                Cancelar
-              </Button>
-            </div>
+      <CoverSelectorModal
+        isOpen={showCoverSelector}
+        onClose={() => setShowCoverSelector(false)}
+        onSelectCover={handleSelectCoverAndGenerate}
+        covers={coverOptions}
+        defaultCoverPreview={
+          <div 
+            className="w-full h-full flex flex-col items-center justify-center p-4"
+            style={{
+              background: `linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%)`,
+            }}
+          >
+            <img 
+              src={logoBranca} 
+              alt={nomeEmpresa}
+              className="h-8 w-auto object-contain mb-2"
+            />
+            <p className="text-xs text-white text-center font-semibold">
+              PROPOSTA DE COTAÇÃO
+            </p>
           </div>
-        </div>
-      )}
+        }
+      />
     </div>
   );
 }
