@@ -355,9 +355,15 @@ Qualquer dúvida estou à disposição 🙏
 _Harmony Agro - Proteção Veicular_`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
-    window.open(whatsappUrl, "_blank");
+    const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
-    toast.success(`WhatsApp Web aberto para ${clienteWhatsapp}`);
+    if (!opened) {
+      // Fallback quando o navegador bloqueia pop-ups
+      window.location.assign(whatsappUrl);
+      return;
+    }
+
+    toast.success(`Abrindo WhatsApp para ${clienteWhatsapp}`);
   };
 
   return (
