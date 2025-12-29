@@ -21,10 +21,14 @@ import {
   ArrowLeft,
   Clock,
   Square,
+  FileDown,
+  Loader2,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { tipoBemLabels, TipoBem } from "@/types/cotacao";
+import html2pdf from "html2pdf.js";
+import { toast } from "@/hooks/use-toast";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -82,9 +86,11 @@ export default function LayoutCotacaoHarmony() {
   const cotacaoId = searchParams.get("id");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
   const [usarLogoColorida, setUsarLogoColorida] = useState(true);
   const [imagemVeiculo, setImagemVeiculo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [cotacao, setCotacao] = useState<CotacaoData | null>(null);
   const [cotaNome, setCotaNome] = useState<string | null>(null);
   const [condicoes, setCondicoes] = useState(
@@ -162,6 +168,61 @@ export default function LayoutCotacaoHarmony() {
     ? `COT-${new Date(cotacao.created_at).getFullYear()}-${cotacao.id.substring(0, 8).toUpperCase()}`
     : "–";
 
+  // Número curto para nome do arquivo
+  const numeroCotacaoCurto = cotacao 
+    ? cotacao.id.substring(0, 8).toUpperCase()
+    : "000000";
+
+  // Modelo para nome do arquivo
+  const modeloParaArquivo = cotacao?.modelo 
+    ? cotacao.modelo.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20)
+    : "Veiculo";
+
+  // Gerar PDF
+  const handleGeneratePdf = async () => {
+    if (!pdfContentRef.current) return;
+
+    setIsGeneratingPdf(true);
+
+    try {
+      const element = pdfContentRef.current;
+      const filename = `Cotacao_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          logging: false,
+        },
+        jsPDF: { 
+          unit: "mm", 
+          format: "a4", 
+          orientation: "portrait" 
+        },
+        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+      };
+
+      await html2pdf().set(opt).from(element).save();
+
+      toast({
+        title: "PDF gerado com sucesso!",
+        description: `Arquivo: ${filename}`,
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Tente novamente ou use a opção de imprimir.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   // Calcular validade (7 dias a partir da criação)
   const calcularValidade = (): string => {
     if (!cotacao) return "–";
@@ -201,16 +262,28 @@ export default function LayoutCotacaoHarmony() {
           >
             {usarLogoColorida ? "Usar Logo Branca" : "Usar Logo Colorida"}
           </Button>
-          <Button onClick={handlePrint} className="bg-harmony-orange hover:bg-harmony-orange/90">
+          <Button 
+            onClick={handleGeneratePdf} 
+            disabled={isGeneratingPdf}
+            className="bg-harmony-green hover:bg-harmony-green/90"
+          >
+            {isGeneratingPdf ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4 mr-2" />
+            )}
+            Gerar PDF da Cotação
+          </Button>
+          <Button onClick={handlePrint} variant="outline">
             <Printer className="w-4 h-4 mr-2" />
-            Imprimir / PDF
+            Imprimir
           </Button>
         </div>
       </div>
 
       {/* Página de Cotação */}
       <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
-        <div className="bg-card rounded-xl shadow-lg print:shadow-none print:rounded-none overflow-hidden">
+        <div ref={pdfContentRef} className="bg-card rounded-xl shadow-lg print:shadow-none print:rounded-none overflow-hidden">
           
           {/* 1️⃣ Cabeçalho */}
           <header className="bg-gradient-to-r from-harmony-orange to-harmony-green p-8 text-center">
