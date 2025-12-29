@@ -34,6 +34,7 @@ interface PdfActionsModalProps {
   modelo?: string;
   mensalidade?: string;
   cotacaoId?: string;
+  empresaNome?: string;
 }
 
 export const PdfActionsModal = ({
@@ -49,6 +50,7 @@ export const PdfActionsModal = ({
   modelo = "",
   mensalidade = "",
   cotacaoId,
+  empresaNome = "Proteção Veicular",
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -137,7 +139,7 @@ export const PdfActionsModal = ({
     const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
     
     const mensagem = `${saudacao}, tudo bem?
-Aqui é da *Harmony Agro*.
+Aqui é da *${empresaNome}*.
 Segue sua *Proposta de Cotação* preparada especialmente para o seu veículo 🚗🚜🚚
 
 ✔️ Proteção completa
@@ -152,7 +154,7 @@ Qualquer dúvida estou à disposição 🙏
 ⏳ *Validade da proposta:* ${validadeDias} dias
 
 🤝 Conte com a gente!
-_Harmony Agro - Proteção Veicular_`;
+_${empresaNome} - Proteção Veicular_`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");

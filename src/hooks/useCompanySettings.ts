@@ -64,7 +64,7 @@ export interface SystemSettings {
 
 const defaultSettings: SystemSettings = {
   id: "",
-  empresa_nome: "Harmony Agro",
+  empresa_nome: "Sua Empresa",
   cnpj: null,
   empresa_logo: null,
   empresa_logo_branca: null,
@@ -74,8 +74,8 @@ const defaultSettings: SystemSettings = {
   texto_institucional: "Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente no momento da contratação. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.",
   pdf_contracapa: null,
   telefone: "(00) 00000-0000",
-  email: "contato@harmonyagro.com.br",
-  site: "www.harmonyagro.com.br",
+  email: "contato@suaempresa.com.br",
+  site: "www.suaempresa.com.br",
   modo_white_label: false,
   esconder_marca_harmony: false,
   cover_1: null,

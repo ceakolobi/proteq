@@ -806,10 +806,10 @@ export default function Configuracoes() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <EyeOff className="w-4 h-4" />
-                    <p className="font-medium">Esconder Marca Harmony</p>
+                    <p className="font-medium">Esconder Marca MARKA</p>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Remove referências à Harmony Agro dos PDFs
+                    Remove referências à MARKA dos PDFs (White Label)
                   </p>
                 </div>
                 <Switch

@@ -306,7 +306,6 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
     
     const mensagem = `${saudacao}, tudo bem?
-Aqui é da *Harmony Agro*.
 Segue sua *Proposta de Cotação* preparada especialmente para o seu ${cotacao.marca} ${cotacao.modelo} 🚗🚜🚚
 
 ✔️ Proteção completa
@@ -321,7 +320,7 @@ Qualquer dúvida estou à disposição 🙏
 ⏳ *Validade da proposta:* 7 dias
 
 🤝 Conte com a gente!
-_Harmony Agro - Proteção Veicular_`;
+_Proteção Veicular_`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
