@@ -37,8 +37,21 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Cota } from '@/types/database';
-import { Plus, Pencil, Trash2, DollarSign } from 'lucide-react';
+import { Cota, CotaCategoria } from '@/types/database';
+import { Plus, Pencil, Trash2, DollarSign, Filter } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const categoriaLabels: Record<CotaCategoria, string> = {
+  CARRO: 'Carro',
+  MOTO: 'Moto',
+  CAMINHONETE: 'Caminhonete',
+};
 
 export default function Cotas() {
   // Access control: Only Admin Principal can access
@@ -48,6 +61,7 @@ export default function Cotas() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCota, setEditingCota] = useState<Cota | null>(null);
+  const [categoriaFilter, setCategoriaFilter] = useState<CotaCategoria | 'TODAS'>('CARRO');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -60,6 +74,7 @@ export default function Cotas() {
     percentual_geral: '',
     percentual_extra: '',
     ativo: true,
+    categoria: 'CARRO' as CotaCategoria,
   });
 
   const fetchCotas = async () => {
@@ -122,6 +137,7 @@ export default function Cotas() {
         percentual_geral: (cota.percentual_geral || 0).toString(),
         percentual_extra: (cota.percentual_extra || 0).toString(),
         ativo: cota.ativo,
+        categoria: (cota.categoria || 'CARRO') as CotaCategoria,
       });
     } else {
       setEditingCota(null);
@@ -135,10 +151,16 @@ export default function Cotas() {
         percentual_geral: '0',
         percentual_extra: '0',
         ativo: true,
+        categoria: categoriaFilter !== 'TODAS' ? categoriaFilter : 'CARRO',
       });
     }
     setIsDialogOpen(true);
   };
+
+  // Filtered cotas based on category
+  const filteredCotas = categoriaFilter === 'TODAS' 
+    ? cotas 
+    : cotas.filter(c => c.categoria === categoriaFilter);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +176,7 @@ export default function Cotas() {
         percentual_geral: parseFloat(formData.percentual_geral) || 0,
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
         ativo: formData.ativo,
+        categoria: formData.categoria,
       };
 
       if (editingCota) {
@@ -392,11 +415,27 @@ export default function Cotas() {
 
         {/* Cotas Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Tabela de Cotas</CardTitle>
-            <CardDescription>
-              {cotas.length} cota{cotas.length !== 1 ? 's' : ''} cadastrada{cotas.length !== 1 ? 's' : ''}
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle>Tabela de Cotas</CardTitle>
+              <CardDescription>
+                {filteredCotas.length} cota{filteredCotas.length !== 1 ? 's' : ''} na categoria selecionada
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={categoriaFilter} onValueChange={(value) => setCategoriaFilter(value as CotaCategoria | 'TODAS')}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtrar categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODAS">Todas</SelectItem>
+                  <SelectItem value="CARRO">Carro</SelectItem>
+                  <SelectItem value="MOTO">Moto</SelectItem>
+                  <SelectItem value="CAMINHONETE">Caminhonete</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -414,9 +453,7 @@ export default function Cotas() {
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>Faixa FIPE</TableHead>
-                      <TableHead>Carro</TableHead>
-                      <TableHead>Moto</TableHead>
-                      <TableHead>Camionete</TableHead>
+                      <TableHead>Valor Mensalidade</TableHead>
                       <TableHead>% Geral</TableHead>
                       <TableHead>% Extra</TableHead>
                       <TableHead>Status</TableHead>
@@ -424,15 +461,20 @@ export default function Cotas() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cotas.map((cota) => (
+                    {filteredCotas.map((cota) => (
                       <TableRow key={cota.id}>
                         <TableCell className="font-medium">{cota.cota_nome}</TableCell>
                         <TableCell>
                           {formatCurrency(cota.fipe_min)} - {formatCurrency(cota.fipe_max)}
                         </TableCell>
-                        <TableCell>{formatCurrency(cota.valor_carro)}</TableCell>
-                        <TableCell>{formatCurrency(cota.valor_moto)}</TableCell>
-                        <TableCell>{formatCurrency(cota.valor_camionete)}</TableCell>
+                        <TableCell>
+                          {categoriaFilter === 'MOTO' 
+                            ? formatCurrency(cota.valor_moto)
+                            : categoriaFilter === 'CAMINHONETE'
+                              ? formatCurrency(cota.valor_camionete)
+                              : formatCurrency(cota.valor_carro)
+                          }
+                        </TableCell>
                         <TableCell>{(cota.percentual_geral || 0).toFixed(1)}%</TableCell>
                         <TableCell>{(cota.percentual_extra || 0).toFixed(1)}%</TableCell>
                         <TableCell>
