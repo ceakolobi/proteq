@@ -38,7 +38,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
-import logoHarmonyColorida from '@/assets/logo-harmony-colorida.png';
+import logoMarkaColorida from '@/assets/logo-marka-colorida.png';
 
 interface NavItem {
   title: string;
@@ -229,7 +229,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
         <img 
-          src={logoHarmonyColorida}
+          src={logoMarkaColorida}
           alt="HARMONY CRM" 
           className="h-10 w-10"
         />
@@ -333,7 +333,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </Sheet>
           <div className="flex items-center gap-2">
             <img 
-              src={logoHarmonyColorida} 
+              src={logoMarkaColorida} 
               alt="HARMONY CRM" 
               className="h-8 w-8"
             />
