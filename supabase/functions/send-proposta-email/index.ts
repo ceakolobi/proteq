@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -19,6 +17,18 @@ interface EmailRequest {
   filename: string;
 }
 
+interface ErrorResponse {
+  success: false;
+  error: string;
+  errorType: 'api_key' | 'remetente' | 'pdf' | 'destinatario' | 'desconhecido';
+}
+
+interface SuccessResponse {
+  success: true;
+  data: any;
+  message: string;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -26,6 +36,40 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Verificar API Key
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    if (!apiKey) {
+      console.error("RESEND_API_KEY não configurada");
+      const errorResponse: ErrorResponse = {
+        success: false,
+        error: "Chave de API do serviço de e-mail não configurada. Entre em contato com o suporte.",
+        errorType: 'api_key'
+      };
+      return new Response(
+        JSON.stringify(errorResponse),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const resend = new Resend(apiKey);
+
+    // Parse request body
+    let requestBody: EmailRequest;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error("Erro ao parsear body:", parseError);
+      const errorResponse: ErrorResponse = {
+        success: false,
+        error: "Dados da requisição inválidos",
+        errorType: 'desconhecido'
+      };
+      return new Response(
+        JSON.stringify(errorResponse),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { 
       to, 
       clienteNome, 
@@ -35,15 +79,39 @@ const handler = async (req: Request): Promise<Response> => {
       pdfUrl, 
       pdfBase64,
       filename 
-    }: EmailRequest = await req.json();
+    } = requestBody;
 
-    console.log("Enviando e-mail para:", to);
+    console.log("=== Iniciando envio de e-mail ===");
+    console.log("Destinatário:", to);
     console.log("Cliente:", clienteNome);
     console.log("Modelo:", modelo);
+    console.log("PDF Base64 presente:", !!pdfBase64);
+    console.log("PDF URL presente:", !!pdfUrl);
 
-    if (!to) {
+    // Validar e-mail do destinatário
+    if (!to || !to.includes('@')) {
+      console.error("E-mail do destinatário inválido:", to);
+      const errorResponse: ErrorResponse = {
+        success: false,
+        error: "E-mail do destinatário é obrigatório e deve ser válido",
+        errorType: 'destinatario'
+      };
       return new Response(
-        JSON.stringify({ error: "E-mail do destinatário é obrigatório" }),
+        JSON.stringify(errorResponse),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validar PDF
+    if (!pdfBase64 && !pdfUrl) {
+      console.error("Nenhum PDF fornecido");
+      const errorResponse: ErrorResponse = {
+        success: false,
+        error: "PDF da proposta não foi gerado corretamente",
+        errorType: 'pdf'
+      };
+      return new Response(
+        JSON.stringify(errorResponse),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -96,12 +164,14 @@ const handler = async (req: Request): Promise<Response> => {
       ${mensalidade ? `<p style="text-align: center; font-size: 18px;">💰 <strong>Mensalidade: ${mensalidade}</strong></p>` : ""}
       
       <div class="validade">
-        ⏳ <strong>Validade da proposta:</strong> ${validadeDias} dias
+        ⏳ <strong>Validade da proposta:</strong> ${validadeDias || 7} dias
       </div>
+      
+      <p>📎 <strong>Em anexo você encontra a proposta completa em PDF.</strong></p>
       
       ${pdfUrl ? `
       <div class="cta">
-        <a href="${pdfUrl}" class="btn">📄 Ver Proposta Completa (PDF)</a>
+        <a href="${pdfUrl}" class="btn">📄 Ver Proposta Online</a>
       </div>
       ` : ""}
       
@@ -119,15 +189,17 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
     `;
 
+    // Preparar opções do e-mail
     const emailOptions: any = {
       from: "Harmony Agro <onboarding@resend.dev>",
       to: [to],
-      subject: "Proposta de Cotação – Harmony Agro",
+      subject: `Proposta de Cotação – ${modelo || 'Harmony Agro'}`,
       html: htmlContent,
     };
 
-    // Se tiver PDF em base64, anexar
+    // Anexar PDF se disponível em base64
     if (pdfBase64) {
+      console.log("Anexando PDF ao e-mail...");
       emailOptions.attachments = [
         {
           filename: filename || "Proposta_HarmonyAgro.pdf",
@@ -136,18 +208,70 @@ const handler = async (req: Request): Promise<Response> => {
       ];
     }
 
+    console.log("Enviando e-mail via Resend...");
     const emailResponse = await resend.emails.send(emailOptions);
 
-    console.log("E-mail enviado com sucesso:", emailResponse);
+    console.log("Resposta do Resend:", JSON.stringify(emailResponse));
+
+    // Verificar se houve erro na resposta do Resend
+    if (emailResponse.error) {
+      const errorMessage = emailResponse.error.message || "Erro desconhecido no envio";
+      console.error("Erro do Resend:", errorMessage);
+      
+      let errorType: ErrorResponse['errorType'] = 'desconhecido';
+      let userMessage = errorMessage;
+
+      // Identificar tipo de erro
+      if (errorMessage.includes('API key') || errorMessage.includes('api_key')) {
+        errorType = 'api_key';
+        userMessage = "Erro na configuração da API de e-mail. Entre em contato com o suporte.";
+      } else if (errorMessage.includes('from') || errorMessage.includes('sender') || errorMessage.includes('domain')) {
+        errorType = 'remetente';
+        userMessage = "O domínio do remetente precisa ser verificado no Resend. Use o e-mail de teste ou configure um domínio.";
+      } else if (errorMessage.includes('to') || errorMessage.includes('recipient') || errorMessage.includes('email address')) {
+        errorType = 'destinatario';
+        userMessage = "E-mail do destinatário inválido ou não permitido no modo de teste.";
+      } else if (errorMessage.includes('attachment') || errorMessage.includes('content')) {
+        errorType = 'pdf';
+        userMessage = "Erro ao anexar o PDF. Tente novamente.";
+      }
+
+      const errorResponse: ErrorResponse = {
+        success: false,
+        error: userMessage,
+        errorType
+      };
+      
+      return new Response(
+        JSON.stringify(errorResponse),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("E-mail enviado com sucesso! ID:", emailResponse.data?.id);
+
+    const successResponse: SuccessResponse = {
+      success: true,
+      data: emailResponse.data,
+      message: "E-mail enviado com sucesso!"
+    };
 
     return new Response(
-      JSON.stringify({ success: true, data: emailResponse }),
+      JSON.stringify(successResponse),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
+
   } catch (error: any) {
-    console.error("Erro ao enviar e-mail:", error);
+    console.error("Erro inesperado:", error);
+    
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: error.message || "Erro inesperado ao enviar e-mail",
+      errorType: 'desconhecido'
+    };
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify(errorResponse),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
