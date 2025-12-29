@@ -101,6 +101,7 @@ export function useReferenceData(options: ReferenceDataOptions = {}): ReferenceD
         valor_camionete: Number(c.valor_camionete),
         percentual_geral: Number(c.percentual_geral) || 0,
         percentual_extra: Number(c.percentual_extra) || 0,
+        categoria: c.categoria as 'CARRO' | 'MOTO' | 'CAMINHONETE' | undefined,
       })));
     } catch (err) {
       console.error('Error fetching cotas:', err);

@@ -64,6 +64,8 @@ export interface Regiao {
   sede?: Sede;
 }
 
+export type CotaCategoria = 'CARRO' | 'MOTO' | 'CAMINHONETE';
+
 export interface Cota {
   id: string;
   cota_nome: string;
@@ -75,6 +77,7 @@ export interface Cota {
   percentual_geral: number;
   percentual_extra: number;
   ativo: boolean;
+  categoria?: CotaCategoria;
   created_at: string;
   updated_at: string;
 }
