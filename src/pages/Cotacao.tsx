@@ -49,7 +49,7 @@ export default function Cotacao() {
   const { toast } = useToast();
 
   useEffect(() => {
-    document.title = 'Cotação | MARKA CRM';
+    document.title = 'Cotação | HARMONY CRM';
   }, []);
 
 

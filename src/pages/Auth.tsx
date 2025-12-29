@@ -91,7 +91,7 @@ export default function Auth() {
               <Shield className="h-10 w-10" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">MARKA CRM</h1>
+              <h1 className="text-3xl font-bold">HARMONY CRM</h1>
               <p className="text-primary-foreground/80">Sistema de Gestão</p>
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function Auth() {
           <CardHeader className="space-y-1 text-center">
             <div className="flex items-center justify-center gap-2 mb-4 lg:hidden">
               <Shield className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">MARKA CRM</span>
+              <span className="text-xl font-bold">HARMONY CRM</span>
             </div>
             <CardTitle className="text-2xl font-bold">Acesse sua conta</CardTitle>
             <CardDescription>

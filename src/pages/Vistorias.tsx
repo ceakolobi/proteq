@@ -148,7 +148,7 @@ export default function Vistorias() {
   const [formChecklist, setFormChecklist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    document.title = 'Vistorias | Sistema de Proteção Veicular';
+    document.title = 'Vistorias | HARMONY CRM';
   }, []);
 
   const fetchData = useCallback(async () => {
