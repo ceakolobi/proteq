@@ -363,6 +363,9 @@ export type Database = {
           carro_reserva_dias: number | null
           categoria: string | null
           chassi: string | null
+          cliente_email: string | null
+          cliente_nome: string | null
+          cliente_whatsapp: string | null
           codigo_fipe: string | null
           consultor_id: string
           cor: string | null
@@ -378,6 +381,8 @@ export type Database = {
           observacoes: string | null
           participacao: number | null
           placa: string | null
+          proposta_enviada_em: string | null
+          proposta_enviada_por: string | null
           proposta_id: string | null
           regiao_id: string | null
           renavam: string | null
@@ -400,6 +405,9 @@ export type Database = {
           carro_reserva_dias?: number | null
           categoria?: string | null
           chassi?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_whatsapp?: string | null
           codigo_fipe?: string | null
           consultor_id: string
           cor?: string | null
@@ -415,6 +423,8 @@ export type Database = {
           observacoes?: string | null
           participacao?: number | null
           placa?: string | null
+          proposta_enviada_em?: string | null
+          proposta_enviada_por?: string | null
           proposta_id?: string | null
           regiao_id?: string | null
           renavam?: string | null
@@ -437,6 +447,9 @@ export type Database = {
           carro_reserva_dias?: number | null
           categoria?: string | null
           chassi?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string | null
+          cliente_whatsapp?: string | null
           codigo_fipe?: string | null
           consultor_id?: string
           cor?: string | null
@@ -452,6 +465,8 @@ export type Database = {
           observacoes?: string | null
           participacao?: number | null
           placa?: string | null
+          proposta_enviada_em?: string | null
+          proposta_enviada_por?: string | null
           proposta_id?: string | null
           regiao_id?: string | null
           renavam?: string | null
