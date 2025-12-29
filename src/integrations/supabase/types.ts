@@ -1922,6 +1922,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_financial: { Args: { _user_id: string }; Returns: boolean }
       can_access_lead: {
         Args: { _lead_id: string; _user_id: string }
         Returns: boolean
@@ -1938,7 +1939,12 @@ export type Database = {
         Args: { _user_id: string; _veiculo_id: string }
         Returns: boolean
       }
+      can_access_vistoria_by_id: {
+        Args: { _user_id: string; _vistoria_id: string }
+        Returns: boolean
+      }
       can_create_lead: { Args: { _user_id: string }; Returns: boolean }
+      can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       enforce_company_isolation: {
         Args: { _company_id: string }
@@ -1964,6 +1970,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
       is_protected_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_system_admin: { Args: { _user_id: string }; Returns: boolean }
       log_sensitive_access: {
         Args: {
           _action: string
@@ -1975,6 +1982,10 @@ export type Database = {
       }
       same_company: {
         Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      strict_company_isolation: {
+        Args: { _company_id: string }
         Returns: boolean
       }
     }

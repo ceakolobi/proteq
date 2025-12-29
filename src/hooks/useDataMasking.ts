@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { createMasker } from '@/lib/dataMasking';
+import { createMasker, canViewFinancialData, canViewSensitiveData } from '@/lib/dataMasking';
 import { useMemo } from 'react';
 
 /**
@@ -22,14 +22,18 @@ export function useCanViewFullData() {
   const { isGlobalAdmin, roles } = useAuth();
   
   return useMemo(() => ({
-    // Admin Principal vê tudo
+    // System Admin / Admin Principal vê tudo
     fullAccess: isGlobalAdmin,
-    // Admin Regional e Cadastro veem dados parciais
-    partialAccess: roles.includes('admin_regional') || roles.includes('cadastro'),
+    // Admin Regional vê tudo da empresa
+    companyAccess: roles.includes('admin_regional') || isGlobalAdmin,
+    // Cadastro vê dados pessoais
+    personalDataAccess: roles.includes('admin_regional') || roles.includes('cadastro') || isGlobalAdmin,
     // Financeiro vê apenas dados financeiros
-    financialOnly: roles.includes('financeiro') && !roles.includes('admin_regional'),
+    financialAccess: canViewFinancialData(roles, isGlobalAdmin),
     // Consultor vê apenas seus dados
-    ownDataOnly: roles.includes('consultor_vendas') && !roles.includes('admin_regional'),
+    ownDataOnly: roles.includes('consultor_vendas') && !roles.includes('admin_regional') && !isGlobalAdmin,
+    // Vistoriador vê apenas vistorias atribuídas
+    assignedOnly: roles.includes('vistoriador') && !roles.includes('admin_regional') && !isGlobalAdmin,
   }), [isGlobalAdmin, roles]);
 }
 
@@ -40,13 +44,42 @@ export function useCanExport() {
   const { isGlobalAdmin, roles } = useAuth();
   
   return useMemo(() => ({
-    // Apenas Admin Principal pode exportar dados completos
+    // Apenas System Admin / Admin Principal pode exportar dados completos
     canExportFull: isGlobalAdmin,
-    // Admin Regional pode exportar dados da sua região (mascarados)
-    canExportRegional: roles.includes('admin_regional') || isGlobalAdmin,
+    // Admin Regional pode exportar dados da empresa (com mascaramento)
+    canExportCompany: roles.includes('admin_regional') || isGlobalAdmin,
     // Financeiro pode exportar relatórios financeiros
-    canExportFinancial: roles.includes('financeiro') || isGlobalAdmin,
+    canExportFinancial: canViewFinancialData(roles, isGlobalAdmin),
     // Consultor não pode exportar
     canExportAny: isGlobalAdmin || roles.includes('admin_regional') || roles.includes('financeiro'),
   }), [isGlobalAdmin, roles]);
+}
+
+/**
+ * Hook para verificar permissões de acesso por role
+ */
+export function useRolePermissions() {
+  const { isGlobalAdmin, roles, user } = useAuth();
+  
+  return useMemo(() => ({
+    isSystemAdmin: isGlobalAdmin,
+    isAdminEmpresa: roles.includes('admin_regional') || isGlobalAdmin,
+    isConsultor: roles.includes('consultor_vendas'),
+    isFinanceiro: roles.includes('financeiro'),
+    isVistoriador: roles.includes('vistoriador'),
+    isCadastro: roles.includes('cadastro'),
+    
+    // Verificações de acesso a módulos
+    canAccessLeads: isGlobalAdmin || roles.includes('admin_regional') || roles.includes('consultor_vendas'),
+    canAccessCotacoes: isGlobalAdmin || roles.includes('admin_regional') || roles.includes('consultor_vendas'),
+    canAccessVistorias: isGlobalAdmin || roles.includes('admin_regional') || roles.includes('vistoriador') || roles.includes('cadastro'),
+    canAccessPagamentos: canViewFinancialData(roles, isGlobalAdmin),
+    canAccessAssociados: isGlobalAdmin || roles.includes('admin_regional') || roles.includes('cadastro') || roles.includes('consultor_vendas'),
+    canAccessVeiculos: isGlobalAdmin || roles.includes('admin_regional') || roles.includes('cadastro') || roles.includes('vistoriador'),
+    canAccessUsuarios: isGlobalAdmin || roles.includes('admin_regional'),
+    canAccessConfiguracoes: isGlobalAdmin,
+    
+    // ID do usuário para filtragem
+    userId: user?.id,
+  }), [isGlobalAdmin, roles, user]);
 }
