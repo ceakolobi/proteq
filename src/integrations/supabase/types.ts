@@ -1072,6 +1072,7 @@ export type Database = {
           cover_2: string | null
           cover_3: string | null
           cover_4: string | null
+          cover_fixed_index: number | null
           cover_mode: string | null
           created_at: string
           email: string | null
@@ -1095,6 +1096,7 @@ export type Database = {
           cover_2?: string | null
           cover_3?: string | null
           cover_4?: string | null
+          cover_fixed_index?: number | null
           cover_mode?: string | null
           created_at?: string
           email?: string | null
@@ -1118,6 +1120,7 @@ export type Database = {
           cover_2?: string | null
           cover_3?: string | null
           cover_4?: string | null
+          cover_fixed_index?: number | null
           cover_mode?: string | null
           created_at?: string
           email?: string | null

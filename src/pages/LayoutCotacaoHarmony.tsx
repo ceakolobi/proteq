@@ -114,6 +114,8 @@ export default function LayoutCotacaoHarmony() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [showPdfActions, setShowPdfActions] = useState(false);
   const [pdfFilename, setPdfFilename] = useState("");
+  const [showCoverSelector, setShowCoverSelector] = useState(false);
+  const [selectedCoverOverride, setSelectedCoverOverride] = useState<string | null>(null);
   
   // Estados para assinatura
   const [nomeCliente, setNomeCliente] = useState("");
@@ -153,27 +155,34 @@ export default function LayoutCotacaoHarmony() {
   const contracapaImage = settings.pdf_contracapa || "/pdf-back-cover.png";
   
   // Capa do PDF - selecionar baseado no cover_mode
+  const availableCovers = [settings.cover_1, settings.cover_2, settings.cover_3, settings.cover_4].filter(Boolean) as string[];
+  
   const getSelectedCover = (): string | null => {
-    const covers = [settings.cover_1, settings.cover_2, settings.cover_3, settings.cover_4].filter(Boolean) as string[];
-    if (covers.length === 0) return null;
+    // Se há uma capa selecionada manualmente, usar ela
+    if (selectedCoverOverride) return selectedCoverOverride;
     
-    const mode = settings.cover_mode || "single";
+    // Se não há capas configuradas, retorna null (usará capa padrão gerada)
+    if (availableCovers.length === 0) return null;
     
-    if (mode === "single") {
-      return settings.cover_1 || null;
+    const mode = settings.cover_mode || "fixed";
+    
+    if (mode === "fixed") {
+      // Usa a capa fixa selecionada nas configurações
+      const fixedIndex = (settings.cover_fixed_index || 1) - 1;
+      const coverKeys = [settings.cover_1, settings.cover_2, settings.cover_3, settings.cover_4];
+      return coverKeys[fixedIndex] || availableCovers[0] || null;
     } else if (mode === "random") {
-      return covers[Math.floor(Math.random() * covers.length)];
-    } else if (mode === "sequential") {
-      // Usa o ID da cotação para determinar qual cover usar de forma sequencial
-      if (!cotacaoId) return covers[0];
-      const hash = cotacaoId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return covers[hash % covers.length];
+      return availableCovers[Math.floor(Math.random() * availableCovers.length)];
+    } else if (mode === "select") {
+      // Modo seleção: se não há override, retorna a primeira disponível
+      return availableCovers[0] || null;
     }
-    return covers[0];
+    return availableCovers[0];
   };
   
   const selectedCover = getSelectedCover();
-  const temCapa = !!selectedCover;
+  // Sempre mostra capa: ou a configurada, ou a padrão gerada
+  const temCapa = true;
   
   // Inicializar condições com texto do settings
   useEffect(() => {
@@ -294,6 +303,25 @@ export default function LayoutCotacaoHarmony() {
       console.error("Erro ao fazer upload:", error);
       return null;
     }
+  };
+
+  // Iniciar geração de PDF com verificação de modo
+  const initiateGeneratePdf = () => {
+    if (settings.cover_mode === "select" && availableCovers.length > 1) {
+      setShowCoverSelector(true);
+    } else {
+      handleGeneratePdf();
+    }
+  };
+
+  // Selecionar capa e gerar PDF
+  const handleSelectCoverAndGenerate = (coverUrl: string) => {
+    setSelectedCoverOverride(coverUrl);
+    setShowCoverSelector(false);
+    // Pequeno delay para garantir que o state foi atualizado
+    setTimeout(() => {
+      handleGeneratePdf();
+    }, 100);
   };
 
   // Gerar PDF com alta qualidade
@@ -420,7 +448,7 @@ export default function LayoutCotacaoHarmony() {
             {usarLogoColorida ? "Usar Logo Branca" : "Usar Logo Colorida"}
           </Button>
           <Button 
-            onClick={handleGeneratePdf} 
+            onClick={initiateGeneratePdf} 
             disabled={isGeneratingPdf}
             className="bg-harmony-green hover:bg-harmony-green/90"
           >
@@ -457,17 +485,52 @@ export default function LayoutCotacaoHarmony() {
                 pageBreakAfter: "always",
               }}
             >
-              <img
-                src={selectedCover}
-                alt="Capa"
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                  width: "auto",
-                  height: "auto",
-                  objectFit: "contain",
-                }}
-              />
+              {selectedCover ? (
+                <img
+                  src={selectedCover}
+                  alt="Capa"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    width: "auto",
+                    height: "auto",
+                    objectFit: "contain",
+                  }}
+                />
+              ) : (
+                // Capa padrão Harmony quando nenhuma capa está configurada
+                <div 
+                  className="w-full h-full flex flex-col items-center justify-center p-12"
+                  style={{
+                    background: `linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%)`,
+                  }}
+                >
+                  <img 
+                    src={logoBranca} 
+                    alt={nomeEmpresa}
+                    className="h-32 w-auto object-contain mb-8"
+                  />
+                  <h1 className="text-5xl font-bold text-white text-center mb-4 tracking-tight">
+                    PROPOSTA DE COTAÇÃO
+                  </h1>
+                  <p className="text-xl text-white/90 text-center mb-8">
+                    Proteção Veicular Completa
+                  </p>
+                  {cotacao && (
+                    <div className="bg-white/20 rounded-xl p-6 text-center">
+                      <p className="text-white font-semibold text-lg">
+                        {cotacao.marca} {cotacao.modelo}
+                      </p>
+                      <p className="text-white/80">
+                        {cotacao.ano_fabricacao}/{cotacao.ano_modelo || cotacao.ano_fabricacao}
+                      </p>
+                    </div>
+                  )}
+                  <div className="mt-auto text-white/70 text-sm">
+                    {siteEmpresa} • {telefoneEmpresa}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -939,6 +1002,38 @@ export default function LayoutCotacaoHarmony() {
         modelo={cotacao?.modelo || ""}
         mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
       />
+
+      {/* Modal de Seleção de Capa */}
+      {showCoverSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
+          <div className="bg-card rounded-xl p-6 max-w-2xl w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4">Escolha a Capa da Proposta</h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {availableCovers.map((cover, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSelectCoverAndGenerate(cover)}
+                  className="relative aspect-[210/297] border-2 border-border rounded-lg overflow-hidden hover:border-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <img
+                    src={cover}
+                    alt={`Capa ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-sm py-1 px-2">
+                    Capa {index + 1}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowCoverSelector(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

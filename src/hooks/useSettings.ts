@@ -22,6 +22,7 @@ export interface SystemSettings {
   cover_3: string | null;
   cover_4: string | null;
   cover_mode: string | null;
+  cover_fixed_index: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,7 +46,8 @@ const defaultSettings: SystemSettings = {
   cover_2: null,
   cover_3: null,
   cover_4: null,
-  cover_mode: "single",
+  cover_mode: "fixed",
+  cover_fixed_index: 1,
   created_at: "",
   updated_at: "",
 };
