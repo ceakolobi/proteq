@@ -26,6 +26,7 @@ import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
+import Configuracoes from "./pages/Configuracoes";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,7 @@ const App = () => (
             <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
             <Route path="/cotas" element={<ProtectedRoute><Cotas /></ProtectedRoute>} />
             <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
+            <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             
             {/* Admin Regional or above */}
             <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />

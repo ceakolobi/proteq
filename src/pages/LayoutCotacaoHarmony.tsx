@@ -40,7 +40,7 @@ import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
 import { QRCodeSVG } from "qrcode.react";
 import harmonyAgroLogoColorida from "@/assets/harmony-agro-logo-colorida.png";
 import harmonyAgroLogoBranca from "@/assets/harmony-agro-logo-branca.png";
-import { PDF_BACK_COVER_IMAGE, PDF_BACK_COVER_ENABLED } from "@/config/pdfBackCover";
+import { useSettings, type SystemSettings } from "@/hooks/useSettings";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -97,6 +97,9 @@ export default function LayoutCotacaoHarmony() {
   const [searchParams] = useSearchParams();
   const cotacaoId = searchParams.get("id");
   
+  // Carregar configurações do sistema
+  const { settings, isLoading: settingsLoading } = useSettings();
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfContentRef = useRef<HTMLDivElement>(null);
   const [usarLogoColorida, setUsarLogoColorida] = useState(true);
@@ -121,9 +124,44 @@ export default function LayoutCotacaoHarmony() {
     new Date().toLocaleDateString("pt-BR")
   );
   
-  const [condicoes, setCondicoes] = useState(
-    "Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente no momento da contratação. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade."
-  );
+  const [condicoes, setCondicoes] = useState("");
+  const [condicoesInitialized, setCondicoesInitialized] = useState(false);
+  
+  // Determinar logos baseado nas configurações
+  const logoColorida = settings.modo_white_label && settings.empresa_logo 
+    ? settings.empresa_logo 
+    : harmonyAgroLogoColorida;
+  const logoBranca = settings.modo_white_label && settings.empresa_logo_branca 
+    ? settings.empresa_logo_branca 
+    : harmonyAgroLogoBranca;
+  
+  // Nome da empresa para exibição
+  const nomeEmpresa = settings.modo_white_label && settings.empresa_nome 
+    ? settings.empresa_nome 
+    : "HARMONY AGRO";
+  
+  // Contatos da empresa
+  const telefoneEmpresa = settings.telefone || "(00) 00000-0000";
+  const siteEmpresa = settings.site || "www.harmonyagro.com.br";
+  
+  // Cores do sistema
+  const corPrimaria = settings.cor_primaria || "#F97316";
+  const corSecundaria = settings.cor_secundaria || "#22C55E";
+  
+  // Contra-capa
+  const temContracapa = !!settings.pdf_contracapa;
+  const contracapaImage = settings.pdf_contracapa || "/pdf-back-cover.png";
+  
+  // Inicializar condições com texto do settings
+  useEffect(() => {
+    if (!condicoesInitialized && !settingsLoading && settings.texto_institucional) {
+      setCondicoes(settings.texto_institucional);
+      setCondicoesInitialized(true);
+    } else if (!condicoesInitialized && !settingsLoading) {
+      setCondicoes("Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente no momento da contratação. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.");
+      setCondicoesInitialized(true);
+    }
+  }, [settingsLoading, settings.texto_institucional, condicoesInitialized]);
 
   // Carregar dados da cotação
   useEffect(() => {
@@ -247,7 +285,7 @@ export default function LayoutCotacaoHarmony() {
 
       // Mostrar contra-capa temporariamente para inclusão no PDF
       const backCoverElement = element.querySelector('.pdf-back-cover') as HTMLElement;
-      if (backCoverElement && PDF_BACK_COVER_ENABLED) {
+      if (backCoverElement && temContracapa) {
         backCoverElement.style.display = 'flex';
       }
 
@@ -281,7 +319,7 @@ export default function LayoutCotacaoHarmony() {
       const blob = await pdfInstance.outputPdf("blob");
 
       // Esconder contra-capa novamente após geração
-      if (backCoverElement && PDF_BACK_COVER_ENABLED) {
+      if (backCoverElement && temContracapa) {
         backCoverElement.style.display = 'none';
       }
       
@@ -392,8 +430,8 @@ export default function LayoutCotacaoHarmony() {
               {/* Logo à esquerda */}
               <div className="flex-shrink-0">
                 <img 
-                  src={usarLogoColorida ? harmonyAgroLogoColorida : harmonyAgroLogoBranca} 
-                  alt="Harmony Agro - Clube de Benefícios" 
+                  src={usarLogoColorida ? logoColorida : logoBranca} 
+                  alt={`${nomeEmpresa} - Clube de Benefícios`}
                   className="h-[70px] w-auto object-contain"
                   style={{ maxHeight: '90px', minHeight: '60px' }}
                 />
@@ -662,7 +700,7 @@ export default function LayoutCotacaoHarmony() {
 
               {/* Assinatura Representante */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Assinatura Harmony Agro</Label>
+                <Label className="text-sm font-medium">Assinatura {nomeEmpresa}</Label>
                 <div className="print:hidden">
                   <SignaturePad
                     onSignatureChange={setAssinaturaRepresentante}
@@ -683,7 +721,7 @@ export default function LayoutCotacaoHarmony() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  Representante Harmony Agro
+                  Representante {nomeEmpresa}
                 </p>
               </div>
             </div>
@@ -731,25 +769,25 @@ export default function LayoutCotacaoHarmony() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-card/20 flex items-center justify-center">
-                  <span className="text-card text-sm font-bold">H</span>
+                  <span className="text-card text-sm font-bold">{nomeEmpresa.charAt(0)}</span>
                 </div>
-                <span className="font-bold">HARMONY AGRO</span>
+                <span className="font-bold">{nomeEmpresa}</span>
               </div>
               <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-card/90">
                 <div className="flex items-center gap-1">
                   <Phone className="w-4 h-4" />
-                  <span>(00) 00000-0000</span>
+                  <span>{telefoneEmpresa}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Globe className="w-4 h-4" />
-                  <span>www.harmonyagro.com.br</span>
+                  <span>{siteEmpresa}</span>
                 </div>
               </div>
             </div>
           </footer>
 
           {/* 9️⃣ Contra-Capa (só aparece no PDF) */}
-          {PDF_BACK_COVER_ENABLED && (
+          {temContracapa && (
             <div 
               className="pdf-back-cover hidden"
               style={{
@@ -764,7 +802,7 @@ export default function LayoutCotacaoHarmony() {
               }}
             >
               <img
-                src={PDF_BACK_COVER_IMAGE}
+                src={contracapaImage}
                 alt="Contra-capa"
                 style={{
                   maxWidth: "100%",

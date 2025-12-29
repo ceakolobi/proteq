@@ -1063,6 +1063,63 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          cor_destaque: string
+          cor_primaria: string
+          cor_secundaria: string
+          created_at: string
+          email: string | null
+          empresa_logo: string | null
+          empresa_logo_branca: string | null
+          empresa_nome: string
+          esconder_marca_harmony: boolean
+          id: string
+          modo_white_label: boolean
+          pdf_contracapa: string | null
+          site: string | null
+          telefone: string | null
+          texto_institucional: string | null
+          updated_at: string
+        }
+        Insert: {
+          cor_destaque?: string
+          cor_primaria?: string
+          cor_secundaria?: string
+          created_at?: string
+          email?: string | null
+          empresa_logo?: string | null
+          empresa_logo_branca?: string | null
+          empresa_nome?: string
+          esconder_marca_harmony?: boolean
+          id?: string
+          modo_white_label?: boolean
+          pdf_contracapa?: string | null
+          site?: string | null
+          telefone?: string | null
+          texto_institucional?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cor_destaque?: string
+          cor_primaria?: string
+          cor_secundaria?: string
+          created_at?: string
+          email?: string | null
+          empresa_logo?: string | null
+          empresa_logo_branca?: string | null
+          empresa_nome?: string
+          esconder_marca_harmony?: boolean
+          id?: string
+          modo_white_label?: boolean
+          pdf_contracapa?: string | null
+          site?: string | null
+          telefone?: string | null
+          texto_institucional?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
