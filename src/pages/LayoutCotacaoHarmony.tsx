@@ -203,8 +203,6 @@ export default function LayoutCotacaoHarmony() {
   };
   
   const selectedCover = getSelectedCover();
-  // Sempre mostra capa: ou a configurada, ou a padrão gerada
-  const temCapa = true;
   
   // Inicializar condições com texto do settings
   useEffect(() => {
@@ -496,8 +494,8 @@ export default function LayoutCotacaoHarmony() {
       <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
         <div ref={pdfContentRef} className="bg-card rounded-xl shadow-lg print:shadow-none print:rounded-none overflow-hidden">
           
-          {/* 0️⃣ CAPA (primeira página do PDF) */}
-          {temCapa && (
+          {/* 0️⃣ CAPA (primeira página do PDF) - Só exibe se tiver capa configurada */}
+          {selectedCover && (
             <div 
               className="pdf-cover"
               style={{
@@ -511,52 +509,15 @@ export default function LayoutCotacaoHarmony() {
                 pageBreakAfter: "always",
               }}
             >
-              {selectedCover ? (
-                <img
-                  src={selectedCover}
-                  alt="Capa"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                    width: "auto",
-                    height: "auto",
-                    objectFit: "contain",
-                  }}
-                />
-              ) : (
-                // Capa padrão Harmony quando nenhuma capa está configurada
-                <div 
-                  className="w-full h-full flex flex-col items-center justify-center p-12"
-                  style={{
-                    background: `linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%)`,
-                  }}
-                >
-                  <img 
-                    src={logoBranca} 
-                    alt={nomeEmpresa}
-                    className="h-32 w-auto object-contain mb-8"
-                  />
-                  <h1 className="text-5xl font-bold text-white text-center mb-4 tracking-tight">
-                    PROPOSTA DE COTAÇÃO
-                  </h1>
-                  <p className="text-xl text-white/90 text-center mb-8">
-                    Proteção Veicular Completa
-                  </p>
-                  {cotacao && (
-                    <div className="bg-white/20 rounded-xl p-6 text-center">
-                      <p className="text-white font-semibold text-lg">
-                        {cotacao.marca} {cotacao.modelo}
-                      </p>
-                      <p className="text-white/80">
-                        {cotacao.ano_fabricacao}/{cotacao.ano_modelo || cotacao.ano_fabricacao}
-                      </p>
-                    </div>
-                  )}
-                  <div className="mt-auto text-white/70 text-sm">
-                    {siteEmpresa} • {telefoneEmpresa}
-                  </div>
-                </div>
-              )}
+              <img
+                src={selectedCover}
+                alt="Capa"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
             </div>
           )}
           
@@ -927,15 +888,15 @@ export default function LayoutCotacaoHarmony() {
             </div>
           </footer>
 
-          {/* 9️⃣ Contra-Capa (só aparece no PDF) */}
+          {/* 9️⃣ Contra-Capa (só aparece no PDF quando configurada) */}
           {temContracapa && (
             <div 
-              className="pdf-back-cover hidden"
+              className="pdf-back-cover"
               style={{
                 pageBreakBefore: "always",
                 width: "210mm",
                 height: "297mm",
-                display: "flex",
+                display: "none", // Escondido por padrão, mostrado via JS no momento da geração
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "#ffffff",
@@ -946,11 +907,9 @@ export default function LayoutCotacaoHarmony() {
                 src={contracapaImage}
                 alt="Contra-capa"
                 style={{
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                  width: "auto",
-                  height: "auto",
-                  objectFit: "contain",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
                 }}
               />
             </div>
