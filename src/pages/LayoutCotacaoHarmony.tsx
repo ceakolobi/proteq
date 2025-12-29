@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -369,30 +370,39 @@ export default function LayoutCotacaoHarmony() {
         <div ref={pdfContentRef} className="bg-card rounded-xl shadow-lg print:shadow-none print:rounded-none overflow-hidden">
           
           {/* 1️⃣ Cabeçalho */}
-          <header className="bg-gradient-to-r from-harmony-orange to-harmony-green p-8 text-center">
-            <div className="mb-4 flex justify-center">
-              {usarLogoColorida ? (
-                <div className="bg-card rounded-lg p-3 px-6 inline-block">
-                  <img 
-                    src={harmonyAgroLogoColorida} 
-                    alt="Harmony Agro - Clube de Benefícios" 
-                    className="h-16 md:h-20 w-auto"
-                  />
-                </div>
-              ) : (
+          <header className={cn(
+            "p-8",
+            usarLogoColorida 
+              ? "bg-card" 
+              : "bg-gradient-to-r from-harmony-orange to-harmony-green"
+          )}>
+            <div className="flex items-center justify-between">
+              {/* Logo à esquerda */}
+              <div className="flex-shrink-0">
                 <img 
-                  src={harmonyAgroLogoBranca} 
+                  src={usarLogoColorida ? harmonyAgroLogoColorida : harmonyAgroLogoBranca} 
                   alt="Harmony Agro - Clube de Benefícios" 
-                  className="h-16 md:h-20 w-auto"
+                  className="h-[70px] w-auto object-contain"
+                  style={{ maxHeight: '90px', minHeight: '60px' }}
                 />
-              )}
+              </div>
+              
+              {/* Título à direita */}
+              <div className="text-right">
+                <h1 className={cn(
+                  "text-2xl md:text-3xl font-bold uppercase tracking-wider mb-1",
+                  usarLogoColorida ? "text-harmony-orange" : "text-card"
+                )}>
+                  Proposta de Cotação
+                </h1>
+                <p className={cn(
+                  "text-sm md:text-base",
+                  usarLogoColorida ? "text-muted-foreground" : "text-card/90"
+                )}>
+                  Proteção Veicular • Caminhões • Motos • Máquinas Agrícolas
+                </p>
+              </div>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-card uppercase tracking-wider mb-2">
-              Proposta de Cotação
-            </h1>
-            <p className="text-card/90 text-sm md:text-base">
-              Proteção Veicular • Caminhões • Motos • Máquinas Agrícolas
-            </p>
           </header>
 
           {/* 2️⃣ Seção Principal – Resumo da Proposta */}
