@@ -36,6 +36,10 @@ export interface Cota {
   mensalidade_maquina_industrial?: number | null;
   mensalidade_carreta?: number | null;
   mensalidade_implemento_agricola?: number | null;
+  // Campos de aplicabilidade por categoria
+  aplica_carro?: boolean;
+  aplica_moto?: boolean;
+  aplica_caminhonete?: boolean;
 }
 
 /**
@@ -100,27 +104,47 @@ export function getCategoriaByTipoVeiculo(tipoVeiculo: VehicleType): CotaCategor
 // ==========================================
 
 /**
- * Busca a COTA correta automaticamente baseada no valor FIPE
+ * Busca a COTA correta automaticamente baseada no valor FIPE e categoria
  * 
  * REGRAS:
  * 1. Procurar na tabela cotas
  * 2. FIPE deve estar entre fipe_min e fipe_max
  * 3. Considerar apenas ativo = true
- * 4. Retornar a cota encontrada ou null
+ * 4. Considerar aplica_carro/moto/caminhonete conforme categoria
+ * 5. Retornar a cota encontrada ou null
  */
 export function buscarCotaPorFipe(
   valorFipe: number,
-  cotas: Cota[]
+  cotas: Cota[],
+  categoria?: CotaCategoria
 ): Cota | null {
   if (valorFipe <= 0 || cotas.length === 0) return null;
 
-  // Filtrar apenas cotas ativas e encontrar a que contém o valor FIPE
-  const cotaEncontrada = cotas.find(
-    cota => 
-      cota.ativo === true &&
-      valorFipe >= cota.fipe_min && 
-      valorFipe <= cota.fipe_max
-  );
+  // Filtrar cotas ativas, na faixa FIPE e que se aplicam à categoria
+  const cotaEncontrada = cotas.find(cota => {
+    // Verificar se está ativa
+    if (cota.ativo !== true) return false;
+    
+    // Verificar se está na faixa FIPE
+    if (valorFipe < cota.fipe_min || valorFipe > cota.fipe_max) return false;
+    
+    // Verificar aplicabilidade por categoria (se categoria informada)
+    if (categoria) {
+      switch (categoria) {
+        case 'CARRO':
+          if (cota.aplica_carro === false) return false;
+          break;
+        case 'MOTO':
+          if (cota.aplica_moto === false) return false;
+          break;
+        case 'CAMINHONETE':
+          if (cota.aplica_caminhonete === false) return false;
+          break;
+      }
+    }
+    
+    return true;
+  });
 
   return cotaEncontrada || null;
 }
@@ -314,12 +338,12 @@ export function calcularCotacaoCompleta(
   percentualIndividual: number = 0,
   carroReservaExtra?: 'nenhum' | '30dias' | '90dias'
 ): ResultadoCotacao | null {
-  // 1. Buscar a COTA correta
-  const cota = buscarCotaPorFipe(valorFipe, cotas);
-  if (!cota) return null;
-
-  // 2. Determinar categoria
+  // 1. Determinar categoria primeiro (necessário para busca)
   const categoria = getCategoriaByTipoVeiculo(tipoVeiculo);
+
+  // 2. Buscar a COTA correta (filtrando por categoria)
+  const cota = buscarCotaPorFipe(valorFipe, cotas, categoria);
+  if (!cota) return null;
 
   // 3. Selecionar valor_base conforme categoria
   const valorBase = getValorBasePorCategoria(cota, categoria, tipoVeiculo);
