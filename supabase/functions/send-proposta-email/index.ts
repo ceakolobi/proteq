@@ -225,12 +225,16 @@ const handler = async (req: Request): Promise<Response> => {
       if (errorMessage.includes('API key') || errorMessage.includes('api_key')) {
         errorType = 'api_key';
         userMessage = "Erro na configuração da API de e-mail. Entre em contato com o suporte.";
+      } else if (errorMessage.includes('testing emails') || errorMessage.includes('verify a domain')) {
+        // Erro específico: modo teste do Resend
+        errorType = 'remetente';
+        userMessage = "⚠️ Resend em modo teste: só é possível enviar para harmonysistema@gmail.com. Para enviar para outros destinatários, verifique um domínio em resend.com/domains";
       } else if (errorMessage.includes('from') || errorMessage.includes('sender') || errorMessage.includes('domain')) {
         errorType = 'remetente';
-        userMessage = "O domínio do remetente precisa ser verificado no Resend. Use o e-mail de teste ou configure um domínio.";
+        userMessage = "O domínio do remetente precisa ser verificado no Resend. Acesse resend.com/domains para configurar.";
       } else if (errorMessage.includes('to') || errorMessage.includes('recipient') || errorMessage.includes('email address')) {
         errorType = 'destinatario';
-        userMessage = "E-mail do destinatário inválido ou não permitido no modo de teste.";
+        userMessage = "E-mail do destinatário inválido.";
       } else if (errorMessage.includes('attachment') || errorMessage.includes('content')) {
         errorType = 'pdf';
         userMessage = "Erro ao anexar o PDF. Tente novamente.";
