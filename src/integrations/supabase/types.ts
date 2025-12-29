@@ -108,6 +108,7 @@ export type Database = {
         Row: {
           cep: string | null
           cidade: string | null
+          company_id: string | null
           consultor_id: string | null
           cpf: string
           created_at: string
@@ -129,6 +130,7 @@ export type Database = {
         Insert: {
           cep?: string | null
           cidade?: string | null
+          company_id?: string | null
           consultor_id?: string | null
           cpf: string
           created_at?: string
@@ -150,6 +152,7 @@ export type Database = {
         Update: {
           cep?: string | null
           cidade?: string | null
+          company_id?: string | null
           consultor_id?: string | null
           cpf?: string
           created_at?: string
@@ -170,6 +173,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "associados_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "associados_regiao_id_fkey"
             columns: ["regiao_id"]
             isOneToOne: false
@@ -187,6 +197,7 @@ export type Database = {
           cancelado_por: string | null
           categoria: string | null
           cobertura_resumida: string | null
+          company_id: string | null
           consultor_id: string | null
           created_at: string
           data_ativacao: string
@@ -212,6 +223,7 @@ export type Database = {
           cancelado_por?: string | null
           categoria?: string | null
           cobertura_resumida?: string | null
+          company_id?: string | null
           consultor_id?: string | null
           created_at?: string
           data_ativacao?: string
@@ -237,6 +249,7 @@ export type Database = {
           cancelado_por?: string | null
           categoria?: string | null
           cobertura_resumida?: string | null
+          company_id?: string | null
           consultor_id?: string | null
           created_at?: string
           data_ativacao?: string
@@ -260,6 +273,13 @@ export type Database = {
             columns: ["associado_id"]
             isOneToOne: false
             referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ativacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -311,6 +331,96 @@ export type Database = {
           registro_id?: string | null
           tabela?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      companies: {
+        Row: {
+          ativo: boolean | null
+          cidade: string | null
+          cnpj: string | null
+          cor_destaque: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          cover_1: string | null
+          cover_2: string | null
+          cover_3: string | null
+          cover_4: string | null
+          cover_fixed_index: number | null
+          cover_mode: string | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          esconder_marca_harmony: boolean | null
+          estado: string | null
+          id: string
+          logo: string | null
+          logo_branca: string | null
+          modo_white_label: boolean | null
+          nome: string
+          pdf_contracapa: string | null
+          site: string | null
+          telefone: string | null
+          texto_institucional: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cidade?: string | null
+          cnpj?: string | null
+          cor_destaque?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          cover_1?: string | null
+          cover_2?: string | null
+          cover_3?: string | null
+          cover_4?: string | null
+          cover_fixed_index?: number | null
+          cover_mode?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          esconder_marca_harmony?: boolean | null
+          estado?: string | null
+          id?: string
+          logo?: string | null
+          logo_branca?: string | null
+          modo_white_label?: boolean | null
+          nome: string
+          pdf_contracapa?: string | null
+          site?: string | null
+          telefone?: string | null
+          texto_institucional?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cidade?: string | null
+          cnpj?: string | null
+          cor_destaque?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          cover_1?: string | null
+          cover_2?: string | null
+          cover_3?: string | null
+          cover_4?: string | null
+          cover_fixed_index?: number | null
+          cover_mode?: string | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          esconder_marca_harmony?: boolean | null
+          estado?: string | null
+          id?: string
+          logo?: string | null
+          logo_branca?: string | null
+          modo_white_label?: boolean | null
+          nome?: string
+          pdf_contracapa?: string | null
+          site?: string | null
+          telefone?: string | null
+          texto_institucional?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -367,6 +477,7 @@ export type Database = {
           cliente_nome: string | null
           cliente_whatsapp: string | null
           codigo_fipe: string | null
+          company_id: string | null
           consultor_id: string
           cor: string | null
           cota_id: string | null
@@ -409,6 +520,7 @@ export type Database = {
           cliente_nome?: string | null
           cliente_whatsapp?: string | null
           codigo_fipe?: string | null
+          company_id?: string | null
           consultor_id: string
           cor?: string | null
           cota_id?: string | null
@@ -451,6 +563,7 @@ export type Database = {
           cliente_nome?: string | null
           cliente_whatsapp?: string | null
           codigo_fipe?: string | null
+          company_id?: string | null
           consultor_id?: string
           cor?: string | null
           cota_id?: string | null
@@ -485,6 +598,13 @@ export type Database = {
             columns: ["associado_id"]
             isOneToOne: false
             referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -527,6 +647,7 @@ export type Database = {
       cotas: {
         Row: {
           ativo: boolean
+          company_id: string | null
           cota_nome: string
           created_at: string
           fipe_max: number
@@ -547,6 +668,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          company_id?: string | null
           cota_nome: string
           created_at?: string
           fipe_max: number
@@ -567,6 +689,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          company_id?: string | null
           cota_nome?: string
           created_at?: string
           fipe_max?: number
@@ -585,7 +708,15 @@ export type Database = {
           valor_carro?: number
           valor_moto?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cotas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fipe_cache: {
         Row: {
@@ -724,6 +855,7 @@ export type Database = {
       leads: {
         Row: {
           cidade: string | null
+          company_id: string | null
           consultor_id: string
           convertido: boolean
           created_at: string
@@ -742,6 +874,7 @@ export type Database = {
         }
         Insert: {
           cidade?: string | null
+          company_id?: string | null
           consultor_id: string
           convertido?: boolean
           created_at?: string
@@ -760,6 +893,7 @@ export type Database = {
         }
         Update: {
           cidade?: string | null
+          company_id?: string | null
           consultor_id?: string
           convertido?: boolean
           created_at?: string
@@ -777,6 +911,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_regiao_id_fkey"
             columns: ["regiao_id"]
@@ -796,6 +937,7 @@ export type Database = {
       pagamentos: {
         Row: {
           associado_id: string
+          company_id: string | null
           created_at: string
           data_pagamento: string | null
           data_vencimento: string
@@ -809,6 +951,7 @@ export type Database = {
         }
         Insert: {
           associado_id: string
+          company_id?: string | null
           created_at?: string
           data_pagamento?: string | null
           data_vencimento: string
@@ -822,6 +965,7 @@ export type Database = {
         }
         Update: {
           associado_id?: string
+          company_id?: string | null
           created_at?: string
           data_pagamento?: string | null
           data_vencimento?: string
@@ -842,6 +986,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pagamentos_veiculo_id_fkey"
             columns: ["veiculo_id"]
             isOneToOne: false
@@ -853,6 +1004,7 @@ export type Database = {
       profiles: {
         Row: {
           ativo: boolean
+          company_id: string | null
           cpf: string | null
           created_at: string
           email: string
@@ -866,6 +1018,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          company_id?: string | null
           cpf?: string | null
           created_at?: string
           email: string
@@ -879,6 +1032,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          company_id?: string | null
           cpf?: string | null
           created_at?: string
           email?: string
@@ -891,6 +1045,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_regiao_id_fkey"
             columns: ["regiao_id"]
@@ -913,6 +1074,7 @@ export type Database = {
           associado_id: string | null
           carro_reserva_adicional: number | null
           carro_reserva_dias: number
+          company_id: string | null
           consultor_id: string
           cota_id: string | null
           created_at: string
@@ -933,6 +1095,7 @@ export type Database = {
           associado_id?: string | null
           carro_reserva_adicional?: number | null
           carro_reserva_dias?: number
+          company_id?: string | null
           consultor_id: string
           cota_id?: string | null
           created_at?: string
@@ -953,6 +1116,7 @@ export type Database = {
           associado_id?: string | null
           carro_reserva_adicional?: number | null
           carro_reserva_dias?: number
+          company_id?: string | null
           consultor_id?: string
           cota_id?: string | null
           created_at?: string
@@ -977,6 +1141,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "propostas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "propostas_cota_id_fkey"
             columns: ["cota_id"]
             isOneToOne: false
@@ -995,6 +1166,7 @@ export type Database = {
       regioes: {
         Row: {
           ativo: boolean
+          company_id: string | null
           created_at: string
           id: string
           nome: string
@@ -1003,6 +1175,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          company_id?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -1011,6 +1184,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          company_id?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -1018,6 +1192,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "regioes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "regioes_sede_id_fkey"
             columns: ["sede_id"]
@@ -1030,6 +1211,7 @@ export type Database = {
       sedes: {
         Row: {
           ativo: boolean
+          company_id: string | null
           created_at: string
           email: string | null
           endereco: string | null
@@ -1041,6 +1223,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          company_id?: string | null
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -1052,6 +1235,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          company_id?: string | null
           created_at?: string
           email?: string | null
           endereco?: string | null
@@ -1061,7 +1245,15 @@ export type Database = {
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sedes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {
@@ -1167,6 +1359,7 @@ export type Database = {
           carro_reserva_dias: number
           chassi: string | null
           codigo_fipe: string | null
+          company_id: string | null
           consultor_id: string | null
           cor: string | null
           cota_id: string | null
@@ -1195,6 +1388,7 @@ export type Database = {
           carro_reserva_dias?: number
           chassi?: string | null
           codigo_fipe?: string | null
+          company_id?: string | null
           consultor_id?: string | null
           cor?: string | null
           cota_id?: string | null
@@ -1223,6 +1417,7 @@ export type Database = {
           carro_reserva_dias?: number
           chassi?: string | null
           codigo_fipe?: string | null
+          company_id?: string | null
           consultor_id?: string | null
           cor?: string | null
           cota_id?: string | null
@@ -1250,6 +1445,13 @@ export type Database = {
             columns: ["associado_id"]
             isOneToOne: false
             referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -1285,6 +1487,7 @@ export type Database = {
       vistorias: {
         Row: {
           checklist: Json | null
+          company_id: string | null
           consultor_id: string | null
           created_at: string
           data_agendada: string | null
@@ -1305,6 +1508,7 @@ export type Database = {
         }
         Insert: {
           checklist?: Json | null
+          company_id?: string | null
           consultor_id?: string | null
           created_at?: string
           data_agendada?: string | null
@@ -1325,6 +1529,7 @@ export type Database = {
         }
         Update: {
           checklist?: Json | null
+          company_id?: string | null
           consultor_id?: string | null
           created_at?: string
           data_agendada?: string | null
@@ -1344,6 +1549,13 @@ export type Database = {
           vistoriador_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vistorias_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vistorias_proposta_id_fkey"
             columns: ["proposta_id"]
@@ -1390,6 +1602,7 @@ export type Database = {
       }
       can_create_lead: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
+      get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -1410,6 +1623,10 @@ export type Database = {
           _resource_type: string
         }
         Returns: undefined
+      }
+      same_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
