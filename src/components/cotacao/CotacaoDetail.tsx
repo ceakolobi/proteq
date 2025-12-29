@@ -284,46 +284,15 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     navigate(`/layout-cotacao-harmony?id=${cotacao.id}`);
   };
 
-  // Enviar por e-mail
-  const handleEnviarEmail = async () => {
+  // Enviar por e-mail - redireciona para gerar PDF primeiro
+  const handleEnviarEmail = () => {
     if (!clienteEmail) {
       toast.error('Informe o e-mail do cliente para enviar a proposta');
       return;
     }
-
-    setIsSendingEmail(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-proposta-email", {
-        body: {
-          to: clienteEmail,
-          clienteNome: clienteNome,
-          modelo: `${cotacao.marca} ${cotacao.modelo}`,
-          mensalidade: formatCurrency(cotacao.mensalidade),
-          validadeDias: 7,
-          pdfUrl: null, // Será gerado na página de layout
-          filename: `Proposta_HarmonyAgro_${cotacao.modelo}.pdf`,
-        },
-      });
-
-      if (error) throw error;
-
-      // Atualizar cotação com data de envio
-      await supabase
-        .from('cotacoes')
-        .update({
-          proposta_enviada_em: new Date().toISOString(),
-          proposta_enviada_por: user?.id,
-        })
-        .eq('id', cotacao.id);
-
-      toast.success('Proposta enviada com sucesso!');
-      onUpdate();
-    } catch (error: any) {
-      console.error('Erro ao enviar e-mail:', error);
-      toast.error(error.message || 'Erro ao enviar e-mail');
-    } finally {
-      setIsSendingEmail(false);
-    }
+    // Redireciona para página de layout onde o PDF será gerado e pode ser enviado
+    toast.info('Gerando proposta para envio por e-mail...');
+    navigate(`/layout-cotacao-harmony?id=${cotacao.id}`);
   };
 
   // Enviar por WhatsApp
