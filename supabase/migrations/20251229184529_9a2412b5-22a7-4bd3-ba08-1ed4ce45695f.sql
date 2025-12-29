@@ -1,0 +1,3 @@
+
+ALTER TABLE cotas
+ADD COLUMN IF NOT EXISTS categoria TEXT;

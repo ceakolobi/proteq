@@ -762,6 +762,7 @@ export type Database = {
       cotas: {
         Row: {
           ativo: boolean
+          categoria: string | null
           company_id: string | null
           cota_nome: string
           created_at: string
@@ -784,6 +785,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          categoria?: string | null
           company_id?: string | null
           cota_nome: string
           created_at?: string
@@ -806,6 +808,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          categoria?: string | null
           company_id?: string | null
           cota_nome?: string
           created_at?: string
