@@ -1,4 +1,4 @@
-import type { Cota, VehicleType } from '@/types/database';
+import type { Cota, VehicleType, CotaCategoria } from '@/types/database';
 
 export interface CotaExtendida extends Cota {
   mensalidade_caminhao?: number;
@@ -9,6 +9,27 @@ export interface CotaExtendida extends Cota {
   mensalidade_implemento_agricola?: number;
 }
 
+/**
+ * Mapeia o tipo de veículo para a categoria da cota
+ */
+export function getCategoriaByTipoVeiculo(tipoVeiculo: VehicleType): CotaCategoria {
+  switch (tipoVeiculo) {
+    case 'moto':
+      return 'MOTO';
+    case 'pickup':
+    case 'caminhao':
+    case 'utilitario':
+    case 'carreta':
+      return 'CAMINHONETE';
+    case 'carro':
+    case 'maquina_agricola':
+    case 'maquina_industrial':
+    case 'implemento_agricola':
+    default:
+      return 'CARRO';
+  }
+}
+
 export interface ResultadoCalculo {
   cota: CotaExtendida;
   mensalidade: number;
@@ -17,17 +38,25 @@ export interface ResultadoCalculo {
 }
 
 /**
- * Busca a cota apropriada baseada no valor FIPE
- * Condições: fipe_min <= valorFipe AND fipe_max >= valorFipe AND ativo = true
+ * Busca a cota apropriada baseada no valor FIPE e categoria do veículo
+ * Condições: fipe_min <= valorFipe AND fipe_max >= valorFipe AND ativo = true AND categoria = categoria_veiculo
  */
 export function buscarCotaPorFipe(
   valorFipe: number,
-  cotas: CotaExtendida[]
+  cotas: CotaExtendida[],
+  tipoVeiculo?: VehicleType
 ): CotaExtendida | null {
   if (valorFipe <= 0 || cotas.length === 0) return null;
 
+  // Determinar categoria baseada no tipo de veículo
+  const categoria = tipoVeiculo ? getCategoriaByTipoVeiculo(tipoVeiculo) : undefined;
+
   return cotas.find(
-    cota => valorFipe >= cota.fipe_min && valorFipe <= cota.fipe_max && cota.ativo
+    cota => 
+      valorFipe >= cota.fipe_min && 
+      valorFipe <= cota.fipe_max && 
+      cota.ativo &&
+      (categoria ? cota.categoria === categoria : true)
   ) || null;
 }
 
@@ -107,7 +136,7 @@ export function calcularCotacaoCompleta(
   cotas: CotaExtendida[],
   carroReservaExtra?: 'nenhum' | '30dias' | '90dias'
 ): ResultadoCalculo | null {
-  const cota = buscarCotaPorFipe(valorFipe, cotas);
+  const cota = buscarCotaPorFipe(valorFipe, cotas, tipoVeiculo);
   
   if (!cota) return null;
 
