@@ -269,46 +269,45 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           ))}
         </nav>
       </ScrollArea>
-
-      {/* User section */}
-      <div className="p-4 border-t border-sidebar-border">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-3 px-3">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                  {profile?.nome_completo ? getInitials(profile.nome_completo) : 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-medium truncate">
-                  {profile?.nome_completo || 'Usuário'}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {isAdminPrincipal 
-                    ? roleLabels.admin_principal 
-                    : roles[0] ? roleLabels[roles[0]] : 'Sem perfil'}
-                </p>
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/perfil')}>
-              <UserCircle className="mr-2 h-4 w-4" />
-              Meu Perfil
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
     </div>
+  );
+
+  const UserMenu = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="gap-3 px-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+              {profile?.nome_completo ? getInitials(profile.nome_completo) : 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-left hidden sm:block">
+            <p className="text-sm font-medium truncate max-w-[150px]">
+              {profile?.nome_completo || 'Usuário'}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {isAdminPrincipal 
+                ? roleLabels.admin_principal 
+                : roles[0] ? roleLabels[roles[0]] : 'Sem perfil'}
+            </p>
+          </div>
+          <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/perfil')}>
+          <UserCircle className="mr-2 h-4 w-4" />
+          Meu Perfil
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
@@ -317,6 +316,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-64 lg:border-r lg:border-sidebar-border lg:bg-sidebar">
         <SidebarContent />
       </aside>
+
+      {/* Desktop Header */}
+      <header className="hidden lg:flex fixed top-0 left-64 right-0 z-40 h-16 items-center justify-end px-6 border-b bg-card">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon">
+            <Bell className="h-5 w-5" />
+          </Button>
+          <UserMenu />
+        </div>
+      </header>
 
       {/* Mobile Header */}
       <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 py-3 border-b bg-card">
@@ -344,37 +353,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    {profile?.nome_completo ? getInitials(profile.nome_completo) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>
-                {profile?.nome_completo || 'Usuário'}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/perfil')}>
-                <UserCircle className="mr-2 h-4 w-4" />
-                Meu Perfil
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserMenu />
         </div>
       </header>
 
       {/* Main content */}
-      <main className="lg:pl-64">
+      <main className="lg:pl-64 lg:pt-16">
         <div className="p-6 lg:p-8">
           {children}
         </div>
