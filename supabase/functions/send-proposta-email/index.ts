@@ -231,7 +231,7 @@ const handler = async (req: Request): Promise<Response> => {
         userMessage = "⚠️ Resend em modo teste: só é possível enviar para harmonysistema@gmail.com. Para enviar para outros destinatários, verifique um domínio em resend.com/domains";
       } else if (errorMessage.includes('from') || errorMessage.includes('sender') || errorMessage.includes('domain')) {
         errorType = 'remetente';
-        userMessage = "O domínio do remetente precisa ser verificado no Resend. Acesse resend.com/domains para configurar.";
+        userMessage = "O domínio do remetente ainda não está verificado no Resend (ou a RESEND_API_KEY é de outra conta). Confirme que harmonyagro.com.br está como VERIFIED e, se necessário, gere uma nova API key e atualize no sistema.";
       } else if (errorMessage.includes('to') || errorMessage.includes('recipient') || errorMessage.includes('email address')) {
         errorType = 'destinatario';
         userMessage = "E-mail do destinatário inválido.";
@@ -245,10 +245,14 @@ const handler = async (req: Request): Promise<Response> => {
         error: userMessage,
         errorType
       };
+
+      const status = typeof (emailResponse.error as any)?.statusCode === "number"
+        ? (emailResponse.error as any).statusCode
+        : 400;
       
       return new Response(
         JSON.stringify(errorResponse),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
