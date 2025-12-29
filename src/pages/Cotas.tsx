@@ -177,6 +177,10 @@ export default function Cotas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Limites máximos para evitar overflow no banco
+    const MAX_FIPE = 50000000; // R$ 50 milhões
+    const MAX_MENSALIDADE = 100000; // R$ 100 mil
     
     // Validação: pelo menos uma categoria deve estar selecionada
     if (!formData.aplica_carro && !formData.aplica_moto && !formData.aplica_caminhonete) {
@@ -188,30 +192,51 @@ export default function Cotas() {
       return;
     }
 
+    // Validação de limites FIPE
+    const fipeMin = parseFloat(formData.fipe_min) || 0;
+    const fipeMax = parseFloat(formData.fipe_max) || 0;
+    if (fipeMin > MAX_FIPE || fipeMax > MAX_FIPE) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de validação',
+        description: `Os valores FIPE devem ser no máximo R$ ${MAX_FIPE.toLocaleString('pt-BR')}.`,
+      });
+      return;
+    }
+
     // Validação: campos de valor obrigatórios conforme categorias selecionadas
-    if (formData.aplica_carro && (!formData.valor_carro || parseFloat(formData.valor_carro) <= 0)) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro de validação',
-        description: 'Informe o valor para Carro.',
-      });
-      return;
+    if (formData.aplica_carro) {
+      const valor = parseFloat(formData.valor_carro) || 0;
+      if (valor <= 0) {
+        toast({ variant: 'destructive', title: 'Erro de validação', description: 'Informe o valor para Carro.' });
+        return;
+      }
+      if (valor > MAX_MENSALIDADE) {
+        toast({ variant: 'destructive', title: 'Erro de validação', description: `Valor Carro máximo: R$ ${MAX_MENSALIDADE.toLocaleString('pt-BR')}.` });
+        return;
+      }
     }
-    if (formData.aplica_moto && (!formData.valor_moto || parseFloat(formData.valor_moto) <= 0)) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro de validação',
-        description: 'Informe o valor para Moto.',
-      });
-      return;
+    if (formData.aplica_moto) {
+      const valor = parseFloat(formData.valor_moto) || 0;
+      if (valor <= 0) {
+        toast({ variant: 'destructive', title: 'Erro de validação', description: 'Informe o valor para Moto.' });
+        return;
+      }
+      if (valor > MAX_MENSALIDADE) {
+        toast({ variant: 'destructive', title: 'Erro de validação', description: `Valor Moto máximo: R$ ${MAX_MENSALIDADE.toLocaleString('pt-BR')}.` });
+        return;
+      }
     }
-    if (formData.aplica_caminhonete && (!formData.valor_camionete || parseFloat(formData.valor_camionete) <= 0)) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro de validação',
-        description: 'Informe o valor para Caminhonete.',
-      });
-      return;
+    if (formData.aplica_caminhonete) {
+      const valor = parseFloat(formData.valor_camionete) || 0;
+      if (valor <= 0) {
+        toast({ variant: 'destructive', title: 'Erro de validação', description: 'Informe o valor para Caminhonete.' });
+        return;
+      }
+      if (valor > MAX_MENSALIDADE) {
+        toast({ variant: 'destructive', title: 'Erro de validação', description: `Valor Caminhonete máximo: R$ ${MAX_MENSALIDADE.toLocaleString('pt-BR')}.` });
+        return;
+      }
     }
 
     try {
