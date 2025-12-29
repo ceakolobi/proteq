@@ -761,6 +761,9 @@ export type Database = {
       }
       cotas: {
         Row: {
+          aplica_caminhonete: boolean
+          aplica_carro: boolean
+          aplica_moto: boolean
           ativo: boolean
           categoria: string | null
           company_id: string | null
@@ -784,6 +787,9 @@ export type Database = {
           valor_moto: number
         }
         Insert: {
+          aplica_caminhonete?: boolean
+          aplica_carro?: boolean
+          aplica_moto?: boolean
           ativo?: boolean
           categoria?: string | null
           company_id?: string | null
@@ -807,6 +813,9 @@ export type Database = {
           valor_moto: number
         }
         Update: {
+          aplica_caminhonete?: boolean
+          aplica_carro?: boolean
+          aplica_moto?: boolean
           ativo?: boolean
           categoria?: string | null
           company_id?: string | null
