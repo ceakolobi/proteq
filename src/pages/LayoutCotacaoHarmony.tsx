@@ -37,6 +37,7 @@ import { toast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/cotacao/SignaturePad";
 import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
 import { QRCodeSVG } from "qrcode.react";
+import harmonyAgroLogoColorida from "@/assets/harmony-agro-logo-colorida.png";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -362,22 +363,14 @@ export default function LayoutCotacaoHarmony() {
           
           {/* 1️⃣ Cabeçalho */}
           <header className="bg-gradient-to-r from-harmony-orange to-harmony-green p-8 text-center">
-            <div className="mb-4">
-              {usarLogoColorida ? (
-                <div className="inline-flex items-center gap-2 text-3xl font-bold text-card">
-                  <div className="w-12 h-12 rounded-full bg-card flex items-center justify-center">
-                    <span className="text-harmony-orange text-xl font-bold">H</span>
-                  </div>
-                  <span>HARMONY AGRO</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2 text-3xl font-bold text-card">
-                  <div className="w-12 h-12 rounded-full bg-card/20 flex items-center justify-center">
-                    <span className="text-card text-xl font-bold">H</span>
-                  </div>
-                  <span>HARMONY AGRO</span>
-                </div>
-              )}
+            <div className="mb-4 flex justify-center">
+              <div className="bg-card rounded-lg p-3 px-6 inline-block">
+                <img 
+                  src={harmonyAgroLogoColorida} 
+                  alt="Harmony Agro - Clube de Benefícios" 
+                  className="h-16 md:h-20 w-auto"
+                />
+              </div>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-card uppercase tracking-wider mb-2">
               Proposta de Cotação
