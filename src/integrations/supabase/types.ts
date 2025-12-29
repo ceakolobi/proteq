@@ -56,6 +56,7 @@ export type Database = {
       acionamentos_guincho: {
         Row: {
           associado_id: string
+          company_id: string | null
           created_at: string
           data_acionamento: string
           destino: string | null
@@ -67,6 +68,7 @@ export type Database = {
         }
         Insert: {
           associado_id: string
+          company_id?: string | null
           created_at?: string
           data_acionamento?: string
           destino?: string | null
@@ -78,6 +80,7 @@ export type Database = {
         }
         Update: {
           associado_id?: string
+          company_id?: string | null
           created_at?: string
           data_acionamento?: string
           destino?: string | null
@@ -93,6 +96,27 @@ export type Database = {
             columns: ["associado_id"]
             isOneToOne: false
             referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acionamentos_guincho_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acionamentos_guincho_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acionamentos_guincho_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
             referencedColumns: ["id"]
           },
           {
@@ -276,6 +300,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ativacoes_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ativacoes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -287,6 +318,13 @@ export type Database = {
             columns: ["sede_id"]
             isOneToOne: false
             referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ativacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: true
+            referencedRelation: "v_veiculos_masked"
             referencedColumns: ["id"]
           },
           {
@@ -601,6 +639,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cotacoes_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cotacoes_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -633,6 +678,13 @@ export type Database = {
             columns: ["regiao_id"]
             isOneToOne: false
             referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
             referencedColumns: ["id"]
           },
           {
@@ -986,10 +1038,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pagamentos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1138,6 +1204,13 @@ export type Database = {
             columns: ["associado_id"]
             isOneToOne: false
             referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1448,6 +1521,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "veiculos_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "veiculos_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -1574,6 +1654,13 @@ export type Database = {
             foreignKeyName: "vistorias_veiculo_id_fkey"
             columns: ["veiculo_id"]
             isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vistorias_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
             referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
@@ -1581,7 +1668,157 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_associados_masked: {
+        Row: {
+          cep: string | null
+          cidade: string | null
+          company_id: string | null
+          consultor_id: string | null
+          cpf: string | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string | null
+          nome_completo: string | null
+          regiao_id: string | null
+          rg: string | null
+          status: Database["public"]["Enums"]["associate_status"] | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cep?: string | null
+          cidade?: string | null
+          company_id?: string | null
+          consultor_id?: string | null
+          cpf?: never
+          created_at?: string | null
+          email?: never
+          endereco?: never
+          estado?: string | null
+          id?: string | null
+          nome_completo?: string | null
+          regiao_id?: string | null
+          rg?: never
+          status?: Database["public"]["Enums"]["associate_status"] | null
+          telefone?: never
+          updated_at?: string | null
+        }
+        Update: {
+          cep?: string | null
+          cidade?: string | null
+          company_id?: string | null
+          consultor_id?: string | null
+          cpf?: never
+          created_at?: string | null
+          email?: never
+          endereco?: never
+          estado?: string | null
+          id?: string | null
+          nome_completo?: string | null
+          regiao_id?: string | null
+          rg?: never
+          status?: Database["public"]["Enums"]["associate_status"] | null
+          telefone?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "associados_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associados_regiao_id_fkey"
+            columns: ["regiao_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_veiculos_masked: {
+        Row: {
+          ano: number | null
+          associado_id: string | null
+          chassi: string | null
+          company_id: string | null
+          cor: string | null
+          created_at: string | null
+          id: string | null
+          marca: string | null
+          mensalidade: number | null
+          modelo: string | null
+          placa: string | null
+          renavam: string | null
+          tipo: Database["public"]["Enums"]["vehicle_type"] | null
+          updated_at: string | null
+          valor_fipe: number | null
+          veiculo_status: Database["public"]["Enums"]["vehicle_status"] | null
+        }
+        Insert: {
+          ano?: number | null
+          associado_id?: string | null
+          chassi?: never
+          company_id?: string | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string | null
+          marca?: string | null
+          mensalidade?: number | null
+          modelo?: string | null
+          placa?: never
+          renavam?: never
+          tipo?: Database["public"]["Enums"]["vehicle_type"] | null
+          updated_at?: string | null
+          valor_fipe?: number | null
+          veiculo_status?: Database["public"]["Enums"]["vehicle_status"] | null
+        }
+        Update: {
+          ano?: number | null
+          associado_id?: string | null
+          chassi?: never
+          company_id?: string | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string | null
+          marca?: string | null
+          mensalidade?: number | null
+          modelo?: string | null
+          placa?: never
+          renavam?: never
+          tipo?: Database["public"]["Enums"]["vehicle_type"] | null
+          updated_at?: string | null
+          valor_fipe?: number | null
+          veiculo_status?: Database["public"]["Enums"]["vehicle_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "veiculos_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_access_lead: {
@@ -1602,10 +1839,21 @@ export type Database = {
       }
       can_create_lead: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
+      enforce_company_isolation: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
       has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role_in_company: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
