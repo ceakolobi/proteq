@@ -38,7 +38,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
-import logoMarkaColorida from '@/assets/logo-marka-colorida.png';
+
 
 interface NavItem {
   title: string;
@@ -228,11 +228,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-        <img 
-          src={logoMarkaColorida}
-          alt="MARKA CRM" 
-          className="h-10 w-10"
-        />
+        <div className="p-2 bg-primary rounded-lg">
+          <Shield className="h-6 w-6 text-primary-foreground" />
+        </div>
         <div>
           <h1 className="font-bold text-lg text-sidebar-foreground">MARKA CRM</h1>
           <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
@@ -341,11 +339,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <img 
-              src={logoMarkaColorida} 
-              alt="MARKA CRM" 
-              className="h-8 w-8"
-            />
+            <div className="p-1.5 bg-primary rounded-lg">
+              <Shield className="h-5 w-5 text-primary-foreground" />
+            </div>
             <span className="font-bold">MARKA CRM</span>
           </div>
         </div>

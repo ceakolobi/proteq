@@ -7,9 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Mail, User } from 'lucide-react';
-import logoMarkaBranca from '@/assets/logo-marka-branca.png';
-import logoMarkaColorida from '@/assets/logo-marka-colorida.png';
+import { Car, Lock, Mail, User, Shield } from 'lucide-react';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -89,11 +87,9 @@ export default function Auth() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
         <div className="relative z-10 flex flex-col justify-center px-12 text-primary-foreground">
           <div className="flex items-center gap-3 mb-8">
-            <img 
-              src={logoMarkaBranca} 
-              alt="MARKA CRM" 
-              className="h-14 w-14"
-            />
+            <div className="p-3 bg-primary-foreground/20 rounded-xl">
+              <Shield className="h-10 w-10" />
+            </div>
             <div>
               <h1 className="text-3xl font-bold">MARKA CRM</h1>
               <p className="text-primary-foreground/80">Sistema de Gestão</p>
@@ -137,11 +133,9 @@ export default function Auth() {
         <Card className="w-full max-w-md border-0 shadow-xl">
           <CardHeader className="space-y-1 text-center">
             <div className="flex items-center justify-center gap-2 mb-4 lg:hidden">
-              <img 
-                src={logoMarkaColorida} 
-                alt="MARKA CRM" 
-                className="h-10 w-10"
-              />
+              <div className="p-2 bg-primary rounded-lg">
+                <Shield className="h-6 w-6 text-primary-foreground" />
+              </div>
               <span className="text-xl font-bold">MARKA CRM</span>
             </div>
             <CardTitle className="text-2xl font-bold">Acesse sua conta</CardTitle>
