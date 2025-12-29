@@ -51,7 +51,8 @@ export default function Configuracoes() {
     site: "",
     modo_white_label: false,
     esconder_marca_harmony: false,
-    cover_mode: "single",
+    cover_mode: "fixed",
+    cover_fixed_index: 1,
   });
   
   const [isFormInitialized, setIsFormInitialized] = useState(false);
@@ -76,7 +77,8 @@ export default function Configuracoes() {
       site: settings.site || "",
       modo_white_label: settings.modo_white_label || false,
       esconder_marca_harmony: settings.esconder_marca_harmony || false,
-      cover_mode: settings.cover_mode || "single",
+      cover_mode: settings.cover_mode || "fixed",
+      cover_fixed_index: settings.cover_fixed_index || 1,
     });
     setIsFormInitialized(true);
   }
@@ -517,11 +519,36 @@ export default function Configuracoes() {
                   }
                   className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background"
                 >
-                  <option value="single">Única (usa Cover 1)</option>
-                  <option value="random">Aleatório</option>
-                  <option value="sequential">Sequencial</option>
+                  <option value="fixed">Capa Fixa (selecionar qual)</option>
+                  <option value="select">Escolher na Geração</option>
+                  <option value="random">Aleatória entre as cadastradas</option>
                 </select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.cover_mode === "fixed" && "Usa sempre a capa selecionada abaixo"}
+                  {formData.cover_mode === "select" && "Permite escolher qual capa usar ao gerar o PDF"}
+                  {formData.cover_mode === "random" && "Seleciona aleatoriamente entre as capas cadastradas"}
+                </p>
               </div>
+
+              {/* Fixed cover selector */}
+              {formData.cover_mode === "fixed" && (
+                <div className="space-y-2">
+                  <Label htmlFor="cover_fixed_index">Capa Fixa Selecionada</Label>
+                  <select
+                    id="cover_fixed_index"
+                    value={formData.cover_fixed_index}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cover_fixed_index: Number(e.target.value) })
+                    }
+                    className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background"
+                  >
+                    <option value={1}>Capa 1</option>
+                    <option value={2}>Capa 2</option>
+                    <option value={3}>Capa 3</option>
+                    <option value={4}>Capa 4</option>
+                  </select>
+                </div>
+              )}
 
               <Separator />
 
