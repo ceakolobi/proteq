@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Shield,
   CloudRain,
@@ -22,21 +22,45 @@ import {
   Clock,
   Square,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { tipoBemLabels, TipoBem } from "@/types/cotacao";
 
-interface PropostaData {
-  tipoBem: string;
+// Formatador de moeda
+const formatCurrency = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return "–";
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+};
+
+// Formatador de valor ou placeholder
+const formatValue = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === "") return "–";
+  return String(value);
+};
+
+interface CotacaoData {
+  id: string;
+  tipo_bem: TipoBem;
   marca: string;
   modelo: string;
-  ano: string;
-  valorFipe: string;
-  codigoFipe: string;
-  mensalidade: string;
-  cotaAplicada: string;
-  participacao: string;
-  taxas: string;
-  validadeProposta: string;
-  numeroCotacao: string;
+  ano_fabricacao: number;
+  ano_modelo: number | null;
+  valor_bem: number;
+  valor_fipe: number | null;
+  codigo_fipe: string | null;
+  mensalidade: number | null;
+  participacao: number | null;
+  cota_id: string | null;
+  created_at: string;
+  observacoes: string | null;
+}
+
+interface CotaData {
+  id: string;
+  cota_nome: string;
 }
 
 const beneficios = [
@@ -54,27 +78,69 @@ const beneficios = [
 
 export default function LayoutCotacaoHarmony() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const cotacaoId = searchParams.get("id");
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [usarLogoColorida, setUsarLogoColorida] = useState(true);
   const [imagemVeiculo, setImagemVeiculo] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [cotacao, setCotacao] = useState<CotacaoData | null>(null);
+  const [cotaNome, setCotaNome] = useState<string | null>(null);
   const [condicoes, setCondicoes] = useState(
     "Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente no momento da contratação. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade."
   );
 
-  const [proposta, setProposta] = useState<PropostaData>({
-    tipoBem: "Caminhão",
-    marca: "Volvo",
-    modelo: "FH 540",
-    ano: "2023",
-    valorFipe: "R$ 850.000,00",
-    codigoFipe: "512001-9",
-    mensalidade: "R$ 1.890,00",
-    cotaAplicada: "Cota Premium",
-    participacao: "7%",
-    taxas: "Sem taxas adicionais",
-    validadeProposta: "7 dias",
-    numeroCotacao: "COT-2024-001234",
-  });
+  // Carregar dados da cotação
+  useEffect(() => {
+    const fetchCotacao = async () => {
+      if (!cotacaoId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Buscar cotação
+        const { data: cotacaoData, error: cotacaoError } = await supabase
+          .from("cotacoes")
+          .select("*")
+          .eq("id", cotacaoId)
+          .single();
+
+        if (cotacaoError) {
+          console.error("Erro ao buscar cotação:", cotacaoError);
+          setIsLoading(false);
+          return;
+        }
+
+        setCotacao(cotacaoData);
+
+        // Buscar nome da cota se existir
+        if (cotacaoData.cota_id) {
+          const { data: cotaData, error: cotaError } = await supabase
+            .from("cotas")
+            .select("cota_nome")
+            .eq("id", cotacaoData.cota_id)
+            .single();
+
+          if (!cotaError && cotaData) {
+            setCotaNome(cotaData.cota_nome);
+          }
+        }
+
+        // Adicionar observações da cotação se existirem
+        if (cotacaoData.observacoes) {
+          setCondicoes(prev => prev + "\n\nObservações: " + cotacaoData.observacoes);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCotacao();
+  }, [cotacaoId]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,6 +156,34 @@ export default function LayoutCotacaoHarmony() {
   const handlePrint = () => {
     window.print();
   };
+
+  // Gerar número da cotação formatado
+  const numeroCotacao = cotacao 
+    ? `COT-${new Date(cotacao.created_at).getFullYear()}-${cotacao.id.substring(0, 8).toUpperCase()}`
+    : "–";
+
+  // Calcular validade (7 dias a partir da criação)
+  const calcularValidade = (): string => {
+    if (!cotacao) return "–";
+    const dataCriacao = new Date(cotacao.created_at);
+    const dataValidade = new Date(dataCriacao);
+    dataValidade.setDate(dataValidade.getDate() + 7);
+    return dataValidade.toLocaleDateString("pt-BR");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <Skeleton className="h-48 w-full" />
+          <div className="grid md:grid-cols-2 gap-4">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -160,51 +254,37 @@ export default function LayoutCotacaoHarmony() {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <Label className="text-muted-foreground text-xs">Tipo do Bem</Label>
-                      <Input
-                        value={proposta.tipoBem}
-                        onChange={(e) => setProposta({ ...proposta, tipoBem: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">
+                        {cotacao?.tipo_bem ? tipoBemLabels[cotacao.tipo_bem] : "–"}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Marca</Label>
-                      <Input
-                        value={proposta.marca}
-                        onChange={(e) => setProposta({ ...proposta, marca: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">{formatValue(cotacao?.marca)}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Modelo</Label>
-                      <Input
-                        value={proposta.modelo}
-                        onChange={(e) => setProposta({ ...proposta, modelo: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">{formatValue(cotacao?.modelo)}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Ano</Label>
-                      <Input
-                        value={proposta.ano}
-                        onChange={(e) => setProposta({ ...proposta, ano: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">
+                        {cotacao?.ano_fabricacao 
+                          ? `${cotacao.ano_fabricacao}${cotacao.ano_modelo ? `/${cotacao.ano_modelo}` : ""}`
+                          : "–"}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Valor FIPE</Label>
-                      <Input
-                        value={proposta.valorFipe}
-                        onChange={(e) => setProposta({ ...proposta, valorFipe: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium text-harmony-green">
+                        {formatCurrency(cotacao?.valor_fipe || cotacao?.valor_bem)}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Código FIPE</Label>
-                      <Input
-                        value={proposta.codigoFipe}
-                        onChange={(e) => setProposta({ ...proposta, codigoFipe: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium font-mono">
+                        {formatValue(cotacao?.codigo_fipe)}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -222,53 +302,35 @@ export default function LayoutCotacaoHarmony() {
                   {/* Mensalidade em Destaque */}
                   <div className="bg-harmony-orange text-card rounded-lg p-4 text-center">
                     <p className="text-xs uppercase tracking-wider opacity-90">Mensalidade</p>
-                    <Input
-                      value={proposta.mensalidade}
-                      onChange={(e) => setProposta({ ...proposta, mensalidade: e.target.value })}
-                      className="mt-1 text-2xl font-bold text-center bg-transparent border-none text-card placeholder:text-card/70 print:text-3xl"
-                    />
+                    <p className="text-3xl md:text-4xl font-bold mt-1">
+                      {formatCurrency(cotacao?.mensalidade)}
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <Label className="text-muted-foreground text-xs">Cota Aplicada</Label>
-                      <Input
-                        value={proposta.cotaAplicada}
-                        onChange={(e) => setProposta({ ...proposta, cotaAplicada: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">{formatValue(cotaNome)}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Participação</Label>
-                      <Input
-                        value={proposta.participacao}
-                        onChange={(e) => setProposta({ ...proposta, participacao: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">
+                        {cotacao?.participacao !== null && cotacao?.participacao !== undefined
+                          ? `${cotacao.participacao}%`
+                          : "7%"}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Taxas</Label>
-                      <Input
-                        value={proposta.taxas}
-                        onChange={(e) => setProposta({ ...proposta, taxas: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">Sem taxas adicionais</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Validade</Label>
-                      <Input
-                        value={proposta.validadeProposta}
-                        onChange={(e) => setProposta({ ...proposta, validadeProposta: e.target.value })}
-                        className="mt-1 print:border-none print:p-0 print:h-auto"
-                      />
+                      <p className="mt-1 font-medium">{calcularValidade()}</p>
                     </div>
                   </div>
                   <div className="pt-2 border-t">
                     <Label className="text-muted-foreground text-xs">Nº da Cotação</Label>
-                    <Input
-                      value={proposta.numeroCotacao}
-                      onChange={(e) => setProposta({ ...proposta, numeroCotacao: e.target.value })}
-                      className="mt-1 font-mono text-sm print:border-none print:p-0 print:h-auto"
-                    />
+                    <p className="mt-1 font-mono text-sm font-medium">{numeroCotacao}</p>
                   </div>
                 </CardContent>
               </Card>
