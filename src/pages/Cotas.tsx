@@ -38,7 +38,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Cota, CotaCategoria } from '@/types/database';
-import { Plus, Pencil, Trash2, DollarSign, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, DollarSign, Filter, Car, Bike } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -75,6 +76,10 @@ export default function Cotas() {
     percentual_extra: '',
     ativo: true,
     categoria: 'CARRO' as CotaCategoria,
+    // Checkboxes para aplicabilidade por categoria
+    aplica_carro: true,
+    aplica_moto: true,
+    aplica_caminhonete: true,
   });
 
   const fetchCotas = async () => {
@@ -131,13 +136,16 @@ export default function Cotas() {
         cota_nome: cota.cota_nome,
         fipe_min: cota.fipe_min.toString(),
         fipe_max: cota.fipe_max.toString(),
-        valor_carro: cota.valor_carro.toString(),
-        valor_moto: cota.valor_moto.toString(),
-        valor_camionete: cota.valor_camionete.toString(),
+        valor_carro: (cota.valor_carro || 0).toString(),
+        valor_moto: (cota.valor_moto || 0).toString(),
+        valor_camionete: (cota.valor_camionete || 0).toString(),
         percentual_geral: (cota.percentual_geral || 0).toString(),
         percentual_extra: (cota.percentual_extra || 0).toString(),
         ativo: cota.ativo,
         categoria: (cota.categoria || 'CARRO') as CotaCategoria,
+        aplica_carro: cota.aplica_carro !== false,
+        aplica_moto: cota.aplica_moto !== false,
+        aplica_caminhonete: cota.aplica_caminhonete !== false,
       });
     } else {
       setEditingCota(null);
@@ -152,6 +160,9 @@ export default function Cotas() {
         percentual_extra: '0',
         ativo: true,
         categoria: categoriaFilter !== 'TODAS' ? categoriaFilter : 'CARRO',
+        aplica_carro: true,
+        aplica_moto: true,
+        aplica_caminhonete: true,
       });
     }
     setIsDialogOpen(true);
@@ -165,18 +176,57 @@ export default function Cotas() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação: pelo menos uma categoria deve estar selecionada
+    if (!formData.aplica_carro && !formData.aplica_moto && !formData.aplica_caminhonete) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de validação',
+        description: 'Selecione pelo menos uma categoria (Carro, Moto ou Caminhonete).',
+      });
+      return;
+    }
+
+    // Validação: campos de valor obrigatórios conforme categorias selecionadas
+    if (formData.aplica_carro && (!formData.valor_carro || parseFloat(formData.valor_carro) <= 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de validação',
+        description: 'Informe o valor para Carro.',
+      });
+      return;
+    }
+    if (formData.aplica_moto && (!formData.valor_moto || parseFloat(formData.valor_moto) <= 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de validação',
+        description: 'Informe o valor para Moto.',
+      });
+      return;
+    }
+    if (formData.aplica_caminhonete && (!formData.valor_camionete || parseFloat(formData.valor_camionete) <= 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro de validação',
+        description: 'Informe o valor para Caminhonete.',
+      });
+      return;
+    }
+
     try {
       const cotaData = {
         cota_nome: formData.cota_nome,
         fipe_min: parseFloat(formData.fipe_min),
         fipe_max: parseFloat(formData.fipe_max),
-        valor_carro: parseFloat(formData.valor_carro),
-        valor_moto: parseFloat(formData.valor_moto),
-        valor_camionete: parseFloat(formData.valor_camionete),
+        valor_carro: formData.aplica_carro ? parseFloat(formData.valor_carro) || 0 : 0,
+        valor_moto: formData.aplica_moto ? parseFloat(formData.valor_moto) || 0 : 0,
+        valor_camionete: formData.aplica_caminhonete ? parseFloat(formData.valor_camionete) || 0 : 0,
         percentual_geral: parseFloat(formData.percentual_geral) || 0,
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
         ativo: formData.ativo,
         categoria: formData.categoria,
+        aplica_carro: formData.aplica_carro,
+        aplica_moto: formData.aplica_moto,
+        aplica_caminhonete: formData.aplica_caminhonete,
       };
 
       if (editingCota) {
@@ -302,46 +352,87 @@ export default function Cotas() {
                   </div>
                 </div>
 
+                {/* Seleção de Categorias */}
+                <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-medium text-sm">Categorias que esta cota se aplica</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione as categorias e preencha apenas os valores correspondentes.
+                  </p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="aplica_carro"
+                        checked={formData.aplica_carro}
+                        onCheckedChange={(checked) => setFormData({ ...formData, aplica_carro: checked === true })}
+                      />
+                      <Label htmlFor="aplica_carro" className="text-sm cursor-pointer">Carro</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="aplica_moto"
+                        checked={formData.aplica_moto}
+                        onCheckedChange={(checked) => setFormData({ ...formData, aplica_moto: checked === true })}
+                      />
+                      <Label htmlFor="aplica_moto" className="text-sm cursor-pointer">Moto</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="aplica_caminhonete"
+                        checked={formData.aplica_caminhonete}
+                        onCheckedChange={(checked) => setFormData({ ...formData, aplica_caminhonete: checked === true })}
+                      />
+                      <Label htmlFor="aplica_caminhonete" className="text-sm cursor-pointer">Caminhonete</Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Valores por Tipo - somente categorias selecionadas */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-sm">Valores por Tipo</h4>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="valor_carro">Carro (R$)</Label>
-                      <Input
-                        id="valor_carro"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={formData.valor_carro}
-                        onChange={(e) => setFormData({ ...formData, valor_carro: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="valor_moto">Moto (R$)</Label>
-                      <Input
-                        id="valor_moto"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={formData.valor_moto}
-                        onChange={(e) => setFormData({ ...formData, valor_moto: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="valor_camionete">Camionete (R$)</Label>
-                      <Input
-                        id="valor_camionete"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={formData.valor_camionete}
-                        onChange={(e) => setFormData({ ...formData, valor_camionete: e.target.value })}
-                        required
-                      />
-                    </div>
+                    {formData.aplica_carro && (
+                      <div className="space-y-2">
+                        <Label htmlFor="valor_carro">Carro (R$) *</Label>
+                        <Input
+                          id="valor_carro"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={formData.valor_carro}
+                          onChange={(e) => setFormData({ ...formData, valor_carro: e.target.value })}
+                        />
+                      </div>
+                    )}
+                    {formData.aplica_moto && (
+                      <div className="space-y-2">
+                        <Label htmlFor="valor_moto">Moto (R$) *</Label>
+                        <Input
+                          id="valor_moto"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={formData.valor_moto}
+                          onChange={(e) => setFormData({ ...formData, valor_moto: e.target.value })}
+                        />
+                      </div>
+                    )}
+                    {formData.aplica_caminhonete && (
+                      <div className="space-y-2">
+                        <Label htmlFor="valor_camionete">Caminhonete (R$) *</Label>
+                        <Input
+                          id="valor_camionete"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={formData.valor_camionete}
+                          onChange={(e) => setFormData({ ...formData, valor_camionete: e.target.value })}
+                        />
+                      </div>
+                    )}
                   </div>
+                  {!formData.aplica_carro && !formData.aplica_moto && !formData.aplica_caminhonete && (
+                    <p className="text-sm text-destructive">Selecione ao menos uma categoria acima.</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

@@ -78,6 +78,10 @@ export interface Cota {
   percentual_extra: number;
   ativo: boolean;
   categoria?: CotaCategoria;
+  // Campos de aplicabilidade por categoria
+  aplica_carro?: boolean;
+  aplica_moto?: boolean;
+  aplica_caminhonete?: boolean;
   created_at: string;
   updated_at: string;
 }
