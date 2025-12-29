@@ -761,6 +761,7 @@ export default function LayoutCotacaoHarmony() {
         pdfUrl={pdfUrl}
         filename={pdfFilename}
         clienteNome={nomeCliente}
+        validadeDias={7}
       />
     </div>
   );
