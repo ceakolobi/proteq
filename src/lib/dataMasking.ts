@@ -3,9 +3,28 @@ import { AppRole } from '@/types/database';
 /**
  * Utilitários de mascaramento de dados sensíveis
  * Aplica máscaras baseadas no papel do usuário
+ * 
+ * Hierarquia RBAC:
+ * - System Admin (admin@system.com ou admin_principal): vê TUDO
+ * - Admin Empresa (admin_regional): vê tudo da empresa
+ * - Cadastro: vê dados para cadastro
+ * - Financeiro: só vê dados financeiros
+ * - Consultor: só vê leads/cotações criados por ele
+ * - Vistoriador: só vê vistorias atribuídas
  */
 
 export type MaskLevel = 'full' | 'partial' | 'none';
+
+export type SensitiveDataType = 
+  | 'cpf' 
+  | 'rg' 
+  | 'telefone' 
+  | 'email' 
+  | 'endereco' 
+  | 'placa' 
+  | 'chassi' 
+  | 'renavam'
+  | 'pagamento'; // Novo tipo para dados financeiros
 
 /**
  * Determina o nível de mascaramento baseado nas roles do usuário
@@ -13,32 +32,39 @@ export type MaskLevel = 'full' | 'partial' | 'none';
 export function getMaskLevel(
   roles: AppRole[],
   isGlobalAdmin: boolean,
-  dataType: 'cpf' | 'rg' | 'telefone' | 'email' | 'endereco' | 'placa' | 'chassi' | 'renavam'
+  dataType: SensitiveDataType
 ): MaskLevel {
-  // Admin Principal/Global tem acesso total
+  // System Admin / Admin Principal tem acesso total
   if (isGlobalAdmin) return 'none';
   
-  // Admin Regional e Cadastro têm acesso parcial
-  if (roles.includes('admin_regional') || roles.includes('cadastro')) {
+  // Admin Regional (Admin Empresa) vê tudo da empresa
+  if (roles.includes('admin_regional')) {
+    return 'none';
+  }
+  
+  // Cadastro vê dados pessoais para cadastro
+  if (roles.includes('cadastro')) {
+    if (dataType === 'pagamento') return 'full'; // Não vê pagamentos
     return 'partial';
   }
   
-  // Financeiro tem acesso parcial apenas para dados de contato
+  // Financeiro vê apenas dados financeiros e contato
   if (roles.includes('financeiro')) {
+    if (dataType === 'pagamento') return 'none';
     if (['telefone', 'email'].includes(dataType)) return 'partial';
-    return 'full';
+    return 'full'; // CPF, RG, endereço, placa, chassi, renavam mascarados
   }
   
-  // Consultor vê dados parcialmente mascarados
+  // Consultor vê apenas dados de contato (para seus próprios leads/cotações)
   if (roles.includes('consultor_vendas')) {
     if (['telefone', 'email'].includes(dataType)) return 'partial';
-    return 'full';
+    return 'full'; // Tudo mais mascarado
   }
   
-  // Vistoriador só vê dados de veículo parcialmente
+  // Vistoriador vê apenas placa parcialmente (para identificar veículo)
   if (roles.includes('vistoriador')) {
-    if (['placa'].includes(dataType)) return 'partial';
-    return 'full';
+    if (dataType === 'placa') return 'partial';
+    return 'full'; // Tudo mais mascarado
   }
   
   // Associado pode ver seus próprios dados (tratado no componente)
@@ -46,8 +72,24 @@ export function getMaskLevel(
     return 'none'; // Quando for o próprio dado
   }
   
-  // Padrão: mascarar tudo
+  // Padrão: mascarar tudo (usuário sem role específica)
   return 'full';
+}
+
+/**
+ * Verifica se o usuário pode ver dados financeiros
+ */
+export function canViewFinancialData(roles: AppRole[], isGlobalAdmin: boolean): boolean {
+  if (isGlobalAdmin) return true;
+  return roles.includes('admin_regional') || roles.includes('financeiro');
+}
+
+/**
+ * Verifica se o usuário pode ver dados sensíveis completos
+ */
+export function canViewSensitiveData(roles: AppRole[], isGlobalAdmin: boolean): boolean {
+  if (isGlobalAdmin) return true;
+  return roles.includes('admin_regional') || roles.includes('cadastro');
 }
 
 /**
@@ -217,6 +259,25 @@ export function maskRenavam(renavam: string | null | undefined, level: MaskLevel
 }
 
 /**
+ * Mascara valor monetário: R$ 1.234,56 → R$ *.***,**
+ */
+export function maskPagamento(valor: number | null | undefined, level: MaskLevel): string {
+  if (valor === null || valor === undefined) return '-';
+  if (level === 'none') {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+  }
+  if (level === 'full') {
+    return 'R$ *.***,**';
+  }
+  // Parcial: mostra apenas faixa
+  if (valor < 100) return 'R$ 0-100';
+  if (valor < 500) return 'R$ 100-500';
+  if (valor < 1000) return 'R$ 500-1.000';
+  if (valor < 5000) return 'R$ 1.000-5.000';
+  return 'R$ 5.000+';
+}
+
+/**
  * Hook helper para obter todas as funções de mascaramento configuradas
  */
 export function createMasker(roles: AppRole[], isGlobalAdmin: boolean) {
@@ -237,5 +298,10 @@ export function createMasker(roles: AppRole[], isGlobalAdmin: boolean) {
       maskChassi(value, getMaskLevel(roles, isGlobalAdmin, 'chassi')),
     renavam: (value: string | null | undefined) => 
       maskRenavam(value, getMaskLevel(roles, isGlobalAdmin, 'renavam')),
+    pagamento: (valor: number | null | undefined) =>
+      maskPagamento(valor, getMaskLevel(roles, isGlobalAdmin, 'pagamento')),
+    // Helpers de verificação
+    canViewFinancial: () => canViewFinancialData(roles, isGlobalAdmin),
+    canViewSensitive: () => canViewSensitiveData(roles, isGlobalAdmin),
   };
 }
