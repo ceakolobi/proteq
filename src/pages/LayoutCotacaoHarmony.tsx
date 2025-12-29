@@ -327,7 +327,13 @@ export default function LayoutCotacaoHarmony() {
     <div className="min-h-screen bg-background">
       {/* Toolbar - não aparece na impressão */}
       <div className="print:hidden sticky top-0 z-50 bg-card border-b p-4 flex items-center justify-between gap-4">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button variant="ghost" onClick={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate('/cotacoes');
+          }
+        }}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar
         </Button>
