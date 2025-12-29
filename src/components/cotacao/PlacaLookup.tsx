@@ -92,9 +92,15 @@ export default function PlacaLookup({
     setMessage('Consultando veículo...');
 
     try {
+      // Obter token de autenticação para enviar na requisição
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { data: result, error } = await supabase.functions.invoke('api', {
         body: { route: 'placa', placa: cleanPlaca },
-        headers: { 'x-origem': 'cotacao' },
+        headers: { 
+          'x-origem': 'cotacao',
+          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+        },
       });
 
       if (error) {
