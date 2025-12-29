@@ -119,6 +119,7 @@ export function useCompanySettings() {
   const [company, setCompany] = useState<CompanySettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUsingLegacy, setIsUsingLegacy] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -145,6 +146,7 @@ export function useCompanySettings() {
 
         if (legacySettings) {
           setSettings(legacySettings as unknown as SystemSettings);
+          setIsUsingLegacy(true);
         }
         setIsLoading(false);
         return;
@@ -167,6 +169,7 @@ export function useCompanySettings() {
         const companySettings = companyData as unknown as CompanySettings;
         setCompany(companySettings);
         setSettings(companyToSettings(companySettings));
+        setIsUsingLegacy(false);
       }
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);
@@ -182,6 +185,27 @@ export function useCompanySettings() {
   const updateSettings = async (updates: Partial<SystemSettings>) => {
     setIsSaving(true);
     try {
+      if (isUsingLegacy) {
+        // Update legacy settings table
+        const legacyUpdates: Record<string, unknown> = { ...updates };
+        legacyUpdates.updated_at = new Date().toISOString();
+
+        const { error } = await supabase
+          .from("settings")
+          .update(legacyUpdates)
+          .eq("id", settings.id);
+
+        if (error) {
+          console.error("Erro ao salvar configurações (legacy):", error);
+          toast.error("Erro ao salvar configurações");
+          return false;
+        }
+
+        setSettings((prev) => ({ ...prev, ...updates }));
+        toast.success("Configurações salvas com sucesso!");
+        return true;
+      }
+
       // Map settings updates to company fields
       const companyUpdates: Record<string, unknown> = {};
       
@@ -236,7 +260,8 @@ export function useCompanySettings() {
   ): Promise<string | null> => {
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `companies/${settings.id}/${type}_${Date.now()}.${fileExt}`;
+      const folderName = isUsingLegacy ? "settings" : "companies";
+      const fileName = `${folderName}/${settings.id}/${type}_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("vistoria-fotos")
