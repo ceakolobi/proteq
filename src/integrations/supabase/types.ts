@@ -561,14 +561,19 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_valor_informado: string | null
+          editado_por: string | null
           id: string
           lead_id: string | null
           marca: string
           mensalidade: number | null
           metodo_valoracao: Database["public"]["Enums"]["metodo_valoracao"]
           modelo: string
+          motivo_ajuste: string | null
           observacoes: string | null
           participacao: number | null
+          percentual_global: number | null
+          percentual_individual: number | null
+          perfil_editor: string | null
           placa: string | null
           proposta_enviada_em: string | null
           proposta_enviada_por: string | null
@@ -580,7 +585,9 @@ export type Database = {
           updated_at: string
           url_nota_fiscal: string | null
           usuario_informou_valor: string | null
+          valor_base: number | null
           valor_bem: number
+          valor_final: number | null
           valor_fipe: number | null
           veiculo_id: string | null
         }
@@ -605,14 +612,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_valor_informado?: string | null
+          editado_por?: string | null
           id?: string
           lead_id?: string | null
           marca: string
           mensalidade?: number | null
           metodo_valoracao?: Database["public"]["Enums"]["metodo_valoracao"]
           modelo: string
+          motivo_ajuste?: string | null
           observacoes?: string | null
           participacao?: number | null
+          percentual_global?: number | null
+          percentual_individual?: number | null
+          perfil_editor?: string | null
           placa?: string | null
           proposta_enviada_em?: string | null
           proposta_enviada_por?: string | null
@@ -624,7 +636,9 @@ export type Database = {
           updated_at?: string
           url_nota_fiscal?: string | null
           usuario_informou_valor?: string | null
+          valor_base?: number | null
           valor_bem: number
+          valor_final?: number | null
           valor_fipe?: number | null
           veiculo_id?: string | null
         }
@@ -649,14 +663,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_valor_informado?: string | null
+          editado_por?: string | null
           id?: string
           lead_id?: string | null
           marca?: string
           mensalidade?: number | null
           metodo_valoracao?: Database["public"]["Enums"]["metodo_valoracao"]
           modelo?: string
+          motivo_ajuste?: string | null
           observacoes?: string | null
           participacao?: number | null
+          percentual_global?: number | null
+          percentual_individual?: number | null
+          perfil_editor?: string | null
           placa?: string | null
           proposta_enviada_em?: string | null
           proposta_enviada_por?: string | null
@@ -668,7 +687,9 @@ export type Database = {
           updated_at?: string
           url_nota_fiscal?: string | null
           usuario_informou_valor?: string | null
+          valor_base?: number | null
           valor_bem?: number
+          valor_final?: number | null
           valor_fipe?: number | null
           veiculo_id?: string | null
         }
