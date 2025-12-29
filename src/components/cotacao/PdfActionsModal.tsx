@@ -29,6 +29,7 @@ interface PdfActionsModalProps {
   filename: string;
   clienteNome?: string;
   clienteEmail?: string;
+  validadeDias?: number;
 }
 
 export const PdfActionsModal = ({
@@ -39,6 +40,7 @@ export const PdfActionsModal = ({
   filename,
   clienteNome = "",
   clienteEmail = "",
+  validadeDias = 7,
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -100,9 +102,25 @@ export const PdfActionsModal = ({
 
   // Abrir WhatsApp Web com link
   const handleWhatsApp = () => {
-    const mensagem = pdfUrl
-      ? `Olá${clienteNome ? ` ${clienteNome}` : ""}! Segue a proposta de proteção veicular Harmony Agro:\n\n${pdfUrl}`
-      : `Olá${clienteNome ? ` ${clienteNome}` : ""}! Segue a proposta de proteção veicular Harmony Agro.`;
+    const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
+    
+    const mensagem = `${saudacao}, tudo bem?
+Aqui é da *Harmony Agro*.
+Segue sua *Proposta de Cotação* preparada especialmente para o seu veículo 🚗🚜🚚
+
+✔️ Proteção completa
+✔️ Assistência 24h
+✔️ Coberturas reais e objetivas
+✔️ Mensalidade acessível
+
+📄 ${pdfUrl ? `Acesse o PDF com todos os detalhes:\n${pdfUrl}` : "Estou lhe enviando o PDF com todos os detalhes."}
+
+Qualquer dúvida estou à disposição 🙏
+
+⏳ *Validade da proposta:* ${validadeDias} dias
+
+🤝 Conte com a gente!
+_Harmony Agro - Proteção Veicular_`;
 
     const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
     window.open(whatsappUrl, "_blank");
