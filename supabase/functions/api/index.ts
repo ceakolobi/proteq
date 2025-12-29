@@ -138,7 +138,7 @@ serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Extrair dados de autenticação
+  // Extrair dados de autenticação - OBRIGATÓRIO
   const authHeader = req.headers.get('authorization');
   let userId: string | null = null;
   let userEmail: string | null = null;
@@ -150,6 +150,19 @@ serve(async (req) => {
       userId = user.id;
       userEmail = user.email || null;
     }
+  }
+
+  // Exigir autenticação para todas as requisições
+  if (!userId) {
+    console.error('[API] Requisição não autenticada rejeitada');
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Autenticação obrigatória. Faça login para continuar.',
+        meta: { origem: 'API', consultadoEm: new Date().toISOString() }
+      }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Dados de auditoria

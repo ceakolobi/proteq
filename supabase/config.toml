@@ -1,4 +1,7 @@
 project_id = "sbtfhtllzpurjprivqoi"
 
 [functions.api]
-verify_jwt = false
+verify_jwt = true
+
+[functions.send-proposta-email]
+verify_jwt = true
