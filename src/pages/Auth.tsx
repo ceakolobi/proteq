@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Car, Lock, Mail, User } from 'lucide-react';
-import logoHarmonyBranca from '@/assets/logo-harmony-branca.png';
-import logoHarmonyColorida from '@/assets/logo-harmony-colorida.png';
+import logoMarkaBranca from '@/assets/logo-marka-branca.png';
+import logoMarkaColorida from '@/assets/logo-marka-colorida.png';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -90,12 +90,12 @@ export default function Auth() {
         <div className="relative z-10 flex flex-col justify-center px-12 text-primary-foreground">
           <div className="flex items-center gap-3 mb-8">
             <img 
-              src={logoHarmonyBranca} 
-              alt="HARMONY CRM" 
+              src={logoMarkaBranca} 
+              alt="MARKA CRM" 
               className="h-14 w-14"
             />
             <div>
-              <h1 className="text-3xl font-bold">HARMONY CRM</h1>
+              <h1 className="text-3xl font-bold">MARKA CRM</h1>
               <p className="text-primary-foreground/80">Sistema de Gestão</p>
             </div>
           </div>
@@ -138,11 +138,11 @@ export default function Auth() {
           <CardHeader className="space-y-1 text-center">
             <div className="flex items-center justify-center gap-2 mb-4 lg:hidden">
               <img 
-                src={logoHarmonyColorida} 
-                alt="HARMONY CRM" 
+                src={logoMarkaColorida} 
+                alt="MARKA CRM" 
                 className="h-10 w-10"
               />
-              <span className="text-xl font-bold">HARMONY CRM</span>
+              <span className="text-xl font-bold">MARKA CRM</span>
             </div>
             <CardTitle className="text-2xl font-bold">Acesse sua conta</CardTitle>
             <CardDescription>

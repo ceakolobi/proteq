@@ -148,7 +148,7 @@ export default function Vistorias() {
   const [formChecklist, setFormChecklist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    document.title = 'Vistorias | HARMONY CRM';
+    document.title = 'Vistorias | MARKA CRM';
   }, []);
 
   const fetchData = useCallback(async () => {

@@ -15,6 +15,7 @@ interface EmailRequest {
   pdfUrl: string;
   pdfBase64?: string;
   filename: string;
+  empresaNome?: string;
 }
 
 interface ErrorResponse {
@@ -78,7 +79,8 @@ const handler = async (req: Request): Promise<Response> => {
       validadeDias, 
       pdfUrl, 
       pdfBase64,
-      filename 
+      filename,
+      empresaNome = "Proteção Veicular"
     } = requestBody;
 
     console.log("=== Iniciando envio de e-mail ===");
@@ -142,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
   <div class="container">
     <div class="header">
       <h1>🛡️ Proposta de Cotação</h1>
-      <p>Proteção Veicular • Harmony Agro</p>
+      <p>Proteção Veicular • ${empresaNome}</p>
     </div>
     
     <div class="content">
@@ -181,7 +183,7 @@ const handler = async (req: Request): Promise<Response> => {
     </div>
     
     <div class="footer">
-      <p><strong>Harmony Agro</strong> - Proteção Veicular</p>
+      <p><strong>${empresaNome}</strong> - Proteção Veicular</p>
       <p>Protegendo o que é seu com transparência e confiança.</p>
     </div>
   </div>
@@ -191,9 +193,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Preparar opções do e-mail
     const emailOptions: any = {
-      from: "Harmony Agro <contato@harmonyagro.com.br>",
+      from: `${empresaNome} <noreply@resend.dev>`,
       to: [to],
-      subject: `Proposta de Cotação – ${modelo || 'Harmony Agro'}`,
+      subject: `Proposta de Cotação – ${modelo || empresaNome}`,
       html: htmlContent,
     };
 
@@ -202,7 +204,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Anexando PDF ao e-mail...");
       emailOptions.attachments = [
         {
-          filename: filename || "Proposta_HarmonyAgro.pdf",
+          filename: filename || "Proposta.pdf",
           content: pdfBase64,
         },
       ];

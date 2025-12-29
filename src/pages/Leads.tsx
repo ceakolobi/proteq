@@ -251,7 +251,7 @@ export default function Leads() {
   const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas']);
 
   useEffect(() => {
-    document.title = 'Leads | HARMONY CRM';
+    document.title = 'Leads | MARKA CRM';
   }, []);
 
   useEffect(() => {

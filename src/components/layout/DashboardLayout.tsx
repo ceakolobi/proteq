@@ -230,11 +230,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
         <img 
           src={logoMarkaColorida}
-          alt="HARMONY CRM" 
+          alt="MARKA CRM" 
           className="h-10 w-10"
         />
         <div>
-          <h1 className="font-bold text-lg text-sidebar-foreground">HARMONY CRM</h1>
+          <h1 className="font-bold text-lg text-sidebar-foreground">MARKA CRM</h1>
           <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
         </div>
       </div>
@@ -343,10 +343,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center gap-2">
             <img 
               src={logoMarkaColorida} 
-              alt="HARMONY CRM" 
+              alt="MARKA CRM" 
               className="h-8 w-8"
             />
-            <span className="font-bold">HARMONY CRM</span>
+            <span className="font-bold">MARKA CRM</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
