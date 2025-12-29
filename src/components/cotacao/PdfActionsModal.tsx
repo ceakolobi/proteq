@@ -31,6 +31,8 @@ interface PdfActionsModalProps {
   clienteEmail?: string;
   clienteWhatsapp?: string;
   validadeDias?: number;
+  modelo?: string;
+  mensalidade?: string;
 }
 
 export const PdfActionsModal = ({
@@ -43,6 +45,8 @@ export const PdfActionsModal = ({
   clienteEmail = "",
   clienteWhatsapp = "",
   validadeDias = 7,
+  modelo = "",
+  mensalidade = "",
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -157,12 +161,27 @@ _Harmony Agro - Proteção Veicular_`;
     });
   };
 
-  // Enviar por e-mail (placeholder - requer edge function)
+  // Converter Blob para Base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        // Remove o prefixo "data:application/pdf;base64,"
+        const base64Data = base64.split(",")[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Enviar por e-mail via edge function
   const handleSendEmail = async () => {
     if (!emailDestinatario) {
       toast({
-        title: "E-mail obrigatório",
-        description: "Digite o e-mail do destinatário.",
+        title: "E-mail não informado",
+        description: "Informe o e-mail do cliente para enviar a proposta.",
         variant: "destructive",
       });
       return;
@@ -171,24 +190,39 @@ _Harmony Agro - Proteção Veicular_`;
     setIsSendingEmail(true);
 
     try {
-      // Por enquanto, abre o cliente de e-mail padrão
-      const assunto = `Proposta de Proteção Veicular - Harmony Agro`;
-      const corpo = pdfUrl
-        ? `Olá${clienteNome ? ` ${clienteNome}` : ""},\n\nSegue a proposta de proteção veicular Harmony Agro.\n\nAcesse o PDF em: ${pdfUrl}\n\nAtenciosamente,\nHarmony Agro`
-        : `Olá${clienteNome ? ` ${clienteNome}` : ""},\n\nSegue a proposta de proteção veicular Harmony Agro.\n\nAtenciosamente,\nHarmony Agro`;
+      let pdfBase64: string | undefined;
+      
+      // Converter PDF para base64 se disponível
+      if (pdfBlob) {
+        pdfBase64 = await blobToBase64(pdfBlob);
+      }
 
-      const mailtoUrl = `mailto:${emailDestinatario}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
-      window.location.href = mailtoUrl;
+      const { data, error } = await supabase.functions.invoke("send-proposta-email", {
+        body: {
+          to: emailDestinatario,
+          clienteNome,
+          modelo,
+          mensalidade,
+          validadeDias,
+          pdfUrl,
+          pdfBase64,
+          filename,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
 
       toast({
-        title: "Cliente de e-mail aberto",
-        description: "Complete o envio no seu aplicativo de e-mail.",
+        title: "E-mail enviado com sucesso!",
+        description: `Proposta enviada para ${emailDestinatario}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao enviar e-mail:", error);
       toast({
-        title: "Erro ao enviar",
-        description: "Tente novamente.",
+        title: "Erro ao enviar e-mail",
+        description: error.message || "Tente novamente ou use outro método.",
         variant: "destructive",
       });
     } finally {

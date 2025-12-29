@@ -762,6 +762,8 @@ export default function LayoutCotacaoHarmony() {
         filename={pdfFilename}
         clienteNome={nomeCliente}
         validadeDias={7}
+        modelo={cotacao?.modelo || ""}
+        mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
       />
     </div>
   );
