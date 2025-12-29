@@ -146,7 +146,7 @@ export default function Ativacoes() {
   const [formMotivoCancelamento, setFormMotivoCancelamento] = useState('');
 
   useEffect(() => {
-    document.title = 'Ativações | Sistema de Proteção Veicular';
+    document.title = 'Ativações | HARMONY CRM';
   }, []);
 
   const generateContractNumber = () => {

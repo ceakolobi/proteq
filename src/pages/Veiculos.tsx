@@ -193,7 +193,7 @@ export default function Veiculos() {
   }, []);
 
   useEffect(() => {
-    document.title = 'Veículos | MARKA CRM';
+    document.title = 'Veículos | HARMONY CRM';
   }, []);
 
   useEffect(() => {
