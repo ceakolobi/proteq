@@ -800,13 +800,12 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
             </Card>
           ) : previewMensalidade ? (
             <Card className="border-dashed border-2 border-primary/50">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calculator className="w-5 h-5 text-primary" />
-                  Prévia da Mensalidade
+              <CardHeader className="pb-4 text-center">
+                <CardTitle className="text-xl font-bold uppercase tracking-wide">
+                  Proposta de Cotação
                 </CardTitle>
-                <CardDescription>
-                  Valor calculado automaticamente • Confirme para salvar
+                <CardDescription className="text-xs mt-1">
+                  Proteção Veicular • Máquinas • Caminhões • Motos
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
