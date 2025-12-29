@@ -17,7 +17,9 @@ export type Database = {
       access_logs: {
         Row: {
           action: string
+          company_id: string | null
           created_at: string
+          created_by: string | null
           details: Json | null
           id: string
           ip_address: string | null
@@ -29,7 +31,9 @@ export type Database = {
         }
         Insert: {
           action: string
+          company_id?: string | null
           created_at?: string
+          created_by?: string | null
           details?: Json | null
           id?: string
           ip_address?: string | null
@@ -41,7 +45,9 @@ export type Database = {
         }
         Update: {
           action?: string
+          company_id?: string | null
           created_at?: string
+          created_by?: string | null
           details?: Json | null
           id?: string
           ip_address?: string | null
@@ -51,13 +57,22 @@ export type Database = {
           user_email?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       acionamentos_guincho: {
         Row: {
           associado_id: string
           company_id: string | null
           created_at: string
+          created_by: string | null
           data_acionamento: string
           destino: string | null
           id: string
@@ -70,6 +85,7 @@ export type Database = {
           associado_id: string
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_acionamento?: string
           destino?: string | null
           id?: string
@@ -82,6 +98,7 @@ export type Database = {
           associado_id?: string
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_acionamento?: string
           destino?: string | null
           id?: string
@@ -136,6 +153,7 @@ export type Database = {
           consultor_id: string | null
           cpf: string
           created_at: string
+          created_by: string | null
           data_nascimento: string | null
           email: string
           endereco: string | null
@@ -158,6 +176,7 @@ export type Database = {
           consultor_id?: string | null
           cpf: string
           created_at?: string
+          created_by?: string | null
           data_nascimento?: string | null
           email: string
           endereco?: string | null
@@ -180,6 +199,7 @@ export type Database = {
           consultor_id?: string | null
           cpf?: string
           created_at?: string
+          created_by?: string | null
           data_nascimento?: string | null
           email?: string
           endereco?: string | null
@@ -224,6 +244,7 @@ export type Database = {
           company_id: string | null
           consultor_id: string | null
           created_at: string
+          created_by: string | null
           data_ativacao: string
           data_vencimento: string | null
           id: string
@@ -250,6 +271,7 @@ export type Database = {
           company_id?: string | null
           consultor_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_ativacao?: string
           data_vencimento?: string | null
           id?: string
@@ -276,6 +298,7 @@ export type Database = {
           company_id?: string | null
           consultor_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_ativacao?: string
           data_vencimento?: string | null
           id?: string
@@ -340,6 +363,7 @@ export type Database = {
         Row: {
           acao: string
           created_at: string
+          created_by: string | null
           dados_anteriores: Json | null
           dados_novos: Json | null
           id: string
@@ -351,6 +375,7 @@ export type Database = {
         Insert: {
           acao: string
           created_at?: string
+          created_by?: string | null
           dados_anteriores?: Json | null
           dados_novos?: Json | null
           id?: string
@@ -362,6 +387,7 @@ export type Database = {
         Update: {
           acao?: string
           created_at?: string
+          created_by?: string | null
           dados_anteriores?: Json | null
           dados_novos?: Json | null
           id?: string
@@ -464,8 +490,10 @@ export type Database = {
       }
       cotacao_contatos: {
         Row: {
+          company_id: string | null
           cotacao_id: string
           created_at: string
+          created_by: string | null
           data_contato: string
           descricao: string
           id: string
@@ -473,8 +501,10 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          company_id?: string | null
           cotacao_id: string
           created_at?: string
+          created_by?: string | null
           data_contato?: string
           descricao: string
           id?: string
@@ -482,8 +512,10 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          company_id?: string | null
           cotacao_id?: string
           created_at?: string
+          created_by?: string | null
           data_contato?: string
           descricao?: string
           id?: string
@@ -491,6 +523,13 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cotacao_contatos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cotacao_contatos_cotacao_id_fkey"
             columns: ["cotacao_id"]
@@ -520,6 +559,7 @@ export type Database = {
           cor: string | null
           cota_id: string | null
           created_at: string
+          created_by: string | null
           data_valor_informado: string | null
           id: string
           lead_id: string | null
@@ -563,6 +603,7 @@ export type Database = {
           cor?: string | null
           cota_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_valor_informado?: string | null
           id?: string
           lead_id?: string | null
@@ -606,6 +647,7 @@ export type Database = {
           cor?: string | null
           cota_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_valor_informado?: string | null
           id?: string
           lead_id?: string | null
@@ -702,6 +744,7 @@ export type Database = {
           company_id: string | null
           cota_nome: string
           created_at: string
+          created_by: string | null
           fipe_max: number
           fipe_min: number
           id: string
@@ -723,6 +766,7 @@ export type Database = {
           company_id?: string | null
           cota_nome: string
           created_at?: string
+          created_by?: string | null
           fipe_max: number
           fipe_min?: number
           id?: string
@@ -744,6 +788,7 @@ export type Database = {
           company_id?: string | null
           cota_nome?: string
           created_at?: string
+          created_by?: string | null
           fipe_max?: number
           fipe_min?: number
           id?: string
@@ -868,7 +913,9 @@ export type Database = {
       }
       lead_interacoes: {
         Row: {
+          company_id: string | null
           created_at: string
+          created_by: string | null
           data_interacao: string
           descricao: string
           id: string
@@ -877,7 +924,9 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_interacao?: string
           descricao: string
           id?: string
@@ -886,7 +935,9 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_interacao?: string
           descricao?: string
           id?: string
@@ -895,6 +946,13 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_interacoes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_interacoes_lead_id_fkey"
             columns: ["lead_id"]
@@ -911,6 +969,7 @@ export type Database = {
           consultor_id: string
           convertido: boolean
           created_at: string
+          created_by: string | null
           email: string | null
           estado: string | null
           id: string
@@ -930,6 +989,7 @@ export type Database = {
           consultor_id: string
           convertido?: boolean
           created_at?: string
+          created_by?: string | null
           email?: string | null
           estado?: string | null
           id?: string
@@ -949,6 +1009,7 @@ export type Database = {
           consultor_id?: string
           convertido?: boolean
           created_at?: string
+          created_by?: string | null
           email?: string | null
           estado?: string | null
           id?: string
@@ -991,6 +1052,7 @@ export type Database = {
           associado_id: string
           company_id: string | null
           created_at: string
+          created_by: string | null
           data_pagamento: string | null
           data_vencimento: string
           id: string
@@ -1005,6 +1067,7 @@ export type Database = {
           associado_id: string
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_pagamento?: string | null
           data_vencimento: string
           id?: string
@@ -1019,6 +1082,7 @@ export type Database = {
           associado_id?: string
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_pagamento?: string | null
           data_vencimento?: string
           id?: string
@@ -1144,6 +1208,7 @@ export type Database = {
           consultor_id: string
           cota_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           lead_id: string | null
           mensalidade: number
@@ -1165,6 +1230,7 @@ export type Database = {
           consultor_id: string
           cota_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           lead_id?: string | null
           mensalidade: number
@@ -1186,6 +1252,7 @@ export type Database = {
           consultor_id?: string
           cota_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           lead_id?: string | null
           mensalidade?: number
@@ -1241,6 +1308,7 @@ export type Database = {
           ativo: boolean
           company_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           nome: string
           sede_id: string
@@ -1250,6 +1318,7 @@ export type Database = {
           ativo?: boolean
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           nome: string
           sede_id: string
@@ -1259,6 +1328,7 @@ export type Database = {
           ativo?: boolean
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           nome?: string
           sede_id?: string
@@ -1286,6 +1356,7 @@ export type Database = {
           ativo: boolean
           company_id: string | null
           created_at: string
+          created_by: string | null
           email: string | null
           endereco: string | null
           id: string
@@ -1298,6 +1369,7 @@ export type Database = {
           ativo?: boolean
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -1310,6 +1382,7 @@ export type Database = {
           ativo?: boolean
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string | null
           endereco?: string | null
           id?: string
@@ -1330,6 +1403,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          company_id: string | null
           cor_destaque: string
           cor_primaria: string
           cor_secundaria: string
@@ -1354,6 +1428,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           cor_destaque?: string
           cor_primaria?: string
           cor_secundaria?: string
@@ -1378,6 +1453,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           cor_destaque?: string
           cor_primaria?: string
           cor_secundaria?: string
@@ -1401,28 +1477,47 @@ export type Database = {
           texto_institucional?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       veiculos: {
         Row: {
@@ -1438,6 +1533,7 @@ export type Database = {
           cota_id: string | null
           cotacao_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           lead_id: string | null
           marca: string
@@ -1467,6 +1563,7 @@ export type Database = {
           cota_id?: string | null
           cotacao_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           lead_id?: string | null
           marca: string
@@ -1496,6 +1593,7 @@ export type Database = {
           cota_id?: string | null
           cotacao_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           lead_id?: string | null
           marca?: string
@@ -1570,6 +1668,7 @@ export type Database = {
           company_id: string | null
           consultor_id: string | null
           created_at: string
+          created_by: string | null
           data_agendada: string | null
           data_realizada: string | null
           fotos: string[] | null
@@ -1591,6 +1690,7 @@ export type Database = {
           company_id?: string | null
           consultor_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_agendada?: string | null
           data_realizada?: string | null
           fotos?: string[] | null
@@ -1612,6 +1712,7 @@ export type Database = {
           company_id?: string | null
           consultor_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_agendada?: string | null
           data_realizada?: string | null
           fotos?: string[] | null
