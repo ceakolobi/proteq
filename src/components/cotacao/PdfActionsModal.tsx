@@ -29,6 +29,7 @@ interface PdfActionsModalProps {
   filename: string;
   clienteNome?: string;
   clienteEmail?: string;
+  clienteWhatsapp?: string;
   validadeDias?: number;
 }
 
@@ -40,11 +41,13 @@ export const PdfActionsModal = ({
   filename,
   clienteNome = "",
   clienteEmail = "",
+  clienteWhatsapp = "",
   validadeDias = 7,
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailDestinatario, setEmailDestinatario] = useState(clienteEmail);
+  const [whatsappNumero, setWhatsappNumero] = useState(clienteWhatsapp);
 
   // Baixar PDF localmente
   const handleDownload = () => {
@@ -100,8 +103,31 @@ export const PdfActionsModal = ({
     }
   };
 
-  // Abrir WhatsApp Web com link
+  // Formatar número para WhatsApp (apenas dígitos, com código do país)
+  const formatWhatsappNumber = (numero: string): string => {
+    // Remove tudo exceto dígitos
+    let digits = numero.replace(/\D/g, "");
+    
+    // Se não começar com 55, adiciona o código do Brasil
+    if (!digits.startsWith("55") && digits.length <= 11) {
+      digits = "55" + digits;
+    }
+    
+    return digits;
+  };
+
+  // Abrir WhatsApp Web com número e mensagem
   const handleWhatsApp = () => {
+    if (!whatsappNumero || whatsappNumero.replace(/\D/g, "").length < 10) {
+      toast({
+        title: "WhatsApp não informado",
+        description: "Informe o WhatsApp do cliente para enviar a cotação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const numeroFormatado = formatWhatsappNumber(whatsappNumero);
     const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
     
     const mensagem = `${saudacao}, tudo bem?
@@ -122,12 +148,12 @@ Qualquer dúvida estou à disposição 🙏
 🤝 Conte com a gente!
 _Harmony Agro - Proteção Veicular_`;
 
-    const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = `https://web.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     window.open(whatsappUrl, "_blank");
 
     toast({
       title: "WhatsApp Web aberto",
-      description: "Selecione o contato para enviar a proposta.",
+      description: `Enviando para ${whatsappNumero}`,
     });
   };
 
@@ -217,15 +243,41 @@ _Harmony Agro - Proteção Veicular_`;
             </Button>
 
             {/* WhatsApp */}
-            <Button
-              onClick={handleWhatsApp}
-              variant="outline"
-              className="w-full justify-start border-green-500 text-green-600 hover:bg-green-50"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Enviar via WhatsApp
-              <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
-            </Button>
+            <div className="space-y-2 pt-2 border-t">
+              <Label htmlFor="whatsappNumero" className="text-sm font-medium flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-green-600" />
+                Enviar no WhatsApp
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="whatsappNumero"
+                  type="tel"
+                  placeholder="(00) 00000-0000"
+                  value={whatsappNumero}
+                  onChange={(e) => {
+                    // Formatar telefone
+                    const value = e.target.value.replace(/\D/g, "");
+                    if (value.length <= 11) {
+                      const formatted = value
+                        .replace(/(\d{2})(\d)/, "($1) $2")
+                        .replace(/(\d{5})(\d)/, "$1-$2");
+                      setWhatsappNumero(formatted);
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleWhatsApp}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Enviar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Abre o WhatsApp Web com a mensagem e link do PDF
+              </p>
+            </div>
 
             {/* E-mail */}
             <div className="space-y-2 pt-2 border-t">
