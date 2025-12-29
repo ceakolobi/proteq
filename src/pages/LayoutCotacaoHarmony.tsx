@@ -26,6 +26,7 @@ import {
   Loader2,
   User,
   Calendar,
+  Share2,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ import { tipoBemLabels, TipoBem } from "@/types/cotacao";
 import html2pdf from "html2pdf.js";
 import { toast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/cotacao/SignaturePad";
+import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -97,6 +99,12 @@ export default function LayoutCotacaoHarmony() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [cotacao, setCotacao] = useState<CotacaoData | null>(null);
   const [cotaNome, setCotaNome] = useState<string | null>(null);
+  
+  // Estados para PDF
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [showPdfActions, setShowPdfActions] = useState(false);
+  const [pdfFilename, setPdfFilename] = useState("");
   
   // Estados para assinatura
   const [nomeCliente, setNomeCliente] = useState("");
@@ -192,7 +200,36 @@ export default function LayoutCotacaoHarmony() {
     ? cotacao.modelo.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20)
     : "Veiculo";
 
-  // Gerar PDF
+  // Upload PDF para Storage
+  const uploadPdfToStorage = async (blob: Blob, filename: string): Promise<string | null> => {
+    try {
+      const filePath = `propostas/${cotacaoId}/${filename}`;
+      
+      const { data, error } = await supabase.storage
+        .from("vistoria-fotos")
+        .upload(filePath, blob, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+
+      if (error) {
+        console.error("Erro no upload:", error);
+        return null;
+      }
+
+      // Obter URL pública
+      const { data: urlData } = supabase.storage
+        .from("vistoria-fotos")
+        .getPublicUrl(filePath);
+
+      return urlData?.publicUrl || null;
+    } catch (error) {
+      console.error("Erro ao fazer upload:", error);
+      return null;
+    }
+  };
+
+  // Gerar PDF com alta qualidade
   const handleGeneratePdf = async () => {
     if (!pdfContentRef.current) return;
 
@@ -200,30 +237,52 @@ export default function LayoutCotacaoHarmony() {
 
     try {
       const element = pdfContentRef.current;
-      const filename = `Cotacao_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
+      const filename = `Proposta_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
 
+      // Configurações otimizadas para alta qualidade + tamanho leve
       const opt = {
         margin: 0,
         filename: filename,
-        image: { type: "jpeg", quality: 0.98 },
+        image: { 
+          type: "jpeg", 
+          quality: 0.92 // Balanceado: boa qualidade, arquivo menor
+        },
         html2canvas: { 
-          scale: 2, 
+          scale: 2.5, // Alta resolução
           useCORS: true,
           logging: false,
+          letterRendering: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
         },
         jsPDF: { 
           unit: "mm", 
           format: "a4", 
-          orientation: "portrait" 
+          orientation: "portrait",
+          compress: true, // Compressão ativada
         },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
-      await html2pdf().set(opt).from(element).save();
+      // Gerar PDF como Blob
+      const pdfInstance = html2pdf().set(opt).from(element);
+      const blob = await pdfInstance.outputPdf("blob");
+      
+      setPdfBlob(blob);
+      setPdfFilename(filename);
+
+      // Fazer upload para Storage em background
+      const publicUrl = await uploadPdfToStorage(blob, filename);
+      if (publicUrl) {
+        setPdfUrl(publicUrl);
+      }
+
+      // Mostrar modal de ações
+      setShowPdfActions(true);
 
       toast({
         title: "PDF gerado com sucesso!",
-        description: `Arquivo: ${filename}`,
+        description: "Escolha como deseja compartilhar.",
       });
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -693,6 +752,16 @@ export default function LayoutCotacaoHarmony() {
           background-color: hsl(25, 95%, 53%, 0.9);
         }
       `}</style>
+
+      {/* Modal de Ações do PDF */}
+      <PdfActionsModal
+        isOpen={showPdfActions}
+        onClose={() => setShowPdfActions(false)}
+        pdfBlob={pdfBlob}
+        pdfUrl={pdfUrl}
+        filename={pdfFilename}
+        clienteNome={nomeCliente}
+      />
     </div>
   );
 }
