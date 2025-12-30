@@ -19,7 +19,10 @@ export function useFinanceiro() {
 
   // Buscar estatísticas do dashboard
   const fetchStats = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
@@ -62,6 +65,8 @@ export function useFinanceiro() {
       });
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error);
+    } finally {
+      setLoading(false);
     }
   }, [user]);
 
