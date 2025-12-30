@@ -147,9 +147,11 @@ export type Database = {
       }
       associados: {
         Row: {
+          bairro: string | null
           cep: string | null
           cidade: string | null
           company_id: string | null
+          complemento: string | null
           consultor_id: string | null
           cpf: string
           created_at: string
@@ -158,8 +160,11 @@ export type Database = {
           email: string
           endereco: string | null
           estado: string | null
+          estado_civil: string | null
           id: string
           nome_completo: string
+          numero: string | null
+          profissao: string | null
           regiao_id: string | null
           rg: string | null
           status: Database["public"]["Enums"]["associate_status"]
@@ -168,11 +173,14 @@ export type Database = {
           termos_aceitos_em: string | null
           updated_at: string
           user_id: string | null
+          whatsapp: string | null
         }
         Insert: {
+          bairro?: string | null
           cep?: string | null
           cidade?: string | null
           company_id?: string | null
+          complemento?: string | null
           consultor_id?: string | null
           cpf: string
           created_at?: string
@@ -181,8 +189,11 @@ export type Database = {
           email: string
           endereco?: string | null
           estado?: string | null
+          estado_civil?: string | null
           id?: string
           nome_completo: string
+          numero?: string | null
+          profissao?: string | null
           regiao_id?: string | null
           rg?: string | null
           status?: Database["public"]["Enums"]["associate_status"]
@@ -191,11 +202,14 @@ export type Database = {
           termos_aceitos_em?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
+          bairro?: string | null
           cep?: string | null
           cidade?: string | null
           company_id?: string | null
+          complemento?: string | null
           consultor_id?: string | null
           cpf?: string
           created_at?: string
@@ -204,8 +218,11 @@ export type Database = {
           email?: string
           endereco?: string | null
           estado?: string | null
+          estado_civil?: string | null
           id?: string
           nome_completo?: string
+          numero?: string | null
+          profissao?: string | null
           regiao_id?: string | null
           rg?: string | null
           status?: Database["public"]["Enums"]["associate_status"]
@@ -214,6 +231,7 @@ export type Database = {
           termos_aceitos_em?: string | null
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -850,6 +868,116 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_associado: {
+        Row: {
+          associado_id: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nome_arquivo: string
+          tipo: string
+          url: string
+        }
+        Insert: {
+          associado_id: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo: string
+          tipo: string
+          url: string
+        }
+        Update: {
+          associado_id?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo?: string
+          tipo?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_associado_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_associado_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_associado_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_veiculo: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nome_arquivo: string
+          tipo: string
+          url: string
+          veiculo_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo: string
+          tipo: string
+          url: string
+          veiculo_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_arquivo?: string
+          tipo?: string
+          url?: string
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_veiculo_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_veiculo_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_veiculo_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -1566,6 +1694,7 @@ export type Database = {
           carro_reserva_dias: number
           chassi: string | null
           codigo_fipe: string | null
+          combustivel: string | null
           company_id: string | null
           consultor_id: string | null
           cor: string | null
@@ -1582,8 +1711,10 @@ export type Database = {
           placa: string
           protecao_ativa: boolean
           protecao_ativada_em: string | null
+          quilometragem: number | null
           renavam: string | null
           sede_id: string | null
+          situacao_financeira: string | null
           tipo: Database["public"]["Enums"]["vehicle_type"]
           updated_at: string
           valor_fipe: number
@@ -1596,6 +1727,7 @@ export type Database = {
           carro_reserva_dias?: number
           chassi?: string | null
           codigo_fipe?: string | null
+          combustivel?: string | null
           company_id?: string | null
           consultor_id?: string | null
           cor?: string | null
@@ -1612,8 +1744,10 @@ export type Database = {
           placa: string
           protecao_ativa?: boolean
           protecao_ativada_em?: string | null
+          quilometragem?: number | null
           renavam?: string | null
           sede_id?: string | null
+          situacao_financeira?: string | null
           tipo: Database["public"]["Enums"]["vehicle_type"]
           updated_at?: string
           valor_fipe: number
@@ -1626,6 +1760,7 @@ export type Database = {
           carro_reserva_dias?: number
           chassi?: string | null
           codigo_fipe?: string | null
+          combustivel?: string | null
           company_id?: string | null
           consultor_id?: string | null
           cor?: string | null
@@ -1642,8 +1777,10 @@ export type Database = {
           placa?: string
           protecao_ativa?: boolean
           protecao_ativada_em?: string | null
+          quilometragem?: number | null
           renavam?: string | null
           sede_id?: string | null
+          situacao_financeira?: string | null
           tipo?: Database["public"]["Enums"]["vehicle_type"]
           updated_at?: string
           valor_fipe?: number
