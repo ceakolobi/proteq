@@ -140,6 +140,9 @@ export default function PlacaLookup({
       }
 
       // Callback com dados do veículo
+      const chassiRaw = typeof vehicleData.chassi === 'string' ? vehicleData.chassi : '';
+      const chassiSemMascara = chassiRaw.replace(/\*/g, '').trim();
+
       onVehicleFound({
         placa: vehicleData.placa,
         marca: vehicleData.marca || '',
@@ -147,8 +150,8 @@ export default function PlacaLookup({
         versao: vehicleData.versao,
         ano_fabricacao: vehicleData.ano_fabricacao?.toString() || '',
         ano_modelo: vehicleData.ano_modelo?.toString() || '',
-        // Retornar chassi completo - se mascarado, deixar vazio para preenchimento manual
-        chassi: vehicleData.chassi_mascarado ? '' : vehicleData.chassi,
+        // Nunca mascarar no frontend (remove '*'). Se vier vazio, usuário preenche manualmente.
+        chassi: chassiSemMascara,
         chassi_mascarado: vehicleData.chassi_mascarado,
         // Retornar renavam quando disponível
         renavam: vehicleData.renavam,
