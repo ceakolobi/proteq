@@ -17,8 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Mail, User, Shield, Play } from 'lucide-react';
-import { DEMO_CREDENTIALS } from '@/hooks/useDemoMode';
+import { Car, Lock, Mail, User, Shield } from 'lucide-react';
 
 export default function Auth() {
   const [tab, setTab] = useState<'login' | 'register'>('login');
@@ -439,43 +438,6 @@ export default function Auth() {
 
                       <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? 'Entrando...' : 'Entrar'}
-                      </Button>
-
-                      <div className="relative my-4">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-card px-2 text-muted-foreground">ou</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full gap-2 border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
-                        disabled={isLoading}
-                        onClick={async () => {
-                          setIsLoading(true);
-                          const { error } = await signIn(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
-                          if (error) {
-                            toast({
-                              variant: 'destructive',
-                              title: 'Erro ao entrar no modo demonstração',
-                              description: 'Usuário demo não configurado. Entre em contato com o administrador.',
-                            });
-                          } else {
-                            toast({
-                              title: 'Modo Demonstração',
-                              description: 'Bem-vindo ao ambiente de demonstração!',
-                            });
-                            navigate('/dashboard');
-                          }
-                          setIsLoading(false);
-                        }}
-                      >
-                        <Play className="h-4 w-4" />
-                        Entrar em Modo Demonstração
                       </Button>
                     </form>
                   </TabsContent>
