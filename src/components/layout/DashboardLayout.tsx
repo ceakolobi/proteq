@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSystemInfo } from '@/hooks/useSystemInfo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -46,8 +47,11 @@ import {
   Wrench,
   UserCog,
   ShieldCheck,
+  Info,
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 
 interface NavItem {
@@ -464,11 +468,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       {/* Main content */}
-      <main className="lg:pl-56 lg:pt-14">
-        <div className="p-4 lg:p-6">
+      <main className="lg:pl-56 lg:pt-14 min-h-[calc(100vh-3.5rem)] flex flex-col">
+        <div className="p-4 lg:p-6 flex-1">
           {children}
         </div>
+        <SystemFooter />
       </main>
     </div>
+  );
+}
+
+function SystemFooter() {
+  const { systemInfo, isLoading } = useSystemInfo();
+
+  if (isLoading || !systemInfo) {
+    return null;
+  }
+
+  const releaseDate = systemInfo.release_date 
+    ? format(new Date(systemInfo.release_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+    : '';
+
+  return (
+    <footer className="border-t border-border/50 bg-muted/30 py-3 px-4 lg:px-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Info className="h-3.5 w-3.5" />
+          <span>Versão do Sistema: <strong className="text-foreground">v{systemInfo.system_version}</strong></span>
+        </div>
+        <span>Última atualização: {releaseDate}</span>
+      </div>
+    </footer>
   );
 }

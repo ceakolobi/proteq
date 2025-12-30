@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAccessControl } from "@/hooks/useAccessControl";
 import { useSettings } from "@/hooks/useSettings";
+import { useSystemInfo } from "@/hooks/useSystemInfo";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +13,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Palette,
   Building2,
@@ -28,8 +39,14 @@ import {
   Sun,
   Moon,
   SunMoon,
+  Info,
+  Tag,
+  Calendar,
+  Plus,
 } from "lucide-react";
 import { useAppTheme, themeOptions } from "@/hooks/useTheme";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function Configuracoes() {
   const navigate = useNavigate();
@@ -893,8 +910,179 @@ export default function Configuracoes() {
               </p>
             </CardContent>
           </Card>
+
+          {/* Versão do Sistema */}
+          <SystemVersionCard />
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function SystemVersionCard() {
+  const { systemInfo, isLoading, createNewVersion } = useSystemInfo();
+  const { profile } = useAuth();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newVersion, setNewVersion] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleCreateVersion = async () => {
+    if (!newVersion.trim()) return;
+    
+    setIsSaving(true);
+    const success = await createNewVersion(
+      newVersion.trim(),
+      newNotes.trim(),
+      profile?.nome_completo || "Admin"
+    );
+    
+    if (success) {
+      setIsDialogOpen(false);
+      setNewVersion("");
+      setNewNotes("");
+    }
+    setIsSaving(false);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-24 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const releaseDate = systemInfo?.release_date 
+    ? format(new Date(systemInfo.release_date), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
+    : '';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Info className="w-5 h-5 text-primary" />
+          Versão do Sistema
+        </CardTitle>
+        <CardDescription>
+          Informações sobre a versão atual e histórico de atualizações
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {systemInfo ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                <Tag className="w-5 h-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Versão Atual</p>
+                  <p className="text-2xl font-bold text-primary">v{systemInfo.system_version}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Última Atualização</p>
+                  <p className="font-medium">{releaseDate}</p>
+                  {systemInfo.updated_by && (
+                    <p className="text-xs text-muted-foreground">por {systemInfo.updated_by}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {systemInfo.release_notes && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Notas da Versão
+                </Label>
+                <div className="p-4 rounded-lg bg-muted/50 text-sm whitespace-pre-wrap">
+                  {systemInfo.release_notes}
+                </div>
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                <strong>Padrão SemVer (MAJOR.MINOR.PATCH):</strong>
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+                <li><strong>MAJOR</strong> – Mudanças incompatíveis com versões anteriores</li>
+                <li><strong>MINOR</strong> – Novas funcionalidades (retrocompatíveis)</li>
+                <li><strong>PATCH</strong> – Correções de bugs</li>
+              </ul>
+            </div>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Registrar Nova Versão
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Registrar Nova Versão</DialogTitle>
+                  <DialogDescription>
+                    Adicione uma nova versão ao sistema. Isso será refletido em toda a interface.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="version">Número da Versão</Label>
+                    <Input
+                      id="version"
+                      value={newVersion}
+                      onChange={(e) => setNewVersion(e.target.value)}
+                      placeholder="Ex: 1.2.0"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Siga o padrão MAJOR.MINOR.PATCH
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notas da Versão</Label>
+                    <Textarea
+                      id="notes"
+                      value={newNotes}
+                      onChange={(e) => setNewNotes(e.target.value)}
+                      placeholder="Descreva as mudanças desta versão..."
+                      rows={4}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreateVersion} disabled={!newVersion.trim() || isSaving}>
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Salvar Versão
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
+          <p className="text-muted-foreground text-center py-4">
+            Nenhuma informação de versão encontrada.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
