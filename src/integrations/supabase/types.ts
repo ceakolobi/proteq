@@ -157,6 +157,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_nascimento: string | null
+          dia_vencimento: number | null
           email: string
           endereco: string | null
           estado: string | null
@@ -186,6 +187,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
+          dia_vencimento?: number | null
           email: string
           endereco?: string | null
           estado?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
+          dia_vencimento?: number | null
           email?: string
           endereco?: string | null
           estado?: string | null

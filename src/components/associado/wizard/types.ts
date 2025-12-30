@@ -17,7 +17,17 @@ export interface AssociadoFormData {
   bairro: string;
   cidade: string;
   estado: string;
+  dia_vencimento: number;
 }
+
+export const DIA_VENCIMENTO_OPTIONS = [
+  { value: 5, label: 'Dia 05' },
+  { value: 10, label: 'Dia 10' },
+  { value: 15, label: 'Dia 15' },
+  { value: 20, label: 'Dia 20' },
+  { value: 25, label: 'Dia 25' },
+  { value: 30, label: 'Dia 30' },
+];
 
 export interface VeiculoFormData {
   placa: string;

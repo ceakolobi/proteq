@@ -7,9 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Mail, Phone, Calendar, Briefcase, Heart } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Briefcase, Heart, CreditCard } from 'lucide-react';
 import type { AssociadoFormData } from '../types';
-import { ESTADO_CIVIL_OPTIONS } from '../types';
+import { ESTADO_CIVIL_OPTIONS, DIA_VENCIMENTO_OPTIONS } from '../types';
 
 interface DadosAssociadoStepProps {
   data: AssociadoFormData;
@@ -183,7 +183,7 @@ export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) 
         </div>
 
         {/* E-mail */}
-        <div className="md:col-span-2 space-y-2">
+        <div className="space-y-2">
           <Label htmlFor="email">
             E-mail <span className="text-destructive">*</span>
           </Label>
@@ -198,6 +198,32 @@ export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) 
               onChange={(e) => handleChange('email', e.target.value)}
             />
           </div>
+        </div>
+
+        {/* Dia de Vencimento */}
+        <div className="space-y-2">
+          <Label htmlFor="dia_vencimento">
+            Dia de Vencimento <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={String(data.dia_vencimento)}
+            onValueChange={(value) => onChange({ ...data, dia_vencimento: Number(value) })}
+          >
+            <SelectTrigger>
+              <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Selecione o dia" />
+            </SelectTrigger>
+            <SelectContent>
+              {DIA_VENCIMENTO_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={String(option.value)}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Dia do mês para vencimento das mensalidades
+          </p>
         </div>
       </div>
 

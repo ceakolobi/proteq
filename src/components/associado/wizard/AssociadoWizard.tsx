@@ -48,6 +48,7 @@ const initialAssociadoData: AssociadoFormData = {
   bairro: '',
   cidade: '',
   estado: '',
+  dia_vencimento: 10,
 };
 
 const initialVeiculoData: VeiculoFormData = {
@@ -273,6 +274,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           consultor_id: user.id,
           regiao_id: profile.regiao_id,
           status: 'ativo',
+          dia_vencimento: associadoData.dia_vencimento,
         })
         .select()
         .single();
