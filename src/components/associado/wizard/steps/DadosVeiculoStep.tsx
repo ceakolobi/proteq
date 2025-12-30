@@ -63,9 +63,11 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
 
       if (result?.success && result?.data) {
         const veiculo = result.data;
-        // Verificar se chassi está mascarado (com asteriscos)
-        const chassiRetornado = veiculo.chassi || '';
-        const chassiMascarado = veiculo.chassi_mascarado || (chassiRetornado.match(/\*/g) || []).length > 3;
+        // Limpar chassi retornado - remover asteriscos e caracteres especiais
+        const chassiRetornado = (veiculo.chassi || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        // Verificar se chassi está mascarado (tinha asteriscos ou veio vazio)
+        const chassiOriginal = veiculo.chassi || '';
+        const chassiMascarado = !chassiRetornado || chassiOriginal.includes('*');
         
         onChange({
           ...data,
@@ -74,16 +76,16 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
           ano: veiculo.ano_fabricacao || veiculo.ano || data.ano,
           cor: veiculo.cor?.toLowerCase() || data.cor,
           combustivel: veiculo.combustivel?.toLowerCase() || data.combustivel,
-          // Se chassi mascarado, deixar vazio para preenchimento manual
-          chassi: chassiMascarado ? '' : chassiRetornado.replace(/[^A-Za-z0-9]/g, '').toUpperCase(),
+          // Se chassi válido e não mascarado, preencher; senão manter valor atual
+          chassi: (!chassiMascarado && chassiRetornado.length >= 17) ? chassiRetornado : data.chassi,
           renavam: veiculo.renavam?.replace(/\D/g, '') || data.renavam,
           valor_fipe: veiculo.valor_fipe || data.valor_fipe,
           codigo_fipe: veiculo.codigo_fipe || data.codigo_fipe,
         });
         
         // Informar usuário se chassi precisa ser preenchido manualmente
-        if (chassiMascarado) {
-          toast.info('Chassi não disponível automaticamente. Preencha manualmente.');
+        if (chassiMascarado || chassiRetornado.length < 17) {
+          toast.info('Chassi não disponível. Preencha manualmente.');
         }
         toast.success('Dados do veículo encontrados!');
       } else {
