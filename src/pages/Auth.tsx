@@ -1,25 +1,114 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Car, Lock, Mail, User, Shield } from 'lucide-react';
 
 export default function Auth() {
+  const [tab, setTab] = useState<'login' | 'register'>('login');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nomeCompleto, setNomeCompleto] = useState('');
+
+  const [isResetOpen, setIsResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const schemas = useMemo(() => {
+    const emailSchema = z.string().email('Informe um email válido.');
+
+    const loginSchema = z.object({
+      email: emailSchema,
+      password: z.string().min(1, 'Informe sua senha.'),
+    });
+
+    const registerSchema = z.object({
+      nomeCompleto: z.string().min(1, 'Por favor, informe seu nome completo.'),
+      email: emailSchema,
+      password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
+    });
+
+    const resetSchema = z.object({
+      email: emailSchema,
+    });
+
+    const updatePasswordSchema = z
+      .object({
+        newPassword: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
+        confirmNewPassword: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
+      })
+      .refine((v) => v.newPassword === v.confirmNewPassword, {
+        message: 'As senhas não conferem.',
+        path: ['confirmNewPassword'],
+      });
+
+    return { loginSchema, registerSchema, resetSchema, updatePasswordSchema };
+  }, []);
+
+  const getZodMessage = (error: unknown) => {
+    if (error instanceof z.ZodError) {
+      return error.issues[0]?.message ?? 'Verifique os dados informados.';
+    }
+    return 'Verifique os dados informados.';
+  };
+
+  useEffect(() => {
+    document.title = 'Acesso | MARKA CRM';
+
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (hashParams.get('type') === 'recovery') {
+      setIsRecoveryMode(true);
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecoveryMode(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      schemas.loginSchema.parse({ email, password });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Dados inválidos',
+        description: getZodMessage(err),
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     const { error } = await signIn(email, password);
@@ -28,9 +117,10 @@ export default function Auth() {
       toast({
         variant: 'destructive',
         title: 'Erro ao entrar',
-        description: error.message === 'Invalid login credentials' 
-          ? 'Credenciais inválidas. Verifique seu email e senha.'
-          : error.message,
+        description:
+          error.message === 'Invalid login credentials'
+            ? 'Credenciais inválidas. Verifique seu email e senha.'
+            : error.message,
       });
     } else {
       toast({
@@ -45,17 +135,19 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    if (!nomeCompleto.trim()) {
+    try {
+      schemas.registerSchema.parse({ nomeCompleto, email, password });
+    } catch (err) {
       toast({
         variant: 'destructive',
-        title: 'Nome obrigatório',
-        description: 'Por favor, informe seu nome completo.',
+        title: 'Dados inválidos',
+        description: getZodMessage(err),
       });
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     const { error } = await signUp(email, password, nomeCompleto);
 
@@ -80,6 +172,99 @@ export default function Auth() {
     setIsLoading(false);
   };
 
+  const handleSendResetEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      schemas.resetSchema.parse({ email: resetEmail });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Email inválido',
+        description: getZodMessage(err),
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    const redirectTo = `${window.location.origin}/auth`;
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível enviar o link',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Link enviado!',
+        description: 'Verifique seu email para redefinir sua senha.',
+      });
+      setIsResetOpen(false);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleCancelRecovery = async () => {
+    setIsLoading(true);
+    await supabase.auth.signOut();
+
+    setIsRecoveryMode(false);
+    setNewPassword('');
+    setConfirmNewPassword('');
+
+    // Remove tokens do hash da URL
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+
+    setIsLoading(false);
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      schemas.updatePasswordSchema.parse({ newPassword, confirmNewPassword });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Dados inválidos',
+        description: getZodMessage(err),
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao redefinir senha',
+        description: error.message,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    toast({
+      title: 'Senha atualizada!',
+      description: 'Você já pode acessar o sistema com a nova senha.',
+    });
+
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+
+    setIsRecoveryMode(false);
+    setNewPassword('');
+    setConfirmNewPassword('');
+
+    setIsLoading(false);
+    navigate('/dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left side - Branding */}
@@ -95,7 +280,7 @@ export default function Auth() {
               <p className="text-primary-foreground/80">Sistema de Gestão</p>
             </div>
           </div>
-          
+
           <div className="space-y-6">
             <div className="flex items-start gap-4">
               <div className="p-2 bg-primary-foreground/10 rounded-lg mt-1">
@@ -108,7 +293,7 @@ export default function Auth() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-4">
               <div className="p-2 bg-primary-foreground/10 rounded-lg mt-1">
                 <Lock className="h-5 w-5" />
@@ -122,7 +307,7 @@ export default function Auth() {
             </div>
           </div>
         </div>
-        
+
         {/* Decorative elements */}
         <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-primary-foreground/5 rounded-full" />
         <div className="absolute -top-20 -right-10 w-60 h-60 bg-primary-foreground/5 rounded-full" />
@@ -138,114 +323,224 @@ export default function Auth() {
               </div>
               <span className="text-xl font-bold">MARKA CRM</span>
             </div>
-            <CardTitle className="text-2xl font-bold">Acesse sua conta</CardTitle>
+
+            <CardTitle className="text-2xl font-bold">
+              {isRecoveryMode ? 'Redefinir senha' : 'Acesse sua conta'}
+            </CardTitle>
             <CardDescription>
-              Sistema interno de gestão da associação
+              {isRecoveryMode
+                ? 'Defina uma nova senha para sua conta.'
+                : 'Sistema interno de gestão da associação'}
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Entrar</TabsTrigger>
-                <TabsTrigger value="register">Cadastrar</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email-login">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email-login"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+            {isRecoveryMode ? (
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nova senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-10"
+                      minLength={6}
+                      required
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password-login">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password-login"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password">Confirmar nova senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="confirm-new-password"
+                      type="password"
+                      placeholder="Repita a nova senha"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="pl-10"
+                      minLength={6}
+                      required
+                    />
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Entrando...' : 'Entrar'}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" className="flex-1" onClick={handleCancelRecovery} disabled={isLoading}>
+                    Cancelar
                   </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="register">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome Completo</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="nome"
-                        type="text"
-                        placeholder="Seu nome completo"
-                        value={nomeCompleto}
-                        onChange={(e) => setNomeCompleto(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email-register">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email-register"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password-register">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password-register"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
-                        minLength={6}
-                        required
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Mínimo de 6 caracteres</p>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Cadastrando...' : 'Cadastrar'}
+                  <Button type="submit" className="flex-1" disabled={isLoading}>
+                    {isLoading ? 'Salvando...' : 'Salvar nova senha'}
                   </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                </div>
+              </form>
+            ) : (
+              <>
+                <Tabs value={tab} onValueChange={(v) => setTab(v as 'login' | 'register')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="login">Entrar</TabsTrigger>
+                    <TabsTrigger value="register">Cadastrar</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="login">
+                    <form onSubmit={handleSignIn} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email-login">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="email-login"
+                            type="email"
+                            placeholder="seu@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="password-login">Senha</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="password-login"
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0"
+                          onClick={() => {
+                            setResetEmail(email);
+                            setIsResetOpen(true);
+                          }}
+                        >
+                          Esqueci minha senha
+                        </Button>
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? 'Entrando...' : 'Entrar'}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="register">
+                    <form onSubmit={handleSignUp} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nome">Nome Completo</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="nome"
+                            type="text"
+                            placeholder="Seu nome completo"
+                            value={nomeCompleto}
+                            onChange={(e) => setNomeCompleto(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email-register">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="email-register"
+                            type="email"
+                            placeholder="seu@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password-register">Senha</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="password-register"
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-10"
+                            minLength={6}
+                            required
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Mínimo de 6 caracteres</p>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? 'Cadastrando...' : 'Cadastrar'}
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+
+                <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Recuperar senha</DialogTitle>
+                      <DialogDescription>
+                        Enviaremos um link para você criar uma nova senha.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSendResetEmail} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            placeholder="seu@email.com"
+                            value={resetEmail}
+                            onChange={(e) => setResetEmail(e.target.value)}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button type="button" variant="ghost" onClick={() => setIsResetOpen(false)} disabled={isLoading}>
+                          Cancelar
+                        </Button>
+                        <Button type="submit" disabled={isLoading}>
+                          {isLoading ? 'Enviando...' : 'Enviar link'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
