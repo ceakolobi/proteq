@@ -48,6 +48,7 @@ interface PlacaApiResponse {
   cor?: string;
   combustivel?: string;
   chassi?: string;
+  renavam?: string;
   municipio?: string;
   uf?: string;
   situacao?: string;
@@ -365,6 +366,18 @@ serve(async (req) => {
         }
       }
 
+      // Processar chassi - remover mascaramento se houver
+      let chassiCompleto = placaData.chassi || null;
+      // A API pode retornar chassi parcialmente mascarado com asteriscos
+      // Se tiver mais de 3 asteriscos, consideramos mascarado e deixamos para preenchimento manual
+      const chassiMascarado = chassiCompleto && (chassiCompleto.match(/\*/g) || []).length > 3;
+      
+      // Processar renavam - apenas números
+      let renavamLimpo = placaData.renavam || null;
+      if (renavamLimpo) {
+        renavamLimpo = renavamLimpo.replace(/\D/g, '');
+      }
+
       const result = {
         placa: placaData.placa || placa,
         marca,
@@ -374,7 +387,11 @@ serve(async (req) => {
         ano_modelo: anoModelo,
         cor: placaData.cor || null,
         combustivel: placaData.combustivel || null,
-        chassi: placaData.chassi || null,
+        // Retornar chassi completo ou indicar que está mascarado
+        chassi: chassiCompleto,
+        chassi_mascarado: chassiMascarado,
+        // Retornar renavam quando disponível
+        renavam: renavamLimpo,
         municipio: placaData.municipio || null,
         uf: placaData.uf || null,
         situacao: placaData.situacao || null,

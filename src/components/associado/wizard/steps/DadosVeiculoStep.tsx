@@ -63,6 +63,10 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
 
       if (result?.success && result?.data) {
         const veiculo = result.data;
+        // Verificar se chassi está mascarado (com asteriscos)
+        const chassiRetornado = veiculo.chassi || '';
+        const chassiMascarado = veiculo.chassi_mascarado || (chassiRetornado.match(/\*/g) || []).length > 3;
+        
         onChange({
           ...data,
           marca: veiculo.marca || data.marca,
@@ -70,11 +74,17 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
           ano: veiculo.ano_fabricacao || veiculo.ano || data.ano,
           cor: veiculo.cor?.toLowerCase() || data.cor,
           combustivel: veiculo.combustivel?.toLowerCase() || data.combustivel,
-          chassi: veiculo.chassi || data.chassi,
-          renavam: veiculo.renavam || data.renavam,
+          // Se chassi mascarado, deixar vazio para preenchimento manual
+          chassi: chassiMascarado ? '' : chassiRetornado.replace(/[^A-Za-z0-9]/g, '').toUpperCase(),
+          renavam: veiculo.renavam?.replace(/\D/g, '') || data.renavam,
           valor_fipe: veiculo.valor_fipe || data.valor_fipe,
           codigo_fipe: veiculo.codigo_fipe || data.codigo_fipe,
         });
+        
+        // Informar usuário se chassi precisa ser preenchido manualmente
+        if (chassiMascarado) {
+          toast.info('Chassi não disponível automaticamente. Preencha manualmente.');
+        }
         toast.success('Dados do veículo encontrados!');
       } else {
         toast.info('Veículo não encontrado. Preencha manualmente.');
@@ -279,27 +289,38 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
 
         {/* Chassi */}
         <div className="md:col-span-3 space-y-2">
-          <Label htmlFor="chassi">Chassi</Label>
+          <Label htmlFor="chassi">
+            Chassi <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="chassi"
-            placeholder="Número do chassi"
+            placeholder="Ex: 9BWZZZ377VT004251"
             value={data.chassi}
-            onChange={(e) => handleChange('chassi', e.target.value.toUpperCase())}
+            onChange={(e) => handleChange('chassi', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
             maxLength={17}
-            className="uppercase"
+            className="uppercase font-mono tracking-wide"
           />
+          <p className="text-xs text-muted-foreground">
+            17 caracteres alfanuméricos
+          </p>
         </div>
 
         {/* Renavam */}
         <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="renavam">Renavam</Label>
+          <Label htmlFor="renavam">
+            Renavam <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="renavam"
-            placeholder="Número do renavam"
+            placeholder="Ex: 00123456789"
             value={data.renavam}
             onChange={(e) => handleChange('renavam', e.target.value.replace(/\D/g, ''))}
             maxLength={11}
+            className="font-mono"
           />
+          <p className="text-xs text-muted-foreground">
+            11 dígitos numéricos
+          </p>
         </div>
 
         {/* Quilometragem */}
