@@ -102,8 +102,10 @@ export default function Cotacao() {
       return;
     }
 
-    // Get mensalidade based on vehicle type with percentual_extra
+    // Get mensalidade based on vehicle type with fórmula aditiva
+    const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
     const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
+    const totalPercentual = percentualGeral + percentualExtra;
     let valorBase = 0;
     switch (formData.tipo) {
       case 'carro':
@@ -116,7 +118,7 @@ export default function Cotacao() {
         valorBase = cotaEncontrada.valor_camionete;
         break;
     }
-    let mensalidade = valorBase + (valorBase * percentualExtra / 100);
+    let mensalidade = valorBase + (valorBase * totalPercentual / 100);
 
     // Add carro reserva extra if selected
     let carroReservaAdicional = 0;
