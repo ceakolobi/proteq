@@ -367,13 +367,14 @@ serve(async (req) => {
       }
 
       // Processar chassi - remover mascaramento se houver
-      let chassiCompleto = placaData.chassi || null;
+      // A API pode retornar campos em caixa alta (CHASSI/RENAVAM)
+      let chassiCompleto = ((placaData as any).CHASSI || placaData.chassi || null) as string | null;
       // A API pode retornar chassi parcialmente mascarado com asteriscos
       // Se tiver mais de 3 asteriscos, consideramos mascarado e deixamos para preenchimento manual
       const chassiMascarado = chassiCompleto && (chassiCompleto.match(/\*/g) || []).length > 3;
       
       // Processar renavam - apenas números
-      let renavamLimpo = placaData.renavam || null;
+      let renavamLimpo = ((placaData as any).RENAVAM || placaData.renavam || null) as string | null;
       if (renavamLimpo) {
         renavamLimpo = renavamLimpo.replace(/\D/g, '');
       }
