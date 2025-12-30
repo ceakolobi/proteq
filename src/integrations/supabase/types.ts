@@ -1905,6 +1905,33 @@ export type Database = {
           },
         ]
       }
+      system_info: {
+        Row: {
+          created_at: string
+          id: string
+          release_date: string
+          release_notes: string | null
+          system_version: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          release_date?: string
+          release_notes?: string | null
+          system_version: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          release_date?: string
+          release_notes?: string | null
+          system_version?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           company_id: string | null
