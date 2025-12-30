@@ -173,7 +173,10 @@ export default function Mensalidades() {
       case 'paga': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case 'atrasada': return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'pendente': return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'a_vencer': return <Calendar className="h-4 w-4 text-blue-500" />;
       case 'cancelada': return <XCircle className="h-4 w-4 text-gray-500" />;
+      case 'isento': return <CheckCircle2 className="h-4 w-4 text-purple-500" />;
+      case 'suspensa': return <Clock className="h-4 w-4 text-orange-500" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
@@ -249,11 +252,13 @@ export default function Mensalidades() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="a_vencer">A Vencer</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="paga">Paga</SelectItem>
                     <SelectItem value="atrasada">Atrasada</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                     <SelectItem value="suspensa">Suspensa</SelectItem>
+                    <SelectItem value="isento">Isento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -452,11 +457,13 @@ export default function Mensalidades() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="a_vencer">A Vencer</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="paga">Paga</SelectItem>
                     <SelectItem value="atrasada">Atrasada</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                     <SelectItem value="suspensa">Suspensa</SelectItem>
+                    <SelectItem value="isento">Isento</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -28,6 +28,12 @@ import NotFound from "./pages/NotFound";
 import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
 import Configuracoes from "./pages/Configuracoes";
+import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
+import Mensalidades from "./pages/financeiro/Mensalidades";
+import Pagamentos from "./pages/financeiro/Pagamentos";
+import Inadimplencia from "./pages/financeiro/Inadimplencia";
+import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
+import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
 
 const queryClient = new QueryClient();
 
@@ -131,6 +137,14 @@ const App = () => (
               <Route path="/ativacoes" element={<ProtectedRoute><Ativacoes /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/layout-cotacao-harmony" element={<ProtectedRoute><LayoutCotacaoHarmony /></ProtectedRoute>} />
+              
+              {/* Financeiro */}
+              <Route path="/financeiro" element={<ProtectedRoute><FinanceiroDashboard /></ProtectedRoute>} />
+              <Route path="/financeiro/mensalidades" element={<ProtectedRoute><Mensalidades /></ProtectedRoute>} />
+              <Route path="/financeiro/pagamentos" element={<ProtectedRoute><Pagamentos /></ProtectedRoute>} />
+              <Route path="/financeiro/inadimplencia" element={<ProtectedRoute><Inadimplencia /></ProtectedRoute>} />
+              <Route path="/financeiro/relatorios" element={<ProtectedRoute><RelatoriosFinanceiros /></ProtectedRoute>} />
+              <Route path="/financeiro/configuracoes" element={<ProtectedRoute><ConfiguracoesFinanceiras /></ProtectedRoute>} />
               
               {/* 404 - Rota não encontrada */}
               <Route path="*" element={<NotFound />} />

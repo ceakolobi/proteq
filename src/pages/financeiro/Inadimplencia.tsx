@@ -168,6 +168,7 @@ export default function Inadimplencia() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Associado</TableHead>
+                    <TableHead>Regional</TableHead>
                     <TableHead className="text-center">Mensalidades Atrasadas</TableHead>
                     <TableHead className="text-center">Maior Atraso</TableHead>
                     <TableHead className="text-right">Total Devido</TableHead>
@@ -178,7 +179,7 @@ export default function Inadimplencia() {
                 <TableBody>
                   {inadimplentes.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         <div className="flex flex-col items-center gap-2">
                           <AlertTriangle className="h-8 w-8 text-green-500" />
                           <span>Nenhum associado inadimplente!</span>
@@ -190,6 +191,9 @@ export default function Inadimplencia() {
                       <TableRow key={i.associado_id}>
                         <TableCell className="font-medium">
                           {i.associado_nome}
+                        </TableCell>
+                        <TableCell>
+                          {i.regiao_nome || '-'}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="font-mono">

@@ -39,6 +39,7 @@ export function useFinanceiro() {
       const pendentes = mensalidadesMes?.filter(m => m.status === 'pendente') || [];
       const pagas = mensalidadesMes?.filter(m => m.status === 'paga') || [];
       const atrasadas = mensalidadesMes?.filter(m => m.status === 'atrasada') || [];
+      const aVencer = mensalidadesMes?.filter(m => m.status === 'a_vencer') || [];
 
       // Buscar todas as mensalidades atrasadas (não apenas do mês)
       const { data: todasAtrasadas } = await supabase
@@ -49,13 +50,14 @@ export function useFinanceiro() {
       const associadosUnicos = new Set(todasAtrasadas?.map(m => m.associado_id) || []);
 
       setStats({
-        totalAReceber: pendentes.reduce((acc, m) => acc + Number(m.valor_final), 0),
+        totalAReceber: pendentes.reduce((acc, m) => acc + Number(m.valor_final), 0) + aVencer.reduce((acc, m) => acc + Number(m.valor_final), 0),
         totalRecebido: pagas.reduce((acc, m) => acc + Number(m.valor_final), 0),
         totalInadimplencia: (todasAtrasadas || []).reduce((acc, m) => acc + Number(m.valor_final), 0),
-        totalAVencer: pendentes.reduce((acc, m) => acc + Number(m.valor_final), 0),
+        totalAVencer: aVencer.reduce((acc, m) => acc + Number(m.valor_final), 0),
         mensalidadesPendentes: pendentes.length,
         mensalidadesPagas: pagas.length,
         mensalidadesAtrasadas: atrasadas.length,
+        mensalidadesAVencer: aVencer.length,
         associadosInadimplentes: associadosUnicos.size,
       });
     } catch (error) {
@@ -125,7 +127,7 @@ export function useFinanceiro() {
           associado_id,
           valor_final,
           data_vencimento,
-          associados!inner(nome_completo)
+          associados!inner(nome_completo, regiao_id, regioes(nome))
         `)
         .eq('status', 'atrasada');
 
@@ -143,6 +145,7 @@ export function useFinanceiro() {
           agrupado[m.associado_id] = {
             associado_id: m.associado_id,
             associado_nome: m.associados?.nome_completo || 'N/A',
+            regiao_nome: (m.associados as any)?.regioes?.nome || undefined,
             total_devido: 0,
             mensalidades_atrasadas: 0,
             dias_maior_atraso: 0,
@@ -247,14 +250,14 @@ export function useFinanceiro() {
     }
   };
 
-  // Atualizar mensalidades atrasadas
+  // Atualizar mensalidades atrasadas (usa a nova função que também atualiza 'a_vencer')
   const atualizarAtrasadas = async () => {
     try {
-      const { data, error } = await supabase.rpc('atualizar_status_mensalidades_atrasadas');
+      const { data, error } = await supabase.rpc('atualizar_status_mensalidades');
       if (error) throw error;
       return { success: true, count: data };
     } catch (error) {
-      console.error('Erro ao atualizar atrasadas:', error);
+      console.error('Erro ao atualizar status:', error);
       return { success: false, error };
     }
   };
