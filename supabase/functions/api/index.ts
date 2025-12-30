@@ -124,8 +124,54 @@ function validatePlaca(placa: string): boolean {
   const padraoAntigo = /^[A-Z]{3}[0-9]{4}$/;
   // Padrão Mercosul: 3 letras + 1 número + 1 letra + 2 números
   const padraoMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
-  
+
   return padraoAntigo.test(cleanPlaca) || padraoMercosul.test(cleanPlaca);
+}
+
+type PrimitiveStrNum = string | number;
+
+function pickPrimitiveValue(obj: any, keys: string[]): PrimitiveStrNum | null {
+  for (const key of keys) {
+    const v = obj?.[key];
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t) return t;
+    }
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
+}
+
+function deepFindPrimitiveByKeyContains(
+  obj: any,
+  matcher: (upperKey: string) => boolean,
+  maxDepth: number = 2,
+  currentDepth: number = 0,
+  pathPrefix: string = ''
+): { keyPath: string; value: PrimitiveStrNum } | null {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+
+  for (const [key, value] of Object.entries(obj)) {
+    const upperKey = key.toUpperCase();
+    const keyPath = pathPrefix ? `${pathPrefix}.${key}` : key;
+
+    if (matcher(upperKey)) {
+      if (typeof value === 'string') {
+        const t = value.trim();
+        if (t) return { keyPath, value: t };
+      }
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return { keyPath, value };
+      }
+    }
+
+    if (currentDepth < maxDepth && value && typeof value === 'object' && !Array.isArray(value)) {
+      const found = deepFindPrimitiveByKeyContains(value, matcher, maxDepth, currentDepth + 1, keyPath);
+      if (found) return found;
+    }
+  }
+
+  return null;
 }
 
 serve(async (req) => {
@@ -366,18 +412,39 @@ serve(async (req) => {
         }
       }
 
-      // Processar chassi - remover mascaramento se houver
-      // A API pode retornar campos em caixa alta (CHASSI/RENAVAM)
-      let chassiCompleto = ((placaData as any).CHASSI || placaData.chassi || null) as string | null;
-      // A API pode retornar chassi parcialmente mascarado com asteriscos
-      // Se tiver mais de 3 asteriscos, consideramos mascarado e deixamos para preenchimento manual
-      const chassiMascarado = chassiCompleto && (chassiCompleto.match(/\*/g) || []).length > 3;
-      
+      // Extrair chassi/renavam de forma resiliente (o provedor varia nomes/caixa)
+      const chassiFromKnownKeys = pickPrimitiveValue(placaData, ['CHASSI', 'chassi', 'Chassi']);
+      const renavamFromKnownKeys = pickPrimitiveValue(placaData, ['RENAVAM', 'renavam', 'Renavam', 'RENAVAN', 'renavan']);
+
+      const chassiFromDeepKey = deepFindPrimitiveByKeyContains(
+        placaData,
+        (k) => k.includes('CHASSI')
+      );
+      const renavamFromDeepKey = deepFindPrimitiveByKeyContains(
+        placaData,
+        (k) => k.includes('RENAVAM') || k.includes('RENAVAN')
+      );
+
+      const chassiCompletoRaw = chassiFromKnownKeys ?? chassiFromDeepKey?.value ?? null;
+      const renavamRaw = renavamFromKnownKeys ?? renavamFromDeepKey?.value ?? null;
+
+      const chassiCompleto = chassiCompletoRaw != null ? String(chassiCompletoRaw).trim() : null;
+      // Qualquer '*' indica mascaramento
+      const chassiMascarado = !!(chassiCompleto && chassiCompleto.includes('*'));
+
       // Processar renavam - apenas números
-      let renavamLimpo = ((placaData as any).RENAVAM || placaData.renavam || null) as string | null;
+      let renavamLimpo = renavamRaw != null ? String(renavamRaw).trim() : null;
       if (renavamLimpo) {
-        renavamLimpo = renavamLimpo.replace(/\D/g, '');
+        renavamLimpo = renavamLimpo.replace(/\D/g, '') || null;
       }
+
+      // Log sem expor dados completos
+      console.log(
+        `[PLACA API] Campos retornados: chassi=${chassiCompleto ? 'sim' : 'não'} (mascarado=${chassiMascarado})` +
+          `, renavam=${renavamLimpo ? 'sim' : 'não'}` +
+          (chassiFromDeepKey ? `, chassiKey=${chassiFromDeepKey.keyPath}` : '') +
+          (renavamFromDeepKey ? `, renavamKey=${renavamFromDeepKey.keyPath}` : '')
+      );
 
       const result = {
         placa: placaData.placa || placa,

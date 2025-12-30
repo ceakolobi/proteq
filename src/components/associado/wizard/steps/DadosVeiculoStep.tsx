@@ -52,12 +52,18 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
     setIsSearching(true);
     
     try {
-      const { data: result, error } = await supabase.functions.invoke('api', {
-        body: { 
-          action: 'consultar-placa',
-          placa: placaLimpa
-        }
-      });
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const { data: result, error } = await supabase.functions.invoke('api', {
+          body: {
+            route: 'placa',
+            placa: placaLimpa,
+          },
+          headers: {
+            'x-origem': 'associado_wizard',
+            ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
+          },
+        });
 
       if (error) throw error;
 
