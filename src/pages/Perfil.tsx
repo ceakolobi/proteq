@@ -357,9 +357,11 @@ export default function Perfil() {
 
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Badge variant={profile?.ativo ? 'default' : 'destructive'}>
-                  {profile?.ativo ? 'Ativo' : 'Inativo'}
-                </Badge>
+                <div className="pt-1">
+                  <Badge variant={profile?.ativo ? 'default' : 'destructive'}>
+                    {profile?.ativo ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
