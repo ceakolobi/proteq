@@ -5,6 +5,7 @@ import { useAccessControl } from "@/hooks/useAccessControl";
 import { useSettings } from "@/hooks/useSettings";
 import { useSystemInfo } from "@/hooks/useSystemInfo";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDemoMode } from "@/hooks/useDemoMode";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useAppTheme, themeOptions } from "@/hooks/useTheme";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -53,6 +55,8 @@ export default function Configuracoes() {
   const { isAllowed, isChecking } = useAccessControl("admin_principal_only");
   const { settings, isLoading, isSaving, updateSettings, uploadImage } = useSettings();
   const { theme, setTheme } = useAppTheme();
+  const { isDemoUser, demoRestrictions, showDemoWarning } = useDemoMode();
+  const { toast } = useToast();
   
   const logoInputRef = useRef<HTMLInputElement>(null);
   const logoBrancaInputRef = useRef<HTMLInputElement>(null);
@@ -108,6 +112,14 @@ export default function Configuracoes() {
   }
 
   const handleSave = async () => {
+    if (!demoRestrictions.canEditSettings) {
+      toast({
+        variant: "destructive",
+        title: "Ação bloqueada",
+        description: showDemoWarning("Salvar Configurações"),
+      });
+      return;
+    }
     await updateSettings(formData);
   };
 
@@ -210,6 +222,12 @@ export default function Configuracoes() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
+        {/* Demo Warning */}
+        {isDemoUser && (
+          <div className="bg-amber-100 border border-amber-300 rounded-lg p-4 text-amber-800 text-sm">
+            <strong>Modo Demonstração:</strong> As configurações do sistema estão bloqueadas para edição neste modo.
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -218,13 +236,13 @@ export default function Configuracoes() {
               Personalize a identidade visual e configurações gerais
             </p>
           </div>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving || !demoRestrictions.canEditSettings}>
             {isSaving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Salvar Alterações
+            {!demoRestrictions.canEditSettings ? "Bloqueado (Demo)" : "Salvar Alterações"}
           </Button>
         </div>
 

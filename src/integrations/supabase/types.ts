@@ -2429,6 +2429,8 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
+      is_demo_email: { Args: { _email: string }; Returns: boolean }
+      is_demo_user: { Args: { _user_id: string }; Returns: boolean }
       is_protected_admin: { Args: { _user_id: string }; Returns: boolean }
       is_system_admin: { Args: { _user_id: string }; Returns: boolean }
       log_sensitive_access: {
