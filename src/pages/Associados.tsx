@@ -427,23 +427,23 @@ export default function Associados() {
       return;
     }
 
-    // Calculate mensalidade based on vehicle type with fórmula aditiva
-    const percentualGeral = Number((cotaApropriada as any).percentual_geral) || 0;
-    const percentualExtra = Number((cotaApropriada as any).percentual_extra) || 0;
-    const totalPercentual = percentualGeral + percentualExtra;
+    // Calculate mensalidade based on vehicle type com acréscimos em R$
+    const acrescimoGlobal = Number((cotaApropriada as any).acrescimo_global) || 0;
+    const acrescimoIndividual = Number((cotaApropriada as any).acrescimo_individual) || 0;
     let valorBase = 0;
     switch (veiculoForm.tipo) {
       case 'carro':
-        valorBase = cotaApropriada.valor_carro;
+        valorBase = cotaApropriada.valor_carro || 0;
         break;
       case 'moto':
-        valorBase = cotaApropriada.valor_moto;
+        valorBase = cotaApropriada.valor_moto || 0;
         break;
       case 'pickup':
-        valorBase = cotaApropriada.valor_camionete;
+        valorBase = cotaApropriada.valor_camionete || 0;
         break;
     }
-    const mensalidade = valorBase + (valorBase * totalPercentual / 100);
+    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
+    const mensalidade = valorBase + acrescimoGlobal + acrescimoIndividual;
 
     try {
 

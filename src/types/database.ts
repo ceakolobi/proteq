@@ -76,6 +76,9 @@ export interface Cota {
   valor_camionete: number | null;
   percentual_geral: number;
   percentual_extra: number;
+  // Acréscimos em R$ (novos campos)
+  acrescimo_individual: number;
+  acrescimo_global: number;
   ativo: boolean;
   categoria?: CotaCategoria;
   // Campos de aplicabilidade por categoria

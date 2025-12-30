@@ -102,23 +102,23 @@ export default function Cotacao() {
       return;
     }
 
-    // Get mensalidade based on vehicle type with fórmula aditiva
-    const percentualGeral = Number((cotaEncontrada as any).percentual_geral) || 0;
-    const percentualExtra = Number((cotaEncontrada as any).percentual_extra) || 0;
-    const totalPercentual = percentualGeral + percentualExtra;
+    // Get mensalidade based on vehicle type com acréscimos em R$
+    const acrescimoGlobal = Number((cotaEncontrada as any).acrescimo_global) || 0;
+    const acrescimoIndividual = Number((cotaEncontrada as any).acrescimo_individual) || 0;
     let valorBase = 0;
     switch (formData.tipo) {
       case 'carro':
-        valorBase = cotaEncontrada.valor_carro;
+        valorBase = cotaEncontrada.valor_carro || 0;
         break;
       case 'moto':
-        valorBase = cotaEncontrada.valor_moto;
+        valorBase = cotaEncontrada.valor_moto || 0;
         break;
       case 'pickup':
-        valorBase = cotaEncontrada.valor_camionete;
+        valorBase = cotaEncontrada.valor_camionete || 0;
         break;
     }
-    let mensalidade = valorBase + (valorBase * totalPercentual / 100);
+    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
+    let mensalidade = valorBase + acrescimoGlobal + acrescimoIndividual;
 
     // Add carro reserva extra if selected
     let carroReservaAdicional = 0;
