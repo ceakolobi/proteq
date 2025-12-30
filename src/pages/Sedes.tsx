@@ -60,6 +60,7 @@ export default function Sedes() {
   const [sedes, setSedes] = useState<SedeWithResponsavel[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -83,27 +84,10 @@ export default function Sedes() {
   const totalConsultores = useMemo(() => sedeIds.reduce((acc, id) => acc + getConsultoresCount(id), 0), [sedeIds, getConsultoresCount]);
   const totalAssociados = useMemo(() => sedeIds.reduce((acc, id) => acc + getAssociadosCount(id), 0), [sedeIds, getAssociadosCount]);
 
-  // Show loading while checking access
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
-      </div>
-    );
-  }
-
-  if (!isAllowed) {
-    return null;
-  }
-
-  useEffect(() => {
-    fetchSedes();
-    fetchProfiles();
-  }, []);
-
   const fetchSedes = async () => {
     try {
       setIsLoading(true);
+      setFetchError(null);
       
       // Admin Regional can only see their own sede
       let query = supabase.from('sedes').select('*').order('nome');
@@ -125,6 +109,7 @@ export default function Sedes() {
       setSedes(sedesTyped);
     } catch (error) {
       console.error('Error fetching sedes:', error);
+      setFetchError('Erro ao carregar sedes. Verifique suas permissões.');
       toast.error('Erro ao carregar sedes');
     } finally {
       setIsLoading(false);
@@ -145,6 +130,28 @@ export default function Sedes() {
       console.error('Error fetching profiles:', error);
     }
   };
+
+  // Fetch data when allowed
+  useEffect(() => {
+    if (isAllowed && !isChecking) {
+      fetchSedes();
+      fetchProfiles();
+    }
+  }, [isAllowed, isChecking]);
+
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return null;
+  }
+
 
   const handleOpenDialog = (sede?: SedeWithResponsavel) => {
     if (sede) {
@@ -389,10 +396,25 @@ export default function Sedes() {
                         Carregando...
                       </TableCell>
                     </TableRow>
+                  ) : fetchError ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2 text-destructive">
+                          <Building2 className="h-8 w-8" />
+                          <p>{fetchError}</p>
+                          <Button variant="outline" size="sm" onClick={fetchSedes}>
+                            Tentar novamente
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ) : filteredSedes.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8">
-                        Nenhuma regional encontrada
+                        <div className="flex flex-col items-center gap-2">
+                          <Building2 className="h-8 w-8 text-muted-foreground" />
+                          <p className="text-muted-foreground">Nenhuma regional encontrada</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

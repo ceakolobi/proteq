@@ -79,6 +79,7 @@ export default function Consultores() {
   
   const [consultores, setConsultores] = useState<ConsultorWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // Hook centralizado para dados de referência
   const { regioes, sedes, getRegiaoNome, getSedeNome } = useReferenceData({ 
@@ -101,25 +102,9 @@ export default function Consultores() {
 
   const isAdminRegional = hasRole('admin_regional');
 
-  // Show loading while checking access
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
-      </div>
-    );
-  }
-
-  if (!isAllowed) {
-    return null;
-  }
-
-  useEffect(() => {
-    fetchConsultores();
-  }, [getRegiaoNome, getSedeNome]);
-
   const fetchConsultores = async () => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       // Get all profiles that have consultor_vendas role
       const { data: rolesData, error: rolesError } = await supabase
@@ -156,6 +141,12 @@ export default function Consultores() {
       // Batch fetch all counts in parallel
       const ids = (profilesData || []).map(c => c.id);
       
+      if (ids.length === 0) {
+        setConsultores([]);
+        setIsLoading(false);
+        return;
+      }
+      
       // Fetch leads and associados counts in batch
       const [leadsData, associadosData] = await Promise.all([
         supabase.from('leads').select('consultor_id').in('consultor_id', ids),
@@ -167,11 +158,15 @@ export default function Consultores() {
       const associadosCountMap = new Map<string, number>();
       
       (leadsData.data || []).forEach(l => {
-        leadsCountMap.set(l.consultor_id, (leadsCountMap.get(l.consultor_id) || 0) + 1);
+        if (l.consultor_id) {
+          leadsCountMap.set(l.consultor_id, (leadsCountMap.get(l.consultor_id) || 0) + 1);
+        }
       });
       
       (associadosData.data || []).forEach(a => {
-        associadosCountMap.set(a.consultor_id, (associadosCountMap.get(a.consultor_id) || 0) + 1);
+        if (a.consultor_id) {
+          associadosCountMap.set(a.consultor_id, (associadosCountMap.get(a.consultor_id) || 0) + 1);
+        }
       });
 
       // Map consultores with stats using reference data hook (no N+1)
@@ -186,11 +181,32 @@ export default function Consultores() {
       setConsultores(consultoresWithStats);
     } catch (error) {
       console.error('Error fetching consultores:', error);
+      setFetchError('Erro ao carregar consultores. Verifique suas permissões.');
       toast.error('Erro ao carregar consultores');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Fetch data when access is granted
+  useEffect(() => {
+    if (isAllowed && !isChecking) {
+      fetchConsultores();
+    }
+  }, [isAllowed, isChecking, getRegiaoNome, getSedeNome]);
+
+  // Show loading while checking access
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return null;
+  }
 
   const handleOpenDialog = (consultor?: ConsultorWithStats) => {
     setFormErrors({});
@@ -509,6 +525,18 @@ export default function Consultores() {
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8">
                         Carregando...
+                      </TableCell>
+                    </TableRow>
+                  ) : fetchError ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2 text-destructive">
+                          <Users className="h-8 w-8" />
+                          <p>{fetchError}</p>
+                          <Button variant="outline" size="sm" onClick={fetchConsultores}>
+                            Tentar novamente
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : filteredConsultores.length === 0 ? (
