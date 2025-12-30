@@ -25,12 +25,17 @@ import {
   Eye,
   EyeOff,
   Paintbrush,
+  Sun,
+  Moon,
+  SunMoon,
 } from "lucide-react";
+import { useAppTheme, themeOptions } from "@/hooks/useTheme";
 
 export default function Configuracoes() {
   const navigate = useNavigate();
   const { isAllowed, isChecking } = useAccessControl("admin_principal_only");
   const { settings, isLoading, isSaving, updateSettings, uploadImage } = useSettings();
+  const { theme, setTheme } = useAppTheme();
   
   const logoInputRef = useRef<HTMLInputElement>(null);
   const logoBrancaInputRef = useRef<HTMLInputElement>(null);
@@ -829,6 +834,63 @@ export default function Configuracoes() {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Tema da Interface */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <SunMoon className="w-5 h-5 text-primary" />
+                Tema da Interface
+              </CardTitle>
+              <CardDescription>
+                Escolha o tema visual do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                {themeOptions.map((option) => {
+                  const isSelected = theme === option.value;
+                  const Icon = option.value === "light" ? Sun : option.value === "dark" ? Moon : SunMoon;
+                  
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => setTheme(option.value)}
+                      className={`
+                        relative flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all
+                        ${isSelected 
+                          ? "border-primary bg-primary/10" 
+                          : "border-border hover:border-primary/50 bg-card"
+                        }
+                      `}
+                    >
+                      <div className={`
+                        p-3 rounded-full 
+                        ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}
+                      `}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div className="text-center">
+                        <p className={`font-medium ${isSelected ? "text-primary" : ""}`}>
+                          {option.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {option.description}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                O tema é salvo automaticamente e aplicado em toda a interface.
+              </p>
             </CardContent>
           </Card>
         </div>

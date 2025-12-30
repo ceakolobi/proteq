@@ -147,6 +147,59 @@ All colors MUST be HSL.
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
+
+  /* Penumbra - modo suave intermediário */
+  .penumbra {
+    --background: 220 15% 18%;
+    --foreground: 220 10% 90%;
+
+    --card: 220 15% 22%;
+    --card-foreground: 220 10% 90%;
+
+    --popover: 220 15% 26%;
+    --popover-foreground: 220 10% 90%;
+
+    --primary: 27 85% 55%;
+    --primary-foreground: 220 15% 12%;
+
+    --secondary: 220 10% 40%;
+    --secondary-foreground: 220 10% 95%;
+
+    --muted: 220 10% 35%;
+    --muted-foreground: 220 10% 75%;
+
+    --accent: 220 15% 28%;
+    --accent-foreground: 43 80% 60%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 85% 97%;
+
+    --border: 220 10% 30%;
+    --input: 220 10% 30%;
+    --ring: 27 85% 55%;
+    --sidebar-background: 220 15% 16%;
+    --sidebar-foreground: 220 10% 90%;
+    --sidebar-primary: 27 85% 55%;
+    --sidebar-primary-foreground: 220 15% 12%;
+    --sidebar-accent: 220 15% 26%;
+    --sidebar-accent-foreground: 43 80% 60%;
+    --sidebar-border: 220 10% 28%;
+    --sidebar-ring: 27 85% 55%;
+    --chart-1: 30 90% 65%;
+    --chart-2: 45 90% 58%;
+    --chart-3: 48 90% 68%;
+    --chart-4: 27 85% 55%;
+    --chart-5: 220 10% 50%;
+    --sidebar: 220 15% 20%;
+    --shadow-2xs: 0 1px 3px 0px hsl(220 20% 5% / 0.08);
+    --shadow-xs: 0 1px 3px 0px hsl(220 20% 5% / 0.08);
+    --shadow-sm: 0 1px 3px 0px hsl(220 20% 5% / 0.12), 0 1px 2px -1px hsl(220 20% 5% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(220 20% 5% / 0.12), 0 1px 2px -1px hsl(220 20% 5% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(220 20% 5% / 0.12), 0 2px 4px -1px hsl(220 20% 5% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(220 20% 5% / 0.12), 0 4px 6px -1px hsl(220 20% 5% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(220 20% 5% / 0.12), 0 8px 10px -1px hsl(220 20% 5% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(220 20% 5% / 0.25);
+  }
 }
 
 @layer base {
