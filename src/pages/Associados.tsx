@@ -59,6 +59,7 @@ import {
 import type { Associado, Regiao, AssociateStatus, VehicleType, Cota, Profile } from '@/types/database';
 import { associateStatusLabels, vehicleTypeLabels } from '@/types/database';
 import { FipeRangeDetector, useFipeRange } from '@/components/FipeRangeDetector';
+import { AssociadoWizard } from '@/components/associado/wizard';
 
 interface AssociadoWithDetails extends Associado {
   veiculos_count?: number;
@@ -103,7 +104,10 @@ export default function Associados() {
   const [selectedAssociado, setSelectedAssociado] = useState<AssociadoWithDetails | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grouped'>('list');
   
-  // Wizard state for new associado flow
+  // Estado do novo wizard moderno
+  const [isNewWizardOpen, setIsNewWizardOpen] = useState(false);
+  
+  // Wizard state for new associado flow (legado - para edição)
   const [wizardStep, setWizardStep] = useState<WizardStep>('associado');
   
   // Log de acesso quando lista é carregada
@@ -248,9 +252,8 @@ export default function Associados() {
       return;
     }
     
-    resetForms();
-    setIsWizardMode(true);
-    setIsDialogOpen(true);
+    // Abre o novo wizard moderno
+    setIsNewWizardOpen(true);
   };
 
   const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
@@ -1248,6 +1251,13 @@ export default function Associados() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Novo Wizard Moderno de Cadastro */}
+        <AssociadoWizard
+          open={isNewWizardOpen}
+          onOpenChange={setIsNewWizardOpen}
+          onSuccess={fetchAssociados}
+        />
       </div>
     </DashboardLayout>
   );
