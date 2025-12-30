@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, MapPin, FileText, Car, Camera, CheckCircle } from 'lucide-react';
+import { User, MapPin, FileText, Car, Camera, CheckCircle, CreditCard } from 'lucide-react';
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from '../types';
 import { vehicleTypeLabels } from '@/types/database';
+import { DIA_VENCIMENTO_OPTIONS } from '../types';
 
 interface ResumoStepProps {
   associadoData: AssociadoFormData;
@@ -88,6 +89,11 @@ export function ResumoStep({ associadoData, veiculoData, docsAssociado, docsVeic
               
               <span className="text-muted-foreground">E-mail:</span>
               <span className="break-all">{associadoData.email}</span>
+              
+              <span className="text-muted-foreground">Vencimento:</span>
+              <span className="font-medium text-primary">
+                Dia {String(associadoData.dia_vencimento).padStart(2, '0')}
+              </span>
               
               {associadoData.profissao && (
                 <>
