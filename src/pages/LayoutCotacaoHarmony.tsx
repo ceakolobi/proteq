@@ -76,6 +76,7 @@ interface CotacaoData {
   cliente_nome: string | null;
   cliente_email: string | null;
   cliente_whatsapp: string | null;
+  chassi: string | null;
 }
 
 interface CotaData {
@@ -604,6 +605,14 @@ export default function LayoutCotacaoHarmony() {
                         {formatValue(cotacao?.codigo_fipe)}
                       </p>
                     </div>
+                    {cotacao?.chassi && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground text-xs">Chassi</Label>
+                        <p className="mt-1 font-medium font-mono text-xs break-all">
+                          {cotacao.chassi}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

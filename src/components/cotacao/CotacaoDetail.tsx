@@ -389,7 +389,7 @@ _Proteção Veicular_`;
             {cotacao.chassi && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Chassi:</span>
-                <span className="truncate max-w-32">{cotacao.chassi}</span>
+                <span className="font-mono text-xs break-all">{cotacao.chassi}</span>
               </div>
             )}
             {cotacao.categoria && (
