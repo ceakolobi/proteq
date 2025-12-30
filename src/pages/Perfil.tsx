@@ -30,6 +30,7 @@ export default function Perfil() {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     nome_completo: '',
+    email: '',
     telefone: '',
     cpf: '',
   });
@@ -46,14 +47,15 @@ export default function Perfil() {
   }, []);
 
   useEffect(() => {
-    if (profile) {
+    if (profile && user) {
       setFormData({
         nome_completo: profile.nome_completo || '',
+        email: user.email || '',
         telefone: profile.telefone || '',
         cpf: profile.cpf || '',
       });
     }
-  }, [profile]);
+  }, [profile, user]);
 
   if (authLoading) {
     return (
@@ -75,6 +77,17 @@ export default function Perfil() {
     
     setIsSaving(true);
     try {
+      // Update email if changed
+      const emailChanged = formData.email.trim().toLowerCase() !== user.email?.toLowerCase();
+      if (emailChanged) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: formData.email.trim(),
+        });
+        if (emailError) throw emailError;
+        toast.info('Um link de confirmação foi enviado para o novo email');
+      }
+
+      // Update profile data
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -217,10 +230,20 @@ export default function Perfil() {
 
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{user?.email || '-'}</span>
-                </div>
+                {isEditing ? (
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="seu@email.com"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{user?.email || '-'}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
