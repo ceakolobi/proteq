@@ -272,9 +272,30 @@ export default function Perfil() {
                     {profile?.email &&
                       user?.email &&
                       profile.email.trim().toLowerCase() !== user.email.trim().toLowerCase() && (
-                        <p className="text-xs text-muted-foreground">
-                          O e-mail de login ainda é {user.email}. Confirme o link enviado para concluir a troca.
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            O e-mail de login ainda é {user.email}. Confirme o link enviado para concluir a troca.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const { error } = await supabase.auth.resend({
+                                  type: 'email_change',
+                                  email: user.email!,
+                                });
+                                if (error) throw error;
+                                toast.success('Novo link de confirmação enviado para ' + profile.email);
+                              } catch (error: any) {
+                                toast.error('Erro ao reenviar: ' + error.message);
+                              }
+                            }}
+                          >
+                            <Mail className="h-3 w-3 mr-1" />
+                            Reenviar link
+                          </Button>
+                        </div>
                       )}
                   </div>
                 )}
