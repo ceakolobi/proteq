@@ -416,6 +416,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cobrancas: {
+        Row: {
+          associado_id: string
+          codigo_barras: string | null
+          codigo_pix: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          id: string
+          link_pagamento: string | null
+          mensalidade_id: string | null
+          observacoes: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          associado_id: string
+          codigo_barras?: string | null
+          codigo_pix?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          id?: string
+          link_pagamento?: string | null
+          mensalidade_id?: string | null
+          observacoes?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          associado_id?: string
+          codigo_barras?: string | null
+          codigo_pix?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          id?: string
+          link_pagamento?: string | null
+          mensalidade_id?: string | null
+          observacoes?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobrancas_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobrancas_mensalidade_id_fkey"
+            columns: ["mensalidade_id"]
+            isOneToOne: false
+            referencedRelation: "mensalidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           ativo: boolean | null
@@ -505,6 +591,59 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      configuracoes_financeiras: {
+        Row: {
+          chave_pix: string | null
+          company_id: string
+          created_at: string
+          dia_vencimento_padrao: number | null
+          dias_tolerancia: number | null
+          enviar_cobranca_apos_dias: number | null
+          enviar_lembrete_dias_antes: number | null
+          id: string
+          percentual_juros_dia: number | null
+          percentual_multa: number | null
+          tipo_chave_pix: string | null
+          updated_at: string
+        }
+        Insert: {
+          chave_pix?: string | null
+          company_id: string
+          created_at?: string
+          dia_vencimento_padrao?: number | null
+          dias_tolerancia?: number | null
+          enviar_cobranca_apos_dias?: number | null
+          enviar_lembrete_dias_antes?: number | null
+          id?: string
+          percentual_juros_dia?: number | null
+          percentual_multa?: number | null
+          tipo_chave_pix?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chave_pix?: string | null
+          company_id?: string
+          created_at?: string
+          dia_vencimento_padrao?: number | null
+          dias_tolerancia?: number | null
+          enviar_cobranca_apos_dias?: number | null
+          enviar_lembrete_dias_antes?: number | null
+          id?: string
+          percentual_juros_dia?: number | null
+          percentual_multa?: number | null
+          tipo_chave_pix?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_financeiras_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cotacao_contatos: {
         Row: {
@@ -1210,6 +1349,115 @@ export type Database = {
             columns: ["sede_id"]
             isOneToOne: false
             referencedRelation: "sedes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensalidades: {
+        Row: {
+          acrescimo: number | null
+          associado_id: string
+          company_id: string | null
+          comprovante_url: string | null
+          cota_id: string | null
+          created_at: string
+          created_by: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          desconto: number | null
+          forma_pagamento: string | null
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          status: string
+          updated_at: string
+          valor_base: number
+          valor_final: number
+          veiculo_id: string
+        }
+        Insert: {
+          acrescimo?: number | null
+          associado_id: string
+          company_id?: string | null
+          comprovante_url?: string | null
+          cota_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          desconto?: number | null
+          forma_pagamento?: string | null
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_base: number
+          valor_final: number
+          veiculo_id: string
+        }
+        Update: {
+          acrescimo?: number | null
+          associado_id?: string
+          company_id?: string | null
+          comprovante_url?: string | null
+          cota_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          desconto?: number | null
+          forma_pagamento?: string | null
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          valor_base?: number
+          valor_final?: number
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensalidades_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidades_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidades_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidades_cota_id_fkey"
+            columns: ["cota_id"]
+            isOneToOne: false
+            referencedRelation: "cotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidades_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidades_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
             referencedColumns: ["id"]
           },
         ]
@@ -2098,6 +2346,7 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_status_mensalidades_atrasadas: { Args: never; Returns: number }
       can_access_financial: { Args: { _user_id: string }; Returns: boolean }
       can_access_lead: {
         Args: { _lead_id: string; _user_id: string }
@@ -2125,6 +2374,10 @@ export type Database = {
       enforce_company_isolation: {
         Args: { _company_id: string }
         Returns: boolean
+      }
+      gerar_mensalidades_mes: {
+        Args: { p_company_id?: string; p_mes_referencia: string }
+        Returns: number
       }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
