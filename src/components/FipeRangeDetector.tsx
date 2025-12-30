@@ -24,31 +24,34 @@ export function FipeRangeDetector({
     );
   }, [valorFipe, cotas]);
 
-  const mensalidade = useMemo(() => {
-    if (!detectedCota) return 0;
+  const mensalidadeInfo = useMemo(() => {
+    if (!detectedCota) return { valorBase: 0, acrescimoGlobal: 0, acrescimoIndividual: 0, valorFinal: 0 };
     
-    const percentualGeral = Number((detectedCota as any).percentual_geral) || 0;
-    const percentualExtra = Number((detectedCota as any).percentual_extra) || 0;
+    const acrescimoGlobal = Number((detectedCota as any).acrescimo_global) || 0;
+    const acrescimoIndividual = Number((detectedCota as any).acrescimo_individual) || 0;
     let valorBase = 0;
     
     switch (tipoVeiculo) {
       case 'carro':
-        valorBase = detectedCota.valor_carro;
+        valorBase = detectedCota.valor_carro || 0;
         break;
       case 'moto':
-        valorBase = detectedCota.valor_moto;
+        valorBase = detectedCota.valor_moto || 0;
         break;
       case 'pickup':
-        valorBase = detectedCota.valor_camionete;
+        valorBase = detectedCota.valor_camionete || 0;
         break;
       default:
         valorBase = 0;
     }
     
-    // Fórmula aditiva: soma dos percentuais aplicada sobre o valor base
-    const totalPercentual = percentualGeral + percentualExtra;
-    return valorBase + (valorBase * totalPercentual / 100);
+    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
+    const valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual;
+    
+    return { valorBase, acrescimoGlobal, acrescimoIndividual, valorFinal };
   }, [detectedCota, tipoVeiculo]);
+
+  const mensalidade = mensalidadeInfo.valorFinal;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -99,11 +102,22 @@ export function FipeRangeDetector({
       </div>
       
       {showMensalidade && mensalidade > 0 && (
-        <div className="flex items-center gap-2 pl-6 pt-1">
-          <DollarSign className="h-3.5 w-3.5 text-primary" />
-          <span className="text-sm">
-            Mensalidade: <span className="font-semibold text-primary">{formatCurrency(mensalidade)}</span>
-          </span>
+        <div className="pl-6 pt-1 space-y-1">
+          <div className="text-xs text-muted-foreground">
+            Base: {formatCurrency(mensalidadeInfo.valorBase)}
+            {mensalidadeInfo.acrescimoGlobal > 0 && (
+              <span className="text-primary"> + Global: {formatCurrency(mensalidadeInfo.acrescimoGlobal)}</span>
+            )}
+            {mensalidadeInfo.acrescimoIndividual > 0 && (
+              <span className="text-primary"> + Individual: {formatCurrency(mensalidadeInfo.acrescimoIndividual)}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-3.5 w-3.5 text-primary" />
+            <span className="text-sm">
+              Mensalidade: <span className="font-semibold text-primary">{formatCurrency(mensalidade)}</span>
+            </span>
+          </div>
         </div>
       )}
     </div>
@@ -122,27 +136,26 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
     
-    const percentualGeral = Number((detectedCota as any).percentual_geral) || 0;
-    const percentualExtra = Number((detectedCota as any).percentual_extra) || 0;
+    const acrescimoGlobal = Number((detectedCota as any).acrescimo_global) || 0;
+    const acrescimoIndividual = Number((detectedCota as any).acrescimo_individual) || 0;
     let valorBase = 0;
     
     switch (tipoVeiculo) {
       case 'carro':
-        valorBase = detectedCota.valor_carro;
+        valorBase = detectedCota.valor_carro || 0;
         break;
       case 'moto':
-        valorBase = detectedCota.valor_moto;
+        valorBase = detectedCota.valor_moto || 0;
         break;
       case 'pickup':
-        valorBase = detectedCota.valor_camionete;
+        valorBase = detectedCota.valor_camionete || 0;
         break;
       default:
         valorBase = 0;
     }
     
-    // Fórmula aditiva: soma dos percentuais aplicada sobre o valor base
-    const totalPercentual = percentualGeral + percentualExtra;
-    return valorBase + (valorBase * totalPercentual / 100);
+    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
+    return valorBase + acrescimoGlobal + acrescimoIndividual;
   }, [detectedCota, tipoVeiculo]);
 
   return {

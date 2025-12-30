@@ -74,6 +74,9 @@ export default function Cotas() {
     valor_camionete: '',
     percentual_geral: '',
     percentual_extra: '',
+    // Novos campos de acréscimo em R$
+    acrescimo_individual: '',
+    acrescimo_global: '',
     ativo: true,
     categoria: 'CARRO' as CotaCategoria,
     // Checkboxes para aplicabilidade por categoria
@@ -141,6 +144,8 @@ export default function Cotas() {
         valor_camionete: (cota.valor_camionete || 0).toString(),
         percentual_geral: (cota.percentual_geral || 0).toString(),
         percentual_extra: (cota.percentual_extra || 0).toString(),
+        acrescimo_individual: (cota.acrescimo_individual || 0).toString(),
+        acrescimo_global: (cota.acrescimo_global || 0).toString(),
         ativo: cota.ativo,
         categoria: (cota.categoria || 'CARRO') as CotaCategoria,
         aplica_carro: cota.aplica_carro !== false,
@@ -160,6 +165,8 @@ export default function Cotas() {
         valor_camionete: '',
         percentual_geral: '0',
         percentual_extra: '0',
+        acrescimo_individual: '0',
+        acrescimo_global: '0',
         ativo: true,
         categoria: defaultCategoria,
         aplica_carro: defaultCategoria === 'CARRO',
@@ -249,6 +256,8 @@ export default function Cotas() {
         valor_camionete: formData.aplica_caminhonete ? parseFloat(formData.valor_camionete) || 0 : null,
         percentual_geral: parseFloat(formData.percentual_geral) || 0,
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
+        acrescimo_individual: parseFloat(formData.acrescimo_individual) || 0,
+        acrescimo_global: parseFloat(formData.acrescimo_global) || 0,
         ativo: formData.ativo,
         categoria: formData.categoria,
         aplica_carro: formData.aplica_carro,
@@ -462,9 +471,53 @@ export default function Cotas() {
                   )}
                 </div>
 
+                {/* Acréscimos em R$ - NOVA SEÇÃO */}
+                <div className="space-y-4 border rounded-lg p-4 bg-primary/5">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Acréscimos em Reais (R$)
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Valores fixos somados à mensalidade base. Fórmula: <strong>Valor Final = Base + Acréscimo Global + Acréscimo Individual</strong>
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="acrescimo_global">Acréscimo Global (R$)</Label>
+                      <Input
+                        id="acrescimo_global"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={formData.acrescimo_global}
+                        onChange={(e) => setFormData({ ...formData, acrescimo_global: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Aplicado a TODAS as cotas
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="acrescimo_individual">Acréscimo Individual (R$)</Label>
+                      <Input
+                        id="acrescimo_individual"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={formData.acrescimo_individual}
+                        onChange={(e) => setFormData({ ...formData, acrescimo_individual: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Específico desta cota
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Percentuais - mantido para compatibilidade */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="percentual_geral">% Geral</Label>
+                    <Label htmlFor="percentual_geral">% Geral (legado)</Label>
                     <Input
                       id="percentual_geral"
                       type="number"
@@ -474,11 +527,11 @@ export default function Cotas() {
                       onChange={(e) => setFormData({ ...formData, percentual_geral: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Aplicado a todas as mensalidades
+                      Usado apenas se não houver acréscimos em R$
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="percentual_extra">% Extra</Label>
+                    <Label htmlFor="percentual_extra">% Extra (legado)</Label>
                     <Input
                       id="percentual_extra"
                       type="number"
@@ -488,7 +541,7 @@ export default function Cotas() {
                       onChange={(e) => setFormData({ ...formData, percentual_extra: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Adicional específico desta cota
+                      Adicional percentual
                     </p>
                   </div>
                 </div>
@@ -571,30 +624,53 @@ export default function Cotas() {
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>Faixa FIPE</TableHead>
-                      <TableHead>Valor Mensalidade</TableHead>
-                      <TableHead>% Geral</TableHead>
-                      <TableHead>% Extra</TableHead>
+                      <TableHead>Valor Base</TableHead>
+                      <TableHead>Acréscimos (R$)</TableHead>
+                      <TableHead className="text-primary font-semibold">Valor Final</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCotas.map((cota) => (
+                    {filteredCotas.map((cota) => {
+                      const valorBase = categoriaFilter === 'MOTO' 
+                        ? (cota.valor_moto || 0)
+                        : categoriaFilter === 'CAMINHONETE'
+                          ? (cota.valor_camionete || 0)
+                          : (cota.valor_carro || 0);
+                      const acrescimoGlobal = cota.acrescimo_global || 0;
+                      const acrescimoIndividual = cota.acrescimo_individual || 0;
+                      const valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual;
+                      
+                      return (
                       <TableRow key={cota.id}>
                         <TableCell className="font-medium">{cota.cota_nome}</TableCell>
                         <TableCell>
                           {formatCurrency(cota.fipe_min)} - {formatCurrency(cota.fipe_max)}
                         </TableCell>
-                        <TableCell>
-                          {categoriaFilter === 'MOTO' 
-                            ? formatCurrency(cota.valor_moto)
-                            : categoriaFilter === 'CAMINHONETE'
-                              ? formatCurrency(cota.valor_camionete)
-                              : formatCurrency(cota.valor_carro)
-                          }
+                        <TableCell className="text-muted-foreground">
+                          {formatCurrency(valorBase)}
                         </TableCell>
-                        <TableCell>{(cota.percentual_geral || 0).toFixed(1)}%</TableCell>
-                        <TableCell>{(cota.percentual_extra || 0).toFixed(1)}%</TableCell>
+                        <TableCell>
+                          <div className="text-xs space-y-0.5">
+                            {acrescimoGlobal > 0 && (
+                              <div className="text-muted-foreground">
+                                Global: <span className="text-primary">+{formatCurrency(acrescimoGlobal)}</span>
+                              </div>
+                            )}
+                            {acrescimoIndividual > 0 && (
+                              <div className="text-muted-foreground">
+                                Individual: <span className="text-primary">+{formatCurrency(acrescimoIndividual)}</span>
+                              </div>
+                            )}
+                            {acrescimoGlobal === 0 && acrescimoIndividual === 0 && (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold text-primary">
+                          {formatCurrency(valorFinal)}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={cota.ativo ? 'default' : 'secondary'}>
                             {cota.ativo ? 'Ativa' : 'Inativa'}
@@ -637,7 +713,8 @@ export default function Cotas() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

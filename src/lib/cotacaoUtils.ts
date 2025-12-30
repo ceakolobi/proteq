@@ -29,6 +29,9 @@ export interface Cota {
   valor_camionete: number | null;
   percentual_geral?: number | null;
   percentual_extra?: number | null;
+  // Acréscimos em R$ (valores fixos)
+  acrescimo_individual?: number | null;
+  acrescimo_global?: number | null;
   ativo: boolean;
   mensalidade_caminhao?: number | null;
   mensalidade_utilitario?: number | null;
@@ -51,6 +54,8 @@ export interface ResultadoCotacao {
   valorBase: number;
   percentualGlobal: number;
   percentualIndividual: number;
+  acrescimoGlobal: number;
+  acrescimoIndividual: number;
   valorFinal: number;
   participacao: number;
   cotaId: string;
@@ -208,24 +213,34 @@ export function getValorBasePorCategoria(
 // ==========================================
 
 /**
- * Calcula o valor final aplicando percentuais
+ * Calcula o valor final aplicando percentuais e acréscimos em R$
  * 
- * FÓRMULA:
- * valor_final = valor_base + (valor_base * percentual_global/100) + (valor_base * percentual_individual/100)
+ * NOVA FÓRMULA (com acréscimos em R$):
+ * valor_final = valor_base + acrescimo_global + acrescimo_individual
  * 
- * OU SEJA (equivalente):
- * total_percentual = percentual_global + percentual_individual
- * valor_final = valor_base + (valor_base * total_percentual / 100)
+ * NOTA: Os percentuais (percentual_global e percentual_individual) continuam
+ * sendo aplicados sobre o valor base para cálculos internos/auditoria,
+ * mas a fórmula oficial agora usa os acréscimos em R$.
  * 
  * @param valorBase - Valor base da cota pela categoria
- * @param percentualGlobal - Percentual geral da cota (admin controla)
- * @param percentualIndividual - Percentual de ajuste (gestor pode ajustar)
+ * @param acrescimoGlobal - Acréscimo em R$ aplicado a todas as cotas
+ * @param acrescimoIndividual - Acréscimo em R$ específico desta cota
+ * @param percentualGlobal - Percentual geral da cota (mantido para compatibilidade)
+ * @param percentualIndividual - Percentual de ajuste individual (mantido para compatibilidade)
  */
 export function calcularValorFinal(
   valorBase: number,
-  percentualGlobal: number,
-  percentualIndividual: number
+  acrescimoGlobal: number = 0,
+  acrescimoIndividual: number = 0,
+  percentualGlobal: number = 0,
+  percentualIndividual: number = 0
 ): number {
+  // Se houver acréscimos em R$, usa a nova fórmula
+  if (acrescimoGlobal > 0 || acrescimoIndividual > 0) {
+    return valorBase + acrescimoGlobal + acrescimoIndividual;
+  }
+  
+  // Fallback para fórmula antiga com percentuais (compatibilidade)
   const totalPercentual = percentualGlobal + percentualIndividual;
   return valorBase + (valorBase * totalPercentual / 100);
 }
@@ -348,11 +363,19 @@ export function calcularCotacaoCompleta(
   // 3. Selecionar valor_base conforme categoria
   const valorBase = getValorBasePorCategoria(cota, categoria, tipoVeiculo);
 
-  // 4. Obter percentuais
+  // 4. Obter percentuais e acréscimos
   const percentualGlobal = Number(cota.percentual_geral) || 0;
+  const acrescimoGlobal = Number(cota.acrescimo_global) || 0;
+  const acrescimoIndividual = Number(cota.acrescimo_individual) || 0;
 
-  // 5. Calcular valor final
-  let valorFinal = calcularValorFinal(valorBase, percentualGlobal, percentualIndividual);
+  // 5. Calcular valor final (nova fórmula com acréscimos em R$)
+  let valorFinal = calcularValorFinal(
+    valorBase, 
+    acrescimoGlobal, 
+    acrescimoIndividual, 
+    percentualGlobal, 
+    percentualIndividual
+  );
 
   // Adicionar carro reserva extra
   if (carroReservaExtra === '30dias') {
@@ -370,6 +393,8 @@ export function calcularCotacaoCompleta(
     valorBase,
     percentualGlobal,
     percentualIndividual,
+    acrescimoGlobal,
+    acrescimoIndividual,
     valorFinal,
     participacao,
     cotaId: cota.id,

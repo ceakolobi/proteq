@@ -761,6 +761,8 @@ export type Database = {
       }
       cotas: {
         Row: {
+          acrescimo_global: number | null
+          acrescimo_individual: number | null
           aplica_caminhonete: boolean
           aplica_carro: boolean
           aplica_moto: boolean
@@ -787,6 +789,8 @@ export type Database = {
           valor_moto: number | null
         }
         Insert: {
+          acrescimo_global?: number | null
+          acrescimo_individual?: number | null
           aplica_caminhonete?: boolean
           aplica_carro?: boolean
           aplica_moto?: boolean
@@ -813,6 +817,8 @@ export type Database = {
           valor_moto?: number | null
         }
         Update: {
+          acrescimo_global?: number | null
+          acrescimo_individual?: number | null
           aplica_caminhonete?: boolean
           aplica_carro?: boolean
           aplica_moto?: boolean
