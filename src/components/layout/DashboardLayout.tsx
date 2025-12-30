@@ -129,7 +129,7 @@ const navSections: NavSection[] = [
       },
       {
         title: 'Financeiro',
-        href: '/relatorios',
+        href: '/financeiro',
         icon: <CreditCard className="h-4 w-4" />,
         roles: ['admin_principal', 'admin_regional', 'financeiro'],
       },
