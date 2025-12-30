@@ -50,7 +50,7 @@ export default function Perfil() {
     if (profile && user) {
       setFormData({
         nome_completo: profile.nome_completo || '',
-        email: user.email || '',
+        email: profile.email || user.email || '',
         telefone: profile.telefone || '',
         cpf: profile.cpf || '',
       });
@@ -114,6 +114,7 @@ export default function Perfil() {
         .from('profiles')
         .update({
           nome_completo: formData.nome_completo.trim(),
+          email: formData.email.trim(),
           telefone: formData.telefone.trim() || null,
           cpf: formData.cpf.trim() || null,
           updated_at: new Date().toISOString(),
@@ -263,9 +264,18 @@ export default function Perfil() {
                     placeholder="seu@email.com"
                   />
                 ) : (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{user?.email || '-'}</span>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{profile?.email || user?.email || '-'}</span>
+                    </div>
+                    {profile?.email &&
+                      user?.email &&
+                      profile.email.trim().toLowerCase() !== user.email.trim().toLowerCase() && (
+                        <p className="text-xs text-muted-foreground">
+                          O e-mail de login ainda é {user.email}. Confirme o link enviado para concluir a troca.
+                        </p>
+                      )}
                   </div>
                 )}
               </div>
