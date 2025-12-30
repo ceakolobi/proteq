@@ -72,8 +72,21 @@ export default function Perfil() {
     return null;
   }
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSaveProfile = async () => {
     if (!user) return;
+
+    // Validate email format
+    if (!validateEmail(formData.email.trim())) {
+      toast.error('Email inválido', {
+        description: 'Por favor, insira um email válido (ex: usuario@dominio.com)',
+      });
+      return;
+    }
     
     setIsSaving(true);
     try {
@@ -83,8 +96,17 @@ export default function Perfil() {
         const { error: emailError } = await supabase.auth.updateUser({
           email: formData.email.trim(),
         });
-        if (emailError) throw emailError;
-        toast.info('Um link de confirmação foi enviado para o novo email');
+        if (emailError) {
+          // Handle specific error messages
+          if (emailError.message.includes('already registered')) {
+            throw new Error('Este email já está sendo usado por outra conta');
+          }
+          throw emailError;
+        }
+        toast.info('Verifique sua caixa de entrada', {
+          description: `Um link de confirmação foi enviado para ${formData.email.trim()}. Você precisa confirmar o novo email para concluir a alteração.`,
+          duration: 8000,
+        });
       }
 
       // Update profile data
@@ -100,7 +122,9 @@ export default function Perfil() {
 
       if (error) throw error;
 
-      toast.success('Perfil atualizado com sucesso!');
+      if (!emailChanged) {
+        toast.success('Perfil atualizado com sucesso!');
+      }
       await refreshProfile();
       setIsEditing(false);
     } catch (error: any) {
