@@ -167,26 +167,31 @@ export default function Veiculos() {
   const canUpdateStatus = isAdminPrincipal || isAdminRegional || isCadastro;
   const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro', 'financeiro', 'vistoriador']);
 
+  // Normalizações / validações básicas
+  const normalizeChassi = (value: string) => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const normalizeRenavam = (value: string) => value.replace(/\D/g, '');
+
   // Handler para quando dados do veículo são encontrados pela placa
   // IMPORTANTE: Hooks devem ser declarados ANTES de qualquer early return
   const handleVehicleFound = useCallback((data: VehicleData) => {
-    // Verificar se chassi está mascarado
-    const chassiMascarado = data.chassi_mascarado || (data.chassi && (data.chassi.match(/\*/g) || []).length > 3);
-    
+    const chassiLimpo = normalizeChassi(data.chassi || '');
+    const renavamLimpo = normalizeRenavam(data.renavam || '');
+
     setFormData(prev => ({
       ...prev,
       marca: data.marca || prev.marca,
       modelo: data.modelo || prev.modelo,
       ano: parseInt(data.ano_modelo) || parseInt(data.ano_fabricacao) || prev.ano,
-      // Se chassi mascarado, manter valor anterior para preenchimento manual
-      chassi: chassiMascarado ? prev.chassi : (data.chassi?.replace(/[^A-Za-z0-9]/g, '').toUpperCase() || prev.chassi),
-      // Adicionar renavam quando disponível
-      renavam: data.renavam?.replace(/\D/g, '') || prev.renavam,
+      // Preencher automaticamente SOMENTE quando vier completo (17 chars)
+      chassi: chassiLimpo.length === 17 ? chassiLimpo : prev.chassi,
+      // Preencher automaticamente SOMENTE quando vier completo (11 dígitos)
+      renavam: renavamLimpo.length === 11 ? renavamLimpo : prev.renavam,
       cor: data.cor || prev.cor,
       valor_fipe: data.valor_fipe || prev.valor_fipe,
       codigo_fipe: data.codigo_fipe || prev.codigo_fipe,
       mes_referencia_fipe: data.valor_fipe ? new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : prev.mes_referencia_fipe,
     }));
+
     setFipeLoaded(!!data.valor_fipe);
   }, []);
 
@@ -360,6 +365,19 @@ export default function Veiculos() {
       return;
     }
 
+    const chassiLimpo = normalizeChassi(formData.chassi);
+    const renavamLimpo = normalizeRenavam(formData.renavam);
+
+    // Chassi/Renavam: se estiverem vazios ou inválidos, obrigar preenchimento
+    if (chassiLimpo.length !== 17) {
+      toast.error('Chassi é obrigatório e deve ter exatamente 17 caracteres');
+      return;
+    }
+    if (renavamLimpo.length !== 11) {
+      toast.error('Renavam é obrigatório e deve ter exatamente 11 dígitos');
+      return;
+    }
+
     const placaLimpa = formData.placa.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const placaValida = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placaLimpa);
     if (!placaValida) {
@@ -389,8 +407,8 @@ export default function Veiculos() {
         modelo: formData.modelo.trim(),
         ano: formData.ano,
         placa: placaLimpa,
-        chassi: formData.chassi.trim() || null,
-        renavam: formData.renavam.trim() || null,
+        chassi: chassiLimpo,
+        renavam: renavamLimpo,
         cor: formData.cor.trim() || null,
         valor_fipe: formData.valor_fipe,
         tipo: formData.tipo,
@@ -429,6 +447,19 @@ export default function Veiculos() {
   const handleCreateVeiculo = async () => {
     if (!formData.marca.trim() || !formData.modelo.trim() || !formData.placa.trim() || formData.valor_fipe <= 0 || !formData.associado_id) {
       toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    const chassiLimpo = normalizeChassi(formData.chassi);
+    const renavamLimpo = normalizeRenavam(formData.renavam);
+
+    // Chassi/Renavam: obrigatórios quando a API não retornar (e também valida para evitar salvar inválido)
+    if (chassiLimpo.length !== 17) {
+      toast.error('Chassi é obrigatório e deve ter exatamente 17 caracteres');
+      return;
+    }
+    if (renavamLimpo.length !== 11) {
+      toast.error('Renavam é obrigatório e deve ter exatamente 11 dígitos');
       return;
     }
 
@@ -475,8 +506,8 @@ export default function Veiculos() {
         modelo: formData.modelo.trim(),
         ano: formData.ano,
         placa: placaLimpa,
-        chassi: formData.chassi.trim() || null,
-        renavam: formData.renavam.trim() || null,
+        chassi: chassiLimpo,
+        renavam: renavamLimpo,
         cor: formData.cor.trim() || null,
         valor_fipe: formData.valor_fipe,
         tipo: formData.tipo,
