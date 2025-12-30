@@ -2349,6 +2349,7 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_status_mensalidades: { Args: never; Returns: number }
       atualizar_status_mensalidades_atrasadas: { Args: never; Returns: number }
       can_access_financial: { Args: { _user_id: string }; Returns: boolean }
       can_access_lead: {
