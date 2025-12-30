@@ -427,8 +427,10 @@ export default function Associados() {
       return;
     }
 
-    // Calculate mensalidade based on vehicle type with percentual_extra
+    // Calculate mensalidade based on vehicle type with fórmula aditiva
+    const percentualGeral = Number((cotaApropriada as any).percentual_geral) || 0;
     const percentualExtra = Number((cotaApropriada as any).percentual_extra) || 0;
+    const totalPercentual = percentualGeral + percentualExtra;
     let valorBase = 0;
     switch (veiculoForm.tipo) {
       case 'carro':
@@ -441,7 +443,7 @@ export default function Associados() {
         valorBase = cotaApropriada.valor_camionete;
         break;
     }
-    const mensalidade = valorBase + (valorBase * percentualExtra / 100);
+    const mensalidade = valorBase + (valorBase * totalPercentual / 100);
 
     try {
 

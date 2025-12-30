@@ -45,9 +45,9 @@ export function FipeRangeDetector({
         valorBase = 0;
     }
     
-    // Aplicar percentual_geral primeiro, depois percentual_extra sobre o valor ajustado
-    const valorAjustado = valorBase + (valorBase * percentualGeral / 100);
-    return valorAjustado + (valorAjustado * percentualExtra / 100);
+    // Fórmula aditiva: soma dos percentuais aplicada sobre o valor base
+    const totalPercentual = percentualGeral + percentualExtra;
+    return valorBase + (valorBase * totalPercentual / 100);
   }, [detectedCota, tipoVeiculo]);
 
   const formatCurrency = (value: number) => {
@@ -140,9 +140,9 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
         valorBase = 0;
     }
     
-    // Aplicar percentual_geral primeiro, depois percentual_extra sobre o valor ajustado
-    const valorAjustado = valorBase + (valorBase * percentualGeral / 100);
-    return valorAjustado + (valorAjustado * percentualExtra / 100);
+    // Fórmula aditiva: soma dos percentuais aplicada sobre o valor base
+    const totalPercentual = percentualGeral + percentualExtra;
+    return valorBase + (valorBase * totalPercentual / 100);
   }, [detectedCota, tipoVeiculo]);
 
   return {
