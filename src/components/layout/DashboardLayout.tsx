@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
+import { useDemoMode } from '@/hooks/useDemoMode';
+import { DemoBanner } from '@/components/demo/DemoBanner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -213,6 +215,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { profile, roles, isAdminPrincipal, signOut } = useAuth();
+  const { isDemoUser } = useDemoMode();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -467,8 +470,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </header>
 
+      {/* Demo Banner */}
+      {isDemoUser && <DemoBanner />}
+
       {/* Main content */}
-      <main className="lg:pl-56 lg:pt-14 min-h-[calc(100vh-3.5rem)] flex flex-col">
+      <main className={cn(
+        "lg:pl-56 lg:pt-14 min-h-[calc(100vh-3.5rem)] flex flex-col",
+        isDemoUser && "pt-10" // Extra padding for demo banner
+      )}>
         <div className="p-4 lg:p-6 flex-1">
           {children}
         </div>

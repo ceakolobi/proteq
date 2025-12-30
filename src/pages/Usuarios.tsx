@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useUserRolesBatch } from '@/hooks/useSedeRegioes';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ export default function Usuarios() {
   // Access control: ONLY Admin Principal can access user management
   const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
   const { isAdminPrincipal } = useAuth();
+  const { isDemoUser, demoRestrictions, showDemoWarning } = useDemoMode();
   
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,6 +127,16 @@ export default function Usuarios() {
     e.preventDefault();
     
     if (!editingUser) return;
+
+    // Bloquear edição no modo demo
+    if (!demoRestrictions.canEditUsuarios) {
+      toast({
+        variant: 'destructive',
+        title: 'Ação bloqueada',
+        description: showDemoWarning('Editar Usuários'),
+      });
+      return;
+    }
 
     // Proteção extra: não permitir edição de admin protegido (email admin@system.com)
     if (editingUser.email === 'admin@system.com') {

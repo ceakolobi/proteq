@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useCanExport } from '@/hooks/useDataMasking';
 import { useAccessLogger } from '@/hooks/useAccessLogger';
+import { useDemoMode } from '@/hooks/useDemoMode';
 import { createMasker } from '@/lib/dataMasking';
 import {
   useReportData,
@@ -48,6 +49,7 @@ export default function Relatorios() {
   // Hooks de segurança
   const { canExportFull, canExportAny } = useCanExport();
   const { logExport } = useAccessLogger();
+  const { isDemoUser, demoRestrictions, showDemoWarning } = useDemoMode();
   const masker = createMasker(roles, isGlobalAdmin);
 
   const [activeTab, setActiveTab] = useState<ReportType>('regional');
@@ -111,6 +113,10 @@ export default function Relatorios() {
 
   // Export handlers
   const handleExportExcel = () => {
+    if (!demoRestrictions.canExportData) {
+      toast.error(showDemoWarning('Exportar Excel'));
+      return;
+    }
     if (!canExportAny) {
       toast.error('Você não tem permissão para exportar dados');
       return;
@@ -130,6 +136,10 @@ export default function Relatorios() {
   };
 
   const handleExportPDF = () => {
+    if (!demoRestrictions.canExportData) {
+      toast.error(showDemoWarning('Exportar PDF'));
+      return;
+    }
     if (!canExportAny) {
       toast.error('Você não tem permissão para exportar dados');
       return;
