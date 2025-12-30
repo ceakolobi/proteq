@@ -103,48 +103,6 @@ const navSections: NavSection[] = [
         icon: <DollarSign className="h-4 w-4" />,
         roles: ['admin_principal', 'admin_regional', 'consultor_vendas'],
       },
-      {
-        title: 'Associados',
-        href: '/associados',
-        icon: <Users className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'cadastro'],
-      },
-      {
-        title: 'Veículos',
-        href: '/veiculos',
-        icon: <Car className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'cadastro'],
-      },
-    ],
-  },
-  {
-    title: 'Operacional',
-    icon: <Wrench className="h-4 w-4" />,
-    items: [
-      {
-        title: 'Vistorias',
-        href: '/vistorias',
-        icon: <ClipboardCheck className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional', 'vistoriador', 'cadastro'],
-      },
-      {
-        title: 'Ativações',
-        href: '/ativacoes',
-        icon: <Shield className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional', 'cadastro', 'financeiro', 'consultor_vendas'],
-      },
-      {
-        title: 'Financeiro',
-        href: '/financeiro',
-        icon: <CreditCard className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional', 'financeiro'],
-      },
-      {
-        title: 'Relatórios',
-        href: '/relatorios',
-        icon: <BarChart3 className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'financeiro'],
-      },
     ],
   },
   {
@@ -169,6 +127,60 @@ const navSections: NavSection[] = [
         icon: <Users className="h-4 w-4" />,
         roles: ['admin_principal', 'admin_regional'],
       },
+      {
+        title: 'Sedes',
+        href: '/sedes',
+        icon: <Building2 className="h-4 w-4" />,
+        roles: ['admin_principal', 'admin_regional'],
+      },
+    ],
+  },
+  {
+    title: 'Cadastro',
+    icon: <Users className="h-4 w-4" />,
+    items: [
+      {
+        title: 'Associados',
+        href: '/associados',
+        icon: <Users className="h-4 w-4" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'cadastro'],
+      },
+      {
+        title: 'Veículos',
+        href: '/veiculos',
+        icon: <Car className="h-4 w-4" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'cadastro'],
+      },
+      {
+        title: 'Ativações',
+        href: '/ativacoes',
+        icon: <Shield className="h-4 w-4" />,
+        roles: ['admin_principal', 'admin_regional', 'cadastro', 'financeiro', 'consultor_vendas'],
+      },
+      {
+        title: 'Relatórios',
+        href: '/relatorios',
+        icon: <BarChart3 className="h-4 w-4" />,
+        roles: ['admin_principal', 'admin_regional', 'consultor_vendas', 'financeiro'],
+      },
+    ],
+  },
+  {
+    title: 'Finanças',
+    icon: <CreditCard className="h-4 w-4" />,
+    items: [
+      {
+        title: 'Financeiro',
+        href: '/financeiro',
+        icon: <CreditCard className="h-4 w-4" />,
+        roles: ['admin_principal', 'admin_regional', 'financeiro'],
+      },
+      {
+        title: 'Cotas',
+        href: '/cotas',
+        icon: <DollarSign className="h-4 w-4" />,
+        roles: ['admin_principal'],
+      },
     ],
   },
   {
@@ -186,18 +198,6 @@ const navSections: NavSection[] = [
         href: '/usuarios',
         icon: <Users className="h-4 w-4" />,
         roles: ['admin_principal'],
-      },
-      {
-        title: 'Cotas',
-        href: '/cotas',
-        icon: <DollarSign className="h-4 w-4" />,
-        roles: ['admin_principal'],
-      },
-      {
-        title: 'Sedes',
-        href: '/sedes',
-        icon: <Building2 className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_regional'],
       },
       {
         title: 'Configurações',
