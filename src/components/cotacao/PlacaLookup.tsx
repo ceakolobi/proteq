@@ -16,6 +16,7 @@ export interface VehicleData {
   ano_modelo: string;
   renavam?: string;
   chassi?: string;
+  chassi_mascarado?: boolean;
   cor?: string;
   combustivel?: string;
   municipio?: string;
@@ -146,7 +147,11 @@ export default function PlacaLookup({
         versao: vehicleData.versao,
         ano_fabricacao: vehicleData.ano_fabricacao?.toString() || '',
         ano_modelo: vehicleData.ano_modelo?.toString() || '',
-        chassi: vehicleData.chassi,
+        // Retornar chassi completo - se mascarado, deixar vazio para preenchimento manual
+        chassi: vehicleData.chassi_mascarado ? '' : vehicleData.chassi,
+        chassi_mascarado: vehicleData.chassi_mascarado,
+        // Retornar renavam quando disponível
+        renavam: vehicleData.renavam,
         cor: vehicleData.cor,
         combustivel: vehicleData.combustivel,
         municipio: vehicleData.municipio,

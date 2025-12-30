@@ -162,6 +162,18 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           toast.error('Valor FIPE é obrigatório');
           return false;
         }
+        // Validar Chassi (17 caracteres alfanuméricos)
+        const chassiLimpo = veiculoData.chassi.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        if (!chassiLimpo || chassiLimpo.length !== 17) {
+          toast.error('Chassi deve ter exatamente 17 caracteres');
+          return false;
+        }
+        // Validar Renavam (11 dígitos)
+        const renavamLimpo = veiculoData.renavam.replace(/\D/g, '');
+        if (!renavamLimpo || renavamLimpo.length !== 11) {
+          toast.error('Renavam deve ter exatamente 11 dígitos');
+          return false;
+        }
         return true;
       
       case 4: // Docs Veículo

@@ -170,12 +170,18 @@ export default function Veiculos() {
   // Handler para quando dados do veículo são encontrados pela placa
   // IMPORTANTE: Hooks devem ser declarados ANTES de qualquer early return
   const handleVehicleFound = useCallback((data: VehicleData) => {
+    // Verificar se chassi está mascarado
+    const chassiMascarado = data.chassi_mascarado || (data.chassi && (data.chassi.match(/\*/g) || []).length > 3);
+    
     setFormData(prev => ({
       ...prev,
       marca: data.marca || prev.marca,
       modelo: data.modelo || prev.modelo,
       ano: parseInt(data.ano_modelo) || parseInt(data.ano_fabricacao) || prev.ano,
-      chassi: data.chassi || prev.chassi,
+      // Se chassi mascarado, manter valor anterior para preenchimento manual
+      chassi: chassiMascarado ? prev.chassi : (data.chassi?.replace(/[^A-Za-z0-9]/g, '').toUpperCase() || prev.chassi),
+      // Adicionar renavam quando disponível
+      renavam: data.renavam?.replace(/\D/g, '') || prev.renavam,
       cor: data.cor || prev.cor,
       valor_fipe: data.valor_fipe || prev.valor_fipe,
       codigo_fipe: data.codigo_fipe || prev.codigo_fipe,
