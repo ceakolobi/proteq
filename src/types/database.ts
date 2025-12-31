@@ -1,12 +1,14 @@
 export type AppRole = 
   | 'admin_principal'
   | 'admin_regional'
+  | 'admin_nivel_basico'
   | 'gerente'
   | 'financeiro'
   | 'cadastro'
   | 'consultor_vendas'
   | 'operacional'
   | 'vistoriador'
+  | 'recepcao'
   | 'associado'
   | 'demo_user';
 
@@ -261,12 +263,14 @@ export interface AcionamentoGuincho {
 export const roleLabels: Record<AppRole, string> = {
   admin_principal: 'Admin Principal',
   admin_regional: 'Admin Sede',
+  admin_nivel_basico: 'Admin Nível Básico',
   gerente: 'Gerente',
   financeiro: 'Financeiro',
   cadastro: 'Cadastro',
   consultor_vendas: 'Consultor',
   operacional: 'Operacional',
   vistoriador: 'Vistoriador',
+  recepcao: 'Recepção',
   associado: 'Associado',
   demo_user: 'Demonstração'
 };

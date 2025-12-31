@@ -8,10 +8,12 @@ import { toast } from 'sonner';
 export type PageAccess = 
   | 'admin_principal_only'
   | 'admin_regional_or_above'
+  | 'admin_nivel_basico_or_above'
   | 'consultor_or_above'
   | 'cadastro_or_above'
   | 'financeiro_only'
   | 'vistoriador_or_above'
+  | 'recepcao_or_above'
   | 'authenticated';
 
 interface AccessControlResult {
@@ -76,17 +78,26 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           allowed = isAdminPrincipal === true || roles.includes('admin_regional');
           break;
 
-        case 'consultor_or_above':
-          // Admin Principal OR Admin Regional OR Consultor
+        case 'admin_nivel_basico_or_above':
+          // Admin Principal OR Admin Regional OR Admin Nível Básico
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
+                   roles.includes('admin_nivel_basico');
+          break;
+
+        case 'consultor_or_above':
+          // Admin Principal OR Admin Regional OR Admin Nível Básico OR Consultor
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_regional') || 
+                   roles.includes('admin_nivel_basico') ||
                    roles.includes('consultor_vendas');
           break;
 
         case 'cadastro_or_above':
-          // Admin Principal OR Admin Regional OR Cadastro (backoffice)
+          // Admin Principal OR Admin Regional OR Admin Nível Básico OR Cadastro
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
+                   roles.includes('admin_nivel_basico') ||
                    roles.includes('cadastro');
           break;
 
@@ -98,10 +109,19 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           break;
 
         case 'vistoriador_or_above':
-          // Admin Principal OR Admin Regional OR Vistoriador
+          // Admin Principal OR Admin Regional OR Admin Nível Básico OR Vistoriador
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
+                   roles.includes('admin_nivel_basico') ||
                    roles.includes('vistoriador');
+          break;
+
+        case 'recepcao_or_above':
+          // Recepção com acesso básico - pode acessar junto com admins
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_regional') || 
+                   roles.includes('admin_nivel_basico') ||
+                   roles.includes('recepcao');
           break;
 
         case 'authenticated':
