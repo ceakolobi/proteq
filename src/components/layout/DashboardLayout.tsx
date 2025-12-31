@@ -157,6 +157,12 @@ const navSections: NavSection[] = [
         roles: ['admin_principal', 'admin_regional', 'cadastro', 'financeiro', 'consultor_vendas'],
       },
       {
+        title: 'Usuários',
+        href: '/usuarios',
+        icon: <UserCog className="h-4 w-4" />,
+        roles: ['admin_principal'],
+      },
+      {
         title: 'Relatórios',
         href: '/relatorios',
         icon: <BarChart3 className="h-4 w-4" />,
@@ -190,12 +196,6 @@ const navSections: NavSection[] = [
         title: 'Painel Admin',
         href: '/admin',
         icon: <Shield className="h-4 w-4" />,
-        roles: ['admin_principal'],
-      },
-      {
-        title: 'Usuários',
-        href: '/usuarios',
-        icon: <Users className="h-4 w-4" />,
         roles: ['admin_principal'],
       },
       {
