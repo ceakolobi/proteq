@@ -1558,6 +1558,7 @@ export type Database = {
           email: string
           id: string
           is_admin_principal: boolean
+          must_change_password: boolean
           nome_completo: string
           regiao_id: string | null
           sede_id: string | null
@@ -1572,6 +1573,7 @@ export type Database = {
           email: string
           id: string
           is_admin_principal?: boolean
+          must_change_password?: boolean
           nome_completo: string
           regiao_id?: string | null
           sede_id?: string | null
@@ -1586,6 +1588,7 @@ export type Database = {
           email?: string
           id?: string
           is_admin_principal?: boolean
+          must_change_password?: boolean
           nome_completo?: string
           regiao_id?: string | null
           sede_id?: string | null

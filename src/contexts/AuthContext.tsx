@@ -11,12 +11,14 @@ interface AuthContextType {
   isLoading: boolean;
   isAdminPrincipal: boolean;
   isGlobalAdmin: boolean; // Bypass global para admin@system.com ou Admin Principal
+  mustChangePassword: boolean;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, nomeCompleto: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  clearMustChangePassword: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -151,6 +153,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const ADMIN_EMAIL = 'admin@system.com';
   const isGlobalAdmin = user?.email === ADMIN_EMAIL || isAdminPrincipal;
 
+  // Must change password flag from profile
+  const mustChangePassword = profile?.must_change_password === true;
+
   const hasRole = (role: AppRole) => {
     // Global admin sempre tem todas as roles
     if (isGlobalAdmin) return true;
@@ -163,6 +168,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return checkRoles.some(role => roles.includes(role));
   };
 
+  // Clear the must_change_password flag after password change
+  const clearMustChangePassword = async () => {
+    if (!user) return;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ must_change_password: false })
+      .eq('id', user.id);
+
+    if (!error) {
+      setProfile(prev => prev ? { ...prev, must_change_password: false } : null);
+    }
+  };
+
   const value = {
     user,
     session,
@@ -171,12 +190,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     isAdminPrincipal,
     isGlobalAdmin,
+    mustChangePassword,
     hasRole,
     hasAnyRole,
     signIn,
     signUp,
     signOut,
     refreshProfile,
+    clearMustChangePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
