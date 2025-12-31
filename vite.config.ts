@@ -9,7 +9,16 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+
+  // 🔥 ESTA PARTE AQUI RESOLVE O ERRO
+  preview: {
+    host: "0.0.0.0",
+    port: 3000,
+    allowedHosts: ["painel.harmony.markavps.shop"],
+  },
+
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
