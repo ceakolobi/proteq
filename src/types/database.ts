@@ -1,11 +1,14 @@
 export type AppRole = 
   | 'admin_principal'
   | 'admin_regional'
+  | 'gerente'
   | 'financeiro'
   | 'cadastro'
   | 'consultor_vendas'
+  | 'operacional'
   | 'vistoriador'
-  | 'associado';
+  | 'associado'
+  | 'demo_user';
 
 export type VehicleType = 'carro' | 'moto' | 'pickup' | 'caminhao' | 'utilitario' | 'maquina_agricola' | 'maquina_industrial' | 'carreta' | 'implemento_agricola';
 
@@ -257,12 +260,15 @@ export interface AcionamentoGuincho {
 // Role labels for display
 export const roleLabels: Record<AppRole, string> = {
   admin_principal: 'Admin Principal',
-  admin_regional: 'Admin Regional',
+  admin_regional: 'Admin Sede',
+  gerente: 'Gerente',
   financeiro: 'Financeiro',
   cadastro: 'Cadastro',
-  consultor_vendas: 'Consultor de Vendas',
+  consultor_vendas: 'Consultor',
+  operacional: 'Operacional',
   vistoriador: 'Vistoriador',
-  associado: 'Associado'
+  associado: 'Associado',
+  demo_user: 'Demonstração'
 };
 
 // Status labels

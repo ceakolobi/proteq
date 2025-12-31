@@ -37,23 +37,36 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
-import { Users, Pencil, Shield, Search } from 'lucide-react';
+import { Users, Pencil, Shield, Search, Plus, UserPlus } from 'lucide-react';
 
 interface UserWithRole extends Profile {
   roles: AppRole[];
 }
+
+// Roles disponíveis para atribuição (exceto admin_principal que é protegido)
+const AVAILABLE_ROLES: AppRole[] = [
+  'admin_regional',
+  'gerente',
+  'financeiro',
+  'cadastro',
+  'consultor_vendas',
+  'operacional',
+  'vistoriador',
+  'demo_user'
+];
 
 export default function Usuarios() {
   // Access control: ONLY Admin Principal can access user management
   const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
   const { isAdminPrincipal } = useAuth();
   
-  
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   // Hooks centralizados
@@ -68,11 +81,19 @@ export default function Usuarios() {
     ativo: true,
   });
 
+  const [createFormData, setCreateFormData] = useState({
+    nome_completo: '',
+    email: '',
+    senha: '',
+    role: '' as AppRole | '',
+    sede_id: '',
+    regiao_id: '',
+  });
+
   const fetchData = async () => {
     if (!isAllowed) return;
     
     try {
-      // Admin Principal sees all users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -112,7 +133,22 @@ export default function Usuarios() {
     return null;
   }
 
+  // Verificar se é admin principal protegido
+  const isProtectedAdmin = (user: Profile) => {
+    return user.is_admin_principal || user.email === 'admin@system.com';
+  };
+
   const handleOpenDialog = (user: UserWithRole) => {
+    // Bloquear edição de admin principal
+    if (isProtectedAdmin(user)) {
+      toast({
+        variant: 'destructive',
+        title: 'Operação não permitida',
+        description: 'O Admin Principal não pode ser editado.',
+      });
+      return;
+    }
+
     setEditingUser(user);
     setFormData({
       role: user.roles[0] || '',
@@ -123,20 +159,130 @@ export default function Usuarios() {
     setIsDialogOpen(true);
   };
 
+  const handleOpenCreateDialog = () => {
+    setCreateFormData({
+      nome_completo: '',
+      email: '',
+      senha: '',
+      role: '',
+      sede_id: '',
+      regiao_id: '',
+    });
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!createFormData.nome_completo || !createFormData.email || !createFormData.senha || !createFormData.role) {
+      toast({
+        variant: 'destructive',
+        title: 'Campos obrigatórios',
+        description: 'Preencha todos os campos obrigatórios.',
+      });
+      return;
+    }
+
+    if (createFormData.senha.length < 6) {
+      toast({
+        variant: 'destructive',
+        title: 'Senha inválida',
+        description: 'A senha deve ter pelo menos 6 caracteres.',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Criar usuário via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: createFormData.email,
+        password: createFormData.senha,
+        options: {
+          data: {
+            nome_completo: createFormData.nome_completo,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('Erro ao criar usuário');
+      }
+
+      // Aguardar o profile ser criado pelo trigger
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Atualizar profile com sede/região
+      if (createFormData.sede_id || createFormData.regiao_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            sede_id: createFormData.sede_id || null,
+            regiao_id: createFormData.regiao_id || null,
+          })
+          .eq('id', authData.user.id);
+
+        if (profileError) {
+          console.error('Error updating profile:', profileError);
+        }
+      }
+
+      // Adicionar role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: createFormData.role as AppRole,
+        });
+
+      if (roleError) throw roleError;
+
+      toast({
+        title: 'Usuário criado',
+        description: `O usuário ${createFormData.nome_completo} foi criado com sucesso.`,
+      });
+
+      setIsCreateDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      
+      let errorMessage = 'Não foi possível criar o usuário.';
+      if (error.message?.includes('already registered')) {
+        errorMessage = 'Este email já está cadastrado.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao criar usuário',
+        description: errorMessage,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingUser) return;
 
-    // Proteção extra: não permitir edição de admin protegido (email admin@system.com)
-    if (editingUser.email === 'admin@system.com') {
+    // Proteção extra: não permitir edição de admin protegido
+    if (isProtectedAdmin(editingUser)) {
       toast({
         variant: 'destructive',
         title: 'Operação não permitida',
-        description: 'Este usuário administrador não pode ser alterado.',
+        description: 'O Admin Principal não pode ser alterado.',
       });
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       // Update profile
@@ -195,6 +341,8 @@ export default function Usuarios() {
         title: 'Erro ao atualizar',
         description: error.message || 'Não foi possível atualizar o usuário.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -203,19 +351,20 @@ export default function Usuarios() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Admin Principal can assign any role except admin_principal
-  const availableRoles: AppRole[] = ['admin_regional', 'financeiro', 'cadastro', 'consultor_vendas', 'vistoriador', 'associado'];
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Usuários</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Gestão de Usuários</h1>
             <p className="text-muted-foreground">
               Gerencie os usuários e permissões do sistema
             </p>
           </div>
+          <Button onClick={handleOpenCreateDialog}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Usuário
+          </Button>
         </div>
 
         <Card>
@@ -263,50 +412,55 @@ export default function Usuarios() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {user.is_admin_principal && (
-                              <Shield className="h-4 w-4 text-primary" />
+                    {filteredUsers.map((user) => {
+                      const userRoles = getRoles(user.id) as AppRole[];
+                      const isProtected = isProtectedAdmin(user);
+                      
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {isProtected && (
+                                <Shield className="h-4 w-4 text-primary" />
+                              )}
+                              <span className="font-medium">{user.nome_completo}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {isProtected ? (
+                                <Badge className="bg-primary">Admin Principal</Badge>
+                              ) : userRoles.length > 0 ? (
+                                userRoles.map((role) => (
+                                  <Badge key={role} variant="secondary">
+                                    {roleLabels[role]}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <Badge variant="outline">Sem perfil</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={user.ativo ? 'default' : 'secondary'}>
+                              {user.ativo ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {!isProtected && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenDialog({ ...user, roles: userRoles })}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                             )}
-                            <span className="font-medium">{user.nome_completo}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {user.is_admin_principal ? (
-                              <Badge className="bg-primary">Admin Principal</Badge>
-                            ) : getRoles(user.id).length > 0 ? (
-                              getRoles(user.id).map((role) => (
-                                <Badge key={role} variant="secondary">
-                                  {roleLabels[role as AppRole]}
-                                </Badge>
-                              ))
-                            ) : (
-                              <Badge variant="outline">Sem perfil</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.ativo ? 'default' : 'secondary'}>
-                            {user.ativo ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {!user.is_admin_principal && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog({ ...user, roles: getRoles(user.id) as AppRole[] })}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -314,7 +468,124 @@ export default function Usuarios() {
           </CardContent>
         </Card>
 
-        {/* Edit Dialog */}
+        {/* Create User Dialog */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Novo Usuário</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para criar um novo usuário
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="nome_completo">Nome Completo *</Label>
+                <Input
+                  id="nome_completo"
+                  value={createFormData.nome_completo}
+                  onChange={(e) => setCreateFormData({ ...createFormData, nome_completo: e.target.value })}
+                  placeholder="Digite o nome completo"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={createFormData.email}
+                  onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
+                  placeholder="Digite o email"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="senha">Senha *</Label>
+                <Input
+                  id="senha"
+                  type="password"
+                  value={createFormData.senha}
+                  onChange={(e) => setCreateFormData({ ...createFormData, senha: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create_role">Perfil de Acesso *</Label>
+                <Select
+                  value={createFormData.role}
+                  onValueChange={(value) => setCreateFormData({ ...createFormData, role: value as AppRole })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_ROLES.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {roleLabels[role]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create_sede">Sede (opcional)</Label>
+                <Select
+                  value={createFormData.sede_id}
+                  onValueChange={(value) => setCreateFormData({ ...createFormData, sede_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma sede" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhuma</SelectItem>
+                    {sedes.map((sede) => (
+                      <SelectItem key={sede.id} value={sede.id}>
+                        {sede.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create_regiao">Região (opcional)</Label>
+                <Select
+                  value={createFormData.regiao_id}
+                  onValueChange={(value) => setCreateFormData({ ...createFormData, regiao_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma região" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhuma</SelectItem>
+                    {regioes.map((regiao) => (
+                      <SelectItem key={regiao.id} value={regiao.id}>
+                        {regiao.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Criando...' : 'Criar Usuário'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit User Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -334,7 +605,7 @@ export default function Usuarios() {
                     <SelectValue placeholder="Selecione um perfil" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRoles.map((role) => (
+                    {AVAILABLE_ROLES.map((role) => (
                       <SelectItem key={role} value={role}>
                         {roleLabels[role]}
                       </SelectItem>
@@ -355,6 +626,7 @@ export default function Usuarios() {
                         <SelectValue placeholder="Selecione uma sede" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="">Nenhuma</SelectItem>
                         {sedes.map((sede) => (
                           <SelectItem key={sede.id} value={sede.id}>
                             {sede.nome}
@@ -374,6 +646,7 @@ export default function Usuarios() {
                         <SelectValue placeholder="Selecione uma região" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="">Nenhuma</SelectItem>
                         {regioes.map((regiao) => (
                           <SelectItem key={regiao.id} value={regiao.id}>
                             {regiao.nome}
@@ -398,8 +671,8 @@ export default function Usuarios() {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  Salvar Alterações
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
               </DialogFooter>
             </form>
