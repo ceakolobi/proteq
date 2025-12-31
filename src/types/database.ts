@@ -36,6 +36,7 @@ export interface Profile {
   regiao_id?: string;
   ativo: boolean;
   is_admin_principal: boolean;
+  must_change_password: boolean;
   created_at: string;
   updated_at: string;
 }

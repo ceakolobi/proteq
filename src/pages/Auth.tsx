@@ -30,11 +30,12 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState('');
 
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [isForcedChangeMode, setIsForcedChangeMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, profile, mustChangePassword, clearMustChangePassword, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -94,6 +95,20 @@ export default function Auth() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Check for forced password change after login
+  useEffect(() => {
+    if (!authLoading && user && profile && mustChangePassword && !isRecoveryMode) {
+      setIsForcedChangeMode(true);
+    }
+  }, [authLoading, user, profile, mustChangePassword, isRecoveryMode]);
+
+  // Redirect authenticated users who don't need password change
+  useEffect(() => {
+    if (!authLoading && user && profile && !mustChangePassword && !isRecoveryMode && !isForcedChangeMode) {
+      navigate('/dashboard');
+    }
+  }, [authLoading, user, profile, mustChangePassword, isRecoveryMode, isForcedChangeMode, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,6 +265,12 @@ export default function Auth() {
       return;
     }
 
+    // Clear the must_change_password flag if this was a forced change
+    if (isForcedChangeMode) {
+      await clearMustChangePassword();
+      setIsForcedChangeMode(false);
+    }
+
     toast({
       title: 'Senha atualizada!',
       description: 'Você já pode acessar o sistema com a nova senha.',
@@ -325,17 +346,19 @@ export default function Auth() {
             </div>
 
             <CardTitle className="text-2xl font-bold">
-              {isRecoveryMode ? 'Redefinir senha' : 'Acesse sua conta'}
+              {isRecoveryMode || isForcedChangeMode ? 'Redefinir senha' : 'Acesse sua conta'}
             </CardTitle>
             <CardDescription>
               {isRecoveryMode
                 ? 'Defina uma nova senha para sua conta.'
+                : isForcedChangeMode
+                ? 'Você precisa alterar sua senha para continuar.'
                 : 'Sistema interno de gestão da associação'}
             </CardDescription>
           </CardHeader>
 
           <CardContent>
-            {isRecoveryMode ? (
+            {(isRecoveryMode || isForcedChangeMode) ? (
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Nova senha</Label>
@@ -372,10 +395,12 @@ export default function Auth() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="button" variant="ghost" className="flex-1" onClick={handleCancelRecovery} disabled={isLoading}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="flex-1" disabled={isLoading}>
+                  {isRecoveryMode && (
+                    <Button type="button" variant="ghost" className="flex-1" onClick={handleCancelRecovery} disabled={isLoading}>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button type="submit" className={isRecoveryMode ? "flex-1" : "w-full"} disabled={isLoading}>
                     {isLoading ? 'Salvando...' : 'Salvar nova senha'}
                   </Button>
                 </div>

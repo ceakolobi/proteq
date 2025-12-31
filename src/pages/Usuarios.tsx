@@ -81,6 +81,7 @@ export default function Usuarios() {
     sede_id: '',
     regiao_id: '',
     ativo: true,
+    must_change_password: false,
   });
 
   const [createFormData, setCreateFormData] = useState({
@@ -157,6 +158,7 @@ export default function Usuarios() {
       sede_id: user.sede_id || '',
       regiao_id: user.regiao_id || '',
       ativo: user.ativo,
+      must_change_password: (user as any).must_change_password || false,
     });
     setIsDialogOpen(true);
   };
@@ -294,6 +296,7 @@ export default function Usuarios() {
           sede_id: formData.sede_id || null,
           regiao_id: formData.regiao_id || null,
           ativo: formData.ativo,
+          must_change_password: formData.must_change_password,
         })
         .eq('id', editingUser.id);
 
@@ -666,6 +669,20 @@ export default function Usuarios() {
                   id="ativo"
                   checked={formData.ativo}
                   onCheckedChange={(checked) => setFormData({ ...formData, ativo: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="must_change_password">Forçar troca de senha</Label>
+                  <p className="text-xs text-muted-foreground">
+                    O usuário deverá alterar a senha no próximo login
+                  </p>
+                </div>
+                <Switch
+                  id="must_change_password"
+                  checked={formData.must_change_password}
+                  onCheckedChange={(checked) => setFormData({ ...formData, must_change_password: checked })}
                 />
               </div>
 
