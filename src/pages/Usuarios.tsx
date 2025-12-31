@@ -46,12 +46,14 @@ interface UserWithRole extends Profile {
 // Roles disponíveis para atribuição (exceto admin_principal que é protegido)
 const AVAILABLE_ROLES: AppRole[] = [
   'admin_regional',
+  'admin_nivel_basico',
   'gerente',
   'financeiro',
   'cadastro',
   'consultor_vendas',
   'operacional',
   'vistoriador',
+  'recepcao',
   'demo_user'
 ];
 
