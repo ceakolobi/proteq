@@ -140,7 +140,7 @@ serve(async (req) => {
         console.log(`[Harmony CRM] Fetching vehicle: ${placa}`);
 
         const veiculoResponse = await fetch(
-          `${HARMONY_CRM_API_URL}/veiculos/placa/${placa}`,
+          `${HARMONY_CRM_API_URL}/api/veiculos/placa/${placa}`,
           {
             method: "GET",
             headers: {
@@ -207,7 +207,7 @@ serve(async (req) => {
         console.log(`[Harmony CRM] Sending cotacao:`, cotacaoPayload);
 
         const cotacaoResponse = await fetch(
-          `${HARMONY_CRM_API_URL}/cotacoes`,
+          `${HARMONY_CRM_API_URL}/api/cotacoes`,
           {
             method: "POST",
             headers: {
@@ -252,7 +252,7 @@ serve(async (req) => {
         console.log(`[Harmony CRM] Fetching consultant profile for: ${user.email}`);
 
         const perfilResponse = await fetch(
-          `${HARMONY_CRM_API_URL}/consultores/perfil`,
+          `${HARMONY_CRM_API_URL}/api/consultores/perfil`,
           {
             method: "GET",
             headers: {
