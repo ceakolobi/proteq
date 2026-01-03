@@ -123,17 +123,17 @@ export default function Usuarios() {
     }
   }, [isAllowed, isChecking]);
 
-  // Show loading while checking access
-  if (isChecking) {
+  // Show loading while checking access or redirecting
+  if (isChecking || !isAllowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">
+            {isChecking ? ACCESS_CHECKING_MESSAGE : 'Redirecionando...'}
+          </div>
+        </div>
+      </DashboardLayout>
     );
-  }
-
-  if (!isAllowed) {
-    return null;
   }
 
   // Verificar se é admin principal protegido
