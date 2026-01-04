@@ -258,6 +258,7 @@ export default function Cotas() {
         percentual_extra: parseFloat(formData.percentual_extra) || 0,
         acrescimo_individual: parseFloat(formData.acrescimo_individual) || 0,
         acrescimo_global: parseFloat(formData.acrescimo_global) || 0,
+        ajuste_geral_valor: parseFloat(formData.acrescimo_global) || 0, // Novo campo
         ativo: formData.ativo,
         categoria: formData.categoria,
         aplica_carro: formData.aplica_carro,
@@ -471,80 +472,33 @@ export default function Cotas() {
                   )}
                 </div>
 
-                {/* Acréscimos em R$ - NOVA SEÇÃO */}
+                {/* Ajuste Geral em R$ - SEÇÃO PRINCIPAL */}
                 <div className="space-y-4 border rounded-lg p-4 bg-primary/5">
                   <h4 className="font-medium text-sm flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
-                    Acréscimos em Reais (R$)
+                    Ajuste Geral em Reais (R$)
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Valores fixos somados à mensalidade base. Fórmula: <strong>Valor Final = Base + Acréscimo Global + Acréscimo Individual</strong>
+                    Valor fixo somado à mensalidade base. Fórmula: <strong>Valor Final = Base + Ajuste Geral + Ajuste Individual</strong>
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="acrescimo_global">Acréscimo Global (R$)</Label>
-                      <Input
-                        id="acrescimo_global"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={formData.acrescimo_global}
-                        onChange={(e) => setFormData({ ...formData, acrescimo_global: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Aplicado a TODAS as cotas
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="acrescimo_individual">Acréscimo Individual (R$)</Label>
-                      <Input
-                        id="acrescimo_individual"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={formData.acrescimo_individual}
-                        onChange={(e) => setFormData({ ...formData, acrescimo_individual: e.target.value })}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Específico desta cota
-                      </p>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="acrescimo_global">Ajuste Geral (R$)</Label>
+                    <Input
+                      id="acrescimo_global"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.acrescimo_global}
+                      onChange={(e) => setFormData({ ...formData, acrescimo_global: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Aplicado automaticamente a TODAS as cotações que usarem esta cota. Pode ser positivo ou negativo.
+                    </p>
                   </div>
                 </div>
 
-                {/* Percentuais - mantido para compatibilidade */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="percentual_geral">% Geral (legado)</Label>
-                    <Input
-                      id="percentual_geral"
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={formData.percentual_geral}
-                      onChange={(e) => setFormData({ ...formData, percentual_geral: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Usado apenas se não houver acréscimos em R$
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="percentual_extra">% Extra (legado)</Label>
-                    <Input
-                      id="percentual_extra"
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={formData.percentual_extra}
-                      onChange={(e) => setFormData({ ...formData, percentual_extra: e.target.value })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Adicional percentual
-                    </p>
-                  </div>
-                </div>
+                {/* Percentuais - OCULTO (mantido para compatibilidade mas não visível) */}
+                {/* Campos percentuais removidos da interface - sistema usa apenas valores fixos */}
 
                 <div className="flex items-center justify-between">
                   <Label htmlFor="ativo">Cota ativa</Label>
@@ -638,9 +592,9 @@ export default function Cotas() {
                         : categoriaFilter === 'CAMINHONETE'
                           ? (cota.valor_camionete || 0)
                           : (cota.valor_carro || 0);
-                      const acrescimoGlobal = cota.acrescimo_global || 0;
-                      const acrescimoIndividual = cota.acrescimo_individual || 0;
-                      const valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual;
+                      // Usar novo campo ajuste_geral_valor com fallback
+                      const ajusteGeralValor = (cota as any).ajuste_geral_valor || cota.acrescimo_global || 0;
+                      const valorFinal = valorBase + ajusteGeralValor;
                       
                       return (
                       <TableRow key={cota.id}>
@@ -653,17 +607,12 @@ export default function Cotas() {
                         </TableCell>
                         <TableCell>
                           <div className="text-xs space-y-0.5">
-                            {acrescimoGlobal > 0 && (
+                            {ajusteGeralValor !== 0 && (
                               <div className="text-muted-foreground">
-                                Global: <span className="text-primary">+{formatCurrency(acrescimoGlobal)}</span>
+                                Ajuste Geral: <span className={ajusteGeralValor > 0 ? 'text-primary' : 'text-green-500'}>{ajusteGeralValor > 0 ? '+' : ''}{formatCurrency(ajusteGeralValor)}</span>
                               </div>
                             )}
-                            {acrescimoIndividual > 0 && (
-                              <div className="text-muted-foreground">
-                                Individual: <span className="text-primary">+{formatCurrency(acrescimoIndividual)}</span>
-                              </div>
-                            )}
-                            {acrescimoGlobal === 0 && acrescimoIndividual === 0 && (
+                            {ajusteGeralValor === 0 && (
                               <span className="text-muted-foreground">—</span>
                             )}
                           </div>

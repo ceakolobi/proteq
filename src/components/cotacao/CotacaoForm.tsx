@@ -26,7 +26,7 @@ import {
   Settings2,
   AlertTriangle,
   Lock,
-  Percent,
+  DollarSign,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
@@ -39,7 +39,7 @@ import {
   calcularCotacaoCompleta,
   getCategoriaByTipoVeiculo,
   getPerfilEditor,
-  validarAjustePercentual,
+  validarAjusteValor,
   formatCurrency,
   parseValorBrasileiro,
   categoriaLabels,
@@ -89,7 +89,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     codigo_fipe: '',
     carro_reserva_extra: 'nenhum' as 'nenhum' | '30dias' | '90dias',
     observacoes: '',
-    percentual_individual: 0, // Ajuste do gestor
+    ajuste_individual_valor: 0, // Ajuste em R$ pelo gestor
     motivo_ajuste: '',
   });
   
@@ -117,17 +117,9 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     return !tiposSemFipe.includes(formData.tipo_bem as TipoBem);
   }, [formData.tipo_bem]);
 
-  // Verificar se pode editar percentual
-  const podeEditarPercentual = useMemo(() => {
+  // Verificar se pode editar ajuste individual
+  const podeEditarAjuste = useMemo(() => {
     return perfilEditor === 'ADMIN' || perfilEditor === 'GESTOR';
-  }, [perfilEditor]);
-
-  // Limites do slider baseado no perfil
-  const limitePercentual = useMemo(() => {
-    if (perfilEditor === 'ADMIN') {
-      return { min: -50, max: 50 };
-    }
-    return { min: -15, max: 15 };
   }, [perfilEditor]);
 
   // Quando tipo muda para máquina, força método manual
@@ -158,12 +150,12 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       valorBem,
       formData.tipo_bem as TipoBem,
       cotasAtivas,
-      formData.percentual_individual,
+      formData.ajuste_individual_valor,
       formData.carro_reserva_extra
     );
 
     setPreviewResult(result);
-  }, [formData.tipo_bem, formData.valor_bem, formData.percentual_individual, formData.carro_reserva_extra, cotasAtivas]);
+  }, [formData.tipo_bem, formData.valor_bem, formData.ajuste_individual_valor, formData.carro_reserva_extra, cotasAtivas]);
 
   // Atualizar prévia automaticamente
   useEffect(() => {
@@ -224,12 +216,10 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     setFipeBloqueado(true);
   }, []);
 
-  // Handler para ajuste de percentual
-  const handlePercentualChange = useCallback((value: number[]) => {
-    const novoPercentual = value[0];
-    
+  // Handler para ajuste de valor individual
+  const handleAjusteValorChange = useCallback((valor: number) => {
     // Validar permissão
-    const validacao = validarAjustePercentual(perfilEditor, novoPercentual);
+    const validacao = validarAjusteValor(perfilEditor, 'individual');
     
     if (!validacao.permitido) {
       toast.error(validacao.mensagem || 'Sem permissão para este ajuste');
@@ -238,7 +228,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
     setFormData(prev => ({
       ...prev,
-      percentual_individual: novoPercentual
+      ajuste_individual_valor: valor
     }));
     setResultado(null);
   }, [perfilEditor]);
@@ -279,9 +269,9 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       return;
     }
 
-    // Validar ajuste de percentual
-    if (formData.percentual_individual !== 0) {
-      const validacao = validarAjustePercentual(perfilEditor, formData.percentual_individual);
+    // Validar ajuste de valor
+    if (formData.ajuste_individual_valor !== 0) {
+      const validacao = validarAjusteValor(perfilEditor, 'individual');
       if (!validacao.permitido) {
         toast.error(validacao.mensagem || 'Ajuste não permitido');
         setIsCalculating(false);
@@ -293,7 +283,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       valorBem,
       formData.tipo_bem as TipoBem,
       cotasAtivas,
-      formData.percentual_individual,
+      formData.ajuste_individual_valor,
       formData.carro_reserva_extra
     );
 
@@ -364,16 +354,16 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         usuario_informou_valor: !fipeBloqueado ? user?.id : null,
         data_valor_informado: !fipeBloqueado ? new Date().toISOString() : null,
         cota_id: resultado.cotaId,
-        // Campos de cálculo
+        // Campos de cálculo (valores fixos em R$)
         valor_base: resultado.valorBase,
-        percentual_global: resultado.percentualGlobal,
-        percentual_individual: resultado.percentualIndividual,
+        ajuste_geral_valor: resultado.ajusteGeralValor,
+        ajuste_individual_valor: resultado.ajusteIndividualValor,
         valor_final: resultado.valorFinal,
         mensalidade: resultado.valorFinal,
         participacao: resultado.participacao,
         // Rastreamento de edição
-        editado_por: formData.percentual_individual !== 0 ? user?.id : null,
-        perfil_editor: formData.percentual_individual !== 0 ? perfilEditor : null,
+        editado_por: formData.ajuste_individual_valor !== 0 ? user?.id : null,
+        perfil_editor: formData.ajuste_individual_valor !== 0 ? perfilEditor : null,
         motivo_ajuste: formData.motivo_ajuste || null,
         // Carro reserva
         carro_reserva_dias: formData.carro_reserva_extra === 'nenhum' ? 15 : 
@@ -627,51 +617,49 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
                 <Separator />
 
-                {/* Ajuste de Percentual - Visível apenas para ADMIN e GESTOR */}
-                {podeEditarPercentual && previewResult && (
+                {/* Ajuste de Valor Individual - Visível apenas para ADMIN e GESTOR */}
+                {podeEditarAjuste && previewResult && (
                   <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <Label className="flex items-center gap-2">
-                        <Percent className="w-4 h-4" />
-                        Ajuste Individual
+                        <DollarSign className="w-4 h-4" />
+                        Ajuste Individual (R$)
                       </Label>
                       <div className="flex items-center gap-2">
-                        {formData.percentual_individual !== 0 && (
-                          formData.percentual_individual > 0 ? (
+                        {formData.ajuste_individual_valor !== 0 && (
+                          formData.ajuste_individual_valor > 0 ? (
                             <TrendingUp className="w-4 h-4 text-destructive" />
                           ) : (
                             <TrendingDown className="w-4 h-4 text-green-500" />
                           )
                         )}
-                        <Badge variant={formData.percentual_individual === 0 ? 'secondary' : 'default'}>
-                          {formData.percentual_individual > 0 ? '+' : ''}{formData.percentual_individual}%
+                        <Badge variant={formData.ajuste_individual_valor === 0 ? 'secondary' : 'default'}>
+                          {formData.ajuste_individual_valor > 0 ? '+' : ''}{formatCurrency(formData.ajuste_individual_valor)}
                         </Badge>
                       </div>
                     </div>
                     
-                    <Slider
-                      value={[formData.percentual_individual]}
-                      onValueChange={handlePercentualChange}
-                      min={limitePercentual.min}
-                      max={limitePercentual.max}
-                      step={1}
-                      className="w-full"
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.ajuste_individual_valor || ''}
+                      onChange={(e) => handleAjusteValorChange(parseFloat(e.target.value) || 0)}
+                      className="text-right"
                     />
                     
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{limitePercentual.min}%</span>
-                      <span>0%</span>
-                      <span>+{limitePercentual.max}%</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Valor fixo em R$ somado (positivo) ou subtraído (negativo) da mensalidade.
+                    </p>
 
                     {perfilEditor === 'GESTOR' && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <AlertTriangle className="w-3 h-3" />
-                        <span>Gestor: limite de ±15%. Para ajustes maiores, solicite ao Administrador.</span>
+                        <span>Gestor: pode ajustar apenas o valor individual. Ajuste geral requer Administrador.</span>
                       </div>
                     )}
 
-                    {formData.percentual_individual !== 0 && (
+                    {formData.ajuste_individual_valor !== 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm">Motivo do Ajuste</Label>
                         <Textarea
@@ -775,13 +763,13 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                     <span className="font-medium">{formatCurrency(resultado.valorBase)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">% Global:</span>
-                    <span className="font-medium">{resultado.percentualGlobal}%</span>
+                    <span className="text-muted-foreground">Ajuste Geral (R$):</span>
+                    <span className="font-medium">{formatCurrency(resultado.ajusteGeralValor)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">% Ajuste:</span>
-                    <span className={`font-medium ${resultado.percentualIndividual !== 0 ? 'text-primary' : ''}`}>
-                      {resultado.percentualIndividual > 0 ? '+' : ''}{resultado.percentualIndividual}%
+                    <span className="text-muted-foreground">Ajuste Individual (R$):</span>
+                    <span className={`font-medium ${resultado.ajusteIndividualValor !== 0 ? 'text-primary' : ''}`}>
+                      {resultado.ajusteIndividualValor > 0 ? '+' : ''}{formatCurrency(resultado.ajusteIndividualValor)}
                     </span>
                   </div>
                   <Separator />
@@ -875,13 +863,13 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                     <span>{formatCurrency(previewResult.valorBase)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">% Global:</span>
-                    <span>{previewResult.percentualGlobal}%</span>
+                    <span className="text-muted-foreground">Ajuste Geral (R$):</span>
+                    <span>{formatCurrency(previewResult.ajusteGeralValor)}</span>
                   </div>
-                  {previewResult.percentualIndividual !== 0 && (
+                  {previewResult.ajusteIndividualValor !== 0 && (
                     <div className="flex justify-between text-primary">
-                      <span>% Ajuste:</span>
-                      <span>{previewResult.percentualIndividual > 0 ? '+' : ''}{previewResult.percentualIndividual}%</span>
+                      <span>Ajuste Individual (R$):</span>
+                      <span>{previewResult.ajusteIndividualValor > 0 ? '+' : ''}{formatCurrency(previewResult.ajusteIndividualValor)}</span>
                     </div>
                   )}
                 </div>

@@ -419,6 +419,24 @@ _Proteção Veicular_`;
               <span className="font-semibold">{formatCurrency(cotacao.valor_bem)}</span>
             </div>
             <Separator />
+            {/* Detalhamento do cálculo */}
+            {(cotacao as any).valor_base && (
+              <>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Valor Base:</span>
+                  <span>{formatCurrency((cotacao as any).valor_base)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Ajuste Geral (R$):</span>
+                  <span>{formatCurrency((cotacao as any).ajuste_geral_valor || 0)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Ajuste Individual (R$):</span>
+                  <span>{formatCurrency((cotacao as any).ajuste_individual_valor || 0)}</span>
+                </div>
+                <Separator />
+              </>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Mensalidade:</span>
               <span className="font-bold text-primary text-lg">{formatCurrency(cotacao.mensalidade)}</span>
