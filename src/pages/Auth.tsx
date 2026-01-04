@@ -476,6 +476,27 @@ export default function Auth() {
                       <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? 'Entrando...' : 'Entrar'}
                       </Button>
+
+                      {/* Demo credentials */}
+                      <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Credenciais de acesso:</p>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="text-muted-foreground">Email:</span> <code className="bg-background px-1.5 py-0.5 rounded text-foreground">kolobi2013cf@gmail.com</code></p>
+                          <p><span className="text-muted-foreground">Senha:</span> <code className="bg-background px-1.5 py-0.5 rounded text-foreground">123456</code></p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full"
+                          onClick={() => {
+                            setEmail('kolobi2013cf@gmail.com');
+                            setPassword('123456');
+                          }}
+                        >
+                          Preencher credenciais
+                        </Button>
+                      </div>
                     </form>
                   </TabsContent>
 
