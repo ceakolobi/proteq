@@ -123,13 +123,31 @@ export default function Usuarios() {
     }
   }, [isAllowed, isChecking]);
 
-  // Show loading while checking access or redirecting
-  if (isChecking || !isAllowed) {
+  // Debug logs
+  useEffect(() => {
+    console.log('[Usuarios] Access state:', { isChecking, isAllowed, isAdminPrincipal });
+  }, [isChecking, isAllowed, isAdminPrincipal]);
+
+  // Show loading while checking access
+  if (isChecking) {
     return (
       <DashboardLayout>
         <div className="min-h-[50vh] flex items-center justify-center">
           <div className="animate-pulse text-muted-foreground">
-            {isChecking ? ACCESS_CHECKING_MESSAGE : 'Redirecionando...'}
+            {ACCESS_CHECKING_MESSAGE}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Not allowed - should have been redirected, but show message just in case
+  if (!isAllowed) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <div className="text-muted-foreground">
+            Redirecionando...
           </div>
         </div>
       </DashboardLayout>
