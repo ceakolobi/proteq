@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Mail, Shield, CreditCard } from 'lucide-react';
+import { Car, Lock, Shield, CreditCard } from 'lucide-react';
 
 export default function Auth() {
   const [loginIdentifier, setLoginIdentifier] = useState(''); // CPF ou Email
@@ -44,8 +44,9 @@ export default function Auth() {
       password: z.string().min(1, 'Informe sua senha.'),
     });
 
+    // Reset aceita CPF ou Email na UI, mas valida email quando já resolvido
     const resetSchema = z.object({
-      email: emailSchema,
+      identifier: emailSchema,
     });
 
     const updatePasswordSchema = z
@@ -107,17 +108,24 @@ export default function Auth() {
     return cleaned.length === 11;
   };
 
-  // Lookup email by CPF
+  // Lookup email by CPF (via backend function, pois no login ainda não há sessão)
   const getEmailByCpf = async (cpfValue: string): Promise<string | null> => {
-    const cleanedCpf = cpfValue.replace(/\D/g, '');
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('cpf', cleanedCpf)
-      .maybeSingle();
-    
-    if (error || !data) return null;
-    return data.email;
+    const cleanedCpf = cpfValue.replace(/\D/g, '').slice(0, 11);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('lookup-email-by-cpf', {
+        body: { cpf: cleanedCpf },
+      });
+
+      if (error) return null;
+
+      const email = (data as any)?.email;
+      if (typeof email !== 'string') return null;
+      if (!email.includes('@')) return null;
+      return email;
+    } catch {
+      return null;
+    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -169,7 +177,7 @@ export default function Auth() {
         title: 'Bem-vindo!',
         description: 'Login realizado com sucesso.',
       });
-      navigate('/dashboard');
+      // Redirecionamento acontece via efeito quando sessão + perfil estiverem prontos
     }
 
     setIsLoading(false);
@@ -178,21 +186,56 @@ export default function Auth() {
   const handleSendResetEmail = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    try {
-      schemas.resetSchema.parse({ email: resetEmail });
-    } catch (err) {
+    const identifier = resetEmail.trim();
+    if (!identifier) {
       toast({
         variant: 'destructive',
-        title: 'Email inválido',
-        description: getZodMessage(err),
+        title: 'Dados inválidos',
+        description: 'Informe seu CPF ou email.',
       });
       return;
     }
 
     setIsLoading(true);
 
+    let targetEmail: string | null = null;
+
+    if (identifier.includes('@')) {
+      try {
+        schemas.resetSchema.parse({ identifier });
+      } catch (err) {
+        toast({
+          variant: 'destructive',
+          title: 'Email inválido',
+          description: getZodMessage(err),
+        });
+        setIsLoading(false);
+        return;
+      }
+      targetEmail = identifier;
+    } else if (isCpf(identifier)) {
+      targetEmail = await getEmailByCpf(identifier);
+      if (!targetEmail) {
+        toast({
+          variant: 'destructive',
+          title: 'CPF não encontrado',
+          description: 'Nenhum usuário cadastrado com este CPF.',
+        });
+        setIsLoading(false);
+        return;
+      }
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Dados inválidos',
+        description: 'Informe um CPF (11 dígitos) ou um email válido.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
     const redirectTo = `${window.location.origin}/auth`;
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, { redirectTo });
 
     if (error) {
       toast({
@@ -447,7 +490,7 @@ export default function Auth() {
                       variant="link"
                       className="h-auto p-0"
                       onClick={() => {
-                        setResetEmail(loginIdentifier.includes('@') ? loginIdentifier : '');
+                        setResetEmail(loginIdentifier);
                         setIsResetOpen(true);
                       }}
                     >
@@ -471,19 +514,20 @@ export default function Auth() {
 
                     <form onSubmit={handleSendResetEmail} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="reset-email">Email</Label>
+                        <Label htmlFor="reset-identifier">CPF ou Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                            id="reset-email"
-                            type="email"
-                            placeholder="seu@email.com"
+                            id="reset-identifier"
+                            type="text"
+                            placeholder="Digite seu CPF ou email"
                             value={resetEmail}
                             onChange={(e) => setResetEmail(e.target.value)}
                             className="pl-10"
                             required
                           />
                         </div>
+                        <p className="text-xs text-muted-foreground">Se informar CPF, enviaremos para o email cadastrado.</p>
                       </div>
 
                       <DialogFooter>
