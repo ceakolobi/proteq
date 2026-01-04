@@ -17,14 +17,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Mail, User, Shield } from 'lucide-react';
+import { Car, Lock, Mail, User, Shield, CreditCard } from 'lucide-react';
 
 export default function Auth() {
   const [tab, setTab] = useState<'login' | 'register'>('login');
 
-  const [email, setEmail] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState(''); // CPF ou Email
   const [password, setPassword] = useState('');
   const [nomeCompleto, setNomeCompleto] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [email, setEmail] = useState('');
 
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -110,23 +112,59 @@ export default function Auth() {
     }
   }, [authLoading, user, profile, mustChangePassword, isRecoveryMode, isForcedChangeMode, navigate]);
 
+  // Helper to check if string is CPF (only digits, 11 chars)
+  const isCpf = (value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    return cleaned.length === 11;
+  };
+
+  // Lookup email by CPF
+  const getEmailByCpf = async (cpfValue: string): Promise<string | null> => {
+    const cleanedCpf = cpfValue.replace(/\D/g, '');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('cpf', cleanedCpf)
+      .maybeSingle();
+    
+    if (error || !data) return null;
+    return data.email;
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+
+    let loginEmail = loginIdentifier;
+
+    // If identifier looks like CPF, lookup email
+    if (isCpf(loginIdentifier)) {
+      const foundEmail = await getEmailByCpf(loginIdentifier);
+      if (!foundEmail) {
+        toast({
+          variant: 'destructive',
+          title: 'CPF não encontrado',
+          description: 'Nenhum usuário cadastrado com este CPF.',
+        });
+        setIsLoading(false);
+        return;
+      }
+      loginEmail = foundEmail;
+    }
 
     try {
-      schemas.loginSchema.parse({ email, password });
+      schemas.loginSchema.parse({ email: loginEmail, password });
     } catch (err) {
       toast({
         variant: 'destructive',
         title: 'Dados inválidos',
         description: getZodMessage(err),
       });
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(loginEmail, password);
 
     if (error) {
       toast({
@@ -134,7 +172,7 @@ export default function Auth() {
         title: 'Erro ao entrar',
         description:
           error.message === 'Invalid login credentials'
-            ? 'Credenciais inválidas. Verifique seu email e senha.'
+            ? 'Credenciais inválidas. Verifique seus dados e senha.'
             : error.message,
       });
     } else {
@@ -151,6 +189,17 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate CPF format
+    const cleanedCpf = cpf.replace(/\D/g, '');
+    if (cleanedCpf.length !== 11) {
+      toast({
+        variant: 'destructive',
+        title: 'CPF inválido',
+        description: 'O CPF deve conter 11 dígitos.',
+      });
+      return;
+    }
+
     try {
       schemas.registerSchema.parse({ nomeCompleto, email, password });
     } catch (err) {
@@ -164,7 +213,33 @@ export default function Auth() {
 
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, nomeCompleto);
+    // Check if CPF already exists
+    const { data: existingCpf } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('cpf', cleanedCpf)
+      .maybeSingle();
+
+    if (existingCpf) {
+      toast({
+        variant: 'destructive',
+        title: 'CPF já cadastrado',
+        description: 'Este CPF já está vinculado a outro usuário.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    const { data: authData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
+          nome_completo: nomeCompleto,
+        },
+      },
+    });
 
     if (error) {
       let errorMessage = error.message;
@@ -176,13 +251,26 @@ export default function Auth() {
         title: 'Erro ao cadastrar',
         description: errorMessage,
       });
-    } else {
-      toast({
-        title: 'Cadastro realizado!',
-        description: 'Você já pode acessar o sistema.',
-      });
-      navigate('/dashboard');
+      setIsLoading(false);
+      return;
     }
+
+    // Update profile with CPF after signup
+    if (authData.user) {
+      // Wait for profile to be created by trigger
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await supabase
+        .from('profiles')
+        .update({ cpf: cleanedCpf })
+        .eq('id', authData.user.id);
+    }
+
+    toast({
+      title: 'Cadastro realizado!',
+      description: 'Você já pode acessar o sistema.',
+    });
+    navigate('/dashboard');
 
     setIsLoading(false);
   };
@@ -428,19 +516,20 @@ export default function Auth() {
                   <TabsContent value="login">
                     <form onSubmit={handleSignIn} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="email-login">Email</Label>
+                        <Label htmlFor="login-identifier">CPF ou Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                            id="email-login"
-                            type="email"
-                            placeholder="seu@email.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            id="login-identifier"
+                            type="text"
+                            placeholder="Digite seu CPF ou email"
+                            value={loginIdentifier}
+                            onChange={(e) => setLoginIdentifier(e.target.value)}
                             className="pl-10"
                             required
                           />
                         </div>
+                        <p className="text-xs text-muted-foreground">Use seu CPF (apenas números) ou email</p>
                       </div>
 
                       <div className="space-y-2">
@@ -465,7 +554,7 @@ export default function Auth() {
                           variant="link"
                           className="h-auto p-0"
                           onClick={() => {
-                            setResetEmail(email);
+                            setResetEmail(loginIdentifier.includes('@') ? loginIdentifier : '');
                             setIsResetOpen(true);
                           }}
                         >
@@ -482,7 +571,7 @@ export default function Auth() {
                   <TabsContent value="register">
                     <form onSubmit={handleSignUp} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="nome">Nome Completo</Label>
+                        <Label htmlFor="nome">Nome Completo *</Label>
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
@@ -497,7 +586,24 @@ export default function Auth() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email-register">Email</Label>
+                        <Label htmlFor="cpf-register">CPF *</Label>
+                        <div className="relative">
+                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="cpf-register"
+                            type="text"
+                            placeholder="00000000000"
+                            value={cpf}
+                            onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                            className="pl-10"
+                            maxLength={11}
+                            required
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Apenas números (11 dígitos)</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email-register">Email *</Label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
@@ -512,7 +618,7 @@ export default function Auth() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password-register">Senha</Label>
+                        <Label htmlFor="password-register">Senha *</Label>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
