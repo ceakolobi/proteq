@@ -16,11 +16,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Shield, CreditCard } from 'lucide-react';
+import { Car, Lock, Shield, CreditCard, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const [loginIdentifier, setLoginIdentifier] = useState(''); // CPF ou Email
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
 
   const [isResetOpen, setIsResetOpen] = useState(false);
@@ -474,13 +475,21 @@ export default function Auth() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="password-login"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 pr-10"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
 
