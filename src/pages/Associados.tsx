@@ -430,9 +430,8 @@ export default function Associados() {
       return;
     }
 
-    // Calculate mensalidade based on vehicle type com acréscimos em R$
-    const acrescimoGlobal = Number((cotaApropriada as any).acrescimo_global) || 0;
-    const acrescimoIndividual = Number((cotaApropriada as any).acrescimo_individual) || 0;
+    // Calculate mensalidade usando fórmula única com valores fixos
+    const ajusteGeralValor = Number((cotaApropriada as any).ajuste_geral_valor) || Number((cotaApropriada as any).acrescimo_global) || 0;
     let valorBase = 0;
     switch (veiculoForm.tipo) {
       case 'carro':
@@ -445,8 +444,8 @@ export default function Associados() {
         valorBase = cotaApropriada.valor_camionete || 0;
         break;
     }
-    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
-    const mensalidade = valorBase + acrescimoGlobal + acrescimoIndividual;
+    // Fórmula única: valorFinal = valorBase + ajusteGeralValor
+    const mensalidade = valorBase + ajusteGeralValor;
 
     try {
 

@@ -102,9 +102,8 @@ export default function Cotacao() {
       return;
     }
 
-    // Get mensalidade based on vehicle type com acréscimos em R$
-    const acrescimoGlobal = Number((cotaEncontrada as any).acrescimo_global) || 0;
-    const acrescimoIndividual = Number((cotaEncontrada as any).acrescimo_individual) || 0;
+    // Get mensalidade based on vehicle type com ajustes em R$
+    const ajusteGeralValor = Number((cotaEncontrada as any).ajuste_geral_valor) || Number((cotaEncontrada as any).acrescimo_global) || 0;
     let valorBase = 0;
     switch (formData.tipo) {
       case 'carro':
@@ -117,8 +116,8 @@ export default function Cotacao() {
         valorBase = cotaEncontrada.valor_camionete || 0;
         break;
     }
-    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
-    let mensalidade = valorBase + acrescimoGlobal + acrescimoIndividual;
+    // Fórmula única: valorFinal = valorBase + ajusteGeralValor (ajuste individual é feito na cotação)
+    let mensalidade = valorBase + ajusteGeralValor;
 
     // Add carro reserva extra if selected
     let carroReservaAdicional = 0;

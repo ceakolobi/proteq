@@ -25,10 +25,10 @@ export function FipeRangeDetector({
   }, [valorFipe, cotas]);
 
   const mensalidadeInfo = useMemo(() => {
-    if (!detectedCota) return { valorBase: 0, acrescimoGlobal: 0, acrescimoIndividual: 0, valorFinal: 0 };
+    if (!detectedCota) return { valorBase: 0, ajusteGeralValor: 0, valorFinal: 0 };
     
-    const acrescimoGlobal = Number((detectedCota as any).acrescimo_global) || 0;
-    const acrescimoIndividual = Number((detectedCota as any).acrescimo_individual) || 0;
+    // Usar novo campo ajuste_geral_valor, com fallback para acrescimo_global (legado)
+    const ajusteGeralValor = Number((detectedCota as any).ajuste_geral_valor) || Number((detectedCota as any).acrescimo_global) || 0;
     let valorBase = 0;
     
     switch (tipoVeiculo) {
@@ -45,10 +45,11 @@ export function FipeRangeDetector({
         valorBase = 0;
     }
     
-    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
-    const valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual;
+    // Fórmula única: valorFinal = valorBase + ajusteGeralValor
+    // O ajuste individual é aplicado no momento da cotação, não na cota
+    const valorFinal = valorBase + ajusteGeralValor;
     
-    return { valorBase, acrescimoGlobal, acrescimoIndividual, valorFinal };
+    return { valorBase, ajusteGeralValor, valorFinal };
   }, [detectedCota, tipoVeiculo]);
 
   const mensalidade = mensalidadeInfo.valorFinal;
@@ -105,11 +106,8 @@ export function FipeRangeDetector({
         <div className="pl-6 pt-1 space-y-1">
           <div className="text-xs text-muted-foreground">
             Base: {formatCurrency(mensalidadeInfo.valorBase)}
-            {mensalidadeInfo.acrescimoGlobal > 0 && (
-              <span className="text-primary"> + Global: {formatCurrency(mensalidadeInfo.acrescimoGlobal)}</span>
-            )}
-            {mensalidadeInfo.acrescimoIndividual > 0 && (
-              <span className="text-primary"> + Individual: {formatCurrency(mensalidadeInfo.acrescimoIndividual)}</span>
+            {mensalidadeInfo.ajusteGeralValor !== 0 && (
+              <span className="text-primary"> {mensalidadeInfo.ajusteGeralValor > 0 ? '+' : ''} Ajuste Geral: {formatCurrency(mensalidadeInfo.ajusteGeralValor)}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -136,8 +134,8 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
     
-    const acrescimoGlobal = Number((detectedCota as any).acrescimo_global) || 0;
-    const acrescimoIndividual = Number((detectedCota as any).acrescimo_individual) || 0;
+    // Usar novo campo ajuste_geral_valor, com fallback para acrescimo_global (legado)
+    const ajusteGeralValor = Number((detectedCota as any).ajuste_geral_valor) || Number((detectedCota as any).acrescimo_global) || 0;
     let valorBase = 0;
     
     switch (tipoVeiculo) {
@@ -154,8 +152,8 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
         valorBase = 0;
     }
     
-    // Nova fórmula: valorFinal = valorBase + acrescimoGlobal + acrescimoIndividual
-    return valorBase + acrescimoGlobal + acrescimoIndividual;
+    // Fórmula única: valorFinal = valorBase + ajusteGeralValor
+    return valorBase + ajusteGeralValor;
   }, [detectedCota, tipoVeiculo]);
 
   return {

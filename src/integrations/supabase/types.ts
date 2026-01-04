@@ -701,6 +701,8 @@ export type Database = {
       }
       cotacoes: {
         Row: {
+          ajuste_geral_valor: number | null
+          ajuste_individual_valor: number | null
           ano_fabricacao: number
           ano_modelo: number | null
           aprovada_em: string | null
@@ -752,6 +754,8 @@ export type Database = {
           veiculo_id: string | null
         }
         Insert: {
+          ajuste_geral_valor?: number | null
+          ajuste_individual_valor?: number | null
           ano_fabricacao: number
           ano_modelo?: number | null
           aprovada_em?: string | null
@@ -803,6 +807,8 @@ export type Database = {
           veiculo_id?: string | null
         }
         Update: {
+          ajuste_geral_valor?: number | null
+          ajuste_individual_valor?: number | null
           ano_fabricacao?: number
           ano_modelo?: number | null
           aprovada_em?: string | null
@@ -923,6 +929,7 @@ export type Database = {
         Row: {
           acrescimo_global: number | null
           acrescimo_individual: number | null
+          ajuste_geral_valor: number | null
           aplica_caminhonete: boolean
           aplica_carro: boolean
           aplica_moto: boolean
@@ -951,6 +958,7 @@ export type Database = {
         Insert: {
           acrescimo_global?: number | null
           acrescimo_individual?: number | null
+          ajuste_geral_valor?: number | null
           aplica_caminhonete?: boolean
           aplica_carro?: boolean
           aplica_moto?: boolean
@@ -979,6 +987,7 @@ export type Database = {
         Update: {
           acrescimo_global?: number | null
           acrescimo_individual?: number | null
+          ajuste_geral_valor?: number | null
           aplica_caminhonete?: boolean
           aplica_carro?: boolean
           aplica_moto?: boolean

@@ -309,9 +309,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         return;
       }
 
-      // Calculate mensalidade
-      const acrescimoGlobal = Number(cotaApropriada.acrescimo_global) || 0;
-      const acrescimoIndividual = Number(cotaApropriada.acrescimo_individual) || 0;
+      // Calculate mensalidade usando fórmula única com valores fixos
+      const ajusteGeralValor = Number((cotaApropriada as any).ajuste_geral_valor) || Number(cotaApropriada.acrescimo_global) || 0;
       let valorBase = 0;
       switch (veiculoData.tipo) {
         case 'carro':
@@ -324,7 +323,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           valorBase = cotaApropriada.valor_camionete || 0;
           break;
       }
-      const mensalidade = valorBase + acrescimoGlobal + acrescimoIndividual;
+      // Fórmula única: valorFinal = valorBase + ajusteGeralValor
+      const mensalidade = valorBase + ajusteGeralValor;
 
       // 4. Create veiculo
       const { data: veiculo, error: veiculoError } = await supabase

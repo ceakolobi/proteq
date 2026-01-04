@@ -27,11 +27,13 @@ export interface Cota {
   valor_carro: number | null;
   valor_moto: number | null;
   valor_camionete: number | null;
-  percentual_geral?: number | null;
-  percentual_extra?: number | null;
-  // Acréscimos em R$ (valores fixos)
+  // Ajuste geral em R$ (valor fixo definido pelo admin na cota)
+  ajuste_geral_valor?: number | null;
+  // Campos legado (mantidos para compatibilidade mas NÃO usados no cálculo)
   acrescimo_individual?: number | null;
   acrescimo_global?: number | null;
+  percentual_geral?: number | null;
+  percentual_extra?: number | null;
   ativo: boolean;
   mensalidade_caminhao?: number | null;
   mensalidade_utilitario?: number | null;
@@ -52,10 +54,8 @@ export interface ResultadoCotacao {
   cota: Cota;
   categoria: CotaCategoria;
   valorBase: number;
-  percentualGlobal: number;
-  percentualIndividual: number;
-  acrescimoGlobal: number;
-  acrescimoIndividual: number;
+  ajusteGeralValor: number;
+  ajusteIndividualValor: number;
   valorFinal: number;
   participacao: number;
   cotaId: string;
@@ -63,13 +63,11 @@ export interface ResultadoCotacao {
 }
 
 /**
- * Validação de ajuste de percentual
+ * Validação de ajuste
  */
 export interface ValidacaoAjuste {
   permitido: boolean;
   mensagem?: string;
-  limiteMin?: number;
-  limiteMax?: number;
 }
 
 // ==========================================
@@ -209,40 +207,25 @@ export function getValorBasePorCategoria(
 }
 
 // ==========================================
-// CÁLCULO DA MENSALIDADE
+// CÁLCULO DA MENSALIDADE (VALORES FIXOS APENAS)
 // ==========================================
 
 /**
- * Calcula o valor final aplicando percentuais e acréscimos em R$
+ * Calcula o valor final aplicando APENAS valores fixos em R$
  * 
- * NOVA FÓRMULA (com acréscimos em R$):
- * valor_final = valor_base + acrescimo_global + acrescimo_individual
- * 
- * NOTA: Os percentuais (percentual_global e percentual_individual) continuam
- * sendo aplicados sobre o valor base para cálculos internos/auditoria,
- * mas a fórmula oficial agora usa os acréscimos em R$.
+ * FÓRMULA ÚNICA:
+ * valor_final = valor_base + ajuste_geral_valor + ajuste_individual_valor
  * 
  * @param valorBase - Valor base da cota pela categoria
- * @param acrescimoGlobal - Acréscimo em R$ aplicado a todas as cotas
- * @param acrescimoIndividual - Acréscimo em R$ específico desta cota
- * @param percentualGlobal - Percentual geral da cota (mantido para compatibilidade)
- * @param percentualIndividual - Percentual de ajuste individual (mantido para compatibilidade)
+ * @param ajusteGeralValor - Ajuste geral em R$ (definido na cota pelo admin)
+ * @param ajusteIndividualValor - Ajuste individual em R$ (definido na cotação pelo gestor)
  */
 export function calcularValorFinal(
   valorBase: number,
-  acrescimoGlobal: number = 0,
-  acrescimoIndividual: number = 0,
-  percentualGlobal: number = 0,
-  percentualIndividual: number = 0
+  ajusteGeralValor: number = 0,
+  ajusteIndividualValor: number = 0
 ): number {
-  // Se houver acréscimos em R$, usa a nova fórmula
-  if (acrescimoGlobal > 0 || acrescimoIndividual > 0) {
-    return valorBase + acrescimoGlobal + acrescimoIndividual;
-  }
-  
-  // Fallback para fórmula antiga com percentuais (compatibilidade)
-  const totalPercentual = percentualGlobal + percentualIndividual;
-  return valorBase + (valorBase * totalPercentual / 100);
+  return valorBase + ajusteGeralValor + ajusteIndividualValor;
 }
 
 /**
@@ -257,16 +240,16 @@ export function calcularParticipacao(valorFipe: number): number {
 // ==========================================
 
 /**
- * Valida se o perfil pode ajustar o percentual individual
+ * Valida se o perfil pode ajustar o valor individual
  * 
  * REGRAS:
- * - ADMIN: pode editar qualquer percentual, sem limite
- * - GESTOR: só pode alterar percentual individual, limite ±15%
+ * - ADMIN: pode editar ajuste geral e individual, sem limite
+ * - GESTOR: pode editar ajuste individual
  * - CONSULTOR: apenas visualizar, sem editar valores
  */
-export function validarAjustePercentual(
+export function validarAjusteValor(
   perfil: PerfilEditor,
-  percentualIndividual: number
+  tipoAjuste: 'geral' | 'individual'
 ): ValidacaoAjuste {
   switch (perfil) {
     case 'ADMIN':
@@ -274,16 +257,14 @@ export function validarAjustePercentual(
       return { permitido: true };
 
     case 'GESTOR':
-      // Gestor com limite ±15%
-      if (percentualIndividual < -15 || percentualIndividual > 15) {
+      // Gestor só pode ajustar valor individual
+      if (tipoAjuste === 'geral') {
         return {
           permitido: false,
-          mensagem: 'Gestor só pode ajustar até ±15%. Solicite aprovação do Administrador.',
-          limiteMin: -15,
-          limiteMax: 15
+          mensagem: 'Gestor não tem permissão para editar o ajuste geral. Somente o Administrador.'
         };
       }
-      return { permitido: true, limiteMin: -15, limiteMax: 15 };
+      return { permitido: true };
 
     case 'CONSULTOR':
       // Consultor não pode editar
@@ -312,7 +293,7 @@ export function getPerfilEditor(
     return 'ADMIN';
   }
   
-  // Cadastro = GESTOR (pode ajustar com limites)
+  // Cadastro = GESTOR (pode ajustar valor individual)
   if (roles.includes('cadastro')) {
     return 'GESTOR';
   }
@@ -337,20 +318,20 @@ export function getPerfilEditor(
  * 1. Buscar a COTA correta automaticamente
  * 2. Determinar a categoria pelo tipo de veículo
  * 3. Selecionar o valor_base conforme categoria
- * 4. Aplicar percentuais (global + individual)
+ * 4. Aplicar ajustes em R$ (geral + individual)
  * 5. Calcular participação (7% do FIPE)
  * 
  * @param valorFipe - Valor do veículo (FIPE ou informado)
  * @param tipoVeiculo - Tipo do veículo
  * @param cotas - Lista de cotas disponíveis
- * @param percentualIndividual - Ajuste individual (opcional, default 0)
+ * @param ajusteIndividualValor - Ajuste individual em R$ (opcional, default 0)
  * @param carroReservaExtra - Carro reserva adicional
  */
 export function calcularCotacaoCompleta(
   valorFipe: number,
   tipoVeiculo: VehicleType,
   cotas: Cota[],
-  percentualIndividual: number = 0,
+  ajusteIndividualValor: number = 0,
   carroReservaExtra?: 'nenhum' | '30dias' | '90dias'
 ): ResultadoCotacao | null {
   // 1. Determinar categoria primeiro (necessário para busca)
@@ -363,18 +344,14 @@ export function calcularCotacaoCompleta(
   // 3. Selecionar valor_base conforme categoria
   const valorBase = getValorBasePorCategoria(cota, categoria, tipoVeiculo);
 
-  // 4. Obter percentuais e acréscimos
-  const percentualGlobal = Number(cota.percentual_geral) || 0;
-  const acrescimoGlobal = Number(cota.acrescimo_global) || 0;
-  const acrescimoIndividual = Number(cota.acrescimo_individual) || 0;
+  // 4. Obter ajuste geral da cota (definido pelo admin)
+  const ajusteGeralValor = Number(cota.ajuste_geral_valor) || Number(cota.acrescimo_global) || 0;
 
-  // 5. Calcular valor final (nova fórmula com acréscimos em R$)
+  // 5. Calcular valor final (fórmula única com valores fixos)
   let valorFinal = calcularValorFinal(
     valorBase, 
-    acrescimoGlobal, 
-    acrescimoIndividual, 
-    percentualGlobal, 
-    percentualIndividual
+    ajusteGeralValor, 
+    ajusteIndividualValor
   );
 
   // Adicionar carro reserva extra
@@ -391,10 +368,8 @@ export function calcularCotacaoCompleta(
     cota,
     categoria,
     valorBase,
-    percentualGlobal,
-    percentualIndividual,
-    acrescimoGlobal,
-    acrescimoIndividual,
+    ajusteGeralValor,
+    ajusteIndividualValor,
     valorFinal,
     participacao,
     cotaId: cota.id,
