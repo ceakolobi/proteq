@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -17,16 +16,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Mail, User, Shield, CreditCard } from 'lucide-react';
+import { Car, Lock, Mail, Shield, CreditCard } from 'lucide-react';
 
 export default function Auth() {
-  const [tab, setTab] = useState<'login' | 'register'>('login');
-
   const [loginIdentifier, setLoginIdentifier] = useState(''); // CPF ou Email
   const [password, setPassword] = useState('');
-  const [nomeCompleto, setNomeCompleto] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [email, setEmail] = useState('');
+
 
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -37,7 +32,7 @@ export default function Auth() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user, profile, mustChangePassword, clearMustChangePassword, isLoading: authLoading } = useAuth();
+  const { signIn, user, profile, mustChangePassword, clearMustChangePassword, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -47,12 +42,6 @@ export default function Auth() {
     const loginSchema = z.object({
       email: emailSchema,
       password: z.string().min(1, 'Informe sua senha.'),
-    });
-
-    const registerSchema = z.object({
-      nomeCompleto: z.string().min(1, 'Por favor, informe seu nome completo.'),
-      email: emailSchema,
-      password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
     });
 
     const resetSchema = z.object({
@@ -69,7 +58,7 @@ export default function Auth() {
         path: ['confirmNewPassword'],
       });
 
-    return { loginSchema, registerSchema, resetSchema, updatePasswordSchema };
+    return { loginSchema, resetSchema, updatePasswordSchema };
   }, []);
 
   const getZodMessage = (error: unknown) => {
@@ -182,95 +171,6 @@ export default function Auth() {
       });
       navigate('/dashboard');
     }
-
-    setIsLoading(false);
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate CPF format
-    const cleanedCpf = cpf.replace(/\D/g, '');
-    if (cleanedCpf.length !== 11) {
-      toast({
-        variant: 'destructive',
-        title: 'CPF inválido',
-        description: 'O CPF deve conter 11 dígitos.',
-      });
-      return;
-    }
-
-    try {
-      schemas.registerSchema.parse({ nomeCompleto, email, password });
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Dados inválidos',
-        description: getZodMessage(err),
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Check if CPF already exists
-    const { data: existingCpf } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('cpf', cleanedCpf)
-      .maybeSingle();
-
-    if (existingCpf) {
-      toast({
-        variant: 'destructive',
-        title: 'CPF já cadastrado',
-        description: 'Este CPF já está vinculado a outro usuário.',
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    const { data: authData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          nome_completo: nomeCompleto,
-        },
-      },
-    });
-
-    if (error) {
-      let errorMessage = error.message;
-      if (error.message.includes('already registered')) {
-        errorMessage = 'Este email já está cadastrado. Tente fazer login.';
-      }
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao cadastrar',
-        description: errorMessage,
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    // Update profile with CPF after signup
-    if (authData.user) {
-      // Wait for profile to be created by trigger
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      await supabase
-        .from('profiles')
-        .update({ cpf: cleanedCpf })
-        .eq('id', authData.user.id);
-    }
-
-    toast({
-      title: 'Cadastro realizado!',
-      description: 'Você já pode acessar o sistema.',
-    });
-    navigate('/dashboard');
 
     setIsLoading(false);
   };
@@ -507,139 +407,58 @@ export default function Auth() {
               </form>
             ) : (
               <>
-                <Tabs value={tab} onValueChange={(v) => setTab(v as 'login' | 'register')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="login">Entrar</TabsTrigger>
-                    <TabsTrigger value="register">Cadastrar</TabsTrigger>
-                  </TabsList>
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-identifier">CPF ou Email</Label>
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="login-identifier"
+                        type="text"
+                        placeholder="Digite seu CPF ou email"
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Use seu CPF (apenas números) ou email</p>
+                  </div>
 
-                  <TabsContent value="login">
-                    <form onSubmit={handleSignIn} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="login-identifier">CPF ou Email</Label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="login-identifier"
-                            type="text"
-                            placeholder="Digite seu CPF ou email"
-                            value={loginIdentifier}
-                            onChange={(e) => setLoginIdentifier(e.target.value)}
-                            className="pl-10"
-                            required
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">Use seu CPF (apenas números) ou email</p>
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password-login">Senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password-login"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="password-login">Senha</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="password-login"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="pl-10"
-                            required
-                          />
-                        </div>
-                      </div>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0"
+                      onClick={() => {
+                        setResetEmail(loginIdentifier.includes('@') ? loginIdentifier : '');
+                        setIsResetOpen(true);
+                      }}
+                    >
+                      Esqueci minha senha
+                    </Button>
+                  </div>
 
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="link"
-                          className="h-auto p-0"
-                          onClick={() => {
-                            setResetEmail(loginIdentifier.includes('@') ? loginIdentifier : '');
-                            setIsResetOpen(true);
-                          }}
-                        >
-                          Esqueci minha senha
-                        </Button>
-                      </div>
-
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? 'Entrando...' : 'Entrar'}
-                      </Button>
-                    </form>
-                  </TabsContent>
-
-                  <TabsContent value="register">
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nome">Nome Completo *</Label>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="nome"
-                            type="text"
-                            placeholder="Seu nome completo"
-                            value={nomeCompleto}
-                            onChange={(e) => setNomeCompleto(e.target.value)}
-                            className="pl-10"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cpf-register">CPF *</Label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="cpf-register"
-                            type="text"
-                            placeholder="00000000000"
-                            value={cpf}
-                            onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                            className="pl-10"
-                            maxLength={11}
-                            required
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">Apenas números (11 dígitos)</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email-register">Email *</Label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="email-register"
-                            type="email"
-                            placeholder="seu@email.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="pl-10"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password-register">Senha *</Label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="password-register"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="pl-10"
-                            minLength={6}
-                            required
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">Mínimo de 6 caracteres</p>
-                      </div>
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? 'Cadastrando...' : 'Cadastrar'}
-                      </Button>
-                    </form>
-                  </TabsContent>
-                </Tabs>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Entrando...' : 'Entrar'}
+                  </Button>
+                </form>
 
                 <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
                   <DialogContent>
