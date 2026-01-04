@@ -560,13 +560,18 @@ export default function Usuarios() {
                 <Label htmlFor="create_sede">Sede (opcional)</Label>
                 <Select
                   value={createFormData.sede_id}
-                  onValueChange={(value) => setCreateFormData({ ...createFormData, sede_id: value })}
+                  onValueChange={(value) =>
+                    setCreateFormData({
+                      ...createFormData,
+                      sede_id: value === '__none__' ? '' : value,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma sede" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {sedes.map((sede) => (
                       <SelectItem key={sede.id} value={sede.id}>
                         {sede.nome}
@@ -580,13 +585,18 @@ export default function Usuarios() {
                 <Label htmlFor="create_regiao">Região (opcional)</Label>
                 <Select
                   value={createFormData.regiao_id}
-                  onValueChange={(value) => setCreateFormData({ ...createFormData, regiao_id: value })}
+                  onValueChange={(value) =>
+                    setCreateFormData({
+                      ...createFormData,
+                      regiao_id: value === '__none__' ? '' : value,
+                    })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma região" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="__none__">Nenhuma</SelectItem>
                     {regioes.map((regiao) => (
                       <SelectItem key={regiao.id} value={regiao.id}>
                         {regiao.nome}
@@ -643,13 +653,18 @@ export default function Usuarios() {
                     <Label htmlFor="sede">Sede</Label>
                     <Select
                       value={formData.sede_id}
-                      onValueChange={(value) => setFormData({ ...formData, sede_id: value })}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          sede_id: value === '__none__' ? '' : value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma sede" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma</SelectItem>
+                        <SelectItem value="__none__">Nenhuma</SelectItem>
                         {sedes.map((sede) => (
                           <SelectItem key={sede.id} value={sede.id}>
                             {sede.nome}
@@ -663,13 +678,18 @@ export default function Usuarios() {
                     <Label htmlFor="regiao">Região</Label>
                     <Select
                       value={formData.regiao_id}
-                      onValueChange={(value) => setFormData({ ...formData, regiao_id: value })}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          regiao_id: value === '__none__' ? '' : value,
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma região" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhuma</SelectItem>
+                        <SelectItem value="__none__">Nenhuma</SelectItem>
                         {regioes.map((regiao) => (
                           <SelectItem key={regiao.id} value={regiao.id}>
                             {regiao.nome}
