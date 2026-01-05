@@ -183,7 +183,7 @@ export default function Cotacao() {
     );
   }
 
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas']);
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
   if (!canAccessPage) {
     return (
       <DashboardLayout>
