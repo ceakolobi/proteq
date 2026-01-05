@@ -43,24 +43,16 @@ interface UserWithRole extends Profile {
   roles: AppRole[];
 }
 
-// Roles disponíveis para atribuição (exceto admin_principal que é protegido)
-const AVAILABLE_ROLES: AppRole[] = [
-  'admin_regional',
-  'admin_nivel_basico',
-  'gerente',
-  'financeiro',
-  'cadastro',
-  'consultor_vendas',
-  'operacional',
-  'vistoriador',
-  'recepcao',
-  'demo_user'
-];
+// Roles disponíveis para atribuição (novas roles simplificadas)
+// admin_principal é protegido e não pode ser atribuído
+import { ASSIGNABLE_ROLES, ROLE_LABELS, canManageUser, canEditCredentials } from '@/config/permissions';
+
+const AVAILABLE_ROLES: AppRole[] = ASSIGNABLE_ROLES;
 
 export default function Usuarios() {
-  // Access control: ONLY Admin Principal can access user management
-  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
-  const { isAdminPrincipal } = useAuth();
+  // Access control: Admin Principal ou Admin Básico podem gerenciar usuários
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  const { isAdminPrincipal, roles: currentUserRoles } = useAuth();
   
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -160,13 +152,23 @@ export default function Usuarios() {
     return user.is_admin_principal || user.email === 'admin@system.com';
   };
 
+  // Usar funções centralizadas de permissão
+  const canManageThisUser = (targetUser: Profile) => {
+    return canManageUser(
+      currentUserRoles,
+      isAdminPrincipal,
+      targetUser.is_admin_principal,
+      targetUser.email
+    );
+  };
+
   const handleOpenDialog = (user: UserWithRole) => {
-    // Bloquear edição de admin principal
-    if (isProtectedAdmin(user)) {
+    // Usar função centralizada para verificar permissão
+    if (!canManageThisUser(user)) {
       toast({
         variant: 'destructive',
         title: 'Operação não permitida',
-        description: 'O Admin Principal não pode ser editado.',
+        description: 'Você não tem permissão para editar este usuário.',
       });
       return;
     }
@@ -439,6 +441,7 @@ export default function Usuarios() {
                     {filteredUsers.map((user) => {
                       const userRoles = getRoles(user.id) as AppRole[];
                       const isProtected = isProtectedAdmin(user);
+                      const canManage = canManageThisUser(user);
                       
                       return (
                         <TableRow key={user.id}>
@@ -458,7 +461,7 @@ export default function Usuarios() {
                               ) : userRoles.length > 0 ? (
                                 userRoles.map((role) => (
                                   <Badge key={role} variant="secondary">
-                                    {roleLabels[role]}
+                                    {ROLE_LABELS[role] || roleLabels[role]}
                                   </Badge>
                                 ))
                               ) : (
@@ -472,7 +475,7 @@ export default function Usuarios() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {!isProtected && (
+                            {canManage && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -561,7 +564,7 @@ export default function Usuarios() {
                   <SelectContent>
                     {AVAILABLE_ROLES.map((role) => (
                       <SelectItem key={role} value={role}>
-                        {roleLabels[role]}
+                        {ROLE_LABELS[role] || roleLabels[role]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -652,14 +655,14 @@ export default function Usuarios() {
                   <SelectContent>
                     {AVAILABLE_ROLES.map((role) => (
                       <SelectItem key={role} value={role}>
-                        {roleLabels[role]}
+                        {ROLE_LABELS[role] || roleLabels[role]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {isAdminPrincipal && (
+              {(isAdminPrincipal || currentUserRoles.includes('admin_nivel_basico')) && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="sede">Sede</Label>

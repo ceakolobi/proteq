@@ -41,7 +41,7 @@ import { toast } from 'sonner';
 type ReportType = 'regional' | 'consultor' | 'inadimplencia' | 'sinistro';
 
 export default function Relatorios() {
-  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_gerente');
   const { isAdminPrincipal, isGlobalAdmin, hasRole, profile, roles } = useAuth();
   const { regioes, consultores } = useReferenceData({ loadRegioes: true, loadConsultores: true });
   const { isLoading, fetchRegionalReport, fetchConsultorReport, fetchInadimplenciaReport, fetchSinistroReport } = useReportData();

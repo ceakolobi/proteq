@@ -52,8 +52,8 @@ interface SedeWithResponsavel extends Sede {
 }
 
 export default function Sedes() {
-  // Access control: Admin Principal (full access) + Admin Regional (only their sede)
-  const { isAllowed, isChecking, userSedeId } = useAccessControl('admin_regional_or_above');
+  // Access control: Admin Principal e Admin Básico
+  const { isAllowed, isChecking, userSedeId } = useAccessControl('admin_or_basico');
   const { isAdminPrincipal, hasRole, profile } = useAuth();
   const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   

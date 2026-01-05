@@ -5,16 +5,29 @@ import { supabase } from '@/integrations/supabase/client';
 import type { AppRole } from '@/types/database';
 import { toast } from 'sonner';
 
+/**
+ * Tipos de acesso às páginas
+ * 
+ * Nova hierarquia simplificada:
+ * - admin_principal: Acesso total, imutável
+ * - admin_nivel_basico: Acesso completo exceto alterar admin_principal  
+ * - gerente: Acesso operacional (leads, cotações, associados, veículos, vistorias, relatórios da unidade)
+ * - consultor_vendas: Acesso ao próprio funil (dashboard, cotações, leads, propostas, associados/veículos vinculados)
+ */
 export type PageAccess = 
   | 'admin_principal_only'
+  | 'admin_or_basico'         // admin_principal ou admin_nivel_basico
+  | 'admin_or_gerente'        // admin_principal, admin_nivel_basico ou gerente
+  | 'all_roles'               // todos os 4 perfis principais
+  | 'authenticated'           // qualquer usuário autenticado
+  // Legado (mantido para compatibilidade)
   | 'admin_regional_or_above'
   | 'admin_nivel_basico_or_above'
   | 'consultor_or_above'
   | 'cadastro_or_above'
   | 'financeiro_only'
   | 'vistoriador_or_above'
-  | 'recepcao_or_above'
-  | 'authenticated';
+  | 'recepcao_or_above';
 
 interface AccessControlResult {
   isAllowed: boolean;
@@ -69,13 +82,37 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
 
       switch (requiredAccess) {
         case 'admin_principal_only':
-          // Only Admin Principal can access
+          // Apenas Admin Principal
           allowed = isAdminPrincipal === true;
           break;
 
+        case 'admin_or_basico':
+          // Admin Principal OU Admin Básico
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_nivel_basico');
+          break;
+
+        case 'admin_or_gerente':
+          // Admin Principal OU Admin Básico OU Gerente
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_nivel_basico') ||
+                   roles.includes('gerente');
+          break;
+
+        case 'all_roles':
+          // Todos os 4 perfis principais
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_nivel_basico') ||
+                   roles.includes('gerente') ||
+                   roles.includes('consultor_vendas');
+          break;
+
+        // ======= LEGADO (mantido para compatibilidade) =======
         case 'admin_regional_or_above':
-          // Admin Principal OR Admin Regional
-          allowed = isAdminPrincipal === true || roles.includes('admin_regional');
+          // Admin Principal OR Admin Regional OR Admin Básico
+          allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_regional') ||
+                   roles.includes('admin_nivel_basico');
           break;
 
         case 'admin_nivel_basico_or_above':
@@ -86,15 +123,16 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           break;
 
         case 'consultor_or_above':
-          // Admin Principal OR Admin Regional OR Admin Nível Básico OR Consultor
+          // Todos os perfis operacionais
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
                    roles.includes('admin_nivel_basico') ||
+                   roles.includes('gerente') ||
                    roles.includes('consultor_vendas');
           break;
 
         case 'cadastro_or_above':
-          // Admin Principal OR Admin Regional OR Admin Nível Básico OR Cadastro
+          // Admin + Cadastro
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
                    roles.includes('admin_nivel_basico') ||
@@ -102,22 +140,24 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           break;
 
         case 'financeiro_only':
-          // Admin Principal OR Admin Regional OR Financeiro
+          // Admin + Financeiro
           allowed = isAdminPrincipal === true || 
+                   roles.includes('admin_nivel_basico') ||
                    roles.includes('admin_regional') || 
                    roles.includes('financeiro');
           break;
 
         case 'vistoriador_or_above':
-          // Admin Principal OR Admin Regional OR Admin Nível Básico OR Vistoriador
+          // Admin + Gerente + Vistoriador
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
                    roles.includes('admin_nivel_basico') ||
+                   roles.includes('gerente') ||
                    roles.includes('vistoriador');
           break;
 
         case 'recepcao_or_above':
-          // Recepção com acesso básico - pode acessar junto com admins
+          // Acesso básico
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_regional') || 
                    roles.includes('admin_nivel_basico') ||
@@ -125,7 +165,7 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           break;
 
         case 'authenticated':
-          // Any authenticated user
+          // Qualquer usuário autenticado
           allowed = true;
           break;
 

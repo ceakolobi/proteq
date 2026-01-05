@@ -41,7 +41,7 @@ interface ConsultorStats {
 export default function ConsultorDashboard() {
   const { user, profile, hasRole, isAdminPrincipal } = useAuth();
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
+  const { isAllowed, isChecking } = useAccessControl('all_roles');
   const [stats, setStats] = useState<ConsultorStats>({
     totalAssociados: 0,
     associadosAtivos: 0,

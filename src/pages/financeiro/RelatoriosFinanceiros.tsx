@@ -55,7 +55,7 @@ interface ReportData {
 
 export default function RelatoriosFinanceiros() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('financeiro_only');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
   const { isAdminPrincipal, roles } = useAuth();
   
   const [loading, setLoading] = useState(false);

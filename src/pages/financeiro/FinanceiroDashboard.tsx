@@ -52,7 +52,7 @@ const formatCurrency = (value: number) => {
 
 export default function Financeiro() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking, userSedeId, userRegiaoId } = useAccessControl('financeiro_only');
+  const { isAllowed, isChecking, userSedeId, userRegiaoId } = useAccessControl('admin_or_basico');
   const { user, roles, isAdminPrincipal } = useAuth();
   const { 
     stats, 
