@@ -321,15 +321,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [isAdminPrincipal, userPermissions]);
 
   const filterItem = useCallback((item: NavItem) => {
-    // First check role-based access
-    if (item.roles && !isAdminPrincipal) {
-      const hasRoleAccess = item.roles.some(role => roles.includes(role as any));
-      if (!hasRoleAccess) return false;
+    // Admin principal always has access
+    if (isAdminPrincipal) return true;
+    
+    // Check granular permission FIRST (if permissions are loaded)
+    // This takes priority over role-based access
+    if (item.module && Object.keys(userPermissions).length > 0) {
+      const hasGranularPermission = hasModulePermission(item.module);
+      // If user has ANY permission record, respect granular permissions
+      if (hasGranularPermission) return true;
     }
     
-    // Then check granular permission (if permissions are loaded)
-    if (item.module && Object.keys(userPermissions).length > 0) {
-      return hasModulePermission(item.module);
+    // Fallback to role-based access for users without granular permissions
+    if (item.roles) {
+      const hasRoleAccess = item.roles.some(role => roles.includes(role as any));
+      return hasRoleAccess;
     }
     
     return true;
