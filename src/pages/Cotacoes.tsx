@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAccessLogger } from '@/hooks/useAccessLogger';
 import { useCotacoes } from '@/hooks/useCotacoes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -17,11 +18,19 @@ type ViewMode = 'list' | 'new' | 'detail';
 export default function Cotacoes() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasAnyRole, isAdminPrincipal } = useAuth();
+  const { hasAnyRole, isAdminPrincipal, user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { cotacoes, isLoading, refetch } = useCotacoes();
   const { logViewList } = useAccessLogger();
-  
+
+  const {
+    permissions: permissionRows,
+    hasPermission,
+    isLoading: permissionsLoading,
+  } = useUserPermissions(user?.id);
+
+  const hasGranularPermissions = permissionRows.length > 0;
+
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedCotacao, setSelectedCotacao] = useState<Cotacao | null>(null);
   const [leadData, setLeadData] = useState<{ id?: string; nome?: string } | null>(null);
@@ -48,10 +57,18 @@ export default function Cotacoes() {
     }
   }, [viewMode, cotacoes.length, logViewList]);
 
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
+  const roleCanAccessPage =
+    isAdminPrincipal ||
+    hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
+
+  const canAccessPage = isAdminPrincipal
+    ? true
+    : hasGranularPermissions
+      ? hasPermission('cotacoes', 'visualizar')
+      : roleCanAccessPage;
 
   // Loading
-  if (isChecking) {
+  if (isChecking || permissionsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">
