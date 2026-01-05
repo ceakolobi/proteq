@@ -88,12 +88,15 @@ export function useBrand() {
   const getLogoForContext = (context: 'sidebar' | 'header' | 'login' | 'splash' | 'report' | 'auto'): string => {
     switch (context) {
       case 'splash':
+        // Splash PWA tem fundo colorido (primary) - usa logo branca para contraste
+        return brand.logos.light;
+      
       case 'login':
-        // Sempre usa logo primária/colorida
-        return brand.logos.primary;
+        // Login tem fundo primary (colorido) - usa logo branca para contraste
+        return brand.logos.light;
       
       case 'report':
-        // Relatórios usam logo escura (para imprimir bem)
+        // Relatórios usam logo escura (para imprimir bem em papel branco)
         return brand.logos.dark;
       
       case 'sidebar':
@@ -104,7 +107,7 @@ export function useBrand() {
         if (resolvedTheme === 'dark' || resolvedTheme === 'penumbra') {
           return brand.logos.light; // Logo branca para temas escuros
         }
-        return brand.logos.dark; // Logo escura para tema claro
+        return brand.logos.dark; // Logo preta para tema claro
     }
   };
 
