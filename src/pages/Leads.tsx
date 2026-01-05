@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useDataMasking } from '@/hooks/useDataMasking';
 import { useAccessLogger } from '@/hooks/useAccessLogger';
@@ -250,21 +251,57 @@ export default function Leads() {
   const isAdminBasico = hasRole('admin_nivel_basico');
   const isGerente = hasRole('gerente');
 
-  // Admin Básico e Gerente devem ter acesso total ao módulo de Leads
-  const canCreate = isAdminPrincipal || isAdminBasico || isGerente || isAdminRegional || isConsultor;
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
+  const {
+    permissions: permissionRows,
+    hasPermission,
+    isLoading: permissionsLoading,
+  } = useUserPermissions(user?.id);
+
+  const hasGranularPermissions = permissionRows.length > 0;
+
+  const roleCanAccessPage =
+    isAdminPrincipal ||
+    hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
+
+  const canAccessPage = isAdminPrincipal
+    ? true
+    : hasGranularPermissions
+      ? hasPermission('leads', 'visualizar')
+      : roleCanAccessPage;
+
+  // Admin Básico e Gerente devem ter acesso total ao módulo de Leads (fallback por role)
+  const roleCanCreate =
+    isAdminPrincipal || isAdminBasico || isGerente || isAdminRegional || isConsultor;
+
+  const canCreate = isAdminPrincipal
+    ? true
+    : hasGranularPermissions
+      ? hasPermission('leads', 'criar')
+      : roleCanCreate;
+
+  const canEdit = isAdminPrincipal
+    ? true
+    : hasGranularPermissions
+      ? hasPermission('leads', 'editar')
+      : roleCanCreate;
+
+  const canDelete = isAdminPrincipal
+    ? true
+    : hasGranularPermissions
+      ? hasPermission('leads', 'excluir')
+      : roleCanCreate;
 
   useEffect(() => {
     document.title = 'Leads | MARKA CRM';
   }, []);
 
   useEffect(() => {
-    if (isAllowed && !isChecking && canAccessPage) {
+    if (isAllowed && !isChecking && !permissionsLoading && canAccessPage) {
       fetchLeads();
     }
-  }, [isAllowed, isChecking, canAccessPage, sedes, regioes, consultores]);
+  }, [isAllowed, isChecking, permissionsLoading, canAccessPage, sedes, regioes, consultores]);
 
-  if (isChecking) {
+  if (isChecking || permissionsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">
@@ -778,16 +815,18 @@ export default function Leads() {
                             <Button variant="ghost" size="icon" onClick={() => handleOpenHistory(lead)} title="Histórico">
                               <History className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(lead)} title="Editar">
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            {canEdit && (
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(lead)} title="Editar">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
                             {lead.status !== 'convertido' && lead.status !== 'perdido' && canCreate && (
                               <>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => {
-                                    navigate('/cotacoes', { 
+                                    navigate('/cotacoes', {
                                       state: { leadId: lead.id, leadNome: lead.nome, tipoVeiculo: lead.tipo_veiculo }
                                     });
                                   }}
