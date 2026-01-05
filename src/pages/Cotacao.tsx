@@ -20,6 +20,12 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Cota, VehicleType } from '@/types/database';
 import { 
+  isCota01, 
+  getCategoriaByTipoVeiculo, 
+  PARTICIPACAO_MINIMA_COTA_01,
+  type CotaCategoria 
+} from '@/lib/cotacaoUtils';
+import { 
   Calculator, 
   Car, 
   DollarSign, 
@@ -38,6 +44,12 @@ interface CotacaoResult {
   cota: Cota;
   mensalidade: number;
   participacao: number;
+  // Informações sobre COTA 01
+  ehCota01: boolean;
+  participacaoCalculada: number;
+  participacaoMinima: number;
+  aplicouValorMinimo: boolean;
+  categoria: CotaCategoria;
 }
 
 export default function Cotacao() {
@@ -127,13 +139,23 @@ export default function Cotacao() {
       carroReservaAdicional = 59.90;
     }
 
-    // Calculate participacao (7% of FIPE)
-    const participacao = valorFipe * 0.07;
+    // Calculate participacao (7% of FIPE) com valor mínimo para COTA 01
+    const participacaoCalculada = valorFipe * 0.07;
+    const categoria = getCategoriaByTipoVeiculo(formData.tipo as VehicleType);
+    const ehCota01 = isCota01(cotaEncontrada.cota_nome);
+    const participacaoMinima = ehCota01 ? PARTICIPACAO_MINIMA_COTA_01[categoria] : 0;
+    const aplicouValorMinimo = ehCota01 && participacaoCalculada < participacaoMinima;
+    const participacao = aplicouValorMinimo ? participacaoMinima : participacaoCalculada;
 
     setResultado({
       cota: cotaEncontrada,
       mensalidade: mensalidade + carroReservaAdicional,
       participacao,
+      ehCota01,
+      participacaoCalculada,
+      participacaoMinima,
+      aplicouValorMinimo,
+      categoria,
     });
 
     setIsCalculating(false);
@@ -350,10 +372,30 @@ export default function Cotacao() {
                       <p className="font-semibold">{formatCurrency(parseFloat(formData.valorFipe))}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Participação (7%)</p>
+                      <p className="text-sm text-muted-foreground">
+                        Participação (7%)
+                        {resultado.aplicouValorMinimo && (
+                          <span className="text-xs text-primary ml-1">*mínimo</span>
+                        )}
+                      </p>
                       <p className="font-semibold">{formatCurrency(resultado.participacao)}</p>
                     </div>
                   </div>
+                  
+                  {/* Alerta COTA 01 */}
+                  {resultado.ehCota01 && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs">
+                      <p className="font-semibold text-primary mb-1">📋 COTA 01 – Valor Mínimo de Participação</p>
+                      <p className="text-muted-foreground">
+                        Moto: R$ 1.100,00 | Carro: R$ 1.800,00 | Camionete: R$ 2.500,00
+                      </p>
+                      {resultado.aplicouValorMinimo && (
+                        <p className="text-primary mt-1">
+                          ✓ Valor mínimo aplicado (calculado: {formatCurrency(resultado.participacaoCalculada)})
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <Separator />
 

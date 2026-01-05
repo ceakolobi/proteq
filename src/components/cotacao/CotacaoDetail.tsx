@@ -64,11 +64,18 @@ import {
   metodoValoracaoLabels,
   tipoContatoLabels,
 } from '@/types/cotacao';
+import { 
+  isCota01, 
+  getCategoriaByTipoVeiculo,
+  PARTICIPACAO_MINIMA_COTA_01,
+} from '@/lib/cotacaoUtils';
+import type { VehicleType } from '@/types/database';
 
 interface CotacaoDetailProps {
   cotacao: Cotacao & { 
     lead_nome?: string; 
     regiao_nome?: string;
+    cota_nome?: string;
     contatos?: CotacaoContato[];
     lead_email?: string;
     lead_telefone?: string;
@@ -449,6 +456,19 @@ _Proteção Veicular_`;
               <span className="text-muted-foreground">Carro Reserva:</span>
               <span>{cotacao.carro_reserva_dias} dias</span>
             </div>
+            
+            {/* Cláusula COTA 01 - Valor Mínimo de Participação */}
+            {cotacao.cota_nome && isCota01(cotacao.cota_nome) && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs mt-3">
+                <p className="font-semibold text-primary mb-1">📋 COTA 01 – Valor Mínimo de Participação</p>
+                <p className="text-muted-foreground">
+                  Moto: R$ 1.100,00 | Carro: R$ 1.800,00 | Camionete: R$ 2.500,00
+                </p>
+                <p className="text-muted-foreground mt-1 italic">
+                  Se o valor calculado for inferior, prevalece o valor mínimo.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

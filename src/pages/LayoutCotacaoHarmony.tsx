@@ -39,6 +39,15 @@ import { SignaturePad } from "@/components/cotacao/SignaturePad";
 import { PdfActionsModal } from "@/components/cotacao/PdfActionsModal";
 import { CoverSelectorModal, CoverOption } from "@/components/cotacao/CoverSelectorModal";
 import { QRCodeSVG } from "qrcode.react";
+import { 
+  isCota01, 
+  getCategoriaByTipoVeiculo, 
+  PARTICIPACAO_MINIMA_COTA_01,
+  TEXTO_COTACAO_COTA_01,
+  formatCurrency as formatCurrencyUtil,
+  type CotaCategoria 
+} from "@/lib/cotacaoUtils";
+import type { VehicleType } from "@/types/database";
 import harmonyAgroLogoColorida from "@/assets/harmony-agro-logo-colorida.png";
 import harmonyAgroLogoBranca from "@/assets/harmony-agro-logo-branca.png";
 import { useSettings, type SystemSettings } from "@/hooks/useSettings";
@@ -639,10 +648,10 @@ export default function LayoutCotacaoHarmony() {
                       <p className="mt-1 font-medium">{formatValue(cotaNome)}</p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground text-xs">Participação</Label>
+                      <Label className="text-muted-foreground text-xs">Participação (7%)</Label>
                       <p className="mt-1 font-medium">
                         {cotacao?.participacao !== null && cotacao?.participacao !== undefined
-                          ? `${cotacao.participacao}%`
+                          ? formatCurrency(cotacao.participacao)
                           : "7%"}
                       </p>
                     </div>
@@ -659,6 +668,28 @@ export default function LayoutCotacaoHarmony() {
                     <Label className="text-muted-foreground text-xs">Nº da Cotação</Label>
                     <p className="mt-1 font-mono text-sm font-medium">{numeroCotacao}</p>
                   </div>
+                  
+                  {/* Cláusula COTA 01 - Valor Mínimo de Participação */}
+                  {cotaNome && isCota01(cotaNome) && (
+                    <div className="pt-3 mt-3 border-t border-dashed border-harmony-orange/30">
+                      <div className="bg-harmony-orange/10 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-harmony-orange mb-2">
+                          📋 Cota de Participação – COTA 01
+                        </p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Para veículos enquadrados nesta cota, aplica-se valor mínimo de participação:
+                        </p>
+                        <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                          <li>• Moto: mínimo de <strong>R$ 1.100,00</strong></li>
+                          <li>• Carro: mínimo de <strong>R$ 1.800,00</strong></li>
+                          <li>• Camionete: mínimo de <strong>R$ 2.500,00</strong></li>
+                        </ul>
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          Caso o valor calculado seja inferior ao mínimo, prevalecerá o valor mínimo estabelecido.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

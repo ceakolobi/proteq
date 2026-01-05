@@ -10,6 +10,7 @@ interface CotacaoWithRelations extends Cotacao {
   lead_telefone?: string;
   regiao_nome?: string;
   consultor_nome?: string;
+  cota_nome?: string;
   contatos?: CotacaoContato[];
   cliente_nome?: string;
   cliente_email?: string;
@@ -85,12 +86,24 @@ export function useCotacoes(): UseCotacoesResult {
             .eq('cotacao_id', cotacao.id)
             .order('data_contato', { ascending: false });
 
+          // Fetch cota nome
+          let cota_nome: string | undefined = undefined;
+          if (cotacao.cota_id) {
+            const { data: cota } = await supabase
+              .from('cotas')
+              .select('cota_nome')
+              .eq('id', cotacao.cota_id)
+              .maybeSingle();
+            cota_nome = cota?.cota_nome;
+          }
+
           return {
             ...cotacao,
             lead_nome,
             lead_email,
             lead_telefone,
             regiao_nome,
+            cota_nome,
             contatos: contatos || [],
           };
         })
