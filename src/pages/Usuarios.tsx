@@ -37,7 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
-import { Users, Pencil, Shield, Search, Plus, UserPlus } from 'lucide-react';
+import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff } from 'lucide-react';
 
 interface UserWithRole extends Profile {
   roles: AppRole[];
@@ -92,6 +92,7 @@ export default function Usuarios() {
     sede_id: '',
     regiao_id: '',
   });
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   const fetchData = async () => {
     if (!isAllowed) return;
@@ -526,15 +527,26 @@ export default function Usuarios() {
 
               <div className="space-y-2">
                 <Label htmlFor="senha">Senha *</Label>
-                <Input
-                  id="senha"
-                  type="password"
-                  value={createFormData.senha}
-                  onChange={(e) => setCreateFormData({ ...createFormData, senha: e.target.value })}
-                  placeholder="Mínimo 6 caracteres"
-                  required
-                  minLength={6}
-                />
+                <div className="relative">
+                  <Input
+                    id="senha"
+                    type={showCreatePassword ? 'text' : 'password'}
+                    value={createFormData.senha}
+                    onChange={(e) => setCreateFormData({ ...createFormData, senha: e.target.value })}
+                    placeholder="Mínimo 6 caracteres"
+                    required
+                    minLength={6}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword(!showCreatePassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
