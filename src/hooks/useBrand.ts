@@ -2,9 +2,10 @@ import { useMemo } from "react";
 import { useSettings } from "./useSettings";
 import { useAppTheme } from "./useTheme";
 
-// Logos padrão do sistema (MARKA)
+// Logos padrão do sistema (MARKA) - 3 versões para cada contexto
 import logoMarkaPrimaria from "@/assets/logo-marka-colorida.png";
 import logoMarkaBranca from "@/assets/logo-marka-branca.png";
+import logoMarkaPreta from "@/assets/logo-marka-preta.png";
 
 // Logos Harmony (fallback para compatibilidade)
 import logoHarmonyPrimaria from "@/assets/logo-harmony-colorida.png";
@@ -59,11 +60,11 @@ export function useBrand() {
         dark: configuredLogoDark || configuredLogoPrimary,
       };
     } else {
-      // Padrão: usa logos MARKA
+      // Padrão: usa logos MARKA (3 versões)
       logos = {
-        primary: logoMarkaPrimaria,
-        light: logoMarkaBranca,
-        dark: logoMarkaPrimaria, // Logo colorida funciona em fundo claro também
+        primary: logoMarkaPrimaria,  // Colorida (azul/laranja)
+        light: logoMarkaBranca,       // Branca (para fundos escuros)
+        dark: logoMarkaPreta,         // Preta (para fundos claros)
       };
     }
 
