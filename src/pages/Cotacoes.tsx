@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAccessLogger } from '@/hooks/useAccessLogger';
 import { useCotacoes } from '@/hooks/useCotacoes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -18,18 +17,12 @@ type ViewMode = 'list' | 'new' | 'detail';
 export default function Cotacoes() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasAnyRole, isAdminPrincipal, user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { cotacoes, isLoading, refetch } = useCotacoes();
   const { logViewList } = useAccessLogger();
 
-  const {
-    permissions: permissionRows,
-    hasPermission,
-    isLoading: permissionsLoading,
-  } = useUserPermissions(user?.id);
-
-  const hasGranularPermissions = permissionRows.length > 0;
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModuleAccess('cotacoes');
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedCotacao, setSelectedCotacao] = useState<Cotacao | null>(null);
@@ -45,7 +38,6 @@ export default function Cotacoes() {
     if (state?.leadId) {
       setLeadData({ id: state.leadId, nome: state.leadNome });
       setViewMode('new');
-      // Limpar state para não repetir
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -56,16 +48,6 @@ export default function Cotacoes() {
       logViewList('cotacao', cotacoes.length, {});
     }
   }, [viewMode, cotacoes.length, logViewList]);
-
-  const roleCanAccessPage =
-    isAdminPrincipal ||
-    hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
-
-  const canAccessPage = isAdminPrincipal
-    ? true
-    : hasGranularPermissions
-      ? hasPermission('cotacoes', 'visualizar')
-      : roleCanAccessPage;
 
   // Loading
   if (isChecking || permissionsLoading) {

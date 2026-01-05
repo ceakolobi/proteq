@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,8 +56,9 @@ const categoriaLabels: Record<CotaCategoria, string> = {
 };
 
 export default function Cotas() {
-  // Access control: Admin Principal e Admin Básico podem gerenciar cotas
-  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModuleAccess('cotas');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [isLoading, setIsLoading] = useState(true);

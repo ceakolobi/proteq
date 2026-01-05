@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useUserRolesBatch } from '@/hooks/useSedeRegioes';
 import { 
@@ -58,8 +59,10 @@ import { ASSIGNABLE_ROLES, ROLE_LABELS, canManageUser, canEditCredentials } from
 const AVAILABLE_ROLES: AppRole[] = ASSIGNABLE_ROLES;
 
 export default function Usuarios() {
-  // Access control: Admin Principal ou Admin Básico podem gerenciar usuários
-  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModuleAccess('usuarios');
+  
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { isAdminPrincipal, roles: currentUserRoles, profile, user } = useAuth();
   
   const [users, setUsers] = useState<Profile[]>([]);

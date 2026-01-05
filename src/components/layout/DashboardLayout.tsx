@@ -305,41 +305,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   // Check if user has permission to view a module
+  // Verifica se o usuário tem permissões granulares carregadas
+  const hasAnyGranularPermissions = Object.keys(userPermissions).length > 0;
+
   const hasModulePermission = useCallback((module?: PermissionModule): boolean => {
     if (isAdminPrincipal) return true;
     if (!module) return true; // No module restriction
     
-    // Check granular permission if available
-    const modulePerms = userPermissions[module];
-    if (modulePerms && Object.keys(modulePerms).length > 0) {
-      // If user has any permission record for this module, check 'visualizar'
-      return modulePerms['visualizar'] === true;
+    // Se tem permissões granulares, usa APENAS elas (prioridade absoluta)
+    if (hasAnyGranularPermissions) {
+      const modulePerms = userPermissions[module];
+      return modulePerms?.['visualizar'] === true;
     }
     
-    // Fallback to role-based check (for users without granular permissions)
+    // Fallback: sem permissões granulares, libera para verificação por role
     return true;
-  }, [isAdminPrincipal, userPermissions]);
+  }, [isAdminPrincipal, userPermissions, hasAnyGranularPermissions]);
 
   const filterItem = useCallback((item: NavItem) => {
     // Admin principal always has access
     if (isAdminPrincipal) return true;
     
-    // Check granular permission FIRST (if permissions are loaded)
-    // This takes priority over role-based access
-    if (item.module && Object.keys(userPermissions).length > 0) {
-      const hasGranularPermission = hasModulePermission(item.module);
-      // If user has ANY permission record, respect granular permissions
-      if (hasGranularPermission) return true;
+    // Se o usuário tem permissões granulares cadastradas, usa APENAS elas
+    if (hasAnyGranularPermissions && item.module) {
+      return hasModulePermission(item.module);
     }
     
-    // Fallback to role-based access for users without granular permissions
+    // Fallback: sem permissões granulares, usa verificação por role
     if (item.roles) {
-      const hasRoleAccess = item.roles.some(role => roles.includes(role as any));
-      return hasRoleAccess;
+      return item.roles.some(role => roles.includes(role as any));
     }
     
     return true;
-  }, [roles, isAdminPrincipal, userPermissions, hasModulePermission]);
+  }, [roles, isAdminPrincipal, hasAnyGranularPermissions, hasModulePermission]);
 
   const filteredSections = useMemo(() => 
     navSections

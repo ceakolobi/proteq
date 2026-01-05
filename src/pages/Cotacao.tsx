@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +44,6 @@ interface CotacaoResult {
   cota: Cota;
   mensalidade: number;
   participacao: number;
-  // Informações sobre COTA 01
   ehCota01: boolean;
   participacaoCalculada: number;
   participacaoMinima: number;
@@ -55,16 +53,17 @@ interface CotacaoResult {
 
 export default function Cotacao() {
   const navigate = useNavigate();
-  const { hasAnyRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { cotas, isLoading } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
 
+  // Permissões granulares com fallback por role
+  const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('cotacoes');
+
   useEffect(() => {
     document.title = 'Cotação | MARKA CRM';
   }, []);
-
 
   const [formData, setFormData] = useState({
     marca: '',
@@ -77,7 +76,6 @@ export default function Cotacao() {
 
   const [resultado, setResultado] = useState<CotacaoResult | null>(null);
 
-  // Filtra apenas cotas ativas
   const cotasAtivas = cotas.filter(c => c.ativo);
 
   const formatCurrency = (value: number) => {
@@ -100,7 +98,6 @@ export default function Cotacao() {
     setIsCalculating(true);
     const valorFipe = parseFloat(formData.valorFipe);
 
-    // Find the correct cota based on FIPE value
     const cotaEncontrada = cotasAtivas.find(
       (cota) => valorFipe >= cota.fipe_min && valorFipe <= cota.fipe_max
     );
@@ -115,7 +112,6 @@ export default function Cotacao() {
       return;
     }
 
-    // Get mensalidade based on vehicle type com ajustes em R$
     const ajusteGeralValor = Number((cotaEncontrada as any).ajuste_geral_valor) || Number((cotaEncontrada as any).acrescimo_global) || 0;
     let valorBase = 0;
     switch (formData.tipo) {
@@ -129,10 +125,8 @@ export default function Cotacao() {
         valorBase = cotaEncontrada.valor_camionete || 0;
         break;
     }
-    // Fórmula única: valorFinal = valorBase + ajusteGeralValor (ajuste individual é feito na cotação)
     let mensalidade = valorBase + ajusteGeralValor;
 
-    // Add carro reserva extra if selected
     let carroReservaAdicional = 0;
     if (formData.carroReservaExtra === '30dias') {
       carroReservaAdicional = 39.90;
@@ -140,7 +134,6 @@ export default function Cotacao() {
       carroReservaAdicional = 59.90;
     }
 
-    // Calculate participacao (7% of FIPE) com valor mínimo para COTA 01
     const participacaoCalculada = valorFipe * 0.07;
     const categoria = getCategoriaByTipoVeiculo(formData.tipo as VehicleType);
     const ehCota01 = isCota01(cotaEncontrada.cota_nome);
@@ -186,7 +179,7 @@ export default function Cotacao() {
   ];
 
   // Show loading while checking access
-  if (isChecking) {
+  if (isChecking || permissionsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">
@@ -206,7 +199,6 @@ export default function Cotacao() {
     );
   }
 
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
   if (!canAccessPage) {
     return (
       <DashboardLayout>

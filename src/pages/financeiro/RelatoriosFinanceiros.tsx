@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -55,8 +56,11 @@ interface ReportData {
 
 export default function RelatoriosFinanceiros() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { isAdminPrincipal, roles } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('financeiro');
   
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<ReportData[]>([]);

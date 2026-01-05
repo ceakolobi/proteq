@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useDataMasking, useCanExport } from '@/hooks/useDataMasking';
 import { useAccessLogger } from '@/hooks/useAccessLogger';
@@ -79,8 +80,12 @@ interface VeiculoForm {
 type WizardStep = 'associado' | 'veiculo' | 'complete';
 
 export default function Associados() {
-  const { isAllowed, isChecking } = useAccessControl('all_roles');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModuleAccess('associados');
+  
   const [associados, setAssociados] = useState<AssociadoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -140,16 +145,16 @@ export default function Associados() {
   const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
   const isCadastro = hasRole('cadastro');
   
-  const canCreate = isConsultor || isAdminRegional || isAdminPrincipal;
-  const canEditAll = isAdminPrincipal || isAdminRegional || isCadastro;
+  // canCreate e canEdit vêm do useModuleAccess (permissões granulares)
+  const canEditAll = canEdit || isAdminPrincipal || isAdminRegional || isCadastro;
 
   useEffect(() => {
-    if (isAllowed && !isChecking) {
+    if (isAllowed && !isChecking && !permissionsLoading && canAccessPage) {
       fetchData();
     }
-  }, [user?.id, isAdminPrincipal, isConsultor, isAllowed, isChecking]);
+  }, [user?.id, isAdminPrincipal, isConsultor, isAllowed, isChecking, permissionsLoading, canAccessPage]);
 
-  if (isChecking) {
+  if (isChecking || permissionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
@@ -157,7 +162,7 @@ export default function Associados() {
     );
   }
 
-  if (!isAllowed) {
+  if (!isAllowed || !canAccessPage) {
     return null;
   }
 

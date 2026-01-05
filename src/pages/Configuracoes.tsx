@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAccessControl } from "@/hooks/useAccessControl";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useSettings } from "@/hooks/useSettings";
 import { useSystemInfo } from "@/hooks/useSystemInfo";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,7 +53,11 @@ import { ptBR } from "date-fns/locale";
 
 export default function Configuracoes() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl("admin_or_basico");
+  const { isAllowed, isChecking } = useAccessControl("authenticated");
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canEdit, isLoading: permissionsLoading } = useModuleAccess('configuracoes');
+  
   const { settings, isLoading, isSaving, updateSettings, uploadImage } = useSettings();
   const { theme, setTheme } = useAppTheme();
   

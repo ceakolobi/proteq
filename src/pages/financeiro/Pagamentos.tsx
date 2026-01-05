@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,8 +64,11 @@ interface PagamentoRecord {
 
 export default function Pagamentos() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { isAdminPrincipal, roles } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canEdit, isLoading: permissionsLoading } = useModuleAccess('financeiro');
 
   const [pagamentos, setPagamentos] = useState<PagamentoRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +76,7 @@ export default function Pagamentos() {
   const [mesFilter, setMesFilter] = useState<string>(new Date().toISOString().slice(0, 7));
   const [formaFilter, setFormaFilter] = useState<string>('todos');
 
-  const canManage = isAdminPrincipal || roles.includes('financeiro');
+  const canManage = canEdit || isAdminPrincipal || roles.includes('financeiro');
 
   const fetchPagamentos = async () => {
     setLoading(true);
