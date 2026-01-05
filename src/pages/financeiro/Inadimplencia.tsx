@@ -47,7 +47,7 @@ const getStatusBadge = (status: InadimplenteInfo['status_financeiro']) => {
 
 export default function Inadimplencia() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('financeiro_only');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
   const { inadimplentes, fetchInadimplentes } = useFinanceiro();
   const [loading, setLoading] = useState(true);
 

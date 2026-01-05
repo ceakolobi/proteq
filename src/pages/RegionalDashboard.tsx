@@ -86,7 +86,7 @@ interface RecentAssociado {
 
 export default function RegionalDashboard() {
   const { profile, isAdminPrincipal } = useAuth();
-  const { isAllowed, isChecking } = useAccessControl('admin_regional_or_above');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_gerente');
   
   // Para Admin Principal: seletor de regional
   const [sedes, setSedes] = useState<Sede[]>([]);

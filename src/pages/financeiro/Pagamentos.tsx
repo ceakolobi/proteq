@@ -63,7 +63,7 @@ interface PagamentoRecord {
 
 export default function Pagamentos() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('financeiro_only');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
   const { isAdminPrincipal, roles } = useAuth();
 
   const [pagamentos, setPagamentos] = useState<PagamentoRecord[]>([]);

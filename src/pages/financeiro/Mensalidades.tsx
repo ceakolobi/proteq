@@ -68,7 +68,7 @@ const formatDate = (dateStr: string) => {
 
 export default function Mensalidades() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('financeiro_only');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
   const { roles, isAdminPrincipal } = useAuth();
   const { mensalidades, loading, fetchMensalidades, registrarPagamento, alterarStatusMensalidade } = useFinanceiro();
 

@@ -79,7 +79,7 @@ interface VeiculoForm {
 type WizardStep = 'associado' | 'veiculo' | 'complete';
 
 export default function Associados() {
-  const { isAllowed, isChecking } = useAccessControl('consultor_or_above');
+  const { isAllowed, isChecking } = useAccessControl('all_roles');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   const [associados, setAssociados] = useState<AssociadoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);

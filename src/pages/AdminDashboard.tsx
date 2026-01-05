@@ -40,7 +40,7 @@ interface RecentItem {
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
-  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
   
   const [stats, setStats] = useState<AdminStats>({
     totalRegioes: 0,

@@ -262,21 +262,29 @@ export interface AcionamentoGuincho {
   created_at: string;
 }
 
-// Role labels for display
+// Role labels for display (roles simplificadas)
 export const roleLabels: Record<AppRole, string> = {
   admin_principal: 'Admin Principal',
-  admin_regional: 'Admin Sede',
-  admin_nivel_basico: 'Admin Nível Básico',
+  admin_regional: 'Admin Sede', // Legado
+  admin_nivel_basico: 'Admin Básico',
   gerente: 'Gerente',
-  financeiro: 'Financeiro',
-  cadastro: 'Cadastro',
+  financeiro: 'Financeiro', // Legado
+  cadastro: 'Cadastro', // Legado
   consultor_vendas: 'Consultor',
-  operacional: 'Operacional',
-  vistoriador: 'Vistoriador',
-  recepcao: 'Recepção',
-  associado: 'Associado',
-  demo_user: 'Demonstração'
+  operacional: 'Operacional', // Legado
+  vistoriador: 'Vistoriador', // Legado
+  recepcao: 'Recepção', // Legado
+  associado: 'Associado', // Legado
+  demo_user: 'Demonstração' // Legado
 };
+
+// Roles principais do sistema (novas)
+export const MAIN_SYSTEM_ROLES: AppRole[] = [
+  'admin_principal',
+  'admin_nivel_basico',
+  'gerente',
+  'consultor_vendas',
+];
 
 // Status labels
 export const associateStatusLabels: Record<AssociateStatus, string> = {

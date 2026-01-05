@@ -55,8 +55,8 @@ const categoriaLabels: Record<CotaCategoria, string> = {
 };
 
 export default function Cotas() {
-  // Access control: Only Admin Principal can access
-  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
+  // Access control: Admin Principal e Admin Básico podem gerenciar cotas
+  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
   
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [isLoading, setIsLoading] = useState(true);
