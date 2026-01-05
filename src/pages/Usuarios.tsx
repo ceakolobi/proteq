@@ -276,8 +276,18 @@ export default function Usuarios() {
       console.error('Error creating user:', error);
       
       let errorMessage = 'Não foi possível criar o usuário.';
-      if (error.message?.includes('already registered')) {
-        errorMessage = 'Este email já está cadastrado.';
+      const errorText = error.message?.toLowerCase() || '';
+      const errorCode = error.code?.toLowerCase() || '';
+      
+      if (errorText.includes('already registered') || 
+          errorText.includes('already exists') ||
+          errorCode.includes('user_already_exists') ||
+          error.status === 422) {
+        errorMessage = 'Este email já está cadastrado no sistema.';
+      } else if (errorText.includes('invalid email')) {
+        errorMessage = 'O formato do email é inválido.';
+      } else if (errorText.includes('password')) {
+        errorMessage = 'A senha não atende aos requisitos mínimos.';
       } else if (error.message) {
         errorMessage = error.message;
       }
