@@ -18,14 +18,14 @@ export function useModuleAccess(module: PermissionModule) {
   const {
     permissions: permissionRows,
     permissionMatrix,
-    hasPermission,
     isLoading,
   } = useUserPermissions(user?.id);
 
   // Verifica se o usuário tem permissões granulares cadastradas
   // Precisa verificar se existem permissões E se alguma está com granted: true
   const hasGranularPermissions = useMemo(() => {
-    return permissionRows.length > 0 && permissionRows.some(p => p.granted);
+    const hasPerms = permissionRows.length > 0 && permissionRows.some(p => p.granted);
+    return hasPerms;
   }, [permissionRows]);
 
   // Mapeamento de módulos para roles que teriam acesso por padrão (fallback legado)
@@ -59,14 +59,14 @@ export function useModuleAccess(module: PermissionModule) {
       // Admin Principal sempre tem acesso total
       if (isAdminPrincipal) return true;
 
-      // Se tem permissões granulares, usa elas (prioridade absoluta)
+      // Se tem permissões granulares carregadas, usa elas (prioridade absoluta)
+      // Isso verifica primeiro porque as permissões podem já estar no cache
       if (hasGranularPermissions) {
-        // Verifica diretamente na matrix para o módulo e ação específicos
         return permissionMatrix[module]?.[action] === true;
       }
 
-      // Fallback: verifica por role (para usuários sem permissões cadastradas)
-      // Para ações além de 'visualizar', assume que se pode visualizar, pode fazer tudo (legado)
+      // Se ainda está carregando e não tem granulares ainda, usa fallback por role
+      // Após carregar, se não tem granulares, também usa fallback por role
       return roleCanAccess(action);
     },
     [isAdminPrincipal, hasGranularPermissions, permissionMatrix, module, roleCanAccess]
