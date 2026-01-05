@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, Car, Users, Lock, ArrowRight } from 'lucide-react';
+import { Car, Users, Lock, ArrowRight } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -10,10 +10,12 @@ export default function Index() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary rounded-lg">
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/images/logo-marka-colorida.png" 
+              alt="MARKA CRM"
+              className="h-12 object-contain"
+            />
             <span className="font-bold text-xl">MARKA CRM</span>
           </div>
           <Button onClick={() => navigate('/auth')}>
