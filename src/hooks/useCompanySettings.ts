@@ -66,7 +66,7 @@ export interface SystemSettings {
 
 const defaultSettings: SystemSettings = {
   id: "",
-  empresa_nome: "Sua Empresa",
+  empresa_nome: "MARKA CRM",
   cnpj: null,
   empresa_logo: null,
   empresa_logo_branca: null,
@@ -77,8 +77,8 @@ const defaultSettings: SystemSettings = {
   texto_institucional: "Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente no momento da contratação. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.",
   pdf_contracapa: null,
   telefone: "(00) 00000-0000",
-  email: "contato@suaempresa.com.br",
-  site: "www.suaempresa.com.br",
+  email: "contato@marka.com.br",
+  site: "www.marka.com.br",
   modo_white_label: false,
   esconder_marca_harmony: false,
   cover_1: null,
