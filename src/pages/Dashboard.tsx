@@ -162,7 +162,7 @@ export default function Dashboard() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Painel</h1>
           <p className="text-muted-foreground mt-1">
             Bem-vindo, {profile?.nome_completo?.split(' ')[0] || 'Usuário'}!
           </p>
