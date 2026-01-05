@@ -52,7 +52,7 @@ const AVAILABLE_ROLES: AppRole[] = ASSIGNABLE_ROLES;
 export default function Usuarios() {
   // Access control: Admin Principal ou Admin Básico podem gerenciar usuários
   const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
-  const { isAdminPrincipal, roles: currentUserRoles } = useAuth();
+  const { isAdminPrincipal, roles: currentUserRoles, profile } = useAuth();
   
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -220,6 +220,9 @@ export default function Usuarios() {
     setIsSubmitting(true);
 
     try {
+      // Obter company_id do admin que está criando
+      const adminCompanyId = profile?.company_id;
+
       // Criar usuário via Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: createFormData.email,
@@ -227,6 +230,7 @@ export default function Usuarios() {
         options: {
           data: {
             nome_completo: createFormData.nome_completo,
+            company_id: adminCompanyId, // Passar company_id para o trigger
           },
         },
       });
