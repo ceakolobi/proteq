@@ -34,6 +34,7 @@ export interface Profile {
   cpf?: string;
   sede_id?: string;
   regiao_id?: string;
+  company_id?: string;
   ativo: boolean;
   is_admin_principal: boolean;
   must_change_password: boolean;
