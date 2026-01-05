@@ -247,8 +247,12 @@ export default function Leads() {
 
   const isConsultor = hasRole('consultor_vendas');
   const isAdminRegional = hasRole('admin_regional');
-  const canCreate = isAdminPrincipal || isAdminRegional || isConsultor;
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas']);
+  const isAdminBasico = hasRole('admin_nivel_basico');
+  const isGerente = hasRole('gerente');
+
+  // Admin Básico e Gerente devem ter acesso total ao módulo de Leads
+  const canCreate = isAdminPrincipal || isAdminBasico || isGerente || isAdminRegional || isConsultor;
+  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas']);
 
   useEffect(() => {
     document.title = 'Leads | MARKA CRM';
