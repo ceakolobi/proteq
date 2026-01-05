@@ -44,7 +44,7 @@ const NotFound = () => {
           A página que você está procurando não existe ou você não tem permissão para acessá-la.
         </p>
         <Button onClick={handleNavigate} className="mt-4">
-          {user ? 'Voltar ao Dashboard' : 'Fazer Login'}
+          {user ? 'Voltar ao Painel' : 'Fazer Login'}
         </Button>
       </div>
     </div>

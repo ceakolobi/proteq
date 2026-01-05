@@ -87,7 +87,7 @@ const navSections: NavSection[] = [
     icon: <LayoutDashboard className="h-4 w-4" />,
     items: [
       {
-        title: 'Dashboard',
+        title: 'Painel',
         href: '/dashboard',
         icon: <LayoutDashboard className="h-4 w-4" />,
         // Todos têm acesso ao dashboard (cada um vê sua versão)

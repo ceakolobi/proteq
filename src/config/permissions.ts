@@ -64,7 +64,7 @@ export interface RoutePermission {
 
 export const ROUTE_PERMISSIONS: RoutePermission[] = [
   // Dashboard - todos têm acesso
-  { path: '/dashboard', allowedRoles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'], label: 'Dashboard' },
+  { path: '/dashboard', allowedRoles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'], label: 'Painel' },
   
   // Comercial
   { path: '/leads', allowedRoles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'], label: 'Leads' },
