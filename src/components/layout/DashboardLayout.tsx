@@ -1,9 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
 import { usePWA } from '@/hooks/usePWA';
 import { MobileNavBar } from '@/components/pwa/MobileNavBar';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  PermissionModule, 
+  PermissionMatrix,
+  PERMISSION_MODULES,
+  PERMISSION_ACTIONS,
+} from '@/hooks/useUserPermissions';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,6 +69,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   roles?: string[];
+  module?: PermissionModule; // Link to permission module for granular control
 }
 
 interface NavSection {
@@ -90,6 +98,7 @@ const navSections: NavSection[] = [
         title: 'Painel',
         href: '/dashboard',
         icon: <LayoutDashboard className="h-4 w-4" />,
+        module: 'dashboard',
         // Todos têm acesso ao dashboard (cada um vê sua versão)
       },
     ],
@@ -102,18 +111,21 @@ const navSections: NavSection[] = [
         title: 'Leads',
         href: '/leads',
         icon: <UserCircle className="h-4 w-4" />,
+        module: 'leads',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
       {
         title: 'Cotações',
         href: '/cotacoes',
         icon: <FileText className="h-4 w-4" />,
+        module: 'cotacoes',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
       {
         title: 'Simulador',
         href: '/cotacao',
         icon: <DollarSign className="h-4 w-4" />,
+        module: 'cotacoes',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
     ],
@@ -126,24 +138,28 @@ const navSections: NavSection[] = [
         title: 'Painel Regional',
         href: '/regional',
         icon: <Building2 className="h-4 w-4" />,
+        module: 'dashboard',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente'],
       },
       {
         title: 'Painel Consultor',
         href: '/consultor',
         icon: <UserCircle className="h-4 w-4" />,
+        module: 'dashboard',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
       {
         title: 'Consultores',
         href: '/consultores',
         icon: <Users className="h-4 w-4" />,
+        module: 'usuarios',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente'],
       },
       {
         title: 'Sedes',
         href: '/sedes',
         icon: <Building2 className="h-4 w-4" />,
+        module: 'configuracoes',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
       },
     ],
@@ -156,36 +172,42 @@ const navSections: NavSection[] = [
         title: 'Associados',
         href: '/associados',
         icon: <Users className="h-4 w-4" />,
+        module: 'associados',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'cadastro'],
       },
       {
         title: 'Veículos',
         href: '/veiculos',
         icon: <Car className="h-4 w-4" />,
+        module: 'veiculos',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'cadastro'],
       },
       {
         title: 'Ativações',
         href: '/ativacoes',
         icon: <Shield className="h-4 w-4" />,
+        module: 'contratos',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'cadastro', 'financeiro'],
       },
       {
         title: 'Vistorias',
         href: '/vistorias',
         icon: <ClipboardCheck className="h-4 w-4" />,
+        module: 'vistorias',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'vistoriador'],
       },
       {
         title: 'Usuários',
         href: '/usuarios',
         icon: <UserCog className="h-4 w-4" />,
+        module: 'usuarios',
         roles: ['admin_principal', 'admin_nivel_basico'],
       },
       {
         title: 'Relatórios',
         href: '/relatorios',
         icon: <BarChart3 className="h-4 w-4" />,
+        module: 'relatorios',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'financeiro'],
       },
     ],
@@ -198,12 +220,14 @@ const navSections: NavSection[] = [
         title: 'Financeiro',
         href: '/financeiro',
         icon: <CreditCard className="h-4 w-4" />,
+        module: 'financeiro',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'financeiro'],
       },
       {
         title: 'Cotas',
         href: '/cotas',
         icon: <DollarSign className="h-4 w-4" />,
+        module: 'cotas',
         roles: ['admin_principal', 'admin_nivel_basico'],
       },
     ],
@@ -216,12 +240,14 @@ const navSections: NavSection[] = [
         title: 'Painel Admin',
         href: '/admin',
         icon: <Shield className="h-4 w-4" />,
+        module: 'configuracoes',
         roles: ['admin_principal', 'admin_nivel_basico'],
       },
       {
         title: 'Configurações',
         href: '/configuracoes',
         icon: <Settings className="h-4 w-4" />,
+        module: 'configuracoes',
         roles: ['admin_principal', 'admin_nivel_basico'],
       },
     ],
@@ -233,22 +259,81 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { profile, roles, isAdminPrincipal, signOut } = useAuth();
+  const { profile, roles, isAdminPrincipal, signOut, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { isPWAMode, isStandalone } = usePWA();
+  const [userPermissions, setUserPermissions] = useState<PermissionMatrix>({});
+
+  // Load user permissions
+  useEffect(() => {
+    const loadPermissions = async () => {
+      if (!user?.id || isAdminPrincipal) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('user_permissions')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        // Convert to matrix format
+        const matrix: PermissionMatrix = {};
+        PERMISSION_MODULES.forEach(mod => {
+          matrix[mod.id] = {};
+          PERMISSION_ACTIONS.forEach(act => {
+            const perm = data?.find(
+              (p: any) => p.module === mod.id && p.action === act.id
+            );
+            matrix[mod.id][act.id] = perm?.granted || false;
+          });
+        });
+        setUserPermissions(matrix);
+      } catch (error) {
+        console.error('Error loading permissions:', error);
+      }
+    };
+
+    loadPermissions();
+  }, [user?.id, isAdminPrincipal]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
 
-  const filterItem = (item: NavItem) => {
-    if (!item.roles) return true;
+  // Check if user has permission to view a module
+  const hasModulePermission = useCallback((module?: PermissionModule): boolean => {
     if (isAdminPrincipal) return true;
-    return item.roles.some(role => roles.includes(role as any));
-  };
+    if (!module) return true; // No module restriction
+    
+    // Check granular permission if available
+    const modulePerms = userPermissions[module];
+    if (modulePerms && Object.keys(modulePerms).length > 0) {
+      // If user has any permission record for this module, check 'visualizar'
+      return modulePerms['visualizar'] === true;
+    }
+    
+    // Fallback to role-based check (for users without granular permissions)
+    return true;
+  }, [isAdminPrincipal, userPermissions]);
+
+  const filterItem = useCallback((item: NavItem) => {
+    // First check role-based access
+    if (item.roles && !isAdminPrincipal) {
+      const hasRoleAccess = item.roles.some(role => roles.includes(role as any));
+      if (!hasRoleAccess) return false;
+    }
+    
+    // Then check granular permission (if permissions are loaded)
+    if (item.module && Object.keys(userPermissions).length > 0) {
+      return hasModulePermission(item.module);
+    }
+    
+    return true;
+  }, [roles, isAdminPrincipal, userPermissions, hasModulePermission]);
 
   const filteredSections = useMemo(() => 
     navSections
@@ -257,7 +342,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         items: section.items.filter(filterItem),
       }))
       .filter(section => section.items.length > 0),
-    [roles, isAdminPrincipal]
+    [filterItem]
   );
 
   // Determine which sections should be open based on current path

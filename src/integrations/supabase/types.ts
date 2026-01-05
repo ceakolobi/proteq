@@ -1944,6 +1944,53 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          action: Database["public"]["Enums"]["permission_action"]
+          company_id: string | null
+          created_at: string
+          granted: boolean
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["permission_module"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["permission_action"]
+          company_id?: string | null
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["permission_module"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["permission_action"]
+          company_id?: string | null
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["permission_module"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           company_id: string | null
@@ -2425,6 +2472,14 @@ export type Database = {
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
+      has_permission: {
+        Args: {
+          _action: Database["public"]["Enums"]["permission_action"]
+          _module: Database["public"]["Enums"]["permission_module"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2507,6 +2562,20 @@ export type Database = {
         | "outro"
       lead_status: "novo" | "em_contato" | "cotado" | "convertido" | "perdido"
       metodo_valoracao: "fipe" | "venal" | "nota_fiscal"
+      permission_action: "visualizar" | "criar" | "editar" | "excluir"
+      permission_module:
+        | "dashboard"
+        | "leads"
+        | "cotacoes"
+        | "associados"
+        | "veiculos"
+        | "vistorias"
+        | "contratos"
+        | "relatorios"
+        | "financeiro"
+        | "usuarios"
+        | "cotas"
+        | "configuracoes"
       proposal_status:
         | "rascunho"
         | "enviada"
@@ -2713,6 +2782,21 @@ export const Constants = {
       ],
       lead_status: ["novo", "em_contato", "cotado", "convertido", "perdido"],
       metodo_valoracao: ["fipe", "venal", "nota_fiscal"],
+      permission_action: ["visualizar", "criar", "editar", "excluir"],
+      permission_module: [
+        "dashboard",
+        "leads",
+        "cotacoes",
+        "associados",
+        "veiculos",
+        "vistorias",
+        "contratos",
+        "relatorios",
+        "financeiro",
+        "usuarios",
+        "cotas",
+        "configuracoes",
+      ],
       proposal_status: [
         "rascunho",
         "enviada",
