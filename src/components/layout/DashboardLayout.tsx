@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
 import { usePWA } from '@/hooks/usePWA';
+import { useBrand } from '@/hooks/useBrand';
 import { MobileNavBar } from '@/components/pwa/MobileNavBar';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -35,7 +36,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
-  Shield,
   LayoutDashboard,
   Users,
   Building2,
@@ -56,6 +56,7 @@ import {
   Briefcase,
   Wrench,
   UserCog,
+  Shield,
   ShieldCheck,
   Info,
 } from 'lucide-react';
@@ -264,6 +265,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { isPWAMode, isStandalone } = usePWA();
+  const { brand, getLogoForContext } = useBrand();
   const [userPermissions, setUserPermissions] = useState<PermissionMatrix>({});
 
   // Load user permissions
@@ -464,14 +466,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
+      {/* Logo dinâmica baseada no tema */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-sidebar-border/50">
-        <div className="p-2 bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-md">
-          <Shield className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <img 
+          src={getLogoForContext('sidebar')} 
+          alt={brand.name}
+          className="h-8 object-contain"
+        />
         <div>
-          <h1 className="font-bold text-base text-sidebar-foreground tracking-tight">MARKA CRM</h1>
-          <p className="text-[10px] text-muted-foreground/80 font-medium">Sistema de Gestão</p>
+          <h1 className="font-bold text-base text-sidebar-foreground tracking-tight">{brand.name}</h1>
+          <p className="text-[10px] text-muted-foreground/80 font-medium">{brand.subtitle}</p>
         </div>
       </div>
 
@@ -563,10 +567,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-gradient-to-br from-primary to-primary/80 rounded-lg">
-              <Shield className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-sm">MARKA CRM</span>
+            <img 
+              src={getLogoForContext('header')} 
+              alt={brand.name}
+              className="h-6 object-contain"
+            />
+            <span className="font-bold text-sm">{brand.name}</span>
           </div>
         </div>
         <div className="flex items-center gap-1">

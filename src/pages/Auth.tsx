@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useBrand } from '@/hooks/useBrand';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,13 +17,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, Shield, CreditCard, Eye, EyeOff } from 'lucide-react';
+import { Car, Lock, CreditCard, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const [loginIdentifier, setLoginIdentifier] = useState(''); // CPF ou Email
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const { brand, getLogoForContext } = useBrand();
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 
@@ -338,13 +340,15 @@ export default function Auth() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
         <div className="relative z-10 flex flex-col justify-center px-12 text-primary-foreground">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-primary-foreground/20 rounded-xl">
-              <Shield className="h-10 w-10" />
-            </div>
+          <div className="flex items-center gap-4 mb-8">
+            <img 
+              src={getLogoForContext('login')} 
+              alt={brand.name}
+              className="h-14 object-contain"
+            />
             <div>
-              <h1 className="text-3xl font-bold">MARKA CRM</h1>
-              <p className="text-primary-foreground/80">Sistema de Gestão</p>
+              <h1 className="text-3xl font-bold">{brand.name}</h1>
+              <p className="text-primary-foreground/80">{brand.subtitle}</p>
             </div>
           </div>
 
@@ -384,11 +388,13 @@ export default function Auth() {
       <div className="flex-1 flex items-center justify-center p-8">
         <Card className="w-full max-w-md border-0 shadow-xl">
           <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4 lg:hidden">
-              <div className="p-2 bg-primary rounded-lg">
-                <Shield className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">MARKA CRM</span>
+            <div className="flex items-center justify-center gap-3 mb-4 lg:hidden">
+              <img 
+                src={getLogoForContext('login')} 
+                alt={brand.name}
+                className="h-10 object-contain"
+              />
+              <span className="text-xl font-bold">{brand.name}</span>
             </div>
 
             <CardTitle className="text-2xl font-bold">

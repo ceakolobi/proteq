@@ -527,6 +527,7 @@ export type Database = {
           id: string
           logo: string | null
           logo_branca: string | null
+          logo_escura: string | null
           modo_white_label: boolean | null
           nome: string
           pdf_contracapa: string | null
@@ -556,6 +557,7 @@ export type Database = {
           id?: string
           logo?: string | null
           logo_branca?: string | null
+          logo_escura?: string | null
           modo_white_label?: boolean | null
           nome: string
           pdf_contracapa?: string | null
@@ -585,6 +587,7 @@ export type Database = {
           id?: string
           logo?: string | null
           logo_branca?: string | null
+          logo_escura?: string | null
           modo_white_label?: boolean | null
           nome?: string
           pdf_contracapa?: string | null

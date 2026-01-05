@@ -12,9 +12,10 @@ export interface CompanySettings {
   endereco: string | null;
   cidade: string | null;
   estado: string | null;
-  // Branding
-  logo: string | null;
-  logo_branca: string | null;
+  // Branding - 3 versões de logo para suporte completo a temas
+  logo: string | null;           // Logo primária/colorida
+  logo_branca: string | null;    // Logo clara (para fundos escuros)
+  logo_escura: string | null;    // Logo escura (para fundos claros)
   cor_primaria: string;
   cor_secundaria: string;
   cor_destaque: string;
@@ -40,8 +41,9 @@ export interface SystemSettings {
   id: string;
   empresa_nome: string;
   cnpj: string | null;
-  empresa_logo: string | null;
-  empresa_logo_branca: string | null;
+  empresa_logo: string | null;        // Logo primária/colorida
+  empresa_logo_branca: string | null; // Logo clara
+  empresa_logo_escura: string | null; // Logo escura
   cor_primaria: string;
   cor_secundaria: string;
   cor_destaque: string;
@@ -68,6 +70,7 @@ const defaultSettings: SystemSettings = {
   cnpj: null,
   empresa_logo: null,
   empresa_logo_branca: null,
+  empresa_logo_escura: null,
   cor_primaria: "#F97316",
   cor_secundaria: "#22C55E",
   cor_destaque: "#F59E0B",
@@ -96,6 +99,7 @@ function companyToSettings(company: CompanySettings): SystemSettings {
     cnpj: company.cnpj,
     empresa_logo: company.logo,
     empresa_logo_branca: company.logo_branca,
+    empresa_logo_escura: company.logo_escura,
     cor_primaria: company.cor_primaria,
     cor_secundaria: company.cor_secundaria,
     cor_destaque: company.cor_destaque,
@@ -216,6 +220,7 @@ export function useCompanySettings() {
       if (updates.cnpj !== undefined) companyUpdates.cnpj = updates.cnpj;
       if (updates.empresa_logo !== undefined) companyUpdates.logo = updates.empresa_logo;
       if (updates.empresa_logo_branca !== undefined) companyUpdates.logo_branca = updates.empresa_logo_branca;
+      if (updates.empresa_logo_escura !== undefined) companyUpdates.logo_escura = updates.empresa_logo_escura;
       if (updates.cor_primaria !== undefined) companyUpdates.cor_primaria = updates.cor_primaria;
       if (updates.cor_secundaria !== undefined) companyUpdates.cor_secundaria = updates.cor_secundaria;
       if (updates.cor_destaque !== undefined) companyUpdates.cor_destaque = updates.cor_destaque;
@@ -260,7 +265,7 @@ export function useCompanySettings() {
 
   const uploadImage = async (
     file: File,
-    type: "logo" | "logo_branca" | "contracapa" | "cover_1" | "cover_2" | "cover_3" | "cover_4"
+    type: "logo" | "logo_branca" | "logo_escura" | "contracapa" | "cover_1" | "cover_2" | "cover_3" | "cover_4"
   ): Promise<string | null> => {
     try {
       const fileExt = file.name.split(".").pop();

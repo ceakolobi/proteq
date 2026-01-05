@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useBrand } from "@/hooks/useBrand";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, CheckCircle, XCircle, Calendar, User, FileText, Clock } from "lucide-react";
+import { CheckCircle, XCircle, Calendar, User, FileText, Clock, Car } from "lucide-react";
 
 interface PropostaValidacao {
   id: string;
@@ -20,6 +21,7 @@ interface PropostaValidacao {
 export default function ValidarProposta() {
   const [searchParams] = useSearchParams();
   const cotacaoId = searchParams.get("id");
+  const { brand, getLogoForContext } = useBrand();
   
   const [isLoading, setIsLoading] = useState(true);
   const [proposta, setProposta] = useState<PropostaValidacao | null>(null);
@@ -137,12 +139,14 @@ export default function ValidarProposta() {
     <div className="min-h-screen bg-gradient-to-br from-harmony-orange/10 via-background to-harmony-green/10 flex items-center justify-center p-4">
       <Card className={`w-full max-w-md ${proposta.status === "ativa" ? "border-harmony-green" : "border-muted"}`}>
         <CardHeader className="text-center pb-2">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-harmony-orange to-harmony-green flex items-center justify-center">
-              <span className="text-white text-lg font-bold">H</span>
-            </div>
-            <span className="text-xl font-bold">HARMONY AGRO</span>
+          {/* Logo dinâmica */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <img 
+              src={getLogoForContext('auto')} 
+              alt={brand.name}
+              className="h-10 object-contain"
+            />
+            <span className="text-xl font-bold">{brand.name}</span>
           </div>
           
           {/* Status Badge */}
@@ -181,7 +185,7 @@ export default function ValidarProposta() {
           
           {/* Veículo */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <Shield className="w-5 h-5 text-harmony-green flex-shrink-0" />
+            <Car className="w-5 h-5 text-primary flex-shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Veículo</p>
               <p className="font-medium">{proposta.marca} {proposta.modelo}</p>
