@@ -3,6 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useUserRolesBatch } from '@/hooks/useSedeRegioes';
+import { 
+  useUserPermissions, 
+  PermissionMatrix, 
+  PERMISSION_MODULES,
+  PERMISSION_ACTIONS,
+} from '@/hooks/useUserPermissions';
+import { PermissionEditor } from '@/components/users/PermissionEditor';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
@@ -52,7 +60,7 @@ const AVAILABLE_ROLES: AppRole[] = ASSIGNABLE_ROLES;
 export default function Usuarios() {
   // Access control: Admin Principal ou Admin Básico podem gerenciar usuários
   const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
-  const { isAdminPrincipal, roles: currentUserRoles, profile } = useAuth();
+  const { isAdminPrincipal, roles: currentUserRoles, profile, user } = useAuth();
   
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +70,11 @@ export default function Usuarios() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Permission management
+  const { savePermissions, applyDefaultPermissions } = useUserPermissions();
+  const [editingPermissions, setEditingPermissions] = useState<PermissionMatrix>({});
+  const [createPermissions, setCreatePermissions] = useState<PermissionMatrix>({});
 
   // Hooks centralizados
   const { sedes, regioes } = useReferenceData({ loadSedes: true, loadRegioes: true, filterByUserAccess: false });
@@ -162,7 +175,36 @@ export default function Usuarios() {
     );
   };
 
-  const handleOpenDialog = (user: UserWithRole) => {
+  // Fetch user permissions when opening edit dialog
+  const fetchUserPermissions = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      // Convert to matrix format
+      const matrix: PermissionMatrix = {};
+      PERMISSION_MODULES.forEach(mod => {
+        matrix[mod.id] = {};
+        PERMISSION_ACTIONS.forEach(act => {
+          const perm = data?.find(
+            (p: any) => p.module === mod.id && p.action === act.id
+          );
+          matrix[mod.id][act.id] = perm?.granted || false;
+        });
+      });
+      
+      return matrix;
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+      return {};
+    }
+  };
+
+  const handleOpenDialog = async (user: UserWithRole) => {
     // Usar função centralizada para verificar permissão
     if (!canManageThisUser(user)) {
       toast({
@@ -181,6 +223,11 @@ export default function Usuarios() {
       ativo: user.ativo,
       must_change_password: (user as any).must_change_password || false,
     });
+
+    // Load user permissions
+    const userPerms = await fetchUserPermissions(user.id);
+    setEditingPermissions(userPerms);
+
     setIsDialogOpen(true);
   };
 
@@ -193,7 +240,21 @@ export default function Usuarios() {
       sede_id: '',
       regiao_id: '',
     });
+    // Reset permissions to empty
+    setCreatePermissions({});
     setIsCreateDialogOpen(true);
+  };
+
+  // Apply default permissions when role changes
+  const handleRoleChange = (role: AppRole, isCreate: boolean) => {
+    const defaultPerms = applyDefaultPermissions(role);
+    if (isCreate) {
+      setCreateFormData(prev => ({ ...prev, role }));
+      setCreatePermissions(defaultPerms);
+    } else {
+      setFormData(prev => ({ ...prev, role }));
+      setEditingPermissions(defaultPerms);
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -268,6 +329,18 @@ export default function Usuarios() {
         });
 
       if (roleError) throw roleError;
+
+      // Salvar permissões se for admin principal
+      if (isAdminPrincipal && adminCompanyId) {
+        const permissionsSaved = await savePermissions(
+          authData.user.id,
+          createPermissions,
+          adminCompanyId
+        );
+        if (!permissionsSaved) {
+          console.warn('Permissions could not be saved');
+        }
+      }
 
       toast({
         title: 'Usuário criado',
@@ -354,6 +427,18 @@ export default function Usuarios() {
           });
 
         if (roleError) throw roleError;
+      }
+
+      // Salvar permissões se for admin principal
+      if (isAdminPrincipal && profile?.company_id) {
+        const permissionsSaved = await savePermissions(
+          editingUser.id,
+          editingPermissions,
+          profile.company_id
+        );
+        if (!permissionsSaved) {
+          console.warn('Permissions could not be saved');
+        }
       }
 
       toast({
@@ -567,10 +652,10 @@ export default function Usuarios() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create_role">Perfil de Acesso *</Label>
+                <Label htmlFor="create_role">Perfil Base *</Label>
                 <Select
                   value={createFormData.role}
-                  onValueChange={(value) => setCreateFormData({ ...createFormData, role: value as AppRole })}
+                  onValueChange={(value) => handleRoleChange(value as AppRole, true)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um perfil" />
@@ -583,6 +668,9 @@ export default function Usuarios() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  O perfil define as permissões iniciais sugeridas
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -635,6 +723,15 @@ export default function Usuarios() {
                 </Select>
               </div>
 
+              {/* Permission Editor for Create */}
+              {isAdminPrincipal && createFormData.role && (
+                <PermissionEditor
+                  permissions={createPermissions}
+                  onChange={setCreatePermissions}
+                  disabled={false}
+                />
+              )}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancelar
@@ -649,119 +746,140 @@ export default function Usuarios() {
 
         {/* Edit User Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Editar Usuário</DialogTitle>
               <DialogDescription>
                 {editingUser?.nome_completo} ({editingUser?.email})
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role">Perfil de Acesso</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value as AppRole })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um perfil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_ROLES.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {ROLE_LABELS[role] || roleLabels[role]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {(isAdminPrincipal || currentUserRoles.includes('admin_nivel_basico')) && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="sede">Sede</Label>
-                    <Select
-                      value={formData.sede_id}
-                      onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          sede_id: value === '__none__' ? '' : value,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma sede" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Nenhuma</SelectItem>
-                        {sedes.map((sede) => (
-                          <SelectItem key={sede.id} value={sede.id}>
-                            {sede.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="regiao">Região</Label>
-                    <Select
-                      value={formData.regiao_id}
-                      onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          regiao_id: value === '__none__' ? '' : value,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma região" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">Nenhuma</SelectItem>
-                        {regioes.map((regiao) => (
-                          <SelectItem key={regiao.id} value={regiao.id}>
-                            {regiao.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-
-              <div className="flex items-center justify-between">
-                <Label htmlFor="ativo">Usuário ativo</Label>
-                <Switch
-                  id="ativo"
-                  checked={formData.ativo}
-                  onCheckedChange={(checked) => setFormData({ ...formData, ativo: checked })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="must_change_password">Forçar troca de senha</Label>
+            <ScrollArea className="max-h-[70vh] pr-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="role">Perfil Base</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => handleRoleChange(value as AppRole, false)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role] || roleLabels[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    O usuário deverá alterar a senha no próximo login
+                    Alterar o perfil irá redefinir as permissões para o padrão
                   </p>
                 </div>
-                <Switch
-                  id="must_change_password"
-                  checked={formData.must_change_password}
-                  onCheckedChange={(checked) => setFormData({ ...formData, must_change_password: checked })}
-                />
-              </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
-              </DialogFooter>
-            </form>
+                {(isAdminPrincipal || currentUserRoles.includes('admin_nivel_basico')) && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="sede">Sede</Label>
+                      <Select
+                        value={formData.sede_id}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            sede_id: value === '__none__' ? '' : value,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma sede" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Nenhuma</SelectItem>
+                          {sedes.map((sede) => (
+                            <SelectItem key={sede.id} value={sede.id}>
+                              {sede.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="regiao">Região</Label>
+                      <Select
+                        value={formData.regiao_id}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            regiao_id: value === '__none__' ? '' : value,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma região" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Nenhuma</SelectItem>
+                          {regioes.map((regiao) => (
+                            <SelectItem key={regiao.id} value={regiao.id}>
+                              {regiao.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ativo">Usuário ativo</Label>
+                  <Switch
+                    id="ativo"
+                    checked={formData.ativo}
+                    onCheckedChange={(checked) => setFormData({ ...formData, ativo: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="must_change_password">Forçar troca de senha</Label>
+                    <p className="text-xs text-muted-foreground">
+                      O usuário deverá alterar a senha no próximo login
+                    </p>
+                  </div>
+                  <Switch
+                    id="must_change_password"
+                    checked={formData.must_change_password}
+                    onCheckedChange={(checked) => setFormData({ ...formData, must_change_password: checked })}
+                  />
+                </div>
+
+                {/* Permission Editor for Edit */}
+                {isAdminPrincipal && (
+                  <PermissionEditor
+                    permissions={editingPermissions}
+                    onChange={setEditingPermissions}
+                    disabled={false}
+                    isAdminPrincipal={editingUser?.is_admin_principal}
+                  />
+                )}
+
+                {!isAdminPrincipal && (
+                  <div className="p-3 bg-muted/50 rounded-md text-sm text-muted-foreground">
+                    Apenas o Admin Principal pode modificar permissões de acesso.
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       </div>
