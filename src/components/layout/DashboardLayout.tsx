@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
+import { usePWA } from '@/hooks/usePWA';
+import { MobileNavBar } from '@/components/pwa/MobileNavBar';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -235,6 +237,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { isPWAMode, isStandalone } = usePWA();
 
   const handleSignOut = async () => {
     await signOut();
@@ -487,12 +490,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       {/* Main content */}
-      <main className="lg:pl-56 lg:pt-14 min-h-[calc(100vh-3.5rem)] flex flex-col">
+      <main className={cn(
+        "lg:pl-56 lg:pt-14 min-h-[calc(100vh-3.5rem)] flex flex-col",
+        isPWAMode && "pb-20" // Espaço para a barra de navegação mobile
+      )}>
         <div className="p-4 lg:p-6 flex-1">
           {children}
         </div>
-        <SystemFooter />
+        {!isPWAMode && <SystemFooter />}
       </main>
+
+      {/* Mobile Bottom Navigation - Apenas em modo PWA/mobile */}
+      {isPWAMode && <MobileNavBar />}
     </div>
   );
 }
