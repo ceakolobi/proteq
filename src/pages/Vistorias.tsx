@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,14 +107,13 @@ export default function Vistorias() {
   const { user, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking, userSedeId } = useAccessControl('authenticated');
 
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'vistoriador', 'consultor_vendas', 'cadastro', 'financeiro']);
-  const canCreateVistoria = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro']);
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate: canCreateVistoria, canEdit, isLoading: permissionsLoading } = useModuleAccess('vistorias');
+
   const canAssignVistoriador = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro']);
-  // Só AdminSede, Backoffice (cadastro) ou AdminPrincipal podem Aprovar/Reprovar
   const canApproveReject = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro']);
   const isVistoriador = hasRole('vistoriador');
   const isFinanceiro = hasRole('financeiro');
-  // Vistoriador só pode mudar para "Em andamento" quando atribuído
   const canStartInspection = isVistoriador;
 
   const [vistorias, setVistorias] = useState<VistoriaDB[]>([]);

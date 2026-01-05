@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,8 +27,11 @@ import { diaVencimentoOptions } from '@/types/financeiro';
 
 export default function ConfiguracoesFinanceiras() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('admin_principal_only');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { isAdminPrincipal } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canEdit, isLoading: permissionsLoading } = useModuleAccess('configuracoes');
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

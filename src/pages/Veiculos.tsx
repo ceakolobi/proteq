@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,6 +116,9 @@ export default function Veiculos() {
   const { user, profile, isAdminPrincipal, hasRole, hasAnyRole } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
 
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModuleAccess('veiculos');
+
   const [veiculos, setVeiculos] = useState<VeiculoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -162,10 +166,8 @@ export default function Veiculos() {
   const isFinanceiro = hasRole('financeiro');
   const isVistoriador = hasRole('vistoriador');
   
-  const canCreate = isAdminPrincipal || isAdminRegional || isConsultor || isCadastro;
-  const canEdit = isAdminPrincipal || isAdminRegional || isCadastro;
+  // Usa permissões granulares ou fallback por role
   const canUpdateStatus = isAdminPrincipal || isAdminRegional || isCadastro;
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro', 'financeiro', 'vistoriador']);
 
   // Normalizações / validações básicas
   const normalizeChassi = (value: string) => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -208,11 +210,11 @@ export default function Veiculos() {
   }, []);
 
   useEffect(() => {
-    if (isAllowed && !isChecking && canAccessPage) {
+    if (isAllowed && !isChecking && !permissionsLoading && canAccessPage) {
       fetchVeiculos();
       fetchAssociados();
     }
-  }, [isAllowed, isChecking, canAccessPage, sedes, regioes, cotas, consultores, user?.id, profile?.sede_id, isConsultor, isAdminRegional, isAdminPrincipal, isVistoriador]);
+  }, [isAllowed, isChecking, permissionsLoading, canAccessPage, sedes, regioes, cotas, consultores, user?.id, profile?.sede_id, isConsultor, isAdminRegional, isAdminPrincipal, isVistoriador]);
 
   async function fetchAssociados() {
     try {
@@ -238,7 +240,7 @@ export default function Veiculos() {
     }
   }
 
-  if (isChecking) {
+  if (isChecking || permissionsLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center py-20">

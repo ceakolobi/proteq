@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useFinanceiro } from '@/hooks/useFinanceiro';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,8 +53,12 @@ const formatCurrency = (value: number) => {
 
 export default function Financeiro() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking, userSedeId, userRegiaoId } = useAccessControl('admin_or_basico');
+  const { isAllowed, isChecking, userSedeId, userRegiaoId } = useAccessControl('authenticated');
   const { user, roles, isAdminPrincipal } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, isLoading: permissionsLoading } = useModuleAccess('financeiro');
+  
   const { 
     stats, 
     loading, 
@@ -65,14 +70,14 @@ export default function Financeiro() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const canManage = isAdminPrincipal || roles.includes('financeiro');
+  const canManage = canEdit || isAdminPrincipal || roles.includes('financeiro');
 
   useEffect(() => {
-    if (!isChecking && !isAllowed) {
+    if (!isChecking && !permissionsLoading && !canAccessPage) {
       toast.error('Acesso restrito ao módulo financeiro');
       navigate('/dashboard');
     }
-  }, [isChecking, isAllowed, navigate]);
+  }, [isChecking, permissionsLoading, canAccessPage, navigate]);
 
   const handleGerarMensalidades = async () => {
     setIsGenerating(true);

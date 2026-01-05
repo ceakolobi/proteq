@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinanceiro } from '@/hooks/useFinanceiro';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,7 +48,11 @@ const getStatusBadge = (status: InadimplenteInfo['status_financeiro']) => {
 
 export default function Inadimplencia() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('financeiro');
+  
   const { inadimplentes, fetchInadimplentes } = useFinanceiro();
   const [loading, setLoading] = useState(true);
 

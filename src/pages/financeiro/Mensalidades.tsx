@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinanceiro } from '@/hooks/useFinanceiro';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,8 +69,12 @@ const formatDate = (dateStr: string) => {
 
 export default function Mensalidades() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl('admin_or_basico');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { roles, isAdminPrincipal } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canEdit, isLoading: permissionsLoading } = useModuleAccess('financeiro');
+  
   const { mensalidades, loading, fetchMensalidades, registrarPagamento, alterarStatusMensalidade } = useFinanceiro();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,7 +91,7 @@ export default function Mensalidades() {
   const [newStatus, setNewStatus] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const canManage = isAdminPrincipal || roles.includes('financeiro');
+  const canManage = canEdit || isAdminPrincipal || roles.includes('financeiro');
 
   useEffect(() => {
     if (!isChecking && isAllowed) {

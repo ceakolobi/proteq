@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,7 +108,9 @@ export default function Ativacoes() {
   const { user, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking, userSedeId } = useAccessControl('authenticated');
 
-  const canAccessPage = isAdminPrincipal || hasAnyRole(['admin_regional', 'consultor_vendas', 'cadastro', 'financeiro']);
+  // Permissões granulares com fallback por role
+  const { canAccessPage, canCreate, canEdit, isLoading: permissionsLoading } = useModuleAccess('contratos');
+
   const canActivate = isAdminPrincipal || hasAnyRole(['admin_regional', 'cadastro']);
   const canSuspend = isAdminPrincipal || hasAnyRole(['admin_regional', 'financeiro']);
   const canCancel = isAdminPrincipal || hasRole('admin_regional');

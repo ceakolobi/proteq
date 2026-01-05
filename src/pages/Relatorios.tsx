@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useCanExport } from '@/hooks/useDataMasking';
@@ -41,8 +42,12 @@ import { toast } from 'sonner';
 type ReportType = 'regional' | 'consultor' | 'inadimplencia' | 'sinistro';
 
 export default function Relatorios() {
-  const { isAllowed, isChecking } = useAccessControl('admin_or_gerente');
+  const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { isAdminPrincipal, isGlobalAdmin, hasRole, profile, roles } = useAuth();
+  
+  // Permissões granulares com fallback por role
+  const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('relatorios');
+  
   const { regioes, consultores } = useReferenceData({ loadRegioes: true, loadConsultores: true });
   const { isLoading, fetchRegionalReport, fetchConsultorReport, fetchInadimplenciaReport, fetchSinistroReport } = useReportData();
   
