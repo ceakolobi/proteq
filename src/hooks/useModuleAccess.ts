@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPermissions, PermissionModule, PermissionAction } from './useUserPermissions';
 
@@ -14,18 +14,22 @@ import { useUserPermissions, PermissionModule, PermissionAction } from './useUse
  * 3. Usuário sem permissões granulares → fallback por role (legado)
  */
 export function useModuleAccess(module: PermissionModule) {
-  const { user, isAdminPrincipal, hasAnyRole, roles } = useAuth();
+  const { user, isAdminPrincipal, hasAnyRole } = useAuth();
   const {
     permissions: permissionRows,
+    permissionMatrix,
     hasPermission,
     isLoading,
   } = useUserPermissions(user?.id);
 
   // Verifica se o usuário tem permissões granulares cadastradas
-  const hasGranularPermissions = permissionRows.length > 0;
+  // Precisa verificar se existem permissões E se alguma está com granted: true
+  const hasGranularPermissions = useMemo(() => {
+    return permissionRows.length > 0 && permissionRows.some(p => p.granted);
+  }, [permissionRows]);
 
   // Mapeamento de módulos para roles que teriam acesso por padrão (fallback legado)
-  const moduleRoleFallback: Record<PermissionModule, string[]> = {
+  const moduleRoleFallback: Record<PermissionModule, string[]> = useMemo(() => ({
     dashboard: ['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'financeiro', 'cadastro', 'vistoriador'],
     leads: ['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
     cotacoes: ['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
@@ -38,7 +42,7 @@ export function useModuleAccess(module: PermissionModule) {
     usuarios: ['admin_nivel_basico'],
     cotas: ['admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
     configuracoes: ['admin_nivel_basico'],
-  };
+  }), []);
 
   // Verifica acesso por role (fallback legado)
   const roleCanAccess = useCallback(
@@ -46,7 +50,7 @@ export function useModuleAccess(module: PermissionModule) {
       const allowedRoles = moduleRoleFallback[module] || [];
       return hasAnyRole(allowedRoles as any);
     },
-    [module, hasAnyRole]
+    [module, hasAnyRole, moduleRoleFallback]
   );
 
   // Função principal de verificação de permissão
@@ -57,14 +61,15 @@ export function useModuleAccess(module: PermissionModule) {
 
       // Se tem permissões granulares, usa elas (prioridade absoluta)
       if (hasGranularPermissions) {
-        return hasPermission(module, action);
+        // Verifica diretamente na matrix para o módulo e ação específicos
+        return permissionMatrix[module]?.[action] === true;
       }
 
       // Fallback: verifica por role (para usuários sem permissões cadastradas)
       // Para ações além de 'visualizar', assume que se pode visualizar, pode fazer tudo (legado)
       return roleCanAccess(action);
     },
-    [isAdminPrincipal, hasGranularPermissions, hasPermission, module, roleCanAccess]
+    [isAdminPrincipal, hasGranularPermissions, permissionMatrix, module, roleCanAccess]
   );
 
   return {
