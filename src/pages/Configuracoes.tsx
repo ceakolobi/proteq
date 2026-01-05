@@ -52,7 +52,7 @@ import { ptBR } from "date-fns/locale";
 
 export default function Configuracoes() {
   const navigate = useNavigate();
-  const { isAllowed, isChecking } = useAccessControl("admin_principal_only");
+  const { isAllowed, isChecking } = useAccessControl("admin_or_basico");
   const { settings, isLoading, isSaving, updateSettings, uploadImage } = useSettings();
   const { theme, setTheme } = useAppTheme();
   

@@ -220,7 +220,7 @@ const navSections: NavSection[] = [
         title: 'Configurações',
         href: '/configuracoes',
         icon: <Settings className="h-4 w-4" />,
-        roles: ['admin_principal'],
+        roles: ['admin_principal', 'admin_nivel_basico'],
       },
     ],
   },
