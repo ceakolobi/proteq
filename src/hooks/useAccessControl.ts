@@ -87,24 +87,29 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           break;
 
         case 'admin_or_basico':
-          // Admin Principal OU Admin Básico
+          // Admin Principal OU Admin Básico OU Admin Regional (legado)
           allowed = isAdminPrincipal === true || 
-                   roles.includes('admin_nivel_basico');
+                   roles.includes('admin_nivel_basico') ||
+                   roles.includes('admin_regional');
           break;
 
         case 'admin_or_gerente':
-          // Admin Principal OU Admin Básico OU Gerente
+          // Admin Principal OU Admin Básico OU Admin Regional (legado) OU Gerente
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_nivel_basico') ||
+                   roles.includes('admin_regional') ||
                    roles.includes('gerente');
           break;
 
         case 'all_roles':
-          // Todos os 4 perfis principais
+          // Todos os 4 perfis principais + legados operacionais
           allowed = isAdminPrincipal === true || 
                    roles.includes('admin_nivel_basico') ||
+                   roles.includes('admin_regional') ||
                    roles.includes('gerente') ||
-                   roles.includes('consultor_vendas');
+                   roles.includes('consultor_vendas') ||
+                   roles.includes('cadastro') ||
+                   roles.includes('financeiro');
           break;
 
         // ======= LEGADO (mantido para compatibilidade) =======

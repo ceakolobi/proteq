@@ -71,9 +71,13 @@ interface NavSection {
 /**
  * Navegação com permissões RBAC simplificadas:
  * - admin_principal: Acesso total
- * - admin_nivel_basico: Acesso completo (exceto config do admin_principal)
+ * - admin_nivel_basico (Admin Básico): Acesso completo (exceto config do admin_principal)
  * - gerente: Acesso operacional da unidade (sem config global, cotas ou usuários)
- * - consultor_vendas: Acesso ao próprio funil
+ * - consultor_vendas (Consultor): Acesso ao próprio funil
+ * 
+ * Roles legadas mantidas para compatibilidade:
+ * - admin_regional: Mapeado para admin_nivel_basico
+ * - financeiro, cadastro, vistoriador: Acesso específico
  */
 const navSections: NavSection[] = [
   {
@@ -96,19 +100,19 @@ const navSections: NavSection[] = [
         title: 'Leads',
         href: '/leads',
         icon: <UserCircle className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
       {
         title: 'Cotações',
         href: '/cotacoes',
         icon: <FileText className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
       {
         title: 'Simulador',
         href: '/cotacao',
         icon: <DollarSign className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
     ],
   },
@@ -120,25 +124,25 @@ const navSections: NavSection[] = [
         title: 'Painel Regional',
         href: '/regional',
         icon: <Building2 className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente'],
       },
       {
         title: 'Painel Consultor',
         href: '/consultor',
         icon: <UserCircle className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
       {
         title: 'Consultores',
         href: '/consultores',
         icon: <Users className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente'],
       },
       {
         title: 'Sedes',
         href: '/sedes',
         icon: <Building2 className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
       },
     ],
   },
@@ -150,25 +154,25 @@ const navSections: NavSection[] = [
         title: 'Associados',
         href: '/associados',
         icon: <Users className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'cadastro'],
       },
       {
         title: 'Veículos',
         href: '/veiculos',
         icon: <Car className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'cadastro'],
       },
       {
         title: 'Ativações',
         href: '/ativacoes',
         icon: <Shield className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente', 'consultor_vendas'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas', 'cadastro', 'financeiro'],
       },
       {
         title: 'Vistorias',
         href: '/vistorias',
         icon: <ClipboardCheck className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'vistoriador'],
       },
       {
         title: 'Usuários',
@@ -180,7 +184,7 @@ const navSections: NavSection[] = [
         title: 'Relatórios',
         href: '/relatorios',
         icon: <BarChart3 className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico', 'gerente'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'financeiro'],
       },
     ],
   },
@@ -192,7 +196,7 @@ const navSections: NavSection[] = [
         title: 'Financeiro',
         href: '/financeiro',
         icon: <CreditCard className="h-4 w-4" />,
-        roles: ['admin_principal', 'admin_nivel_basico'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'financeiro'],
       },
       {
         title: 'Cotas',

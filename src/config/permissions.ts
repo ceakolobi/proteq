@@ -18,11 +18,26 @@ export const MAIN_ROLES: AppRole[] = [
   'consultor_vendas',
 ];
 
+// Roles legadas mantidas para compatibilidade
+export const LEGACY_ROLES: AppRole[] = [
+  'admin_regional',
+  'financeiro',
+  'cadastro',
+  'vistoriador',
+  'recepcao',
+  'operacional',
+];
+
 // Roles disponíveis para atribuição (admin_principal é protegido)
 export const ASSIGNABLE_ROLES: AppRole[] = [
   'admin_nivel_basico',
   'gerente',
   'consultor_vendas',
+  // Legadas
+  'admin_regional',
+  'financeiro',
+  'cadastro',
+  'vistoriador',
 ];
 
 // Labels para exibição
@@ -31,6 +46,13 @@ export const ROLE_LABELS: Record<string, string> = {
   admin_nivel_basico: 'Admin Básico',
   gerente: 'Gerente',
   consultor_vendas: 'Consultor',
+  // Legadas
+  admin_regional: 'Admin Sede',
+  financeiro: 'Financeiro',
+  cadastro: 'Cadastro',
+  vistoriador: 'Vistoriador',
+  recepcao: 'Recepção',
+  operacional: 'Operacional',
 };
 
 // Definição de permissões por rota
