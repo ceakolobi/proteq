@@ -60,6 +60,11 @@ export interface ResultadoCotacao {
   participacao: number;
   cotaId: string;
   cotaNome: string;
+  // Informações sobre valor mínimo da COTA 01
+  ehCota01: boolean;
+  participacaoCalculada: number;
+  participacaoMinima: number;
+  aplicouValorMinimo: boolean;
 }
 
 /**
@@ -228,12 +233,108 @@ export function calcularValorFinal(
   return valorBase + ajusteGeralValor + ajusteIndividualValor;
 }
 
+// ==========================================
+// VALORES MÍNIMOS DE PARTICIPAÇÃO - COTA 01
+// ==========================================
+
 /**
- * Calcula a participação (7% do valor FIPE)
+ * Valores mínimos de participação para COTA 01
+ * Regra de negócio obrigatória - não pode ser alterada por consultores ou gerentes
  */
-export function calcularParticipacao(valorFipe: number): number {
-  return valorFipe * 0.07;
+export const PARTICIPACAO_MINIMA_COTA_01: Record<CotaCategoria, number> = {
+  MOTO: 1100.00,
+  CARRO: 1800.00,
+  CAMINHONETE: 2500.00,
+};
+
+/**
+ * Verifica se uma cota é COTA 01 (primeira faixa)
+ */
+export function isCota01(cotaNome: string): boolean {
+  const nomeNormalizado = cotaNome.toLowerCase().trim();
+  return nomeNormalizado.includes('cota 01') || 
+         nomeNormalizado.includes('cota 1') || 
+         nomeNormalizado === 'cota1' ||
+         nomeNormalizado.startsWith('01') ||
+         nomeNormalizado === '1';
 }
+
+/**
+ * Calcula a participação (7% do valor FIPE) com aplicação do valor mínimo para COTA 01
+ * 
+ * REGRA OBRIGATÓRIA:
+ * - Participação base = 7% do valor FIPE
+ * - Para veículos na COTA 01, aplica-se valor mínimo conforme tipo:
+ *   • Moto: R$ 1.100,00
+ *   • Carro: R$ 1.800,00
+ *   • Camionete: R$ 2.500,00
+ * - Se o valor calculado for inferior ao mínimo, usa-se o mínimo
+ */
+export function calcularParticipacao(
+  valorFipe: number, 
+  categoria?: CotaCategoria, 
+  cotaNome?: string
+): number {
+  const valorCalculado = valorFipe * 0.07;
+  
+  // Aplicar valor mínimo apenas para COTA 01
+  if (cotaNome && categoria && isCota01(cotaNome)) {
+    const valorMinimo = PARTICIPACAO_MINIMA_COTA_01[categoria];
+    return Math.max(valorCalculado, valorMinimo);
+  }
+  
+  return valorCalculado;
+}
+
+/**
+ * Retorna informação sobre o valor mínimo aplicado (para exibição)
+ */
+export interface InfoParticipacaoCota01 {
+  aplicaValorMinimo: boolean;
+  valorCalculado: number;
+  valorMinimo: number;
+  valorFinal: number;
+  categoria: CotaCategoria;
+}
+
+export function getInfoParticipacaoCota01(
+  valorFipe: number,
+  categoria: CotaCategoria,
+  cotaNome: string
+): InfoParticipacaoCota01 {
+  const valorCalculado = valorFipe * 0.07;
+  const ehCota01 = isCota01(cotaNome);
+  const valorMinimo = ehCota01 ? PARTICIPACAO_MINIMA_COTA_01[categoria] : 0;
+  const aplicaValorMinimo = ehCota01 && valorCalculado < valorMinimo;
+  
+  return {
+    aplicaValorMinimo,
+    valorCalculado,
+    valorMinimo,
+    valorFinal: aplicaValorMinimo ? valorMinimo : valorCalculado,
+    categoria,
+  };
+}
+
+/**
+ * Texto obrigatório para COTA 01 - usado na cotação
+ */
+export const TEXTO_COTACAO_COTA_01 = `Cota de Participação – COTA 01
+Para veículos enquadrados nesta cota, aplica-se valor mínimo de participação conforme o tipo do veículo:
+• Moto: mínimo de R$ 1.100,00
+• Carro: mínimo de R$ 1.800,00
+• Camionete: mínimo de R$ 2.500,00
+Caso o valor calculado seja inferior ao mínimo, prevalecerá o valor mínimo estabelecido.`;
+
+/**
+ * Texto obrigatório para COTA 01 - usado no contrato
+ */
+export const TEXTO_CONTRATO_COTA_01 = `Cláusula – Cota de Participação (COTA 01)
+Para veículos enquadrados na COTA 01, fica estabelecido valor mínimo de cota de participação conforme o tipo do veículo, sendo:
+Moto: R$ 1.100,00;
+Carro: R$ 1.800,00;
+Camionete: R$ 2.500,00.
+Caso o valor calculado da cota de participação seja inferior aos valores mínimos acima definidos, prevalecerá o valor mínimo correspondente.`;
 
 // ==========================================
 // VALIDAÇÃO DE PERMISSÕES
@@ -361,8 +462,12 @@ export function calcularCotacaoCompleta(
     valorFinal += 59.90;
   }
 
-  // 6. Calcular participação (7% do FIPE)
-  const participacao = calcularParticipacao(valorFipe);
+  // 6. Calcular participação (7% do FIPE) com aplicação de valor mínimo para COTA 01
+  const participacaoCalculada = valorFipe * 0.07;
+  const ehCota01 = isCota01(cota.cota_nome);
+  const participacaoMinima = ehCota01 ? PARTICIPACAO_MINIMA_COTA_01[categoria] : 0;
+  const aplicouValorMinimo = ehCota01 && participacaoCalculada < participacaoMinima;
+  const participacao = aplicouValorMinimo ? participacaoMinima : participacaoCalculada;
 
   return {
     cota,
@@ -374,6 +479,11 @@ export function calcularCotacaoCompleta(
     participacao,
     cotaId: cota.id,
     cotaNome: cota.cota_nome,
+    // Informações sobre valor mínimo da COTA 01
+    ehCota01,
+    participacaoCalculada,
+    participacaoMinima,
+    aplicouValorMinimo,
   };
 }
 

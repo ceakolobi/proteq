@@ -43,6 +43,9 @@ import {
   formatCurrency,
   parseValorBrasileiro,
   categoriaLabels,
+  isCota01,
+  PARTICIPACAO_MINIMA_COTA_01,
+  TEXTO_COTACAO_COTA_01,
   type CotaCategoria,
   type PerfilEditor,
   type ResultadoCotacao,
@@ -787,10 +790,30 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                     <p className="font-semibold">{formatCurrency(parseValorBrasileiro(formData.valor_bem))}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Participação (7%)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Participação (7%)
+                      {resultado.aplicouValorMinimo && (
+                        <span className="text-xs text-primary ml-1">*mín.</span>
+                      )}
+                    </p>
                     <p className="font-semibold">{formatCurrency(resultado.participacao)}</p>
                   </div>
                 </div>
+                
+                {/* Alerta COTA 01 para resultado salvo */}
+                {resultado.ehCota01 && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs">
+                    <p className="font-semibold text-primary mb-1">📋 COTA 01</p>
+                    <p className="text-muted-foreground">
+                      Valor mínimo de participação: Moto R$ 1.100 | Carro R$ 1.800 | Camionete R$ 2.500
+                    </p>
+                    {resultado.aplicouValorMinimo && (
+                      <p className="text-primary mt-1">
+                        ✓ Aplicado (cálculo: {formatCurrency(resultado.participacaoCalculada)})
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <Separator />
 
@@ -880,10 +903,30 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                     <p className="font-medium">{formatCurrency(parseValorBrasileiro(formData.valor_bem))}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Participação (7%)</p>
+                    <p className="text-muted-foreground">
+                      Participação (7%)
+                      {previewResult.aplicouValorMinimo && (
+                        <span className="text-xs text-primary ml-1">*mínimo</span>
+                      )}
+                    </p>
                     <p className="font-medium">{formatCurrency(previewResult.participacao)}</p>
                   </div>
                 </div>
+                
+                {/* Alerta COTA 01 - Valor Mínimo */}
+                {previewResult.ehCota01 && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs">
+                    <p className="font-semibold text-primary mb-1">📋 COTA 01 – Valor Mínimo de Participação</p>
+                    <p className="text-muted-foreground">
+                      Para veículos nesta cota, aplica-se valor mínimo: Moto R$ 1.100 | Carro R$ 1.800 | Camionete R$ 2.500
+                    </p>
+                    {previewResult.aplicouValorMinimo && (
+                      <p className="text-primary mt-1 font-medium">
+                        ✓ Valor mínimo aplicado (calculado: {formatCurrency(previewResult.participacaoCalculada)})
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {formData.carro_reserva_extra !== 'nenhum' && (
                   <div className="text-center text-xs text-muted-foreground">
