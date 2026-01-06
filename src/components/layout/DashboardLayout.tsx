@@ -4,7 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
 import { usePWA } from '@/hooks/usePWA';
 import { useBrand } from '@/hooks/useBrand';
+import { useIsDemo } from '@/hooks/useIsDemo';
 import { MobileNavBar } from '@/components/pwa/MobileNavBar';
+import { DemoBanner } from '@/components/demo/DemoBanner';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   PermissionModule, 
@@ -261,6 +263,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { profile, roles, isAdminPrincipal, signOut, user } = useAuth();
+  const { isDemo } = useIsDemo();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -537,13 +540,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Demo Banner */}
+      <DemoBanner />
+      
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-56 lg:border-r lg:border-sidebar-border/50 lg:bg-sidebar lg:shadow-sm">
+      <aside className={cn(
+        "hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-56 lg:border-r lg:border-sidebar-border/50 lg:bg-sidebar lg:shadow-sm",
+        isDemo && "lg:top-10"
+      )}>
         <SidebarContent />
       </aside>
 
       {/* Desktop Header */}
-      <header className="hidden lg:flex fixed top-0 left-56 right-0 z-40 h-14 items-center justify-end px-6 border-b border-border/50 bg-card/95 backdrop-blur-sm">
+      <header className={cn(
+        "hidden lg:flex fixed left-56 right-0 z-40 h-14 items-center justify-end px-6 border-b border-border/50 bg-card/95 backdrop-blur-sm",
+        isDemo ? "top-10" : "top-0"
+      )}>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -554,7 +566,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 py-2.5 border-b border-border/50 bg-card/95 backdrop-blur-sm">
+      <header className={cn(
+        "lg:hidden sticky z-50 flex items-center justify-between px-4 py-2.5 border-b border-border/50 bg-card/95 backdrop-blur-sm",
+        isDemo ? "top-10" : "top-0"
+      )}>
         <div className="flex items-center gap-2">
           <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
             <SheetTrigger asChild>
@@ -586,7 +601,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main content */}
       <main className={cn(
-        "lg:pl-56 lg:pt-14 min-h-[calc(100vh-3.5rem)] flex flex-col",
+        "lg:pl-56 min-h-[calc(100vh-3.5rem)] flex flex-col",
+        isDemo ? "lg:pt-24" : "lg:pt-14",
         isPWAMode && "pb-20" // Espaço para a barra de navegação mobile
       )}>
         <div className="p-4 lg:p-6 flex-1">
