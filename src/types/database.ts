@@ -10,7 +10,8 @@ export type AppRole =
   | 'vistoriador'
   | 'recepcao'
   | 'associado'
-  | 'demo_user';
+  | 'demo_user'
+  | 'admin_demo';
 
 export type VehicleType = 'carro' | 'moto' | 'pickup' | 'caminhao' | 'utilitario' | 'maquina_agricola' | 'maquina_industrial' | 'carreta' | 'implemento_agricola';
 
@@ -276,7 +277,8 @@ export const roleLabels: Record<AppRole, string> = {
   vistoriador: 'Vistoriador', // Legado
   recepcao: 'Recepção', // Legado
   associado: 'Associado', // Legado
-  demo_user: 'Demonstração' // Legado
+  demo_user: 'Demonstração', // Legado
+  admin_demo: 'Admin Demo'
 };
 
 // Roles principais do sistema (novas)

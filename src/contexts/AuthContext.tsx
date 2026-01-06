@@ -11,6 +11,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdminPrincipal: boolean;
   isGlobalAdmin: boolean; // Bypass global para admin@system.com ou Admin Principal
+  isDemo: boolean; // Flag para usuário demo (read-only)
   mustChangePassword: boolean;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
@@ -151,7 +152,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // BYPASS GLOBAL: admin@system.com OU Admin Principal tem acesso total
   // Ignora validações de role, sede e regional
   const ADMIN_EMAIL = 'admin@system.com';
+  const DEMO_EMAIL = 'demo@demo.com';
   const isGlobalAdmin = user?.email === ADMIN_EMAIL || isAdminPrincipal;
+
+  // Demo user: has admin_demo role or demo email
+  const isDemo = roles.includes('admin_demo') || user?.email === DEMO_EMAIL;
 
   // Must change password flag from profile
   const mustChangePassword = profile?.must_change_password === true;
@@ -190,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     isAdminPrincipal,
     isGlobalAdmin,
+    isDemo,
     mustChangePassword,
     hasRole,
     hasAnyRole,

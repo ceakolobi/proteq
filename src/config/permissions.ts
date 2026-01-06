@@ -33,6 +33,7 @@ export const ASSIGNABLE_ROLES: AppRole[] = [
   'admin_nivel_basico',
   'gerente',
   'consultor_vendas',
+  'admin_demo', // Demo user - read-only
   // Legadas
   'admin_regional',
   'financeiro',
@@ -46,6 +47,7 @@ export const ROLE_LABELS: Record<string, string> = {
   admin_nivel_basico: 'Admin Básico',
   gerente: 'Gerente',
   consultor_vendas: 'Consultor',
+  admin_demo: 'Admin Demo (Somente Leitura)',
   // Legadas
   admin_regional: 'Admin Sede',
   financeiro: 'Financeiro',

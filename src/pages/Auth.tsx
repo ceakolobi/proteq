@@ -201,6 +201,17 @@ export default function Auth() {
       return;
     }
 
+    // Block password reset for demo user
+    const DEMO_EMAIL = 'demo@demo.com';
+    if (identifier.toLowerCase() === DEMO_EMAIL) {
+      toast({
+        variant: 'destructive',
+        title: 'Ação não permitida',
+        description: 'A senha do usuário demo não pode ser alterada.',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     let targetEmail: string | null = null;
