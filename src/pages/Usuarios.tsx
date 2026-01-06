@@ -599,7 +599,7 @@ export default function Usuarios() {
 
         {/* Create User Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Novo Usuário</DialogTitle>
               <DialogDescription>
@@ -607,123 +607,125 @@ export default function Usuarios() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome_completo">Nome Completo *</Label>
-                <Input
-                  id="nome_completo"
-                  value={createFormData.nome_completo}
-                  onChange={(e) => setCreateFormData({ ...createFormData, nome_completo: e.target.value })}
-                  placeholder="Digite o nome completo"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={createFormData.email}
-                  onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
-                  placeholder="Digite o email"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="senha">Senha *</Label>
-                <div className="relative">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nome_completo">Nome Completo *</Label>
                   <Input
-                    id="senha"
-                    type={showCreatePassword ? 'text' : 'password'}
-                    value={createFormData.senha}
-                    onChange={(e) => setCreateFormData({ ...createFormData, senha: e.target.value })}
-                    placeholder="Mínimo 6 caracteres"
+                    id="nome_completo"
+                    value={createFormData.nome_completo}
+                    onChange={(e) => setCreateFormData({ ...createFormData, nome_completo: e.target.value })}
+                    placeholder="Digite o nome completo"
                     required
-                    minLength={6}
-                    className="pr-10"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowCreatePassword(!showCreatePassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="create_role">Perfil Base *</Label>
-                <Select
-                  value={createFormData.role}
-                  onValueChange={(value) => handleRoleChange(value as AppRole, true)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um perfil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_ROLES.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {ROLE_LABELS[role] || roleLabels[role]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  O perfil define as permissões iniciais sugeridas
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={createFormData.email}
+                    onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
+                    placeholder="Digite o email"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="create_sede">Sede (opcional)</Label>
-                <Select
-                  value={createFormData.sede_id}
-                  onValueChange={(value) =>
-                    setCreateFormData({
-                      ...createFormData,
-                      sede_id: value === '__none__' ? '' : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma sede" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nenhuma</SelectItem>
-                    {sedes.map((sede) => (
-                      <SelectItem key={sede.id} value={sede.id}>
-                        {sede.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="senha">Senha *</Label>
+                  <div className="relative">
+                    <Input
+                      id="senha"
+                      type={showCreatePassword ? 'text' : 'password'}
+                      value={createFormData.senha}
+                      onChange={(e) => setCreateFormData({ ...createFormData, senha: e.target.value })}
+                      placeholder="Mínimo 6 caracteres"
+                      required
+                      minLength={6}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="create_regiao">Região (opcional)</Label>
-                <Select
-                  value={createFormData.regiao_id}
-                  onValueChange={(value) =>
-                    setCreateFormData({
-                      ...createFormData,
-                      regiao_id: value === '__none__' ? '' : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma região" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Nenhuma</SelectItem>
-                    {regioes.map((regiao) => (
-                      <SelectItem key={regiao.id} value={regiao.id}>
-                        {regiao.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="create_role">Perfil Base *</Label>
+                  <Select
+                    value={createFormData.role}
+                    onValueChange={(value) => handleRoleChange(value as AppRole, true)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role] || roleLabels[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O perfil define as permissões iniciais sugeridas
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="create_sede">Sede (opcional)</Label>
+                  <Select
+                    value={createFormData.sede_id}
+                    onValueChange={(value) =>
+                      setCreateFormData({
+                        ...createFormData,
+                        sede_id: value === '__none__' ? '' : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma sede" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                      {sedes.map((sede) => (
+                        <SelectItem key={sede.id} value={sede.id}>
+                          {sede.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="create_regiao">Região (opcional)</Label>
+                  <Select
+                    value={createFormData.regiao_id}
+                    onValueChange={(value) =>
+                      setCreateFormData({
+                        ...createFormData,
+                        regiao_id: value === '__none__' ? '' : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma região" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                      {regioes.map((regiao) => (
+                        <SelectItem key={regiao.id} value={regiao.id}>
+                          {regiao.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Permission Editor for Create */}
@@ -749,7 +751,7 @@ export default function Usuarios() {
 
         {/* Edit User Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Editar Usuário</DialogTitle>
               <DialogDescription>
@@ -758,81 +760,83 @@ export default function Usuarios() {
             </DialogHeader>
             <ScrollArea className="max-h-[70vh] pr-4">
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Perfil Base</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) => handleRoleChange(value as AppRole, false)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um perfil" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_ROLES.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {ROLE_LABELS[role] || roleLabels[role]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Alterar o perfil irá redefinir as permissões para o padrão
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="role">Perfil Base</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => handleRoleChange(value as AppRole, false)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um perfil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AVAILABLE_ROLES.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {ROLE_LABELS[role] || roleLabels[role]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Alterar o perfil irá redefinir as permissões para o padrão
+                    </p>
+                  </div>
+
+                  {(isAdminPrincipal || currentUserRoles.includes('admin_nivel_basico')) && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="sede">Sede</Label>
+                        <Select
+                          value={formData.sede_id}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              sede_id: value === '__none__' ? '' : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma sede" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Nenhuma</SelectItem>
+                            {sedes.map((sede) => (
+                              <SelectItem key={sede.id} value={sede.id}>
+                                {sede.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="regiao">Região</Label>
+                        <Select
+                          value={formData.regiao_id}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              regiao_id: value === '__none__' ? '' : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma região" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Nenhuma</SelectItem>
+                            {regioes.map((regiao) => (
+                              <SelectItem key={regiao.id} value={regiao.id}>
+                                {regiao.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
                 </div>
-
-                {(isAdminPrincipal || currentUserRoles.includes('admin_nivel_basico')) && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="sede">Sede</Label>
-                      <Select
-                        value={formData.sede_id}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            sede_id: value === '__none__' ? '' : value,
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma sede" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Nenhuma</SelectItem>
-                          {sedes.map((sede) => (
-                            <SelectItem key={sede.id} value={sede.id}>
-                              {sede.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="regiao">Região</Label>
-                      <Select
-                        value={formData.regiao_id}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            regiao_id: value === '__none__' ? '' : value,
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma região" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Nenhuma</SelectItem>
-                          {regioes.map((regiao) => (
-                            <SelectItem key={regiao.id} value={regiao.id}>
-                              {regiao.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
 
                 <div className="flex items-center justify-between">
                   <Label htmlFor="ativo">Usuário ativo</Label>
