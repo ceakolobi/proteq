@@ -2535,6 +2535,7 @@ export type Database = {
         | "operacional"
         | "admin_nivel_basico"
         | "recepcao"
+        | "admin_demo"
       associate_status: "ativo" | "inadimplente" | "suspenso" | "cancelado"
       ativacao_status:
         | "pendente_financeiro"
@@ -2750,6 +2751,7 @@ export const Constants = {
         "operacional",
         "admin_nivel_basico",
         "recepcao",
+        "admin_demo",
       ],
       associate_status: ["ativo", "inadimplente", "suspenso", "cancelado"],
       ativacao_status: [
