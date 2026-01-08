@@ -17,7 +17,10 @@ export type CotacaoStatus =
   | 'interessado'
   | 'aguardando_retorno'
   | 'aprovado'
-  | 'perdido';
+  | 'perdido'
+  | 'arquivado'
+  | 'bloqueado'
+  | 'quarentena';
 
 export type MetodoValoracao = 
   | 'fipe'
@@ -125,6 +128,9 @@ export const cotacaoStatusLabels: Record<CotacaoStatus, string> = {
   aguardando_retorno: 'Aguardando Retorno',
   aprovado: 'Aprovado',
   perdido: 'Perdido',
+  arquivado: 'Arquivado',
+  bloqueado: 'Bloqueado',
+  quarentena: 'Quarentena',
 };
 
 export const cotacaoStatusColors: Record<CotacaoStatus, string> = {
@@ -134,6 +140,9 @@ export const cotacaoStatusColors: Record<CotacaoStatus, string> = {
   aguardando_retorno: 'bg-orange-100 text-orange-800',
   aprovado: 'bg-green-100 text-green-800',
   perdido: 'bg-red-100 text-red-800',
+  arquivado: 'bg-gray-100 text-gray-800',
+  bloqueado: 'bg-red-200 text-red-900',
+  quarentena: 'bg-amber-100 text-amber-800',
 };
 
 export const metodoValoracaoLabels: Record<MetodoValoracao, string> = {
