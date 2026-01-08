@@ -1947,6 +1947,120 @@ export type Database = {
         }
         Relationships: []
       }
+      termos_aceite: {
+        Row: {
+          assinado_em: string | null
+          assinatura_cpf: string | null
+          assinatura_data: string | null
+          assinatura_nome: string | null
+          associado_id: string
+          canal_aceite: string
+          company_id: string | null
+          conteudo_termo: string
+          created_at: string
+          created_by: string | null
+          data_hora_aceite: string
+          id: string
+          ip_aceite: string | null
+          pdf_assinado_url: string | null
+          pdf_url: string | null
+          status: string
+          tipo_documento: string
+          token_assinatura: string
+          token_expires_at: string
+          updated_at: string
+          user_agent_aceite: string | null
+          veiculo_id: string | null
+          versao_termo: string
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinatura_cpf?: string | null
+          assinatura_data?: string | null
+          assinatura_nome?: string | null
+          associado_id: string
+          canal_aceite?: string
+          company_id?: string | null
+          conteudo_termo: string
+          created_at?: string
+          created_by?: string | null
+          data_hora_aceite?: string
+          id?: string
+          ip_aceite?: string | null
+          pdf_assinado_url?: string | null
+          pdf_url?: string | null
+          status?: string
+          tipo_documento?: string
+          token_assinatura?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_agent_aceite?: string | null
+          veiculo_id?: string | null
+          versao_termo?: string
+        }
+        Update: {
+          assinado_em?: string | null
+          assinatura_cpf?: string | null
+          assinatura_data?: string | null
+          assinatura_nome?: string | null
+          associado_id?: string
+          canal_aceite?: string
+          company_id?: string | null
+          conteudo_termo?: string
+          created_at?: string
+          created_by?: string | null
+          data_hora_aceite?: string
+          id?: string
+          ip_aceite?: string | null
+          pdf_assinado_url?: string | null
+          pdf_url?: string | null
+          status?: string
+          tipo_documento?: string
+          token_assinatura?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_agent_aceite?: string | null
+          veiculo_id?: string | null
+          versao_termo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "termos_aceite_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termos_aceite_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termos_aceite_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termos_aceite_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termos_aceite_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_permissions: {
         Row: {
           action: Database["public"]["Enums"]["permission_action"]

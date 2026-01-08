@@ -33,6 +33,7 @@ import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
 import Configuracoes from "./pages/Configuracoes";
 import VistoriaPublica from "./pages/VistoriaPublica";
+import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
 import Pagamentos from "./pages/financeiro/Pagamentos";
@@ -182,6 +183,7 @@ const App = () => (
                 
                 {/* Rotas Públicas (sem autenticação) */}
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
+                <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
                 
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />
