@@ -13,8 +13,10 @@ import { DocumentosAssociadoStep } from './steps/DocumentosAssociadoStep';
 import { DadosVeiculoStep } from './steps/DadosVeiculoStep';
 import { DocumentosVeiculoStep } from './steps/DocumentosVeiculoStep';
 import { ResumoStep } from './steps/ResumoStep';
+import { TermosAceiteStep } from './steps/TermosAceiteStep';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
+import { gerarTextoTermoCompleto } from '@/lib/termoAceiteContent';
 
 interface AssociadoWizardProps {
   open: boolean;
@@ -29,6 +31,7 @@ const STEPS = [
   { id: 'veiculo', label: 'Veículo', shortLabel: 'Veículo' },
   { id: 'docs-veiculo', label: 'Docs Veículo', shortLabel: 'Fotos' },
   { id: 'resumo', label: 'Resumo', shortLabel: 'Resumo' },
+  { id: 'termos', label: 'Termos', shortLabel: 'Termos' },
 ];
 
 const initialAssociadoData: AssociadoFormData = {
@@ -77,6 +80,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [veiculoData, setVeiculoData] = useState<VeiculoFormData>(initialVeiculoData);
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoUpload[]>([]);
+  const [termosAceitos, setTermosAceitos] = useState(false);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
 
@@ -88,6 +92,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setVeiculoData(initialVeiculoData);
     setDocsAssociado([]);
     setDocsVeiculo([]);
+    setTermosAceitos(false);
     setStepValidation({});
   }, []);
 
@@ -182,6 +187,13 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         return true;
       
       case 5: // Resumo
+        return true;
+
+      case 6: // Termos
+        if (!termosAceitos) {
+          toast.error('Você precisa aceitar os termos para continuar');
+          return false;
+        }
         return true;
       
       default:
@@ -365,7 +377,56 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         );
       }
 
-      toast.success('Cadastro realizado com sucesso!');
+      // 6. Create termo de aceite with signature request
+      const dataHoraAceite = new Date().toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      const conteudoTermo = gerarTextoTermoCompleto(
+        associadoData.nome_completo,
+        associadoData.cpf,
+        veiculoData.placa.toUpperCase(),
+        dataHoraAceite
+      );
+
+      const { data: termoData, error: termoError } = await supabase
+        .from('termos_aceite')
+        .insert({
+          associado_id: associado.id,
+          veiculo_id: veiculo.id,
+          conteudo_termo: conteudoTermo,
+          canal_aceite: 'app',
+          status: 'pendente',
+        })
+        .select()
+        .single();
+
+      if (termoError) {
+        console.error('Erro ao criar termo:', termoError);
+        // Não bloquear o cadastro por erro no termo
+      } else {
+        // 7. Update associado with termos_aceitos
+        await supabase
+          .from('associados')
+          .update({
+            termos_aceitos: true,
+            termos_aceitos_em: new Date().toISOString(),
+          })
+          .eq('id', associado.id);
+
+        // 8. Send notification via edge function (async, don't wait)
+        supabase.functions.invoke('send-termo-aceite', {
+          body: { termoId: termoData.id, canal: 'ambos' },
+        }).catch(err => console.error('Erro ao enviar notificação:', err));
+      }
+
+      toast.success('Cadastro realizado com sucesso! O termo de aceite foi enviado para assinatura.');
       resetWizard();
       onOpenChange(false);
       onSuccess();
@@ -425,6 +486,13 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             veiculoData={veiculoData}
             docsAssociado={docsAssociado}
             docsVeiculo={docsVeiculo}
+          />
+        );
+      case 6:
+        return (
+          <TermosAceiteStep
+            aceitou={termosAceitos}
+            onChange={setTermosAceitos}
           />
         );
       default:
