@@ -237,13 +237,15 @@ export default function AssinaturaTermoPublico() {
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center space-y-4">
             <CheckCircle className="h-16 w-16 text-primary mx-auto" />
-            <h2 className="text-xl font-semibold">Assinatura Concluída!</h2>
+            <h2 className="text-xl font-semibold">✅ Pronto!</h2>
             <p className="text-muted-foreground">
-              Seu cadastro foi finalizado com sucesso!
-              O termo já está assinado e arquivado.
+              Seu termo foi assinado com sucesso e seu cadastro está ativo.
+            </p>
+            <p className="text-lg font-medium text-primary">
+              Bem-vindo ao Harmony Clube de Benefícios!
             </p>
             <p className="text-sm text-muted-foreground">
-              Em breve você receberá uma confirmação por e-mail.
+              Em breve você receberá uma confirmação por e-mail e WhatsApp.
             </p>
           </CardContent>
         </Card>

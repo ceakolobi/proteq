@@ -16,7 +16,7 @@ import { ResumoStep } from './steps/ResumoStep';
 import { TermosAceiteStep } from './steps/TermosAceiteStep';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
-import { gerarTextoTermoCompleto } from '@/lib/termoAceiteContent';
+import { gerarConteudoTermoPDF } from '@/lib/termoAceiteContent';
 
 interface AssociadoWizardProps {
   open: boolean;
@@ -388,12 +388,16 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         second: '2-digit',
       });
 
-      const conteudoTermo = gerarTextoTermoCompleto(
-        associadoData.nome_completo,
-        associadoData.cpf,
-        veiculoData.placa.toUpperCase(),
-        dataHoraAceite
-      );
+      const conteudoTermo = gerarConteudoTermoPDF({
+        nomeAssociado: associadoData.nome_completo,
+        cpfCnpj: associadoData.cpf,
+        telefone: associadoData.telefone,
+        email: associadoData.email,
+        placa: veiculoData.placa.toUpperCase(),
+        marcaModelo: `${veiculoData.marca} ${veiculoData.modelo}`,
+        ano: veiculoData.ano,
+        dataHoraAceite,
+      });
 
       const { data: termoData, error: termoError } = await supabase
         .from('termos_aceite')

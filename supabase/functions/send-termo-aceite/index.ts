@@ -76,10 +76,9 @@ serve(async (req: Request) => {
     }
 
     const associado = termo.associados;
-    const signatureUrl = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/assinatura-termo/${termo.token_assinatura}`;
     
-    // Alternative: use the actual frontend URL
-    const frontendUrl = Deno.env.get("FRONTEND_URL") || supabaseUrl.replace('sbtfhtllzpurjprivqoi.supabase.co', 'harmony-marka.lovable.app');
+    // Build the signature link
+    const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://harmony-marka.lovable.app";
     const linkAssinatura = `${frontendUrl}/assinatura-termo/${termo.token_assinatura}`;
 
     const results: { email?: boolean; whatsapp?: string } = {};
@@ -110,19 +109,20 @@ serve(async (req: Request) => {
                 <p>Termo de Aceite</p>
               </div>
               <div class="content">
-                <p>Olá, <strong>${associado.nome_completo}</strong>!</p>
-                <p>Segue seu Termo de Aceite do Harmony Clube de Benefícios.</p>
-                <p>Por favor, assine para concluir sua filiação.</p>
+                <p>Olá, <strong>${associado.nome_completo}</strong> 👋</p>
+                <p>Seu cadastro no Harmony Clube de Benefícios foi concluído.</p>
+                <p>Para finalizar, assine seu <strong>Termo de Aceite</strong> no link abaixo:</p>
                 <center>
-                  <a href="${linkAssinatura}" class="button">Assinar Termo</a>
+                  <a href="${linkAssinatura}" class="button">👉 Assinar Termo</a>
                 </center>
                 <p style="font-size: 12px; color: #666;">
                   Ou copie e cole este link no navegador:<br>
                   <a href="${linkAssinatura}">${linkAssinatura}</a>
                 </p>
                 <p style="font-size: 12px; color: #666;">
-                  Este link expira em 7 dias.
+                  ⏰ Este link expira em 72 horas.
                 </p>
+                <p>Qualquer dúvida, estamos à disposição.</p>
               </div>
               <div class="footer">
                 <p>Este e-mail foi enviado automaticamente. Por favor, não responda.</p>
@@ -156,13 +156,15 @@ serve(async (req: Request) => {
         const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
         
         const message = encodeURIComponent(
-          `Olá, ${associado.nome_completo}!\n\n` +
-          `Segue seu Termo de Aceite do Harmony Clube de Benefícios.\n\n` +
-          `Por favor, assine para concluir sua filiação:\n${linkAssinatura}\n\n` +
-          `Este link expira em 7 dias.`
+          `Olá, ${associado.nome_completo} 👋\n\n` +
+          `Seu cadastro no Harmony Clube de Benefícios foi concluído.\n\n` +
+          `Para finalizar, assine seu *Termo de Aceite* no link abaixo:\n\n` +
+          `👉 ${linkAssinatura}\n\n` +
+          `⏰ Este link expira em 72 horas.\n\n` +
+          `Qualquer dúvida, estamos à disposição.`
         );
 
-        results.whatsapp = `https://wa.me/${formattedPhone}?text=${message}`;
+        results.whatsapp = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${message}`;
       }
     }
 
