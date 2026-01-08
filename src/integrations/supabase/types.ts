@@ -2699,6 +2699,9 @@ export type Database = {
         | "aguardando_retorno"
         | "aprovado"
         | "perdido"
+        | "arquivado"
+        | "bloqueado"
+        | "quarentena"
       inspection_status:
         | "pendente"
         | "agendada"
@@ -2917,6 +2920,9 @@ export const Constants = {
         "aguardando_retorno",
         "aprovado",
         "perdido",
+        "arquivado",
+        "bloqueado",
+        "quarentena",
       ],
       inspection_status: [
         "pendente",
