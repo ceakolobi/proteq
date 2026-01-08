@@ -2180,9 +2180,12 @@ export type Database = {
       }
       vistorias: {
         Row: {
+          associado_id: string | null
+          canal_abertura: string | null
           checklist: Json | null
           company_id: string | null
           consultor_id: string | null
+          cotacao_id: string | null
           created_at: string
           created_by: string | null
           data_agendada: string | null
@@ -2197,14 +2200,19 @@ export type Database = {
           solicitada_em: string | null
           status: Database["public"]["Enums"]["inspection_status"]
           tipo_vistoria: Database["public"]["Enums"]["tipo_vistoria"] | null
+          token_acesso: string | null
+          token_expires_at: string | null
           updated_at: string
           veiculo_id: string
           vistoriador_id: string | null
         }
         Insert: {
+          associado_id?: string | null
+          canal_abertura?: string | null
           checklist?: Json | null
           company_id?: string | null
           consultor_id?: string | null
+          cotacao_id?: string | null
           created_at?: string
           created_by?: string | null
           data_agendada?: string | null
@@ -2219,14 +2227,19 @@ export type Database = {
           solicitada_em?: string | null
           status?: Database["public"]["Enums"]["inspection_status"]
           tipo_vistoria?: Database["public"]["Enums"]["tipo_vistoria"] | null
+          token_acesso?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           veiculo_id: string
           vistoriador_id?: string | null
         }
         Update: {
+          associado_id?: string | null
+          canal_abertura?: string | null
           checklist?: Json | null
           company_id?: string | null
           consultor_id?: string | null
+          cotacao_id?: string | null
           created_at?: string
           created_by?: string | null
           data_agendada?: string | null
@@ -2241,16 +2254,39 @@ export type Database = {
           solicitada_em?: string | null
           status?: Database["public"]["Enums"]["inspection_status"]
           tipo_vistoria?: Database["public"]["Enums"]["tipo_vistoria"] | null
+          token_acesso?: string | null
+          token_expires_at?: string | null
           updated_at?: string
           veiculo_id?: string
           vistoriador_id?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "vistorias_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vistorias_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vistorias_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vistorias_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
             referencedColumns: ["id"]
           },
           {

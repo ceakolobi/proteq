@@ -32,6 +32,7 @@ import NotFound from "./pages/NotFound";
 import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
 import Configuracoes from "./pages/Configuracoes";
+import VistoriaPublica from "./pages/VistoriaPublica";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
 import Pagamentos from "./pages/financeiro/Pagamentos";
@@ -178,6 +179,9 @@ const App = () => (
                 <Route path="/financeiro/inadimplencia" element={<ProtectedRoute><Inadimplencia /></ProtectedRoute>} />
                 <Route path="/financeiro/relatorios" element={<ProtectedRoute><RelatoriosFinanceiros /></ProtectedRoute>} />
                 <Route path="/financeiro/configuracoes" element={<ProtectedRoute><ConfiguracoesFinanceiras /></ProtectedRoute>} />
+                
+                {/* Rotas Públicas (sem autenticação) */}
+                <Route path="/vistoria-publica" element={<VistoriaPublica />} />
                 
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />
