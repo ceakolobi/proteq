@@ -1,5 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -7,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { User, Mail, Phone, Calendar, Briefcase, Heart, CreditCard } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Briefcase, Heart, CreditCard, Building2, Upload, FileCheck } from 'lucide-react';
 import type { AssociadoFormData } from '../types';
 import { ESTADO_CIVIL_OPTIONS, DIA_VENCIMENTO_OPTIONS } from '../types';
 
@@ -44,8 +46,13 @@ const maskPhone = (value: string): string => {
 };
 
 export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) {
-  const handleChange = (field: keyof AssociadoFormData, value: string) => {
+  const handleChange = (field: keyof AssociadoFormData, value: string | boolean | File | null) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    handleChange('comprovante_migracao_file', file);
   };
 
   return (
@@ -226,6 +233,125 @@ export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) 
           </p>
         </div>
       </div>
+
+      {/* Seção de Migração de Outra Associação */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Migração de Outra Associação</CardTitle>
+          </div>
+          <CardDescription>
+            Se o associado já fazia parte de outra associação de proteção veicular, a vistoria pode ser dispensada.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="veio_de_outra_associacao" className="font-medium">
+                Já fazia parte de outra associação?
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Marque esta opção para dispensa automática de vistoria
+              </p>
+            </div>
+            <Switch
+              id="veio_de_outra_associacao"
+              checked={data.veio_de_outra_associacao}
+              onCheckedChange={(checked) => handleChange('veio_de_outra_associacao', checked)}
+            />
+          </div>
+
+          {data.veio_de_outra_associacao && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nome da Associação Anterior */}
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="nome_associacao_anterior">
+                    Nome da Associação Anterior <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="nome_associacao_anterior"
+                      placeholder="Ex: Proteção XYZ"
+                      className="pl-10"
+                      value={data.nome_associacao_anterior}
+                      onChange={(e) => handleChange('nome_associacao_anterior', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Data de Saída */}
+                <div className="space-y-2">
+                  <Label htmlFor="data_saida_associacao">
+                    Data de Saída <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="data_saida_associacao"
+                      type="date"
+                      className="pl-10"
+                      value={data.data_saida_associacao}
+                      onChange={(e) => handleChange('data_saida_associacao', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload de Comprovante */}
+              <div className="space-y-2">
+                <Label htmlFor="comprovante_migracao">
+                  Documento Comprobatório <span className="text-destructive">*</span>
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                  <input
+                    id="comprovante_migracao"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <label 
+                    htmlFor="comprovante_migracao" 
+                    className="cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    {data.comprovante_migracao_file ? (
+                      <>
+                        <FileCheck className="h-8 w-8 text-green-600" />
+                        <span className="text-sm font-medium text-green-600">
+                          {data.comprovante_migracao_file.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Clique para alterar
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          Clique para enviar comprovante
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Declaração, contrato, boleto, carteirinha ou outro comprovante (PDF, JPG, PNG)
+                        </span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <strong>Importante:</strong> Ao anexar o comprovante, a vistoria será automaticamente dispensada 
+                  e o associado poderá ter a proteção ativada mais rapidamente.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <p className="text-xs text-muted-foreground">
         <span className="text-destructive">*</span> Campos obrigatórios

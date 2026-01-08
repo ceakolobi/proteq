@@ -52,6 +52,11 @@ const initialAssociadoData: AssociadoFormData = {
   cidade: '',
   estado: '',
   dia_vencimento: 10,
+  veio_de_outra_associacao: false,
+  nome_associacao_anterior: '',
+  data_saida_associacao: '',
+  comprovante_migracao_url: '',
+  comprovante_migracao_file: null,
 };
 
 const initialVeiculoData: VeiculoFormData = {
@@ -125,6 +130,21 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         if (!associadoData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(associadoData.email)) {
           toast.error('E-mail válido é obrigatório');
           return false;
+        }
+        // Validação dos campos de migração
+        if (associadoData.veio_de_outra_associacao) {
+          if (!associadoData.nome_associacao_anterior.trim()) {
+            toast.error('Nome da associação anterior é obrigatório');
+            return false;
+          }
+          if (!associadoData.data_saida_associacao) {
+            toast.error('Data de saída da associação anterior é obrigatória');
+            return false;
+          }
+          if (!associadoData.comprovante_migracao_file) {
+            toast.error('Documento comprobatório é obrigatório para dispensa de vistoria');
+            return false;
+          }
         }
         return true;
       
@@ -263,7 +283,24 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setIsSubmitting(true);
     
     try {
-      // 1. Create associado
+      // 1. Upload comprovante de migração se necessário
+      let comprovanteUrl: string | null = null;
+      if (associadoData.veio_de_outra_associacao && associadoData.comprovante_migracao_file) {
+        const file = associadoData.comprovante_migracao_file;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `migracao_${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('associado-documentos')
+          .upload(fileName, file);
+        
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('associado-documentos').getPublicUrl(fileName);
+          comprovanteUrl = urlData.publicUrl;
+        }
+      }
+
+      // 2. Create associado
       const { data: associado, error: associadoError } = await supabase
         .from('associados')
         .insert({
@@ -287,13 +324,17 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           regiao_id: profile.regiao_id,
           status: 'ativo',
           dia_vencimento: associadoData.dia_vencimento,
+          veio_de_outra_associacao: associadoData.veio_de_outra_associacao,
+          nome_associacao_anterior: associadoData.veio_de_outra_associacao ? associadoData.nome_associacao_anterior.trim() : null,
+          data_saida_associacao: associadoData.veio_de_outra_associacao ? associadoData.data_saida_associacao : null,
+          comprovante_migracao_url: comprovanteUrl,
         })
         .select()
         .single();
 
       if (associadoError) throw associadoError;
 
-      // 2. Upload associado documents
+      // 3. Upload associado documents
       if (docsAssociado.length > 0) {
         await uploadDocuments(
           docsAssociado, 
@@ -377,7 +418,44 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         );
       }
 
-      // 6. Create termo de aceite with signature request
+      // 6. Create vistoria - dispensada se veio de outra associação
+      if (associadoData.veio_de_outra_associacao) {
+        // Criar vistoria com status DISPENSADA
+        const { error: vistoriaError } = await supabase
+          .from('vistorias')
+          .insert({
+            veiculo_id: veiculo.id,
+            associado_id: associado.id,
+            consultor_id: user.id,
+            status: 'dispensada',
+            motivo_dispensa: `Migração de outra associação: ${associadoData.nome_associacao_anterior}. Data de saída: ${new Date(associadoData.data_saida_associacao).toLocaleDateString('pt-BR')}`,
+            dispensada_por: user.id,
+            dispensada_em: new Date().toISOString(),
+            canal_abertura: 'migracao',
+            observacoes: 'Vistoria dispensada automaticamente por migração de outra associação de proteção veicular.',
+          });
+
+        if (vistoriaError) {
+          console.error('Erro ao criar vistoria dispensada:', vistoriaError);
+        }
+
+        // Registrar no log de acesso
+        await supabase.from('access_logs').insert({
+          user_id: user.id,
+          action: 'dispensa_vistoria',
+          resource_type: 'vistoria',
+          resource_id: veiculo.id,
+          details: {
+            motivo: 'migracao_associacao',
+            associacao_anterior: associadoData.nome_associacao_anterior,
+            data_saida: associadoData.data_saida_associacao,
+            associado_id: associado.id,
+            veiculo_id: veiculo.id,
+          },
+        });
+      }
+
+      // 7. Create termo de aceite with signature request
       const dataHoraAceite = new Date().toLocaleString('pt-BR', {
         timeZone: 'America/Sao_Paulo',
         day: '2-digit',
@@ -415,7 +493,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         console.error('Erro ao criar termo:', termoError);
         // Não bloquear o cadastro por erro no termo
       } else {
-        // 7. Update associado with termos_aceitos
+        // 8. Update associado with termos_aceitos
         await supabase
           .from('associados')
           .update({
@@ -424,13 +502,17 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           })
           .eq('id', associado.id);
 
-        // 8. Send notification via edge function (async, don't wait)
+        // 9. Send notification via edge function (async, don't wait)
         supabase.functions.invoke('send-termo-aceite', {
           body: { termoId: termoData.id, canal: 'ambos' },
         }).catch(err => console.error('Erro ao enviar notificação:', err));
       }
 
-      toast.success('Cadastro realizado com sucesso! O termo de aceite foi enviado para assinatura.');
+      const successMessage = associadoData.veio_de_outra_associacao 
+        ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'
+        : 'Cadastro realizado com sucesso! O termo de aceite foi enviado para assinatura.';
+      
+      toast.success(successMessage);
       resetWizard();
       onOpenChange(false);
       onSuccess();

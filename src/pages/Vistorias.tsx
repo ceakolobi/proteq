@@ -100,6 +100,7 @@ const statusConfig = {
   em_andamento: { label: 'Em Andamento', variant: 'default' as const, icon: Loader2 },
   aprovada: { label: 'Aprovada', variant: 'default' as const, icon: CheckCircle },
   reprovada: { label: 'Reprovada', variant: 'destructive' as const, icon: XCircle },
+  dispensada: { label: 'Dispensada', variant: 'default' as const, icon: CheckCircle },
 };
 
 export default function Vistorias() {
@@ -494,6 +495,7 @@ export default function Vistorias() {
     emAndamento: vistorias.filter((v) => v.status === 'em_andamento').length,
     aprovadas: vistorias.filter((v) => v.status === 'aprovada').length,
     reprovadas: vistorias.filter((v) => v.status === 'reprovada').length,
+    dispensadas: vistorias.filter((v) => v.status === 'dispensada').length,
   };
 
   const veiculosAguardandoVistoria = veiculos.filter(v => v.veiculo_status === 'aguardando_vistoria');

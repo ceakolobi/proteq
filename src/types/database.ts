@@ -19,7 +19,7 @@ export type VehicleStatus = 'cadastrado' | 'aguardando_vistoria' | 'aprovado' | 
 
 export type ProposalStatus = 'rascunho' | 'enviada' | 'aceita' | 'recusada' | 'cancelada';
 
-export type InspectionStatus = 'pendente' | 'agendada' | 'em_andamento' | 'aprovada' | 'reprovada';
+export type InspectionStatus = 'pendente' | 'agendada' | 'em_andamento' | 'aprovada' | 'reprovada' | 'dispensada';
 
 export type TipoVistoria = 'pre_adesao' | 'renovacao' | 'reinspecao';
 
@@ -310,7 +310,8 @@ export const inspectionStatusLabels: Record<InspectionStatus, string> = {
   agendada: 'Agendada',
   em_andamento: 'Em Andamento',
   aprovada: 'Aprovada',
-  reprovada: 'Reprovada'
+  reprovada: 'Reprovada',
+  dispensada: 'Dispensada'
 };
 
 export const tipoVistoriaLabels: Record<TipoVistoria, string> = {
@@ -325,7 +326,8 @@ export const getInspectionStatusColor = (status: InspectionStatus): string => {
     agendada: 'bg-blue-100 text-blue-800 border-blue-200',
     em_andamento: 'bg-purple-100 text-purple-800 border-purple-200',
     aprovada: 'bg-green-100 text-green-800 border-green-200',
-    reprovada: 'bg-red-100 text-red-800 border-red-200'
+    reprovada: 'bg-red-100 text-red-800 border-red-200',
+    dispensada: 'bg-teal-100 text-teal-800 border-teal-200'
   };
   return colors[status] || colors.pendente;
 };

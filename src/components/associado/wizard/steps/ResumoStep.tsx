@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, MapPin, FileText, Car, Camera, CheckCircle, CreditCard } from 'lucide-react';
+import { User, MapPin, FileText, Car, Camera, CheckCircle, CreditCard, Building2, ShieldCheck } from 'lucide-react';
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from '../types';
 import { vehicleTypeLabels } from '@/types/database';
 import { DIA_VENCIMENTO_OPTIONS } from '../types';
@@ -215,6 +215,35 @@ export function ResumoStep({ associadoData, veiculoData, docsAssociado, docsVeic
           </CardContent>
         </Card>
       </div>
+
+      {/* Informação de Migração */}
+      {associadoData.veio_de_outra_associacao && (
+        <Card className="border-green-500/50 bg-green-50 dark:bg-green-950/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2 text-green-700 dark:text-green-400">
+              <ShieldCheck className="h-4 w-4" />
+              Dispensa Automática de Vistoria
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <span className="text-muted-foreground">Associação Anterior:</span>
+              <span className="font-medium">{associadoData.nome_associacao_anterior}</span>
+              
+              <span className="text-muted-foreground">Data de Saída:</span>
+              <span>{new Date(associadoData.data_saida_associacao).toLocaleDateString('pt-BR')}</span>
+              
+              <span className="text-muted-foreground">Comprovante:</span>
+              <span>{associadoData.comprovante_migracao_file?.name || 'Anexado'}</span>
+            </div>
+            <div className="mt-3 p-2 bg-green-100 dark:bg-green-900/50 rounded-md">
+              <p className="text-xs text-green-800 dark:text-green-300">
+                <strong>✓ Vistoria será dispensada automaticamente</strong> - O associado poderá ter a proteção ativada mais rapidamente.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="bg-muted/50 p-4 rounded-lg text-center">
         <p className="text-sm text-muted-foreground">

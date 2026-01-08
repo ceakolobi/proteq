@@ -18,6 +18,12 @@ export interface AssociadoFormData {
   cidade: string;
   estado: string;
   dia_vencimento: number;
+  // Campos de migração de outra associação
+  veio_de_outra_associacao: boolean;
+  nome_associacao_anterior: string;
+  data_saida_associacao: string;
+  comprovante_migracao_url: string;
+  comprovante_migracao_file: File | null;
 }
 
 export const DIA_VENCIMENTO_OPTIONS = [
