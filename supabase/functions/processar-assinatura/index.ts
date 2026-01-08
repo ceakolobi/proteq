@@ -14,6 +14,8 @@ interface ProcessarAssinaturaRequest {
   assinaturaData: string; // base64 da assinatura ou "codigo:XXXXXX"
   canalAssinatura: 'app' | 'whatsapp' | 'link';
   userAgent?: string;
+  ipAddress?: string;
+  dispositivo?: string;
 }
 
 serve(async (req: Request) => {
@@ -30,7 +32,7 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: ProcessarAssinaturaRequest = await req.json();
-    const { termoId, assinaturaNome, assinaturaCpf, assinaturaData, canalAssinatura, userAgent } = body;
+    const { termoId, assinaturaNome, assinaturaCpf, assinaturaData, canalAssinatura, userAgent, ipAddress, dispositivo } = body;
 
     if (!termoId || !assinaturaNome || !assinaturaCpf) {
       return new Response(
@@ -109,6 +111,7 @@ serve(async (req: Request) => {
         status: 'assinado',
         canal_aceite: canalAssinatura,
         user_agent_aceite: userAgent || null,
+        ip_aceite: ipAddress || null,
         data_hora_aceite: agora,
       })
       .eq("id", termoId);
@@ -143,6 +146,8 @@ serve(async (req: Request) => {
           canal_assinatura: canalAssinatura,
           data_hora: dataHoraFormatada,
           user_agent: userAgent,
+          ip_address: ipAddress,
+          dispositivo: dispositivo,
         },
       });
     } catch (logError) {
