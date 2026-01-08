@@ -281,12 +281,26 @@ export default function AssinaturaTermoPublico() {
     }
   };
 
+  // Função para obter IP do cliente
+  const getClientIP = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip || 'Não disponível';
+    } catch {
+      return 'Não disponível';
+    }
+  };
+
   const handleSubmit = async () => {
     if (!termo || !canSubmit()) return;
 
     setIsSubmitting(true);
 
     try {
+      // Obter IP do cliente
+      const clientIP = await getClientIP();
+
       // Chamar edge function para processar assinatura
       const { data: result, error: funcError } = await supabase.functions.invoke('processar-assinatura', {
         body: {
@@ -296,6 +310,8 @@ export default function AssinaturaTermoPublico() {
           assinaturaData: metodoAssinatura === 'desenho' ? assinaturaData : `codigo:${codigoGerado}`,
           canalAssinatura: metodoAssinatura === 'desenho' ? 'app' : 'whatsapp',
           userAgent: navigator.userAgent,
+          ipAddress: clientIP,
+          dispositivo: `${navigator.platform} / ${navigator.userAgent.split('(')[1]?.split(')')[0] || 'Navegador'}`,
         },
       });
 
