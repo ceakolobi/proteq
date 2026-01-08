@@ -61,6 +61,7 @@ import type { Associado, Regiao, AssociateStatus, VehicleType, Cota, Profile } f
 import { associateStatusLabels, vehicleTypeLabels } from '@/types/database';
 import { FipeRangeDetector, useFipeRange } from '@/components/FipeRangeDetector';
 import { AssociadoWizard } from '@/components/associado/wizard';
+import { AssociadoEditModal } from '@/components/associado/AssociadoEditModal';
 
 interface AssociadoWithDetails extends Associado {
   veiculos_count?: number;
@@ -111,6 +112,7 @@ export default function Associados() {
   
   // Estado do novo wizard moderno
   const [isNewWizardOpen, setIsNewWizardOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Wizard state for new associado flow (legado - para edição)
   const [wizardStep, setWizardStep] = useState<WizardStep>('associado');
@@ -263,15 +265,7 @@ export default function Associados() {
 
   const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
     setSelectedAssociado(associado);
-    setFormData({
-      nome_completo: associado.nome_completo,
-      cpf: associado.cpf,
-      telefone: associado.telefone,
-      email: associado.email,
-      status: associado.status,
-    });
-    setIsWizardMode(false);
-    setIsDialogOpen(true);
+    setIsEditModalOpen(true);
   };
 
   const handleOpenVeiculoDialog = (associado: AssociadoWithDetails) => {
@@ -1261,6 +1255,15 @@ export default function Associados() {
           open={isNewWizardOpen}
           onOpenChange={setIsNewWizardOpen}
           onSuccess={fetchAssociados}
+        />
+
+        {/* Modal de Edição Completo */}
+        <AssociadoEditModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          associado={selectedAssociado}
+          onSuccess={fetchAssociados}
+          canEditStatus={canEditAll && !isConsultor}
         />
       </div>
     </DashboardLayout>
