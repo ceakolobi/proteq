@@ -152,17 +152,20 @@ export type Database = {
           cidade: string | null
           company_id: string | null
           complemento: string | null
+          comprovante_migracao_url: string | null
           consultor_id: string | null
           cpf: string
           created_at: string
           created_by: string | null
           data_nascimento: string | null
+          data_saida_associacao: string | null
           dia_vencimento: number | null
           email: string
           endereco: string | null
           estado: string | null
           estado_civil: string | null
           id: string
+          nome_associacao_anterior: string | null
           nome_completo: string
           numero: string | null
           profissao: string | null
@@ -174,6 +177,7 @@ export type Database = {
           termos_aceitos_em: string | null
           updated_at: string
           user_id: string | null
+          veio_de_outra_associacao: boolean | null
           whatsapp: string | null
         }
         Insert: {
@@ -182,17 +186,20 @@ export type Database = {
           cidade?: string | null
           company_id?: string | null
           complemento?: string | null
+          comprovante_migracao_url?: string | null
           consultor_id?: string | null
           cpf: string
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
+          data_saida_associacao?: string | null
           dia_vencimento?: number | null
           email: string
           endereco?: string | null
           estado?: string | null
           estado_civil?: string | null
           id?: string
+          nome_associacao_anterior?: string | null
           nome_completo: string
           numero?: string | null
           profissao?: string | null
@@ -204,6 +211,7 @@ export type Database = {
           termos_aceitos_em?: string | null
           updated_at?: string
           user_id?: string | null
+          veio_de_outra_associacao?: boolean | null
           whatsapp?: string | null
         }
         Update: {
@@ -212,17 +220,20 @@ export type Database = {
           cidade?: string | null
           company_id?: string | null
           complemento?: string | null
+          comprovante_migracao_url?: string | null
           consultor_id?: string | null
           cpf?: string
           created_at?: string
           created_by?: string | null
           data_nascimento?: string | null
+          data_saida_associacao?: string | null
           dia_vencimento?: number | null
           email?: string
           endereco?: string | null
           estado?: string | null
           estado_civil?: string | null
           id?: string
+          nome_associacao_anterior?: string | null
           nome_completo?: string
           numero?: string | null
           profissao?: string | null
@@ -234,6 +245,7 @@ export type Database = {
           termos_aceitos_em?: string | null
           updated_at?: string
           user_id?: string | null
+          veio_de_outra_associacao?: boolean | null
           whatsapp?: string | null
         }
         Relationships: [
@@ -2304,9 +2316,12 @@ export type Database = {
           created_by: string | null
           data_agendada: string | null
           data_realizada: string | null
+          dispensada_em: string | null
+          dispensada_por: string | null
           fotos: string[] | null
           id: string
           local_vistoria: string | null
+          motivo_dispensa: string | null
           observacoes: string | null
           parecer_tecnico: string | null
           proposta_id: string | null
@@ -2331,9 +2346,12 @@ export type Database = {
           created_by?: string | null
           data_agendada?: string | null
           data_realizada?: string | null
+          dispensada_em?: string | null
+          dispensada_por?: string | null
           fotos?: string[] | null
           id?: string
           local_vistoria?: string | null
+          motivo_dispensa?: string | null
           observacoes?: string | null
           parecer_tecnico?: string | null
           proposta_id?: string | null
@@ -2358,9 +2376,12 @@ export type Database = {
           created_by?: string | null
           data_agendada?: string | null
           data_realizada?: string | null
+          dispensada_em?: string | null
+          dispensada_por?: string | null
           fotos?: string[] | null
           id?: string
           local_vistoria?: string | null
+          motivo_dispensa?: string | null
           observacoes?: string | null
           parecer_tecnico?: string | null
           proposta_id?: string | null
@@ -2708,6 +2729,7 @@ export type Database = {
         | "em_andamento"
         | "aprovada"
         | "reprovada"
+        | "dispensada"
       lead_origem:
         | "instagram"
         | "facebook"
@@ -2930,6 +2952,7 @@ export const Constants = {
         "em_andamento",
         "aprovada",
         "reprovada",
+        "dispensada",
       ],
       lead_origem: [
         "instagram",
