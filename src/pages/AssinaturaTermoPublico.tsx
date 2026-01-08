@@ -25,10 +25,11 @@ import {
   Eye,
   MessageCircle,
   Smartphone,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-react';
 import { SignaturePad } from '@/components/cotacao/SignaturePad';
-import { TERMO_ACEITE_TITULO, TERMO_ACEITE_DECLARACAO } from '@/lib/termoAceiteContent';
+import { TERMO_ACEITE_TITULO } from '@/lib/termoAceiteContent';
 
 interface TermoData {
   id: string;
@@ -36,6 +37,7 @@ interface TermoData {
   veiculo_id: string | null;
   conteudo_termo: string;
   status: string;
+  token_assinatura: string;
   token_expires_at: string;
   associado?: {
     nome_completo: string;
@@ -59,9 +61,12 @@ export default function AssinaturaTermoPublico() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isRenewingToken, setIsRenewingToken] = useState(false);
   const [termo, setTermo] = useState<TermoData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tokenExpired, setTokenExpired] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [whatsappConfirmacao, setWhatsappConfirmacao] = useState<string | null>(null);
   
   // Form state
   const [assinaturaData, setAssinaturaData] = useState<string | null>(null);
@@ -83,6 +88,7 @@ export default function AssinaturaTermoPublico() {
   const fetchTermo = async () => {
     setIsLoading(true);
     setError(null);
+    setTokenExpired(false);
 
     try {
       // Buscar termo pelo token
@@ -94,6 +100,7 @@ export default function AssinaturaTermoPublico() {
           veiculo_id,
           conteudo_termo,
           status,
+          token_assinatura,
           token_expires_at
         `)
         .eq('token_assinatura', token)
@@ -101,7 +108,7 @@ export default function AssinaturaTermoPublico() {
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
-          setError('Link inválido ou expirado. Solicite um novo link de assinatura.');
+          setError('Link inválido. Solicite um novo link de assinatura.');
         } else {
           throw fetchError;
         }
@@ -110,7 +117,17 @@ export default function AssinaturaTermoPublico() {
 
       // Verificar se expirou
       if (new Date(data.token_expires_at) < new Date()) {
-        setError('Este link expirou. Solicite um novo link de assinatura.');
+        setTokenExpired(true);
+        setTermo(data);
+        // Buscar dados do associado para renovação
+        const { data: associado } = await supabase
+          .from('associados')
+          .select('nome_completo, cpf, email, whatsapp, telefone')
+          .eq('id', data.associado_id)
+          .single();
+        if (associado) {
+          setTermo({ ...data, associado });
+        }
         return;
       }
 
@@ -153,6 +170,44 @@ export default function AssinaturaTermoPublico() {
       setError('Erro ao carregar o termo. Tente novamente.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const renovarToken = async () => {
+    if (!termo) return;
+    
+    setIsRenewingToken(true);
+    
+    try {
+      // Gerar novo token e nova data de expiração (72h)
+      const novaExpiracao = new Date();
+      novaExpiracao.setHours(novaExpiracao.getHours() + 72);
+      
+      const { data: novoTermo, error: updateError } = await supabase
+        .from('termos_aceite')
+        .update({
+          token_assinatura: crypto.randomUUID(),
+          token_expires_at: novaExpiracao.toISOString(),
+        })
+        .eq('id', termo.id)
+        .select('token_assinatura')
+        .single();
+
+      if (updateError) throw updateError;
+
+      toast.success('Link renovado! Redirecionando...');
+      
+      // Redirecionar para o novo token
+      setTimeout(() => {
+        navigate(`/assinatura-termo/${novoTermo.token_assinatura}`);
+        window.location.reload();
+      }, 1000);
+      
+    } catch (err) {
+      console.error('Error renewing token:', err);
+      toast.error('Erro ao renovar o link. Tente novamente.');
+    } finally {
+      setIsRenewingToken(false);
     }
   };
 
@@ -232,44 +287,46 @@ export default function AssinaturaTermoPublico() {
     setIsSubmitting(true);
 
     try {
-      const agora = new Date().toISOString();
-      
-      // Atualizar o termo com a assinatura
-      const { error: updateError } = await supabase
-        .from('termos_aceite')
-        .update({
-          assinatura_nome: termo.associado?.nome_completo || '',
-          assinatura_cpf: termo.associado?.cpf?.replace(/\D/g, '') || '',
-          assinatura_data: metodoAssinatura === 'desenho' ? assinaturaData : `codigo:${codigoGerado}`,
-          assinado_em: agora,
-          status: 'assinado',
-          canal_aceite: metodoAssinatura === 'desenho' ? 'app' : 'whatsapp',
-          ip_aceite: null, // IP será capturado pelo backend se necessário
-          user_agent_aceite: navigator.userAgent
-        })
-        .eq('token_assinatura', token)
-        .eq('status', 'pendente');
+      // Chamar edge function para processar assinatura
+      const { data: result, error: funcError } = await supabase.functions.invoke('processar-assinatura', {
+        body: {
+          termoId: termo.id,
+          assinaturaNome: termo.associado?.nome_completo || '',
+          assinaturaCpf: termo.associado?.cpf || '',
+          assinaturaData: metodoAssinatura === 'desenho' ? assinaturaData : `codigo:${codigoGerado}`,
+          canalAssinatura: metodoAssinatura === 'desenho' ? 'app' : 'whatsapp',
+          userAgent: navigator.userAgent,
+        },
+      });
 
-      if (updateError) throw updateError;
+      if (funcError) {
+        console.error('Function error:', funcError);
+        throw new Error(funcError.message || 'Erro ao processar assinatura');
+      }
 
-      // Atualizar associado com termos_aceitos
-      await supabase
-        .from('associados')
-        .update({
-          termos_aceitos: true,
-          termos_aceitos_em: agora,
-          status: 'ativo'
-        })
-        .eq('id', termo.associado_id);
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao processar assinatura');
+      }
+
+      // Guardar link do WhatsApp para confirmação
+      if (result.data?.whatsappConfirmacao) {
+        setWhatsappConfirmacao(result.data.whatsappConfirmacao);
+      }
 
       setSuccess(true);
       toast.success('Termo assinado com sucesso!');
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error signing termo:', err);
-      toast.error('Erro ao assinar o termo. Tente novamente.');
+      toast.error(err.message || 'Erro ao assinar o termo. Tente novamente.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const abrirWhatsAppConfirmacao = () => {
+    if (whatsappConfirmacao) {
+      window.open(whatsappConfirmacao, '_blank');
     }
   };
 
@@ -281,6 +338,45 @@ export default function AssinaturaTermoPublico() {
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Carregando termo...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Token expired state - allow renewal
+  if (tokenExpired && termo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-500/10 to-background p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center space-y-4">
+            <Clock className="h-16 w-16 text-amber-500 mx-auto" />
+            <h2 className="text-xl font-semibold">Link Expirado</h2>
+            <p className="text-muted-foreground">
+              Este link de assinatura expirou, mas você pode gerar um novo agora mesmo.
+            </p>
+            {termo.associado && (
+              <p className="text-sm text-muted-foreground">
+                Associado: <strong>{termo.associado.nome_completo}</strong>
+              </p>
+            )}
+            <Button 
+              onClick={renovarToken} 
+              disabled={isRenewingToken}
+              className="w-full"
+            >
+              {isRenewingToken ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Gerando novo link...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Gerar Novo Link
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -319,9 +415,19 @@ export default function AssinaturaTermoPublico() {
               </p>
             </div>
             <div className="bg-primary/5 rounded-lg p-4 text-sm text-muted-foreground">
-              <p>Bem-vindo ao <strong>Harmony Clube de Benefícios</strong>!</p>
-              <p className="mt-2">Em breve você receberá uma confirmação por e-mail e WhatsApp.</p>
+              <p>Bem-vindo ao <strong>Harmony Clube de Benefícios</strong>! 🎉</p>
+              <p className="mt-2">Você receberá uma confirmação por e-mail em instantes.</p>
             </div>
+            
+            {whatsappConfirmacao && (
+              <Button 
+                onClick={abrirWhatsAppConfirmacao} 
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Enviar Confirmação via WhatsApp
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -456,11 +562,11 @@ export default function AssinaturaTermoPublico() {
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="desenho" className="flex items-center gap-2">
                   <PenLine className="h-4 w-4" />
-                  Assinatura com dedo/mouse
+                  <span className="hidden sm:inline">Assinatura com</span> dedo/mouse
                 </TabsTrigger>
                 <TabsTrigger value="codigo" className="flex items-center gap-2">
                   <MessageCircle className="h-4 w-4" />
-                  Código via WhatsApp
+                  Código <span className="hidden sm:inline">via</span> WhatsApp
                 </TabsTrigger>
               </TabsList>
 
