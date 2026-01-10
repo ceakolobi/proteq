@@ -2707,7 +2707,12 @@ export type Database = {
         | "admin_nivel_basico"
         | "recepcao"
         | "admin_demo"
-      associate_status: "ativo" | "inadimplente" | "suspenso" | "cancelado"
+      associate_status:
+        | "ativo"
+        | "inadimplente"
+        | "suspenso"
+        | "cancelado"
+        | "rascunho"
       ativacao_status:
         | "pendente_financeiro"
         | "ativo"
@@ -2928,7 +2933,13 @@ export const Constants = {
         "recepcao",
         "admin_demo",
       ],
-      associate_status: ["ativo", "inadimplente", "suspenso", "cancelado"],
+      associate_status: [
+        "ativo",
+        "inadimplente",
+        "suspenso",
+        "cancelado",
+        "rascunho",
+      ],
       ativacao_status: [
         "pendente_financeiro",
         "ativo",

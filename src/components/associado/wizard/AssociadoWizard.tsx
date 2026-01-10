@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,9 +14,11 @@ import { DadosVeiculoStep } from './steps/DadosVeiculoStep';
 import { DocumentosVeiculoStep } from './steps/DocumentosVeiculoStep';
 import { ResumoStep } from './steps/ResumoStep';
 import { TermosAceiteStep } from './steps/TermosAceiteStep';
+import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
 import { gerarConteudoTermoPDF } from '@/lib/termoAceiteContent';
+import { useWizardPersistence, type WizardDraft } from '@/hooks/useWizardPersistence';
 
 interface AssociadoWizardProps {
   open: boolean;
@@ -88,8 +90,53 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [termosAceitos, setTermosAceitos] = useState(false);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<WizardDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    hasDraft,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+    checkForExistingDraft,
+  } = useWizardPersistence();
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
+
+  // Check for draft when dialog opens
+  useEffect(() => {
+    if (open) {
+      const checkDraft = async () => {
+        const hasExistingDraft = await checkForExistingDraft();
+        if (hasExistingDraft) {
+          const draft = loadDraft();
+          if (draft) {
+            setPendingDraft(draft);
+            setShowDraftDialog(true);
+          }
+        }
+      };
+      checkDraft();
+    }
+  }, [open, checkForExistingDraft, loadDraft]);
+
+  // Auto-save on data changes
+  useEffect(() => {
+    if (open && (associadoData.nome_completo || associadoData.cpf)) {
+      const saveData = async () => {
+        setIsSaving(true);
+        await saveDraft({
+          currentStep,
+          associadoData,
+          veiculoData,
+          termosAceitos,
+        });
+        setTimeout(() => setIsSaving(false), 500);
+      };
+      saveData();
+    }
+  }, [open, currentStep, associadoData, veiculoData, termosAceitos, saveDraft]);
 
   const resetWizard = useCallback(() => {
     setCurrentStep(0);
@@ -99,16 +146,35 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setDocsVeiculo([]);
     setTermosAceitos(false);
     setStepValidation({});
+    setPendingDraft(null);
   }, []);
 
   const handleClose = () => {
     if (currentStep > 0 && !isSubmitting) {
-      if (!confirm('Deseja realmente cancelar o cadastro? Todos os dados serão perdidos.')) {
-        return;
+      const hasData = associadoData.nome_completo || associadoData.cpf;
+      if (hasData) {
+        toast.info('Seu progresso foi salvo automaticamente. Você pode continuar depois.');
       }
     }
-    resetWizard();
     onOpenChange(false);
+  };
+
+  const handleContinueDraft = () => {
+    if (pendingDraft) {
+      setCurrentStep(pendingDraft.currentStep || 0);
+      setAssociadoData(pendingDraft.associadoData || initialAssociadoData);
+      setVeiculoData(pendingDraft.veiculoData || initialVeiculoData);
+      setTermosAceitos(pendingDraft.termosAceitos || false);
+    }
+    setShowDraftDialog(false);
+    setPendingDraft(null);
+  };
+
+  const handleDiscardDraft = async () => {
+    await clearDraft();
+    resetWizard();
+    setShowDraftDialog(false);
+    setPendingDraft(null);
   };
 
   const validateStep = (step: number): boolean => {
@@ -508,6 +574,9 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         }).catch(err => console.error('Erro ao enviar notificação:', err));
       }
 
+      // Clear draft after successful submission
+      await clearDraft();
+
       const successMessage = associadoData.veio_de_outra_associacao 
         ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'
         : 'Cadastro realizado com sucesso! O termo de aceite foi enviado para assinatura.';
@@ -587,96 +656,114 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl">Novo Cadastro de Associado</DialogTitle>
-          
-          {/* Progress Bar */}
-          <div className="mt-4 space-y-3">
-            <Progress value={progress} className="h-2" />
+    <>
+      <DraftRecoveryDialog
+        open={showDraftDialog}
+        onOpenChange={setShowDraftDialog}
+        draft={pendingDraft}
+        onContinue={handleContinueDraft}
+        onDiscard={handleDiscardDraft}
+      />
+      
+      <Dialog open={open && !showDraftDialog} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl">Novo Cadastro de Associado</DialogTitle>
+              {isSaving && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Save className="h-3 w-3 animate-pulse" />
+                  Salvando...
+                </div>
+              )}
+            </div>
             
-            {/* Step Indicators */}
-            <div className="flex justify-between">
-              {STEPS.map((step, index) => (
-                <button
-                  key={step.id}
-                  onClick={() => {
-                    if (index < currentStep) setCurrentStep(index);
-                  }}
-                  disabled={index > currentStep}
-                  className={`flex flex-col items-center gap-1 transition-colors ${
-                    index === currentStep
-                      ? 'text-primary'
-                      : index < currentStep
-                      ? 'text-primary/70 cursor-pointer hover:text-primary'
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-colors ${
+            {/* Progress Bar */}
+            <div className="mt-4 space-y-3">
+              <Progress value={progress} className="h-2" />
+              
+              {/* Step Indicators */}
+              <div className="flex justify-between">
+                {STEPS.map((step, index) => (
+                  <button
+                    key={step.id}
+                    onClick={() => {
+                      if (index < currentStep) setCurrentStep(index);
+                    }}
+                    disabled={index > currentStep}
+                    className={`flex flex-col items-center gap-1 transition-colors ${
                       index === currentStep
-                        ? 'bg-primary text-primary-foreground border-primary'
+                        ? 'text-primary'
                         : index < currentStep
-                        ? 'bg-primary/20 border-primary text-primary'
-                        : 'bg-muted border-muted-foreground/30'
+                        ? 'text-primary/70 cursor-pointer hover:text-primary'
+                        : 'text-muted-foreground'
                     }`}
                   >
-                    {index < currentStep ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      index + 1
-                    )}
-                  </div>
-                  <span className="text-xs hidden sm:block">{step.shortLabel}</span>
-                </button>
-              ))}
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-colors ${
+                        index === currentStep
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : index < currentStep
+                          ? 'bg-primary/20 border-primary text-primary'
+                          : 'bg-muted border-muted-foreground/30'
+                      }`}
+                    >
+                      {index < currentStep ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <span className="text-xs hidden sm:block">{step.shortLabel}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        {/* Step Content */}
-        <div className="flex-1 overflow-y-auto py-4 px-1">
-          {renderStep()}
-        </div>
-
-        {/* Footer with Navigation */}
-        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0 || isSubmitting}
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-
-          <div className="text-sm text-muted-foreground">
-            Etapa {currentStep + 1} de {STEPS.length}
+          {/* Step Content */}
+          <div className="flex-1 overflow-y-auto py-4 px-1">
+            {renderStep()}
           </div>
 
-          {currentStep < STEPS.length - 1 ? (
-            <Button onClick={handleNext} disabled={isSubmitting}>
-              Próximo
-              <ChevronRight className="h-4 w-4 ml-2" />
+          {/* Footer with Navigation */}
+          <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStep === 0 || isSubmitting}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Voltar
             </Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Confirmar Cadastro
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+
+            <div className="text-sm text-muted-foreground">
+              Etapa {currentStep + 1} de {STEPS.length}
+            </div>
+
+            {currentStep < STEPS.length - 1 ? (
+              <Button onClick={handleNext} disabled={isSubmitting}>
+                Próximo
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Confirmar Cadastro
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
