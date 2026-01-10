@@ -533,6 +533,10 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       // 6. Create vistoria - dispensada se veio de outra associação
       if (associadoData.veio_de_outra_associacao) {
         // Criar vistoria com status DISPENSADA
+        const dataSaidaFormatada = associadoData.data_saida_associacao 
+          ? new Date(associadoData.data_saida_associacao).toLocaleDateString('pt-BR') 
+          : 'Não informada';
+        
         const { error: vistoriaError } = await supabase
           .from('vistorias')
           .insert({
@@ -540,7 +544,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             associado_id: associado.id,
             consultor_id: user.id,
             status: 'dispensada',
-            motivo_dispensa: `Migração de outra associação: ${associadoData.nome_associacao_anterior}. Data de saída: ${new Date(associadoData.data_saida_associacao).toLocaleDateString('pt-BR')}`,
+            motivo_dispensa: `Migração de outra associação: ${associadoData.nome_associacao_anterior || 'Não informada'}. Data de saída: ${dataSaidaFormatada}`,
             dispensada_por: user.id,
             dispensada_em: new Date().toISOString(),
             canal_abertura: 'migracao',
