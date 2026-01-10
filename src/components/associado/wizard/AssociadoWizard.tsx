@@ -106,24 +106,68 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   // Check for draft when dialog opens
   useEffect(() => {
-    if (open) {
-      const checkDraft = async () => {
-        const hasExistingDraft = await checkForExistingDraft();
-        if (hasExistingDraft) {
-          const draft = loadDraft();
-          if (draft) {
-            setPendingDraft(draft);
-            setShowDraftDialog(true);
-          }
-        }
-      };
-      checkDraft();
+    if (!open) return;
+
+    // Prefer local draft (instant) for best UX
+    const draft = loadDraft();
+    const hasLocalDraft = Boolean(
+      draft &&
+        (draft.currentStep > 0 ||
+          draft.termosAceitos ||
+          draft.associadoData?.nome_completo?.trim() ||
+          draft.associadoData?.cpf?.trim() ||
+          draft.veiculoData?.placa?.trim() ||
+          draft.veiculoData?.marca?.trim() ||
+          draft.veiculoData?.modelo?.trim() ||
+          (draft.veiculoData?.valor_fipe ?? 0) > 0)
+    );
+
+    if (hasLocalDraft && draft) {
+      setPendingDraft(draft);
+      setShowDraftDialog(true);
+      return;
     }
-  }, [open, checkForExistingDraft, loadDraft]);
+
+    // Also check backend (keeps internal state updated)
+    checkForExistingDraft();
+  }, [open, loadDraft, checkForExistingDraft]);
 
   // Auto-save on data changes
   useEffect(() => {
-    if (open && (associadoData.nome_completo || associadoData.cpf)) {
+    const hasAnyInput =
+      currentStep > 0 ||
+      termosAceitos ||
+      Boolean(
+        associadoData.nome_completo.trim() ||
+          associadoData.cpf.trim() ||
+          associadoData.rg.trim() ||
+          associadoData.data_nascimento ||
+          associadoData.telefone.trim() ||
+          associadoData.whatsapp?.trim() ||
+          associadoData.email.trim() ||
+          associadoData.estado_civil ||
+          associadoData.profissao ||
+          associadoData.cep.trim() ||
+          associadoData.endereco.trim() ||
+          associadoData.numero?.trim() ||
+          associadoData.complemento?.trim() ||
+          associadoData.bairro?.trim() ||
+          associadoData.cidade?.trim() ||
+          associadoData.estado?.trim() ||
+          associadoData.veio_de_outra_associacao ||
+          associadoData.nome_associacao_anterior?.trim() ||
+          associadoData.data_saida_associacao ||
+          associadoData.comprovante_migracao_url?.trim() ||
+          veiculoData.placa.trim() ||
+          veiculoData.chassi.trim() ||
+          veiculoData.renavam.trim() ||
+          veiculoData.marca.trim() ||
+          veiculoData.modelo.trim() ||
+          veiculoData.codigo_fipe.trim() ||
+          veiculoData.valor_fipe > 0
+      );
+
+    if (open && hasAnyInput) {
       const saveData = async () => {
         setIsSaving(true);
         await saveDraft({
