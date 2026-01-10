@@ -696,6 +696,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             onChange={setTermosAceitos}
             selectedRegiaoId={selectedRegiaoId}
             onRegiaoChange={setSelectedRegiaoId}
+            showRegiaoSelector={needsRegiaoSelector}
           />
         );
       default:
