@@ -1,326 +1,287 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AssociadoFormData, VeiculoFormData } from '@/components/associado/wizard/types';
 
-const STORAGE_KEY = 'associado_wizard_draft';
+const STORAGE_KEY = 'draft_associado';
 
 export interface WizardDraft {
-  id?: string;
+  id?: string; // backend associado id (for updates)
   currentStep: number;
   associadoData: AssociadoFormData;
   veiculoData: VeiculoFormData;
   termosAceitos: boolean;
   lastUpdated: string;
-  // Docs não podem ser persistidos no localStorage (são File objects)
 }
-
-const isMeaningfulDraft = (draft: WizardDraft | null): boolean => {
-  if (!draft) return false;
-
-  const a = draft.associadoData || ({} as AssociadoFormData);
-  const v = draft.veiculoData || ({} as VeiculoFormData);
-
-  const hasAssociado = Boolean(
-    a.nome_completo?.trim() ||
-      a.cpf?.trim() ||
-      a.rg?.trim() ||
-      a.data_nascimento ||
-      a.telefone?.trim() ||
-      a.whatsapp?.trim() ||
-      a.email?.trim() ||
-      a.estado_civil ||
-      a.profissao ||
-      a.cep?.trim() ||
-      a.endereco?.trim() ||
-      a.numero?.trim() ||
-      a.complemento?.trim() ||
-      a.bairro?.trim() ||
-      a.cidade?.trim() ||
-      a.estado?.trim() ||
-      a.veio_de_outra_associacao ||
-      a.nome_associacao_anterior?.trim() ||
-      a.data_saida_associacao ||
-      a.comprovante_migracao_url?.trim()
-  );
-
-  const hasVeiculo = Boolean(
-    v.placa?.trim() ||
-      v.chassi?.trim() ||
-      v.renavam?.trim() ||
-      v.marca?.trim() ||
-      v.modelo?.trim() ||
-      v.codigo_fipe?.trim() ||
-      (v.valor_fipe ?? 0) > 0
-  );
-
-  return Boolean(draft.currentStep > 0 || draft.termosAceitos || hasAssociado || hasVeiculo);
-};
 
 interface UseWizardPersistenceReturn {
   hasDraft: boolean;
   isLoadingDraft: boolean;
   draftId: string | null;
-  saveDraft: (data: Partial<WizardDraft>) => Promise<void>;
-  loadDraft: () => WizardDraft | null;
-  clearDraft: () => Promise<void>;
-  checkForExistingDraft: () => Promise<boolean>;
+  saveDraftLocal: (data: Partial<WizardDraft>) => void;
+  loadDraftLocal: () => WizardDraft | null;
+  clearDraftLocal: () => void;
+  saveDraftBackend: (data: WizardDraft) => Promise<string | null>;
+  loadDraftBackend: () => Promise<WizardDraft | null>;
+  clearDraftBackend: () => Promise<void>;
+  clearAll: () => Promise<void>;
 }
 
+// --- localStorage helpers ---
+function loadFromLocalStorage(): WizardDraft | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored) as WizardDraft;
+    }
+  } catch (e) {
+    console.error('Error loading draft from localStorage:', e);
+  }
+  return null;
+}
+
+function saveToLocalStorage(data: WizardDraft): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Error saving draft to localStorage:', e);
+  }
+}
+
+function clearLocalStorageKey(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error('Error clearing draft from localStorage:', e);
+  }
+}
+
+// --- Hook ---
 export function useWizardPersistence(): UseWizardPersistenceReturn {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [hasDraft, setHasDraft] = useState(false);
-  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load from localStorage
-  const loadFromLocalStorage = useCallback((): WizardDraft | null => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored) as WizardDraft;
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  // --- Local Storage ---
+  const loadDraftLocal = useCallback((): WizardDraft | null => {
+    const draft = loadFromLocalStorage();
+    setHasDraft(!!draft);
+    if (draft?.id) setDraftId(draft.id);
+    return draft;
+  }, []);
+
+  const saveDraftLocal = useCallback((data: Partial<WizardDraft>) => {
+    const current = loadFromLocalStorage() || {
+      currentStep: 0,
+      associadoData: {} as AssociadoFormData,
+      veiculoData: {} as VeiculoFormData,
+      termosAceitos: false,
+      lastUpdated: new Date().toISOString(),
+    };
+    const updated: WizardDraft = {
+      ...current,
+      ...data,
+      lastUpdated: new Date().toISOString(),
+    };
+    saveToLocalStorage(updated);
+    setHasDraft(true);
+    if (updated.id) setDraftId(updated.id);
+  }, []);
+
+  const clearDraftLocal = useCallback(() => {
+    clearLocalStorageKey();
+    setHasDraft(false);
+  }, []);
+
+  // --- Backend ---
+  const saveDraftBackend = useCallback(
+    async (data: WizardDraft): Promise<string | null> => {
+      if (!user?.id) return null;
+
+      const regiao_id = profile?.regiao_id;
+      if (!regiao_id) {
+        console.warn('Cannot save draft: user has no regiao_id');
+        return null;
       }
-    } catch (error) {
-      console.error('Error loading draft from localStorage:', error);
-    }
-    return null;
-  }, []);
 
-  // Save to localStorage (debounced)
-  const saveToLocalStorage = useCallback((data: WizardDraft) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving draft to localStorage:', error);
-    }
-  }, []);
+      const cpfLimpo = (data.associadoData?.cpf || '').replace(/\D/g, '');
+      const nome = (data.associadoData?.nome_completo || '').trim();
 
-  // Clear localStorage
-  const clearLocalStorage = useCallback(() => {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error) {
-      console.error('Error clearing draft from localStorage:', error);
-    }
-  }, []);
+      // Minimal data required
+      if (!cpfLimpo || cpfLimpo.length !== 11 || !nome) return null;
 
-  // Check for existing draft (both localStorage and backend)
-  const checkForExistingDraft = useCallback(async (): Promise<boolean> => {
+      try {
+        // Check for existing draft
+        const { data: existing, error: fetchErr } = await supabase
+          .from('associados')
+          .select('id')
+          .eq('consultor_id', user.id)
+          .eq('status', 'rascunho' as any)
+          .maybeSingle();
+
+        if (fetchErr) {
+          console.error('Error fetching existing draft:', fetchErr);
+          return null;
+        }
+
+        // Convert payload to plain JSON-compatible object
+        const payloadJson = JSON.parse(
+          JSON.stringify({
+            associadoData: data.associadoData,
+            veiculoData: data.veiculoData,
+            termosAceitos: data.termosAceitos,
+          })
+        );
+
+        const baseFields = {
+          nome_completo: nome,
+          cpf: cpfLimpo,
+          email: data.associadoData?.email || 'rascunho@temp.com',
+          telefone: (data.associadoData?.telefone || '').replace(/\D/g, '') || '00000000000',
+          rg: (data.associadoData?.rg || '').replace(/\D/g, '') || null,
+          cep: (data.associadoData?.cep || '').replace(/\D/g, '') || null,
+          endereco: data.associadoData?.endereco || null,
+          numero: data.associadoData?.numero || null,
+          bairro: data.associadoData?.bairro || null,
+          cidade: data.associadoData?.cidade || null,
+          estado: data.associadoData?.estado || null,
+          draft_step: data.currentStep,
+          draft_payload: payloadJson,
+          draft_last_updated: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        let id: string | null = null;
+
+        if (existing) {
+          // Update
+          const { error: updErr } = await supabase
+            .from('associados')
+            .update(baseFields as any)
+            .eq('id', existing.id);
+
+          if (updErr) console.error('Error updating draft:', updErr);
+          id = existing.id;
+        } else {
+          // Insert
+          const insertPayload = {
+            ...baseFields,
+            consultor_id: user.id,
+            regiao_id,
+            status: 'rascunho' as any,
+          };
+
+          const { data: inserted, error: insErr } = await supabase
+            .from('associados')
+            .insert(insertPayload as any)
+            .select('id')
+            .single();
+
+          if (insErr) console.error('Error inserting draft:', insErr);
+          id = inserted?.id || null;
+        }
+
+        if (id) {
+          setDraftId(id);
+          // Also update local storage with id
+          saveDraftLocal({ id });
+        }
+
+        return id;
+      } catch (e) {
+        console.error('Error saving draft to backend:', e);
+        return null;
+      }
+    },
+    [user?.id, profile?.regiao_id, saveDraftLocal]
+  );
+
+  const loadDraftBackend = useCallback(async (): Promise<WizardDraft | null> => {
+    if (!user?.id) return null;
+
     setIsLoadingDraft(true);
-
     try {
-      // First check localStorage (does not depend on auth)
-      const localDraft = loadFromLocalStorage();
-      if (isMeaningfulDraft(localDraft)) {
-        setHasDraft(true);
-        setIsLoadingDraft(false);
-        return true;
-      }
-
-      // If we don't have a user yet, we can't check backend
-      if (!user?.id) {
-        setHasDraft(false);
-        setIsLoadingDraft(false);
-        return false;
-      }
-
-      // Then check backend for rascunhos - using raw query to bypass type checking
       const { data, error } = await supabase
         .from('associados')
-        .select('id, nome_completo, created_at')
+        .select('id, nome_completo, draft_step, draft_payload, draft_last_updated')
         .eq('consultor_id', user.id)
         .eq('status', 'rascunho' as any)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (!error && data) {
-        setDraftId(data.id);
-        setHasDraft(true);
+      if (error || !data) {
         setIsLoadingDraft(false);
-        return true;
+        return null;
       }
 
-      setHasDraft(false);
-      setIsLoadingDraft(false);
-      return false;
-    } catch (error) {
-      console.error('Error checking for draft:', error);
-      setIsLoadingDraft(false);
-      return false;
-    }
-  }, [user?.id, loadFromLocalStorage]);
+      const payload = data.draft_payload as {
+        associadoData?: AssociadoFormData;
+        veiculoData?: VeiculoFormData;
+        termosAceitos?: boolean;
+      } | null;
 
-  // Save draft (to localStorage and optionally to backend)
-  const saveDraft = useCallback(
-    async (data: Partial<WizardDraft>) => {
-      // Clear existing timeout
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-
-      // Get current draft and merge
-      const currentDraft = loadFromLocalStorage() || {
-        currentStep: 0,
-        associadoData: {} as AssociadoFormData,
-        veiculoData: {} as VeiculoFormData,
-        termosAceitos: false,
-        lastUpdated: new Date().toISOString(),
+      const draft: WizardDraft = {
+        id: data.id,
+        currentStep: data.draft_step ?? 0,
+        associadoData: (payload?.associadoData ?? {}) as AssociadoFormData,
+        veiculoData: (payload?.veiculoData ?? {}) as VeiculoFormData,
+        termosAceitos: payload?.termosAceitos ?? false,
+        lastUpdated: data.draft_last_updated ?? new Date().toISOString(),
       };
 
-      const updatedDraft: WizardDraft = {
-        ...currentDraft,
-        ...data,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Save to localStorage immediately (even if auth is not ready yet)
-      saveToLocalStorage(updatedDraft);
-      setHasDraft(isMeaningfulDraft(updatedDraft));
-
-      // Backend save requires authenticated user
-      if (!user?.id) return;
-
-      // Debounce backend save
-      saveTimeoutRef.current = setTimeout(async () => {
-        try {
-          // Only save to backend if we have minimum required data
-          if (updatedDraft.associadoData?.nome_completo && updatedDraft.associadoData?.cpf) {
-            const cpfLimpo = updatedDraft.associadoData.cpf.replace(/\D/g, '');
-
-            if (cpfLimpo.length === 11) {
-              // Check if rascunho already exists
-              const { data: existing } = await supabase
-                .from('associados')
-                .select('id')
-                .eq('consultor_id', user.id)
-                .eq('status', 'rascunho' as any)
-                .maybeSingle();
-
-              if (existing) {
-                // Update existing draft
-                await supabase
-                  .from('associados')
-                  .update({
-                    nome_completo: updatedDraft.associadoData.nome_completo.trim(),
-                    cpf: cpfLimpo,
-                    email: updatedDraft.associadoData.email || 'rascunho@temp.com',
-                    telefone: updatedDraft.associadoData.telefone?.replace(/\D/g, '') || '00000000000',
-                    rg: updatedDraft.associadoData.rg?.replace(/\D/g, '') || null,
-                    cep: updatedDraft.associadoData.cep?.replace(/\D/g, '') || null,
-                    endereco: updatedDraft.associadoData.endereco || null,
-                    numero: updatedDraft.associadoData.numero || null,
-                    bairro: updatedDraft.associadoData.bairro || null,
-                    cidade: updatedDraft.associadoData.cidade || null,
-                    estado: updatedDraft.associadoData.estado || null,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', existing.id);
-
-                setDraftId(existing.id);
-              } else {
-                // Create new draft - need to get profile's regiao_id
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('regiao_id')
-                  .eq('id', user.id)
-                  .single();
-
-                if (profile?.regiao_id) {
-                  const { data: newDraft, error } = await supabase
-                    .from('associados')
-                    .insert({
-                      nome_completo: updatedDraft.associadoData.nome_completo.trim(),
-                      cpf: cpfLimpo,
-                      email: updatedDraft.associadoData.email || 'rascunho@temp.com',
-                      telefone: updatedDraft.associadoData.telefone?.replace(/\D/g, '') || '00000000000',
-                      consultor_id: user.id,
-                      regiao_id: profile.regiao_id,
-                      status: 'rascunho' as any,
-                    })
-                    .select('id')
-                    .single();
-
-                  if (!error && newDraft) {
-                    setDraftId(newDraft.id);
-                  }
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error saving draft to backend:', error);
-        }
-      }, 2000); // 2 second debounce for backend
-    },
-    [user?.id, loadFromLocalStorage, saveToLocalStorage]
-  );
-
-  // Load draft
-  const loadDraft = useCallback((): WizardDraft | null => {
-    return loadFromLocalStorage();
-  }, [loadFromLocalStorage]);
-
-  // Clear draft
-  const clearDraft = useCallback(async () => {
-    // Cancel any pending backend save
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
+      setDraftId(data.id);
+      setHasDraft(true);
+      setIsLoadingDraft(false);
+      return draft;
+    } catch (e) {
+      console.error('Error loading draft from backend:', e);
+      setIsLoadingDraft(false);
+      return null;
     }
+  }, [user?.id]);
 
-    clearLocalStorage();
-    setHasDraft(false);
+  const clearDraftBackend = useCallback(async () => {
+    if (!user?.id) return;
 
-    // Backend cleanup requires auth
-    if (!user?.id) {
-      setDraftId(null);
-      return;
-    }
-
-    // Clear backend draft if exists
-    if (draftId) {
-      try {
-        await supabase
-          .from('associados')
-          .delete()
-          .eq('id', draftId)
-          .eq('status', 'rascunho' as any);
-      } catch (error) {
-        console.error('Error clearing backend draft:', error);
-      }
-      setDraftId(null);
-    }
-
-    // Also try to delete any other rascunhos by this consultant
     try {
+      // Delete all rascunhos for this user
       await supabase
         .from('associados')
         .delete()
         .eq('consultor_id', user.id)
         .eq('status', 'rascunho' as any);
-    } catch (error) {
-      console.error('Error clearing all drafts:', error);
-    }
-  }, [draftId, user?.id, clearLocalStorage]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
+      setDraftId(null);
+    } catch (e) {
+      console.error('Error clearing draft from backend:', e);
+    }
+  }, [user?.id]);
+
+  const clearAll = useCallback(async () => {
+    clearDraftLocal();
+    await clearDraftBackend();
+  }, [clearDraftLocal, clearDraftBackend]);
 
   return {
     hasDraft,
     isLoadingDraft,
     draftId,
-    saveDraft,
-    loadDraft,
-    clearDraft,
-    checkForExistingDraft,
+    saveDraftLocal,
+    loadDraftLocal,
+    clearDraftLocal,
+    saveDraftBackend,
+    loadDraftBackend,
+    clearDraftBackend,
+    clearAll,
   };
 }

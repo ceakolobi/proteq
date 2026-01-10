@@ -95,11 +95,11 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [isSaving, setIsSaving] = useState(false);
 
   const {
-    hasDraft,
-    saveDraft,
-    loadDraft,
-    clearDraft,
-    checkForExistingDraft,
+    saveDraftLocal,
+    loadDraftLocal,
+    clearAll,
+    saveDraftBackend,
+    loadDraftBackend,
   } = useWizardPersistence();
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
@@ -108,79 +108,51 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   useEffect(() => {
     if (!open) return;
 
-    // Prefer local draft (instant) for best UX
-    const draft = loadDraft();
-    const hasLocalDraft = Boolean(
-      draft &&
-        (draft.currentStep > 0 ||
-          draft.termosAceitos ||
-          draft.associadoData?.nome_completo?.trim() ||
-          draft.associadoData?.cpf?.trim() ||
-          draft.veiculoData?.placa?.trim() ||
-          draft.veiculoData?.marca?.trim() ||
-          draft.veiculoData?.modelo?.trim() ||
-          (draft.veiculoData?.valor_fipe ?? 0) > 0)
+    // 1. Try local storage first (instant)
+    const localDraft = loadDraftLocal();
+    const hasLocalData = Boolean(
+      localDraft &&
+        (localDraft.currentStep > 0 ||
+          localDraft.termosAceitos ||
+          localDraft.associadoData?.nome_completo?.trim() ||
+          localDraft.associadoData?.cpf?.trim() ||
+          localDraft.veiculoData?.placa?.trim() ||
+          localDraft.veiculoData?.marca?.trim() ||
+          localDraft.veiculoData?.modelo?.trim() ||
+          (localDraft.veiculoData?.valor_fipe ?? 0) > 0)
     );
 
-    if (hasLocalDraft && draft) {
-      setPendingDraft(draft);
+    if (hasLocalData && localDraft) {
+      setPendingDraft(localDraft);
       setShowDraftDialog(true);
       return;
     }
 
-    // Also check backend (keeps internal state updated)
-    checkForExistingDraft();
-  }, [open, loadDraft, checkForExistingDraft]);
+    // 2. Otherwise, check backend for existing rascunho
+    const checkBackend = async () => {
+      const backendDraft = await loadDraftBackend();
+      if (backendDraft) {
+        // Store in local for quick access next time
+        saveDraftLocal(backendDraft);
+        setPendingDraft(backendDraft);
+        setShowDraftDialog(true);
+      }
+    };
+    checkBackend();
+  }, [open, loadDraftLocal, loadDraftBackend, saveDraftLocal]);
 
-  // Auto-save on data changes
+  // Auto-save to localStorage on every change
   useEffect(() => {
-    const hasAnyInput =
-      currentStep > 0 ||
-      termosAceitos ||
-      Boolean(
-        associadoData.nome_completo.trim() ||
-          associadoData.cpf.trim() ||
-          associadoData.rg.trim() ||
-          associadoData.data_nascimento ||
-          associadoData.telefone.trim() ||
-          associadoData.whatsapp?.trim() ||
-          associadoData.email.trim() ||
-          associadoData.estado_civil ||
-          associadoData.profissao ||
-          associadoData.cep.trim() ||
-          associadoData.endereco.trim() ||
-          associadoData.numero?.trim() ||
-          associadoData.complemento?.trim() ||
-          associadoData.bairro?.trim() ||
-          associadoData.cidade?.trim() ||
-          associadoData.estado?.trim() ||
-          associadoData.veio_de_outra_associacao ||
-          associadoData.nome_associacao_anterior?.trim() ||
-          associadoData.data_saida_associacao ||
-          associadoData.comprovante_migracao_url?.trim() ||
-          veiculoData.placa.trim() ||
-          veiculoData.chassi.trim() ||
-          veiculoData.renavam.trim() ||
-          veiculoData.marca.trim() ||
-          veiculoData.modelo.trim() ||
-          veiculoData.codigo_fipe.trim() ||
-          veiculoData.valor_fipe > 0
-      );
+    if (!open) return;
 
-    if (open && hasAnyInput) {
-      const saveData = async () => {
-        setIsSaving(true);
-        await saveDraft({
-          currentStep,
-          associadoData,
-          veiculoData,
-          termosAceitos,
-        });
-        setTimeout(() => setIsSaving(false), 500);
-      };
-      saveData();
-    }
-  }, [open, currentStep, associadoData, veiculoData, termosAceitos, saveDraft]);
+    // Always save to localStorage as soon as any field changes
+    saveDraftLocal({
+      currentStep,
+      associadoData,
+      veiculoData,
+      termosAceitos,
+    });
+  }, [open, currentStep, associadoData, veiculoData, termosAceitos, saveDraftLocal]);
 
   const resetWizard = useCallback(() => {
     setCurrentStep(0);
@@ -215,7 +187,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   };
 
   const handleDiscardDraft = async () => {
-    await clearDraft();
+    await clearAll();
     resetWizard();
     setShowDraftDialog(false);
     setPendingDraft(null);
@@ -331,10 +303,21 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateStep(currentStep)) return;
     setStepValidation(prev => ({ ...prev, [currentStep]: true }));
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+
+    // Save to backend when advancing step (async, fire-and-forget with indicator)
+    setIsSaving(true);
+    const draft: WizardDraft = {
+      currentStep: currentStep + 1,
+      associadoData,
+      veiculoData,
+      termosAceitos,
+      lastUpdated: new Date().toISOString(),
+    };
+    saveDraftBackend(draft).finally(() => setTimeout(() => setIsSaving(false), 400));
   };
 
   const handleBack = () => {
@@ -619,7 +602,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       }
 
       // Clear draft after successful submission
-      await clearDraft();
+      await clearAll();
 
       const successMessage = associadoData.veio_de_outra_associacao 
         ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'

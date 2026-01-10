@@ -23,7 +23,7 @@ export type InspectionStatus = 'pendente' | 'agendada' | 'em_andamento' | 'aprov
 
 export type TipoVistoria = 'pre_adesao' | 'renovacao' | 'reinspecao';
 
-export type AssociateStatus = 'ativo' | 'inadimplente' | 'suspenso' | 'cancelado';
+export type AssociateStatus = 'ativo' | 'inadimplente' | 'suspenso' | 'cancelado' | 'rascunho';
 
 export type AtivacaoStatus = 'pendente_financeiro' | 'ativo' | 'suspenso' | 'cancelado';
 
@@ -294,7 +294,8 @@ export const associateStatusLabels: Record<AssociateStatus, string> = {
   ativo: 'Ativo',
   inadimplente: 'Inadimplente',
   suspenso: 'Suspenso',
-  cancelado: 'Cancelado'
+  cancelado: 'Cancelado',
+  rascunho: 'Rascunho'
 };
 
 export const proposalStatusLabels: Record<ProposalStatus, string> = {
