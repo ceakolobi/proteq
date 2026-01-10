@@ -108,6 +108,9 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
+  const isRealFile = (file: unknown): file is File =>
+    typeof File !== 'undefined' && file instanceof File;
+
   // Check for draft when dialog opens
   useEffect(() => {
     if (!open) return;
@@ -183,8 +186,17 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const handleContinueDraft = () => {
     if (pendingDraft) {
       setCurrentStep(pendingDraft.currentStep || 0);
-      setAssociadoData(pendingDraft.associadoData || initialAssociadoData);
-      setVeiculoData(pendingDraft.veiculoData || initialVeiculoData);
+
+      const safeAssociadoData = pendingDraft.associadoData
+        ? {
+            ...pendingDraft.associadoData,
+            // Arquivos não são preservados no rascunho (localStorage/JSON)
+            comprovante_migracao_file: null,
+          }
+        : initialAssociadoData;
+
+      setAssociadoData(safeAssociadoData as AssociadoFormData);
+      setVeiculoData((pendingDraft.veiculoData || initialVeiculoData) as VeiculoFormData);
       setTermosAceitos(pendingDraft.termosAceitos || false);
     }
     setShowDraftDialog(false);
@@ -228,7 +240,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             toast.error('Data de saída da associação anterior é obrigatória');
             return false;
           }
-          if (!associadoData.comprovante_migracao_file) {
+          // Arquivos não persistem em rascunho; garanta que seja um File real
+          if (!isRealFile(associadoData.comprovante_migracao_file)) {
             toast.error('Documento comprobatório é obrigatório para dispensa de vistoria');
             return false;
           }
@@ -335,41 +348,44 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   };
 
   const uploadDocuments = async (
-    docs: DocumentoUpload[], 
-    bucket: string, 
+    docs: DocumentoUpload[],
+    bucket: string,
     entityId: string,
     table: 'documentos_associado' | 'documentos_veiculo',
     entityField: 'associado_id' | 'veiculo_id'
   ) => {
     for (const doc of docs) {
-      if (!doc.file) continue;
-      
-      const fileExt = doc.file.name.split('.').pop();
-      const fileName = `${entityId}/${doc.tipo}_${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, doc.file);
-      
+      const file = doc.file;
+      if (!isRealFile(file) || !file.name) {
+        // Anexos podem virar objetos vazios ao recuperar rascunho; ignore sem quebrar o fluxo
+        continue;
+      }
+
+      const fileExt = file.name.includes('.') ? file.name.split('.').pop() : undefined;
+      const safeExt = fileExt || 'bin';
+      const fileName = `${entityId}/${doc.tipo}_${Date.now()}.${safeExt}`;
+
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file);
+
       if (uploadError) {
         console.error('Upload error:', uploadError);
         continue;
       }
-      
+
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-      
+
       if (table === 'documentos_associado') {
         await supabase.from('documentos_associado').insert({
           associado_id: entityId,
           tipo: doc.tipo,
-          nome_arquivo: doc.file.name,
+          nome_arquivo: file.name,
           url: urlData.publicUrl,
         });
       } else {
         await supabase.from('documentos_veiculo').insert({
           veiculo_id: entityId,
           tipo: doc.tipo,
-          nome_arquivo: doc.file.name,
+          nome_arquivo: file.name,
           url: urlData.publicUrl,
         });
       }
@@ -397,15 +413,22 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     try {
       // 1. Upload comprovante de migração se necessário
       let comprovanteUrl: string | null = null;
-      if (associadoData.veio_de_outra_associacao && associadoData.comprovante_migracao_file) {
+      if (associadoData.veio_de_outra_associacao) {
         const file = associadoData.comprovante_migracao_file;
-        const fileExt = file.name.split('.').pop();
-        const fileName = `migracao_${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError, data: uploadData } = await supabase.storage
+
+        if (!isRealFile(file) || !file.name) {
+          toast.error('Reenvie o comprovante de migração (o rascunho não preserva anexos)');
+          return;
+        }
+
+        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : undefined;
+        const safeExt = fileExt || 'bin';
+        const fileName = `migracao_${Date.now()}.${safeExt}`;
+
+        const { error: uploadError } = await supabase.storage
           .from('associado-documentos')
           .upload(fileName, file);
-        
+
         if (!uploadError) {
           const { data: urlData } = supabase.storage.from('associado-documentos').getPublicUrl(fileName);
           comprovanteUrl = urlData.publicUrl;

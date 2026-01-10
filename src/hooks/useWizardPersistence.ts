@@ -32,7 +32,14 @@ function loadFromLocalStorage(): WizardDraft | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored) as WizardDraft;
+      const parsed = JSON.parse(stored) as WizardDraft;
+
+      // File objects are not serializable; always restore as null
+      if (parsed?.associadoData) {
+        (parsed.associadoData as any).comprovante_migracao_file = null;
+      }
+
+      return parsed;
     }
   } catch (e) {
     console.error('Error loading draft from localStorage:', e);
@@ -87,11 +94,21 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
       termosAceitos: false,
       lastUpdated: new Date().toISOString(),
     };
+
     const updated: WizardDraft = {
       ...current,
       ...data,
       lastUpdated: new Date().toISOString(),
     };
+
+    // File objects are not serializable; do not persist them in drafts
+    if (updated.associadoData) {
+      (updated.associadoData as any) = {
+        ...(updated.associadoData as any),
+        comprovante_migracao_file: null,
+      };
+    }
+
     saveToLocalStorage(updated);
     setHasDraft(true);
     if (updated.id) setDraftId(updated.id);
@@ -136,7 +153,11 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
         // Convert payload to plain JSON-compatible object
         const payloadJson = JSON.parse(
           JSON.stringify({
-            associadoData: data.associadoData,
+            associadoData: {
+              ...(data.associadoData as any),
+              // File objects are not serializable; persist as null
+              comprovante_migracao_file: null,
+            },
             veiculoData: data.veiculoData,
             termosAceitos: data.termosAceitos,
           })
@@ -233,7 +254,11 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
       const draft: WizardDraft = {
         id: data.id,
         currentStep: data.draft_step ?? 0,
-        associadoData: (payload?.associadoData ?? {}) as AssociadoFormData,
+        associadoData: {
+          ...((payload?.associadoData ?? {}) as any),
+          // File objects are not serializable; always restore as null
+          comprovante_migracao_file: null,
+        } as AssociadoFormData,
         veiculoData: (payload?.veiculoData ?? {}) as VeiculoFormData,
         termosAceitos: payload?.termosAceitos ?? false,
         lastUpdated: data.draft_last_updated ?? new Date().toISOString(),
