@@ -231,10 +231,17 @@ export function ResumoStep({ associadoData, veiculoData, docsAssociado, docsVeic
               <span className="font-medium">{associadoData.nome_associacao_anterior}</span>
               
               <span className="text-muted-foreground">Data de Saída:</span>
-              <span>{new Date(associadoData.data_saida_associacao).toLocaleDateString('pt-BR')}</span>
+              <span>
+                {associadoData.data_saida_associacao
+                  ? new Date(associadoData.data_saida_associacao).toLocaleDateString('pt-BR')
+                  : 'Não informada'}
+              </span>
               
               <span className="text-muted-foreground">Comprovante:</span>
-              <span>{associadoData.comprovante_migracao_file?.name || 'Anexado'}</span>
+              <span>
+                {associadoData.comprovante_migracao_file?.name ||
+                  (associadoData.comprovante_migracao_url ? 'Anexado' : 'Não anexado')}
+              </span>
             </div>
             <div className="mt-3 p-2 bg-green-100 dark:bg-green-900/50 rounded-md">
               <p className="text-xs text-green-800 dark:text-green-300">
