@@ -387,8 +387,10 @@ export default function ConsultorDashboard() {
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-sm font-medium text-primary">
-                                {associado.nome_completo
+                                {(associado.nome_completo ?? '')
+                                  .trim()
                                   .split(' ')
+                                  .filter(Boolean)
                                   .map((n) => n[0])
                                   .join('')
                                   .slice(0, 2)
