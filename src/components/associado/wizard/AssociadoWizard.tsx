@@ -79,7 +79,7 @@ const initialVeiculoData: VeiculoFormData = {
 };
 
 export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWizardProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdminPrincipal, isGlobalAdmin } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -88,11 +88,15 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoUpload[]>([]);
   const [termosAceitos, setTermosAceitos] = useState(false);
+  const [selectedRegiaoId, setSelectedRegiaoId] = useState<string | null>(null);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WizardDraft | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Determinar se precisa exibir seletor de regional
+  const needsRegiaoSelector = isAdminPrincipal || isGlobalAdmin || !profile?.regiao_id;
 
   const {
     saveDraftLocal,
@@ -161,6 +165,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setDocsAssociado([]);
     setDocsVeiculo([]);
     setTermosAceitos(false);
+    setSelectedRegiaoId(null);
     setStepValidation({});
     setPendingDraft(null);
   }, []);
@@ -296,6 +301,11 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           toast.error('Você precisa aceitar os termos para continuar');
           return false;
         }
+        // Verificar se precisa de regional e se foi selecionada
+        if (needsRegiaoSelector && !selectedRegiaoId) {
+          toast.error('Selecione uma regional para o associado');
+          return false;
+        }
         return true;
       
       default:
@@ -368,8 +378,17 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
-    if (!user?.id || !profile?.regiao_id) {
-      toast.error('Você precisa estar vinculado a uma regional para cadastrar');
+    
+    // Determinar qual regiao_id usar
+    const finalRegiaoId = needsRegiaoSelector ? selectedRegiaoId : profile?.regiao_id;
+    
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+    
+    if (!finalRegiaoId) {
+      toast.error('Selecione uma regional para o associado');
       return;
     }
 
@@ -414,7 +433,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           cidade: associadoData.cidade.trim(),
           estado: associadoData.estado.trim(),
           consultor_id: user.id,
-          regiao_id: profile.regiao_id,
+          regiao_id: finalRegiaoId,
           status: 'ativo',
           dia_vencimento: associadoData.dia_vencimento,
           veio_de_outra_associacao: associadoData.veio_de_outra_associacao,
@@ -675,6 +694,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           <TermosAceiteStep
             aceitou={termosAceitos}
             onChange={setTermosAceitos}
+            selectedRegiaoId={selectedRegiaoId}
+            onRegiaoChange={setSelectedRegiaoId}
           />
         );
       default:
