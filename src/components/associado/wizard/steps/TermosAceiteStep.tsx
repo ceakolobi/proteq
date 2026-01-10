@@ -1,18 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, Shield, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Shield, CheckCircle, AlertTriangle, MapPin } from 'lucide-react';
 import { TERMO_ACEITE_TITULO, TERMO_ACEITE_CONTEUDO } from '@/lib/termoAceiteContent';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Regiao {
+  id: string;
+  nome: string;
+  sede_id: string;
+}
 
 interface TermosAceiteStepProps {
   aceitou: boolean;
   onChange: (aceitou: boolean) => void;
+  selectedRegiaoId: string | null;
+  onRegiaoChange: (regiaoId: string) => void;
 }
 
-export function TermosAceiteStep({ aceitou, onChange }: TermosAceiteStepProps) {
+export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiaoChange }: TermosAceiteStepProps) {
+  const { isAdminPrincipal, isGlobalAdmin, profile } = useAuth();
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
+  const [regioes, setRegioes] = useState<Regiao[]>([]);
+  const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
+
+  const showRegiaoSelector = isAdminPrincipal || isGlobalAdmin || !profile?.regiao_id;
+
+  useEffect(() => {
+    if (!showRegiaoSelector) return;
+
+    const fetchRegioes = async () => {
+      setIsLoadingRegioes(true);
+      const { data, error } = await supabase
+        .from('regioes')
+        .select('id, nome, sede_id')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (!error && data) {
+        setRegioes(data);
+      }
+      setIsLoadingRegioes(false);
+    };
+
+    fetchRegioes();
+  }, [showRegiaoSelector]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -29,6 +66,44 @@ export function TermosAceiteStep({ aceitou, onChange }: TermosAceiteStepProps) {
         <h3 className="font-semibold text-lg">Termo de Aceite</h3>
       </div>
 
+      {/* Seletor de Regional - apenas para Admin Principal ou usuários sem regional */}
+      {showRegiaoSelector && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              Selecione a Regional do Associado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="regiao-select">Regional *</Label>
+              <Select
+                value={selectedRegiaoId || ''}
+                onValueChange={onRegiaoChange}
+                disabled={isLoadingRegioes}
+              >
+                <SelectTrigger id="regiao-select" className="w-full">
+                  <SelectValue placeholder={isLoadingRegioes ? "Carregando..." : "Selecione uma regional"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {regioes.map((regiao) => (
+                    <SelectItem key={regiao.id} value={regiao.id}>
+                      {regiao.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!selectedRegiaoId && (
+                <p className="text-xs text-destructive">
+                  É obrigatório selecionar uma regional para o associado.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Alert className="bg-primary/10 border-primary/20">
         <Shield className="h-4 w-4 text-primary" />
         <AlertDescription className="text-sm">
@@ -43,7 +118,7 @@ export function TermosAceiteStep({ aceitou, onChange }: TermosAceiteStepProps) {
         </CardHeader>
         <CardContent>
           <ScrollArea
-            className="h-[300px] w-full rounded-md border p-4"
+            className="h-[250px] w-full rounded-md border p-4"
             onScrollCapture={handleScroll}
           >
             <div className="prose prose-sm max-w-none">
