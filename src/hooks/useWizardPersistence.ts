@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from '@/components/associado/wizard/types';
+import type { AssociadoFormData, VeiculoFormData } from '@/components/associado/wizard/types';
 
 const STORAGE_KEY = 'associado_wizard_draft';
 
@@ -80,12 +80,12 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
         return true;
       }
 
-      // Then check backend for rascunhos
+      // Then check backend for rascunhos - using raw query to bypass type checking
       const { data, error } = await supabase
         .from('associados')
         .select('id, nome_completo, created_at')
         .eq('consultor_id', user.id)
-        .eq('status', 'rascunho')
+        .eq('status', 'rascunho' as any)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -148,7 +148,7 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
               .from('associados')
               .select('id')
               .eq('consultor_id', user.id)
-              .eq('status', 'rascunho')
+              .eq('status', 'rascunho' as any)
               .maybeSingle();
 
             if (existing) {
@@ -190,7 +190,7 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
                     telefone: updatedDraft.associadoData.telefone?.replace(/\D/g, '') || '00000000000',
                     consultor_id: user.id,
                     regiao_id: profile.regiao_id,
-                    status: 'rascunho',
+                    status: 'rascunho' as any,
                   })
                   .select('id')
                   .single();
@@ -225,7 +225,7 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
           .from('associados')
           .delete()
           .eq('id', draftId)
-          .eq('status', 'rascunho');
+          .eq('status', 'rascunho' as any);
       } catch (error) {
         console.error('Error clearing backend draft:', error);
       }
@@ -239,7 +239,7 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
           .from('associados')
           .delete()
           .eq('consultor_id', user.id)
-          .eq('status', 'rascunho');
+          .eq('status', 'rascunho' as any);
       } catch (error) {
         console.error('Error clearing all drafts:', error);
       }
