@@ -552,8 +552,10 @@ export default function Associados() {
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-medium text-primary">
-                {associado.nome_completo
+                {(associado.nome_completo ?? '')
+                  .trim()
                   .split(' ')
+                  .filter(Boolean)
                   .map((n) => n[0])
                   .join('')
                   .slice(0, 2)
@@ -896,7 +898,7 @@ export default function Associados() {
                                       <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                                           <span className="text-xs font-medium text-primary">
-                                            {associado.nome_completo.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                            {(associado.nome_completo ?? '').trim().split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                                           </span>
                                         </div>
                                         <div>

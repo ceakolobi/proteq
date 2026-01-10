@@ -373,9 +373,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }));
   };
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name?: string | null) => {
+    const safe = (name || '').trim();
+    if (!safe) return '';
+
+    return safe
       .split(' ')
+      .filter(Boolean)
       .map(part => part[0])
       .slice(0, 2)
       .join('')
