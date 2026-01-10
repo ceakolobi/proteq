@@ -52,7 +52,8 @@ import {
   Phone, 
   Mail,
   Building2,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 import type { Profile, Regiao, Sede } from '@/types/database';
 import { z } from 'zod';
@@ -259,11 +260,15 @@ export default function Consultores() {
     }
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleSave = async () => {
     if (!validateForm()) {
       toast.error('Corrija os erros do formulário');
       return;
     }
+
+    setIsSaving(true);
 
     try {
       // Get sede_id from regiao
@@ -275,6 +280,7 @@ export default function Consultores() {
 
       if (!regiaoData) {
         toast.error('Região não encontrada');
+        setIsSaving(false);
         return;
       }
 
@@ -295,7 +301,7 @@ export default function Consultores() {
         if (error) throw error;
         toast.success('Consultor atualizado com sucesso');
       } else {
-        // Create new user - first check if email already exists
+        // Check if email already exists
         const { data: existingUser } = await supabase
           .from('profiles')
           .select('id')
@@ -339,8 +345,48 @@ export default function Consultores() {
 
           toast.success('Consultor vinculado com sucesso');
         } else {
-          toast.info('O usuário precisa se cadastrar no sistema primeiro. Após o cadastro, você poderá vinculá-lo como consultor.');
-          return;
+          // Create new user via edge function
+          const { data: sessionData } = await supabase.auth.getSession();
+          
+          if (!sessionData.session) {
+            toast.error('Sessão expirada. Faça login novamente.');
+            setIsSaving(false);
+            return;
+          }
+
+          const response = await supabase.functions.invoke('create-consultor', {
+            body: {
+              nome_completo: formData.nome_completo.trim(),
+              email: formData.email.trim().toLowerCase(),
+              telefone: formData.telefone.trim() || null,
+              cpf: formData.cpf.replace(/\D/g, '') || null,
+              regiao_id: formData.regiao_id,
+              sede_id: regiaoData.sede_id,
+              company_id: profile?.company_id,
+            },
+          });
+
+          if (response.error) {
+            console.error('Erro na edge function:', response.error);
+            throw new Error(response.error.message || 'Erro ao criar consultor');
+          }
+
+          const result = response.data;
+
+          if (!result.success) {
+            throw new Error(result.error || 'Erro ao criar consultor');
+          }
+
+          if (result.emailSent) {
+            toast.success('Consultor criado com sucesso! E-mail com credenciais enviado.');
+          } else {
+            // Email failed, show temp password
+            toast.success(
+              `Consultor criado! Senha temporária: ${result.tempPassword}`,
+              { duration: 15000 }
+            );
+            toast.info('Anote a senha acima e informe ao consultor. Ele deverá trocá-la no primeiro acesso.');
+          }
         }
       }
 
@@ -349,6 +395,8 @@ export default function Consultores() {
     } catch (error: any) {
       console.error('Error saving consultor:', error);
       toast.error(error.message || 'Erro ao salvar consultor');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -631,12 +679,12 @@ export default function Consultores() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {selectedConsultor ? 'Editar Consultor' : 'Vincular Consultor'}
+                {selectedConsultor ? 'Editar Consultor' : 'Novo Consultor'}
               </DialogTitle>
               <DialogDescription>
                 {selectedConsultor
                   ? 'Atualize os dados do consultor'
-                  : 'Vincule um usuário existente como consultor da regional'}
+                  : 'Cadastre um novo consultor. Será enviado um e-mail com login e senha temporária.'}
               </DialogDescription>
             </DialogHeader>
 
@@ -751,11 +799,18 @@ export default function Consultores() {
                   Desativar
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave}>
-                {selectedConsultor ? 'Salvar' : 'Vincular'}
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {selectedConsultor ? 'Salvando...' : 'Criando...'}
+                  </>
+                ) : (
+                  selectedConsultor ? 'Salvar' : 'Criar Consultor'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
