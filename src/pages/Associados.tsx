@@ -175,7 +175,10 @@ export default function Associados() {
   const fetchAssociados = async () => {
     try {
       setIsLoading(true);
-      let query = supabase.from('associados').select('*');
+      let query = supabase
+        .from('associados')
+        .select('*')
+        .neq('status', 'rascunho'); // Não exibir rascunhos na lista
 
       if (isConsultor && !isAdminPrincipal && !isAdminRegional) {
         query = query.eq('consultor_id', user!.id);

@@ -160,6 +160,9 @@ export type Database = {
           data_nascimento: string | null
           data_saida_associacao: string | null
           dia_vencimento: number | null
+          draft_last_updated: string | null
+          draft_payload: Json | null
+          draft_step: number | null
           email: string
           endereco: string | null
           estado: string | null
@@ -194,6 +197,9 @@ export type Database = {
           data_nascimento?: string | null
           data_saida_associacao?: string | null
           dia_vencimento?: number | null
+          draft_last_updated?: string | null
+          draft_payload?: Json | null
+          draft_step?: number | null
           email: string
           endereco?: string | null
           estado?: string | null
@@ -228,6 +234,9 @@ export type Database = {
           data_nascimento?: string | null
           data_saida_associacao?: string | null
           dia_vencimento?: number | null
+          draft_last_updated?: string | null
+          draft_payload?: Json | null
+          draft_step?: number | null
           email?: string
           endereco?: string | null
           estado?: string | null
