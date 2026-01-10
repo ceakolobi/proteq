@@ -7,7 +7,6 @@ import { FileText, Shield, CheckCircle, AlertTriangle, MapPin } from 'lucide-rea
 import { TERMO_ACEITE_TITULO, TERMO_ACEITE_CONTEUDO } from '@/lib/termoAceiteContent';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Regiao {
@@ -21,15 +20,13 @@ interface TermosAceiteStepProps {
   onChange: (aceitou: boolean) => void;
   selectedRegiaoId: string | null;
   onRegiaoChange: (regiaoId: string) => void;
+  showRegiaoSelector: boolean;
 }
 
-export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiaoChange }: TermosAceiteStepProps) {
-  const { isAdminPrincipal, isGlobalAdmin, profile } = useAuth();
+export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiaoChange, showRegiaoSelector }: TermosAceiteStepProps) {
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
-
-  const showRegiaoSelector = isAdminPrincipal || isGlobalAdmin || !profile?.regiao_id;
 
   useEffect(() => {
     if (!showRegiaoSelector) return;
