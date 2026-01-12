@@ -205,14 +205,58 @@ export default function Consultores() {
   // Show loading while checking access
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</div>
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">{ACCESS_CHECKING_MESSAGE}</p>
+          </div>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (!isAllowed) {
-    return null;
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              <CardTitle className="text-destructive">Acesso Negado</CardTitle>
+              <CardDescription>
+                Você não tem permissão para acessar esta página.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Voltar
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show error state if fetch failed
+  if (fetchError && !isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md w-full">
+            <CardHeader className="text-center">
+              <CardTitle className="text-destructive">Erro ao Carregar</CardTitle>
+              <CardDescription>{fetchError}</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button onClick={() => fetchConsultores()}>
+                Tentar Novamente
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   const handleOpenDialog = (consultor?: ConsultorWithStats) => {
