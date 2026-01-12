@@ -161,6 +161,8 @@ export default function Veiculos() {
     mes_referencia_fipe: '',
     mensalidade_manual: null as number | null,
     mensalidade_override: false,
+    // Novo campo para alterar regional do associado
+    associado_regiao_id: '',
   });
   
   const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
@@ -178,6 +180,9 @@ export default function Veiculos() {
   
   // Admin Principal, Admin Básico e Financeiro podem editar mensalidade manualmente
   const canEditMensalidade = isAdminPrincipal || isAdminBasico || isFinanceiro;
+  
+  // Apenas Admin Principal e Admin Básico podem trocar a regional
+  const canChangeRegiao = isAdminPrincipal || isAdminBasico;
 
   // Normalizações / validações básicas
   const normalizeChassi = (value: string) => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -345,6 +350,7 @@ export default function Veiculos() {
       mes_referencia_fipe: (veiculo as any).mes_referencia_fipe || '',
       mensalidade_manual: veiculo.mensalidade_manual ?? null,
       mensalidade_override: veiculo.mensalidade_override ?? false,
+      associado_regiao_id: veiculo.associado?.regiao_id || '',
     });
     setFipeLoaded(veiculo.valor_fipe > 0);
     setIsDialogOpen(true);
@@ -367,6 +373,7 @@ export default function Veiculos() {
       mes_referencia_fipe: '',
       mensalidade_manual: null,
       mensalidade_override: false,
+      associado_regiao_id: '',
     });
     setPlacaStatus('idle');
     setFipeLoaded(false);
@@ -457,7 +464,29 @@ export default function Veiculos() {
         .eq('id', selectedVeiculo.id);
 
       if (error) throw error;
-      toast.success('Veículo atualizado com sucesso');
+
+      // Se mudou a regional do associado, atualiza
+      if (canChangeRegiao && formData.associado_regiao_id && selectedVeiculo.associado_id) {
+        const originalRegiaoId = selectedVeiculo.associado?.regiao_id;
+        if (formData.associado_regiao_id !== originalRegiaoId) {
+          const { error: assocError } = await supabase
+            .from('associados')
+            .update({ regiao_id: formData.associado_regiao_id })
+            .eq('id', selectedVeiculo.associado_id);
+          
+          if (assocError) {
+            console.error('Erro ao atualizar regional do associado:', assocError);
+            toast.error('Veículo salvo, mas houve erro ao atualizar a regional do associado');
+          } else {
+            toast.success('Veículo e regional do associado atualizados com sucesso');
+          }
+        } else {
+          toast.success('Veículo atualizado com sucesso');
+        }
+      } else {
+        toast.success('Veículo atualizado com sucesso');
+      }
+      
       setIsDialogOpen(false);
       fetchVeiculos();
     } catch (error: any) {
@@ -970,6 +999,32 @@ export default function Veiculos() {
                       <SelectItem value={selectedVeiculo?.veiculo_status || 'cadastrado'}>
                         {vehicleStatusLabels[selectedVeiculo?.veiculo_status || 'cadastrado']} (atual)
                       </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Seletor de Regional do Associado - apenas para Admin Principal e Admin Básico */}
+              {canChangeRegiao && selectedVeiculo?.associado && (
+                <div className="space-y-2 p-3 border rounded-lg bg-blue-50/50 border-blue-200">
+                  <Label className="flex items-center gap-2 text-blue-800">
+                    <Building2 className="h-4 w-4" />
+                    Regional do Associado
+                  </Label>
+                  <p className="text-xs text-blue-700 mb-2">
+                    Alterar a regional do associado "{selectedVeiculo.associado.nome_completo}"
+                  </p>
+                  <Select
+                    value={formData.associado_regiao_id}
+                    onValueChange={(value) => setFormData({ ...formData, associado_regiao_id: value })}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Selecione a regional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regioes.map((regiao) => (
+                        <SelectItem key={regiao.id} value={regiao.id}>{regiao.nome}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
