@@ -83,6 +83,10 @@ interface VeiculoWithDetails {
   valor_fipe: number;
   cota_id: string | null;
   mensalidade: number;
+  mensalidade_manual?: number | null;
+  mensalidade_override?: boolean;
+  mensalidade_alterada_por?: string | null;
+  mensalidade_alterada_em?: string | null;
   protecao_ativa: boolean;
   protecao_ativada_em: string | null;
   veiculo_status: VehicleStatus;
@@ -155,6 +159,8 @@ export default function Veiculos() {
     associado_id: '',
     codigo_fipe: '',
     mes_referencia_fipe: '',
+    mensalidade_manual: null as number | null,
+    mensalidade_override: false,
   });
   
   const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
@@ -168,6 +174,9 @@ export default function Veiculos() {
   
   // Usa permissões granulares ou fallback por role
   const canUpdateStatus = isAdminPrincipal || isAdminRegional || isCadastro;
+  
+  // Apenas Admin e Financeiro podem editar mensalidade manualmente
+  const canEditMensalidade = isAdminPrincipal || isFinanceiro;
 
   // Normalizações / validações básicas
   const normalizeChassi = (value: string) => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -333,6 +342,8 @@ export default function Veiculos() {
       associado_id: veiculo.associado_id,
       codigo_fipe: veiculo.codigo_fipe || '',
       mes_referencia_fipe: (veiculo as any).mes_referencia_fipe || '',
+      mensalidade_manual: veiculo.mensalidade_manual ?? null,
+      mensalidade_override: veiculo.mensalidade_override ?? false,
     });
     setFipeLoaded(veiculo.valor_fipe > 0);
     setIsDialogOpen(true);
@@ -353,6 +364,8 @@ export default function Veiculos() {
       associado_id: '',
       codigo_fipe: '',
       mes_referencia_fipe: '',
+      mensalidade_manual: null,
+      mensalidade_override: false,
     });
     setPlacaStatus('idle');
     setFipeLoaded(false);
@@ -387,11 +400,17 @@ export default function Veiculos() {
       c => formData.valor_fipe >= c.fipe_min && formData.valor_fipe <= c.fipe_max && c.ativo
     );
 
-    let mensalidade = 0;
+    // Calcula mensalidade automática
+    let mensalidadeAutomatica = 0;
     if (cotaApropriada) {
       const mensalidadeKey = `mensalidade_${formData.tipo}` as keyof Cota;
-      mensalidade = (cotaApropriada[mensalidadeKey] as number) || 0;
+      mensalidadeAutomatica = (cotaApropriada[mensalidadeKey] as number) || 0;
     }
+
+    // Usa mensalidade manual se override estiver ativo, senão usa automática
+    const mensalidadeFinal = formData.mensalidade_override && formData.mensalidade_manual !== null
+      ? formData.mensalidade_manual
+      : mensalidadeAutomatica;
 
     // Block status change to 'ativo' without FIPE
     if (formData.veiculo_status === 'ativo' && formData.valor_fipe <= 0) {
@@ -412,9 +431,13 @@ export default function Veiculos() {
         tipo: formData.tipo,
         veiculo_status: formData.veiculo_status,
         cota_id: cotaApropriada?.id || null,
-        mensalidade,
+        mensalidade: mensalidadeFinal,
         codigo_fipe: formData.codigo_fipe || null,
         mes_referencia_fipe: formData.mes_referencia_fipe || null,
+        mensalidade_manual: formData.mensalidade_override ? formData.mensalidade_manual : null,
+        mensalidade_override: formData.mensalidade_override,
+        mensalidade_alterada_por: formData.mensalidade_override ? user?.id : null,
+        mensalidade_alterada_em: formData.mensalidade_override ? new Date().toISOString() : null,
       };
 
       // Set protecao_ativa based on status
@@ -830,7 +853,12 @@ export default function Veiculos() {
                             <span className="font-medium">{formatCurrency(veiculo.valor_fipe)}</span>
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-green-600">{formatCurrency(veiculo.mensalidade)}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-green-600">{formatCurrency(veiculo.mensalidade)}</span>
+                              {veiculo.mensalidade_override && (
+                                <span className="text-xs text-amber-600" title="Valor definido manualmente">✎</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {veiculo.sede ? (
@@ -1040,6 +1068,69 @@ export default function Veiculos() {
               </div>
 
               <FipeRangeDetector valorFipe={formData.valor_fipe} tipoVeiculo={formData.tipo} cotas={cotas.filter(c => c.ativo)} />
+
+              {/* Campo de mensalidade manual - apenas Admin e Financeiro */}
+              {canEditMensalidade && (
+                <div className="space-y-3 p-4 border rounded-lg bg-amber-50/50 border-amber-200">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-amber-600" />
+                    <Label className="text-base font-semibold text-amber-800">Ajuste Manual de Mensalidade</Label>
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    Como Admin/Financeiro, você pode definir um valor manual que sobrepõe o cálculo automático.
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="mensalidade_override"
+                        checked={formData.mensalidade_override}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          mensalidade_override: e.target.checked,
+                          mensalidade_manual: e.target.checked ? (formData.mensalidade_manual || selectedVeiculo?.mensalidade || 0) : null
+                        })}
+                        className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <Label htmlFor="mensalidade_override" className="text-sm text-amber-800">
+                        Usar valor manual
+                      </Label>
+                    </div>
+                    {formData.mensalidade_override && (
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.mensalidade_manual ?? ''}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            mensalidade_manual: parseFloat(e.target.value) || 0 
+                          })}
+                          placeholder="Valor da mensalidade"
+                          className="border-amber-300 focus:border-amber-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {formData.mensalidade_override && formData.mensalidade_manual !== null && (
+                    <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+                      <span>Mensalidade final:</span>
+                      <span className="text-lg text-green-600">{formatCurrency(formData.mensalidade_manual)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Indicador para usuários sem permissão quando há override */}
+              {!canEditMensalidade && selectedVeiculo && selectedVeiculo.mensalidade_override && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <DollarSign className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-800">
+                    Mensalidade definida manualmente: <span className="font-semibold">{formatCurrency(selectedVeiculo.mensalidade)}</span>
+                  </span>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
