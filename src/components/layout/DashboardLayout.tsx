@@ -156,7 +156,7 @@ const navSections: NavSection[] = [
         href: '/consultores',
         icon: <Users className="h-4 w-4" />,
         module: 'usuarios',
-        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente'],
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'financeiro'],
       },
       {
         title: 'Sedes',
