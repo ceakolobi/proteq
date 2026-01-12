@@ -18,6 +18,7 @@ export type PageAccess =
   | 'admin_principal_only'
   | 'admin_or_basico'         // admin_principal ou admin_nivel_basico
   | 'admin_or_gerente'        // admin_principal, admin_nivel_basico ou gerente
+  | 'admin_or_gerente_or_financeiro' // admin_principal, admin_nivel_basico, gerente ou financeiro
   | 'all_roles'               // todos os 4 perfis principais
   | 'authenticated'           // qualquer usuário autenticado
   // Legado (mantido para compatibilidade)
@@ -36,6 +37,18 @@ interface AccessControlResult {
   userRegiaoId: string | null;
 }
 
+interface AccessControlOptions {
+  /**
+   * Por padrão, redireciona para /dashboard quando acesso é negado.
+   * Defina como false para permitir que a página renderize o estado "Acesso Negado".
+   */
+  redirectOnDeny?: boolean;
+  /**
+   * Caminho de redirecionamento quando acesso é negado (default: /dashboard)
+   */
+  deniedRedirectPath?: string;
+}
+
 /**
  * Hook for role-based page access control
  * 
@@ -45,7 +58,10 @@ interface AccessControlResult {
  * 3. Consultor → Access to their own associados only
  * 4. Associado → Access to their own data only
  */
-export function useAccessControl(requiredAccess: PageAccess): AccessControlResult {
+export function useAccessControl(
+  requiredAccess: PageAccess,
+  options: AccessControlOptions = {}
+): AccessControlResult {
   const { user, profile, roles, isAdminPrincipal, isGlobalAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
@@ -53,6 +69,9 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
   const [userSedeId, setUserSedeId] = useState<string | null>(null);
   const [userRegiaoId, setUserRegiaoId] = useState<string | null>(null);
   const deniedToastShownRef = useRef(false);
+
+  const redirectOnDeny = options.redirectOnDeny ?? true;
+  const deniedRedirectPath = options.deniedRedirectPath ?? '/dashboard';
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -99,6 +118,15 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
                    roles.includes('admin_nivel_basico') ||
                    roles.includes('admin_regional') ||
                    roles.includes('gerente');
+          break;
+
+        case 'admin_or_gerente_or_financeiro':
+          // Admin Principal OU Admin Básico OU Admin Regional (legado) OU Gerente OU Financeiro
+          allowed = isAdminPrincipal === true ||
+                   roles.includes('admin_nivel_basico') ||
+                   roles.includes('admin_regional') ||
+                   roles.includes('gerente') ||
+                   roles.includes('financeiro');
           break;
 
         case 'all_roles':
@@ -186,8 +214,10 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
           });
         }
 
-        // Redirect unauthorized users to dashboard
-        navigate('/dashboard', { replace: true });
+        // Por padrão redireciona, mas algumas páginas preferem renderizar "Acesso Negado"
+        if (redirectOnDeny) {
+          navigate(deniedRedirectPath, { replace: true });
+        }
       }
 
       setIsAllowed(allowed);
@@ -195,7 +225,7 @@ export function useAccessControl(requiredAccess: PageAccess): AccessControlResul
     };
 
     checkAccess();
-  }, [user, profile, roles, isAdminPrincipal, isGlobalAdmin, authLoading, requiredAccess, navigate]);
+  }, [user, profile, roles, isAdminPrincipal, isGlobalAdmin, authLoading, requiredAccess, redirectOnDeny, deniedRedirectPath, navigate]);
 
   return {
     isAllowed,

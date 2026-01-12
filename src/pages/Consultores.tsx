@@ -76,7 +76,7 @@ interface ConsultorWithStats extends Profile {
 
 export default function Consultores() {
   const { profile, isAdminPrincipal, hasRole } = useAuth();
-  const { isAllowed, isChecking } = useAccessControl('admin_or_gerente');
+  const { isAllowed, isChecking } = useAccessControl('admin_or_gerente_or_financeiro', { redirectOnDeny: false });
   
   const [consultores, setConsultores] = useState<ConsultorWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
