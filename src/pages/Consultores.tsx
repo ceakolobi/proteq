@@ -100,6 +100,7 @@ export default function Consultores() {
     ativo: true,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const isAdminRegional = hasRole('admin_regional');
 
@@ -310,7 +311,7 @@ export default function Consultores() {
     }
   };
 
-  const [isSaving, setIsSaving] = useState(false);
+  // (hook moved above to avoid conditional hook execution)
 
   const handleSave = async () => {
     if (!validateForm()) {
