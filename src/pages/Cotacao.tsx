@@ -168,8 +168,8 @@ export default function Cotacao() {
   };
 
   const beneficios = [
-    { icon: Car, label: 'Carro Reserva', desc: '15 dias inclusos' },
-    { icon: Truck, label: 'Guincho', desc: '50 km (até 250 km ida e volta)' },
+    { icon: Car, label: 'Carro Reserva', desc: '30 dias inclusos' },
+    { icon: Truck, label: 'Guincho', desc: '500 km (até 250 km ida e 250 volta)' },
     { icon: Shield, label: 'Vidros', desc: 'Cobertura de para-brisa' },
     { icon: Key, label: 'Chaveiro', desc: '24 horas' },
     { icon: Wrench, label: 'Pane Elétrica', desc: 'Assistência inclusa' },
