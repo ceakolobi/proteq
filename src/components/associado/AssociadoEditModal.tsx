@@ -37,7 +37,8 @@ import {
   Upload,
   Eye,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Building2
 } from 'lucide-react';
 import type { AssociateStatus } from '@/types/database';
 import { 
@@ -45,6 +46,8 @@ import {
   DIA_VENCIMENTO_OPTIONS, 
   ESTADOS_BRASILEIROS 
 } from './wizard/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useReferenceData } from '@/hooks/useReferenceData';
 
 interface AssociadoData {
   id: string;
@@ -66,6 +69,7 @@ interface AssociadoData {
   estado?: string;
   dia_vencimento?: number;
   status: AssociateStatus;
+  regiao_id?: string;
   // CNH fields
   cnh_numero?: string;
   cnh_categoria?: string;
@@ -139,12 +143,18 @@ export function AssociadoEditModal({
   onSuccess,
   canEditStatus = false,
 }: AssociadoEditModalProps) {
+  const { isAdminPrincipal, hasRole } = useAuth();
+  const { regioes, isLoading: regioesLoading } = useReferenceData({ loadRegioes: true });
+  
   const [formData, setFormData] = useState<Partial<AssociadoData>>({});
   const [documentos, setDocumentos] = useState<DocumentoAssociado[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dados');
+  
+  // Apenas Admin Principal e Admin Básico podem trocar a regional
+  const canChangeRegiao = isAdminPrincipal || hasRole('admin_nivel_basico');
 
   // Load associado data when modal opens
   useEffect(() => {
@@ -168,6 +178,7 @@ export function AssociadoEditModal({
         estado: associado.estado || '',
         dia_vencimento: associado.dia_vencimento || 10,
         status: associado.status,
+        regiao_id: (associado as any).regiao_id || '',
         cnh_numero: (associado as any).cnh_numero || '',
         cnh_categoria: (associado as any).cnh_categoria || '',
         cnh_validade: (associado as any).cnh_validade || '',
@@ -351,7 +362,7 @@ export function AssociadoEditModal({
     setIsLoading(true);
 
     try {
-      const updateData = {
+      const updateData: Record<string, any> = {
         nome_completo: formData.nome_completo?.trim(),
         cpf: cpfLimpo,
         rg: formData.rg?.replace(/\D/g, '') || null,
@@ -371,6 +382,11 @@ export function AssociadoEditModal({
         dia_vencimento: formData.dia_vencimento || 10,
         status: formData.status,
       };
+
+      // Adiciona regiao_id apenas se o usuário pode alterar
+      if (canChangeRegiao && formData.regiao_id) {
+        updateData.regiao_id = formData.regiao_id;
+      }
 
       const { error } = await supabase
         .from('associados')
@@ -583,6 +599,30 @@ export function AssociadoEditModal({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Regional */}
+                {canChangeRegiao && (
+                  <div className="space-y-2">
+                    <Label>Regional</Label>
+                    <Select
+                      value={formData.regiao_id || ''}
+                      onValueChange={(value) => handleChange('regiao_id' as keyof AssociadoData, value)}
+                      disabled={regioesLoading}
+                    >
+                      <SelectTrigger>
+                        <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <SelectValue placeholder={regioesLoading ? "Carregando..." : "Selecione a regional"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {regioes.map((regiao) => (
+                          <SelectItem key={regiao.id} value={regiao.id}>
+                            {regiao.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Status */}
                 {canEditStatus && (
