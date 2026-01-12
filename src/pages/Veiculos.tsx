@@ -167,6 +167,7 @@ export default function Veiculos() {
   const [fipeLoaded, setFipeLoaded] = useState(false);
 
   const isAdminRegional = hasRole('admin_regional') && !isAdminPrincipal;
+  const isAdminBasico = hasRole('admin_nivel_basico');
   const isConsultor = hasRole('consultor_vendas') && !isAdminPrincipal && !isAdminRegional;
   const isCadastro = hasRole('cadastro');
   const isFinanceiro = hasRole('financeiro');
@@ -175,8 +176,8 @@ export default function Veiculos() {
   // Usa permissões granulares ou fallback por role
   const canUpdateStatus = isAdminPrincipal || isAdminRegional || isCadastro;
   
-  // Apenas Admin e Financeiro podem editar mensalidade manualmente
-  const canEditMensalidade = isAdminPrincipal || isFinanceiro;
+  // Admin Principal, Admin Básico e Financeiro podem editar mensalidade manualmente
+  const canEditMensalidade = isAdminPrincipal || isAdminBasico || isFinanceiro;
 
   // Normalizações / validações básicas
   const normalizeChassi = (value: string) => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
