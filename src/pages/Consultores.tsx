@@ -189,12 +189,18 @@ export default function Consultores() {
     }
   };
 
-  // Fetch data when access is granted
+  // Fetch data when access is granted - using refs to avoid infinite loop
+  const getRegiaoNomeRef = { current: getRegiaoNome };
+  const getSedeNomeRef = { current: getSedeNome };
+  getRegiaoNomeRef.current = getRegiaoNome;
+  getSedeNomeRef.current = getSedeNome;
+  
   useEffect(() => {
     if (isAllowed && !isChecking) {
       fetchConsultores();
     }
-  }, [isAllowed, isChecking, getRegiaoNome, getSedeNome]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAllowed, isChecking]);
 
   // Show loading while checking access
   if (isChecking) {
