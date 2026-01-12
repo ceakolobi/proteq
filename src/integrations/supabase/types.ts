@@ -1389,6 +1389,61 @@ export type Database = {
           },
         ]
       }
+      mensalidade_alteracoes_log: {
+        Row: {
+          alterado_em: string | null
+          alterado_por: string
+          company_id: string | null
+          id: string
+          motivo: string | null
+          valor_anterior: number | null
+          valor_novo: number | null
+          veiculo_id: string
+        }
+        Insert: {
+          alterado_em?: string | null
+          alterado_por: string
+          company_id?: string | null
+          id?: string
+          motivo?: string | null
+          valor_anterior?: number | null
+          valor_novo?: number | null
+          veiculo_id: string
+        }
+        Update: {
+          alterado_em?: string | null
+          alterado_por?: string
+          company_id?: string | null
+          id?: string
+          motivo?: string | null
+          valor_anterior?: number | null
+          valor_novo?: number | null
+          veiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensalidade_alteracoes_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidade_alteracoes_log_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensalidade_alteracoes_log_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensalidades: {
         Row: {
           acrescimo: number | null
@@ -2181,6 +2236,10 @@ export type Database = {
           lead_id: string | null
           marca: string
           mensalidade: number
+          mensalidade_alterada_em: string | null
+          mensalidade_alterada_por: string | null
+          mensalidade_manual: number | null
+          mensalidade_override: boolean | null
           mes_referencia_fipe: string | null
           modelo: string
           placa: string
@@ -2214,6 +2273,10 @@ export type Database = {
           lead_id?: string | null
           marca: string
           mensalidade: number
+          mensalidade_alterada_em?: string | null
+          mensalidade_alterada_por?: string | null
+          mensalidade_manual?: number | null
+          mensalidade_override?: boolean | null
           mes_referencia_fipe?: string | null
           modelo: string
           placa: string
@@ -2247,6 +2310,10 @@ export type Database = {
           lead_id?: string | null
           marca?: string
           mensalidade?: number
+          mensalidade_alterada_em?: string | null
+          mensalidade_alterada_por?: string | null
+          mensalidade_manual?: number | null
+          mensalidade_override?: boolean | null
           mes_referencia_fipe?: string | null
           modelo?: string
           placa?: string
@@ -2642,6 +2709,7 @@ export type Database = {
         Returns: boolean
       }
       can_create_lead: { Args: { _user_id: string }; Returns: boolean }
+      can_edit_mensalidade: { Args: { _user_id: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       enforce_company_isolation: {
