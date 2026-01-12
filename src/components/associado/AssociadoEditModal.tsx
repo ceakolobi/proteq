@@ -353,7 +353,7 @@ export function AssociadoEditModal({
       return;
     }
 
-    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email || '')) {
       toast.error('Email inválido');
       return;
