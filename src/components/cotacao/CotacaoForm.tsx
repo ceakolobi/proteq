@@ -699,7 +699,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="nenhum">15 dias (inclusos)</SelectItem>
+                      <SelectItem value="nenhum">30 dias (inclusos)</SelectItem>
                       <SelectItem value="30dias">+30 dias (R$ 39,90/mês)</SelectItem>
                       <SelectItem value="90dias">+90 dias (R$ 59,90/mês)</SelectItem>
                     </SelectContent>
@@ -838,8 +838,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Carro Reserva:</span>
                     <span>
-                      {formData.carro_reserva_extra === 'nenhum' ? '15 dias' :
-                       formData.carro_reserva_extra === '30dias' ? '45 dias' : '105 dias'}
+                      {formData.carro_reserva_extra === 'nenhum' ? '30 dias' :
+                       formData.carro_reserva_extra === '30dias' ? '60 dias' : '120 dias'}
                     </span>
                   </div>
                 </div>
