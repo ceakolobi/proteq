@@ -2746,6 +2746,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_or_gerente: { Args: { _user_id: string }; Returns: boolean }
       is_admin_principal: { Args: { _user_id: string }; Returns: boolean }
       is_demo_email: { Args: { _email: string }; Returns: boolean }
       is_demo_user: { Args: { _user_id: string }; Returns: boolean }
