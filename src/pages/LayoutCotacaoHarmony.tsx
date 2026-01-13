@@ -781,8 +781,8 @@ export default function LayoutCotacaoHarmony() {
 
             {/* Área de Assinaturas */}
             <div className="grid md:grid-cols-2 gap-10 mb-8">
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)]">Assinatura do Cliente *</Label>
+              <div className="flex flex-col items-center space-y-3">
+                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)] text-center">Assinatura do Cliente *</Label>
                 <div className="print:hidden">
                   <SignaturePad
                     onSignatureChange={setAssinaturaCliente}
@@ -798,7 +798,7 @@ export default function LayoutCotacaoHarmony() {
                       className="h-20 object-contain border-b-2 border-[hsl(25,50%,60%)]"
                     />
                   ) : (
-                    <div className="h-20 border-b-2 border-[hsl(25,50%,60%)]" />
+                    <div className="h-20 w-[300px] border-b-2 border-[hsl(25,50%,60%)]" />
                   )}
                 </div>
                 <p className="text-sm text-[hsl(25,50%,50%)] text-center font-medium">
@@ -806,8 +806,8 @@ export default function LayoutCotacaoHarmony() {
                 </p>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)]">Assinatura {nomeEmpresa}</Label>
+              <div className="flex flex-col items-center space-y-3">
+                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)] text-center">Assinatura {nomeEmpresa}</Label>
                 <div className="print:hidden">
                   <SignaturePad
                     onSignatureChange={setAssinaturaRepresentante}
@@ -823,7 +823,7 @@ export default function LayoutCotacaoHarmony() {
                       className="h-20 object-contain border-b-2 border-[hsl(25,50%,60%)]"
                     />
                   ) : (
-                    <div className="h-20 border-b-2 border-[hsl(25,50%,60%)]" />
+                    <div className="h-20 w-[300px] border-b-2 border-[hsl(25,50%,60%)]" />
                   )}
                 </div>
                 <p className="text-sm text-[hsl(25,50%,50%)] text-center font-medium">
@@ -871,7 +871,7 @@ export default function LayoutCotacaoHarmony() {
           )}
 
           {/* Rodapé */}
-          <footer className="bg-gradient-to-r from-[hsl(142,71%,45%)] via-[hsl(100,60%,50%)] to-[hsl(25,95%,53%)] p-8 text-white">
+          <footer className="bg-[hsl(25,95%,53%)] p-8 text-white">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
