@@ -469,55 +469,58 @@ export default function LayoutCotacaoHarmony() {
           {/* CAPA (primeira página do PDF) */}
           {selectedCover && (
             <div 
-              className="pdf-cover"
+              className="pdf-cover p-6"
               style={{
                 width: "210mm",
-                height: "297mm",
+                minHeight: "297mm",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                flexDirection: "column",
                 backgroundColor: "#ffffff",
-                overflow: "hidden",
                 pageBreakAfter: "always",
               }}
             >
-              <img
-                src={selectedCover}
-                alt="Capa"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
+              {/* Capa dentro da grade com bordas arredondadas */}
+              <div className="rounded-2xl overflow-hidden shadow-lg flex-1">
+                <img
+                  src={selectedCover}
+                  alt="Capa"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
             </div>
           )}
           
-          {/* Cabeçalho */}
-          <header className="proposal-header relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(25,95%,53%)] via-[hsl(25,90%,60%)] to-[hsl(30,85%,70%)]" />
-            <div className="relative z-10 p-6 md:p-8">
-              <div className="flex items-center justify-between mb-4">
-                <img 
-                  src={logoBranca} 
-                  alt={`${nomeEmpresa} - Clube de Benefícios`}
-                  className="h-12 md:h-14 w-auto object-contain"
-                />
-                <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider">
-                  Atendimento em todo território nacional
-                </span>
+          {/* Cabeçalho - Card separado com bordas arredondadas */}
+          <div className="p-4 md:p-6">
+            <header className="proposal-header relative overflow-hidden rounded-2xl shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[hsl(25,95%,53%)] via-[hsl(25,90%,60%)] to-[hsl(30,85%,70%)]" />
+              <div className="relative z-10 p-6 md:p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <img 
+                    src={logoBranca} 
+                    alt={`${nomeEmpresa} - Clube de Benefícios`}
+                    className="h-12 md:h-14 w-auto object-contain"
+                  />
+                  <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider">
+                    Atendimento em todo território nacional
+                  </span>
+                </div>
+                
+                <div className="text-center text-white pt-2 pb-4">
+                  <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wide mb-1">
+                    Proposta de Cotação
+                  </h1>
+                  <p className="text-sm md:text-base text-white/90">
+                    Proteção Veicular • Carros • Motos • Camionetes • Caminhões • Máquinas Agrícolas
+                  </p>
+                </div>
               </div>
-              
-              <div className="text-center text-white pt-2 pb-4">
-                <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wide mb-1">
-                  Proposta de Cotação
-                </h1>
-                <p className="text-sm md:text-base text-white/90">
-                  Proteção Veicular • Carros • Motos • Camionetes • Caminhões • Máquinas Agrícolas
-                </p>
-              </div>
-            </div>
-          </header>
+            </header>
+          </div>
 
           {/* Seção Principal – Resumo da Proposta */}
           <section className="proposal-section p-6 md:p-10">
