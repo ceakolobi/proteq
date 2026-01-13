@@ -493,34 +493,28 @@ export default function LayoutCotacaoHarmony() {
             </div>
           )}
           
-          {/* Cabeçalho com CTA */}
+          {/* Cabeçalho */}
           <header className="proposal-header relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-[hsl(25,95%,53%)] via-[hsl(25,90%,60%)] to-[hsl(30,85%,70%)]" />
-            <div className="relative z-10 p-8 md:p-10">
-              <div className="flex items-center justify-between mb-6">
+            <div className="relative z-10 p-6 md:p-8">
+              <div className="flex items-center justify-between mb-4">
                 <img 
                   src={logoBranca} 
                   alt={`${nomeEmpresa} - Clube de Benefícios`}
-                  className="h-[60px] w-auto object-contain"
-                  style={{ maxHeight: '80px', minHeight: '50px' }}
+                  className="h-12 md:h-14 w-auto object-contain"
                 />
-                <div className="text-right">
-                  <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider">
-                    Atendimento em todo território nacional
-                  </span>
-                </div>
+                <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider">
+                  Atendimento em todo território nacional
+                </span>
               </div>
               
-              <div className="text-center text-white">
-                <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-wide mb-2">
+              <div className="text-center text-white pt-2 pb-4">
+                <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wide mb-1">
                   Proposta de Cotação
                 </h1>
-                <p className="text-lg text-white/90 mb-4">
+                <p className="text-sm md:text-base text-white/90">
                   Proteção Veicular • Carros • Motos • Camionetes • Caminhões • Máquinas Agrícolas
                 </p>
-                <div className="inline-block bg-white text-[hsl(25,95%,45%)] font-bold text-lg px-8 py-3 rounded-full shadow-lg">
-                  CONTRATE AGORA
-                </div>
               </div>
             </div>
           </header>
