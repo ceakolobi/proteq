@@ -868,23 +868,16 @@ export default function LayoutCotacaoHarmony() {
           )}
 
           {/* Rodapé */}
-          <footer className="bg-[hsl(25,95%,53%)] p-8 text-white">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-white text-xl font-bold">{nomeEmpresa.charAt(0)}</span>
-                </div>
-                <span className="text-xl font-bold">{nomeEmpresa}</span>
-              </div>
-              <div className="flex flex-col md:flex-row items-center gap-6 text-white/95">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-5 h-5" />
-                  <span className="font-medium">{telefoneEmpresa}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />
-                  <span className="font-medium">{siteEmpresa}</span>
-                </div>
+          <footer className="bg-[hsl(25,95%,53%)] p-6 text-white">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <img 
+                src={logoBranca} 
+                alt={nomeEmpresa}
+                className="h-10 w-auto object-contain"
+              />
+              <div className="flex items-center gap-2 text-white/95">
+                <Globe className="w-5 h-5" />
+                <span className="font-medium">{siteEmpresa}</span>
               </div>
             </div>
           </footer>
