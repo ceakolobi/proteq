@@ -18,6 +18,14 @@ import {
   User,
   Calendar,
   QrCode,
+  Car,
+  Truck,
+  Key,
+  Zap,
+  Wrench,
+  Fuel,
+  Cloud,
+  Shield,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,34 +80,48 @@ interface CotacaoData {
   chassi: string | null;
 }
 
-// Benefícios detalhados - Versão 2.0 (Sem ícones, textos completos)
-const beneficiosDetalhados = [
+// Benefícios inclusos com ícones
+const beneficiosInclusos = [
   {
-    titulo: "Colisão (ou perda total)",
-    descricao: "Pode ficar tranquilo, com a HARMONY, você recebe 100% do veículo (de acordo com a tabela FIPE) para os casos em que seu veículo tem danos muito severos e que não compensam o reparo."
+    titulo: "Carro Reserva",
+    subtitulo: "30 dias inclusos",
+    icon: Car,
   },
   {
-    titulo: "Reboque até 1000Km",
-    subtitulo: "(500KM ida e 500KM volta)",
-    descricao: "Quem nunca ficou na mão com algum problema no carro? Mesmo os carros novos podem dar panes eletrônicas. Com a HARMONY, você tem reboque disponível 24h por dia."
+    titulo: "Guincho",
+    subtitulo: "500 km (até 250 km ida e 250 volta)",
+    icon: Truck,
   },
   {
-    titulo: "Roubo ou Furto",
-    descricao: "Seu carro foi roubado ou furtado? Com nossa proteção veicular, você não fica no prejuízo! Nós reavemos o seu veículo ou reembolsamos 100% do valor (de acordo com a tabela FIPE)."
+    titulo: "Vidros",
+    subtitulo: "Cobertura de para-brisa",
+    icon: Shield,
   },
   {
-    titulo: "Alagamentos ou fenômenos da natureza",
-    descricao: "Ficou no meio de uma enchente ou de um alagamento? Pode ficar tranquilo, com a HARMONY, sua Proteção Veicular é completa mesmo no caso de danos causados por eventos naturais."
+    titulo: "Chaveiro",
+    subtitulo: "24 horas",
+    icon: Key,
   },
   {
-    titulo: "Carro reserva",
-    descricao: "Quando você tem a comodidade de ter um carro é muito difícil ficar sem ele não é mesmo? Por isso, em caso de roubo, de furto, de colisão, de incêndio ou de alagamento, você pode pedir um carro reserva para utilizar de 15 ou 30 dias.",
-    nota: "Conheça as condições de uso ilimitado no regulamento."
+    titulo: "Pane Elétrica",
+    subtitulo: "Assistência inclusa",
+    icon: Zap,
   },
   {
-    titulo: "Proteção Automotiva de Responsabilidade",
-    descricao: "Se você sofrer um acidente e envolver outras pessoas, muito provavelmente terá que se responsabilizar pelos danos causados. Por isso, sua proteção veicular garante cobertura de despesas de até R$100.000,00 a terceiros."
-  }
+    titulo: "Pane Mecânica",
+    subtitulo: "Assistência inclusa",
+    icon: Wrench,
+  },
+  {
+    titulo: "Pane Seca",
+    subtitulo: "Combustível incluso",
+    icon: Fuel,
+  },
+  {
+    titulo: "Eventos da Natureza",
+    subtitulo: "Proteção completa",
+    icon: Cloud,
+  },
 ];
 
 export default function LayoutCotacaoHarmony() {
@@ -679,39 +701,36 @@ export default function LayoutCotacaoHarmony() {
             </div>
           </section>
 
-          {/* Benefícios Detalhados */}
+          {/* Benefícios Inclusos */}
           <section className="px-6 md:px-10 pb-10">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-[hsl(25,95%,40%)]">
+            <div className="bg-white rounded-2xl shadow-lg border border-[hsl(25,95%,90%)] p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-bold text-[hsl(25,30%,25%)] mb-6">
                 Benefícios Inclusos
               </h2>
-              <p className="text-[hsl(25,50%,50%)] mt-2">Proteção completa para você e seu veículo</p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-5">
-              {beneficiosDetalhados.map((beneficio, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-2xl p-6 shadow-md border border-[hsl(25,95%,90%)] hover:shadow-lg transition-shadow"
-                >
-                  <h3 className="text-lg font-bold text-[hsl(25,95%,40%)] mb-1">
-                    {beneficio.titulo}
-                  </h3>
-                  {beneficio.subtitulo && (
-                    <p className="text-sm text-[hsl(25,70%,50%)] font-medium mb-2">
-                      {beneficio.subtitulo}
-                    </p>
-                  )}
-                  <p className="text-sm text-[hsl(25,30%,35%)] leading-relaxed">
-                    {beneficio.descricao}
-                  </p>
-                  {beneficio.nota && (
-                    <p className="text-xs text-[hsl(25,50%,50%)] mt-3 italic font-medium">
-                      *{beneficio.nota}
-                    </p>
-                  )}
-                </div>
-              ))}
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                {beneficiosInclusos.map((beneficio, index) => {
+                  const IconComponent = beneficio.icon;
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-3"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[hsl(25,95%,95%)] flex items-center justify-center">
+                        <IconComponent className="w-4 h-4 text-[hsl(25,95%,50%)]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[hsl(25,30%,25%)]">
+                          {beneficio.titulo}
+                        </h3>
+                        <p className="text-sm text-[hsl(25,30%,50%)]">
+                          {beneficio.subtitulo}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </section>
 
