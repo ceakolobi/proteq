@@ -72,7 +72,7 @@ interface CotacaoData {
   chassi: string | null;
 }
 
-// Benefícios detalhados
+// Benefícios detalhados - Versão 2.0 (Sem ícones, textos completos)
 const beneficiosDetalhados = [
   {
     titulo: "Colisão (ou perda total)",
