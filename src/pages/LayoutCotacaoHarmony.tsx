@@ -8,26 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Shield,
-  CloudRain,
-  Users,
-  Flame,
-  Fuel,
-  Truck,
-  Key,
-  Car,
   Phone,
   Globe,
   Upload,
   Printer,
   ArrowLeft,
-  Clock,
-  Square,
   FileDown,
   Loader2,
   User,
   Calendar,
-  Share2,
   QrCode,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -41,16 +30,11 @@ import { CoverSelectorModal, CoverOption } from "@/components/cotacao/CoverSelec
 import { QRCodeSVG } from "qrcode.react";
 import { 
   isCota01, 
-  getCategoriaByTipoVeiculo, 
-  PARTICIPACAO_MINIMA_COTA_01,
-  TEXTO_COTACAO_COTA_01,
   formatCurrency as formatCurrencyUtil,
-  type CotaCategoria 
 } from "@/lib/cotacaoUtils";
-import type { VehicleType } from "@/types/database";
 import harmonyAgroLogoColorida from "@/assets/harmony-agro-logo-colorida.png";
 import harmonyAgroLogoBranca from "@/assets/harmony-agro-logo-branca.png";
-import { useSettings, type SystemSettings } from "@/hooks/useSettings";
+import { useSettings } from "@/hooks/useSettings";
 
 // Formatador de moeda
 const formatCurrency = (value: number | null | undefined): string => {
@@ -88,22 +72,34 @@ interface CotacaoData {
   chassi: string | null;
 }
 
-interface CotaData {
-  id: string;
-  cota_nome: string;
-}
-
-const beneficios = [
-  { icon: Shield, label: "Roubo e Furto 100% FIPE" },
-  { icon: CloudRain, label: "Fenômenos da Natureza" },
-  { icon: Users, label: "Terceiros" },
-  { icon: Flame, label: "Incêndio" },
-  { icon: Fuel, label: "Pane Seca" },
-  { icon: Truck, label: "Guincho" },
-  { icon: Key, label: "Chaveiro" },
-  { icon: Square, label: "Vidros" },
-  { icon: Car, label: "Carro Reserva" },
-  { icon: Phone, label: "Assistência 24h" },
+// Benefícios detalhados
+const beneficiosDetalhados = [
+  {
+    titulo: "Colisão (ou perda total)",
+    descricao: "Pode ficar tranquilo, com a HARMONY, você recebe 100% do veículo (de acordo com a tabela FIPE) para os casos em que seu veículo tem danos muito severos e que não compensam o reparo."
+  },
+  {
+    titulo: "Reboque até 1000Km",
+    subtitulo: "(500KM ida e 500KM volta)",
+    descricao: "Quem nunca ficou na mão com algum problema no carro? Mesmo os carros novos podem dar panes eletrônicas. Com a HARMONY, você tem reboque disponível 24h por dia."
+  },
+  {
+    titulo: "Roubo ou Furto",
+    descricao: "Seu carro foi roubado ou furtado? Com nossa proteção veicular, você não fica no prejuízo! Nós reavemos o seu veículo ou reembolsamos 100% do valor (de acordo com a tabela FIPE)."
+  },
+  {
+    titulo: "Alagamentos ou fenômenos da natureza",
+    descricao: "Ficou no meio de uma enchente ou de um alagamento? Pode ficar tranquilo, com a HARMONY, sua Proteção Veicular é completa mesmo no caso de danos causados por eventos naturais."
+  },
+  {
+    titulo: "Carro reserva",
+    descricao: "Quando você tem a comodidade de ter um carro é muito difícil ficar sem ele não é mesmo? Por isso, em caso de roubo, de furto, de colisão, de incêndio ou de alagamento, você pode pedir um carro reserva para utilizar de 15 ou 30 dias.",
+    nota: "Conheça as condições de uso ilimitado no regulamento."
+  },
+  {
+    titulo: "Proteção Automotiva de Responsabilidade",
+    descricao: "Se você sofrer um acidente e envolver outras pessoas, muito provavelmente terá que se responsabilizar pelos danos causados. Por isso, sua proteção veicular garante cobertura de despesas de até R$100.000,00 a terceiros."
+  }
 ];
 
 export default function LayoutCotacaoHarmony() {
@@ -179,33 +175,20 @@ export default function LayoutCotacaoHarmony() {
   // Capas disponíveis (com URL configurada)
   const availableCovers = coverOptions.filter((c) => c.url !== null) as { index: number; url: string; label: string }[];
   
-  /**
-   * Seleciona a capa baseado no modo configurado:
-   * - fixed: usa a capa definida em cover_fixed_index
-   * - random: escolhe aleatoriamente entre as disponíveis
-   * - select: retorna null para forçar exibição do modal
-   */
   const getSelectedCover = (): string | null => {
-    // Se há uma capa selecionada manualmente (via modal), usar ela
     if (selectedCoverOverride) return selectedCoverOverride;
-    
-    // Se não há capas configuradas, retorna null (usará capa padrão gerada)
     if (availableCovers.length === 0) return null;
     
     const mode = settings.cover_mode || "fixed";
     
     if (mode === "fixed") {
-      // Usa a capa fixa selecionada nas configurações
       const fixedIndex = (settings.cover_fixed_index || 1) - 1;
       const cover = coverOptions[fixedIndex];
       return cover?.url || availableCovers[0]?.url || null;
     } else if (mode === "random") {
-      // Escolhe aleatoriamente entre as capas disponíveis
       const randomCover = availableCovers[Math.floor(Math.random() * availableCovers.length)];
       return randomCover?.url || null;
     } else if (mode === "select") {
-      // Modo seleção: retorna a primeira disponível como fallback
-      // O modal será exibido antes da geração do PDF
       return availableCovers[0]?.url || null;
     }
     
@@ -234,7 +217,6 @@ export default function LayoutCotacaoHarmony() {
       }
 
       try {
-        // Buscar cotação
         const { data: cotacaoData, error: cotacaoError } = await supabase
           .from("cotacoes")
           .select("*")
@@ -249,7 +231,6 @@ export default function LayoutCotacaoHarmony() {
 
         setCotacao(cotacaoData);
 
-        // Buscar nome da cota se existir
         if (cotacaoData.cota_id) {
           const { data: cotaData, error: cotaError } = await supabase
             .from("cotas")
@@ -262,7 +243,6 @@ export default function LayoutCotacaoHarmony() {
           }
         }
 
-        // Adicionar observações da cotação se existirem
         if (cotacaoData.observacoes) {
           setCondicoes(prev => prev + "\n\nObservações: " + cotacaoData.observacoes);
         }
@@ -291,22 +271,18 @@ export default function LayoutCotacaoHarmony() {
     window.print();
   };
 
-  // Gerar número da cotação formatado
   const numeroCotacao = cotacao 
     ? `COT-${new Date(cotacao.created_at).getFullYear()}-${cotacao.id.substring(0, 8).toUpperCase()}`
     : "–";
 
-  // Número curto para nome do arquivo
   const numeroCotacaoCurto = cotacao 
     ? cotacao.id.substring(0, 8).toUpperCase()
     : "000000";
 
-  // Modelo para nome do arquivo
   const modeloParaArquivo = cotacao?.modelo 
     ? cotacao.modelo.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20)
     : "Veiculo";
 
-  // Upload PDF para Storage
   const uploadPdfToStorage = async (blob: Blob, filename: string): Promise<string | null> => {
     try {
       const filePath = `propostas/${cotacaoId}/${filename}`;
@@ -323,7 +299,6 @@ export default function LayoutCotacaoHarmony() {
         return null;
       }
 
-      // Obter URL pública
       const { data: urlData } = supabase.storage
         .from("vistoria-fotos")
         .getPublicUrl(filePath);
@@ -335,30 +310,24 @@ export default function LayoutCotacaoHarmony() {
     }
   };
 
-  // Iniciar geração de PDF com verificação de modo de capa
   const initiateGeneratePdf = () => {
     const mode = settings.cover_mode || "fixed";
     
-    // Se modo é "select" e há mais de uma capa disponível, mostrar modal
     if (mode === "select" && availableCovers.length > 0) {
       setShowCoverSelector(true);
     } else {
-      // Para modos "fixed" ou "random", ou se não há capas, gerar direto
       handleGeneratePdf();
     }
   };
 
-  // Selecionar capa e gerar PDF
   const handleSelectCoverAndGenerate = (coverUrl: string) => {
     setSelectedCoverOverride(coverUrl);
     setShowCoverSelector(false);
-    // Pequeno delay para garantir que o state foi atualizado
     setTimeout(() => {
       handleGeneratePdf();
     }, 100);
   };
 
-  // Gerar PDF com alta qualidade
   const handleGeneratePdf = async () => {
     if (!pdfContentRef.current) return;
 
@@ -368,22 +337,20 @@ export default function LayoutCotacaoHarmony() {
       const element = pdfContentRef.current;
       const filename = `Proposta_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
 
-      // Mostrar contra-capa temporariamente para inclusão no PDF
       const backCoverElement = element.querySelector('.pdf-back-cover') as HTMLElement;
       if (backCoverElement && temContracapa) {
         backCoverElement.style.display = 'flex';
       }
 
-      // Configurações otimizadas para alta qualidade + tamanho leve
       const opt = {
         margin: 0,
         filename: filename,
         image: { 
           type: "jpeg", 
-          quality: 0.92 // Balanceado: boa qualidade, arquivo menor
+          quality: 0.92
         },
         html2canvas: { 
-          scale: 2.5, // Alta resolução
+          scale: 2.5,
           useCORS: true,
           logging: false,
           letterRendering: true,
@@ -394,16 +361,14 @@ export default function LayoutCotacaoHarmony() {
           unit: "mm", 
           format: "a4", 
           orientation: "portrait",
-          compress: true, // Compressão ativada
+          compress: true,
         },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
-      // Gerar PDF como Blob
       const pdfInstance = html2pdf().set(opt).from(element);
       const blob = await pdfInstance.outputPdf("blob");
 
-      // Esconder contra-capa novamente após geração
       if (backCoverElement && temContracapa) {
         backCoverElement.style.display = 'none';
       }
@@ -411,13 +376,11 @@ export default function LayoutCotacaoHarmony() {
       setPdfBlob(blob);
       setPdfFilename(filename);
 
-      // Fazer upload para Storage em background
       const publicUrl = await uploadPdfToStorage(blob, filename);
       if (publicUrl) {
         setPdfUrl(publicUrl);
       }
 
-      // Mostrar modal de ações
       setShowPdfActions(true);
 
       toast({
@@ -436,7 +399,6 @@ export default function LayoutCotacaoHarmony() {
     }
   };
 
-  // Calcular validade (7 dias a partir da criação)
   const calcularValidade = (): string => {
     if (!cotacao) return "–";
     const dataCriacao = new Date(cotacao.created_at);
@@ -502,9 +464,9 @@ export default function LayoutCotacaoHarmony() {
 
       {/* Página de Cotação */}
       <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
-        <div ref={pdfContentRef} className="bg-card rounded-xl shadow-lg print:shadow-none print:rounded-none overflow-hidden">
+        <div ref={pdfContentRef} className="bg-card rounded-3xl shadow-2xl print:shadow-none print:rounded-none overflow-hidden">
           
-          {/* 0️⃣ CAPA (primeira página do PDF) - Só exibe se tiver capa configurada */}
+          {/* CAPA (primeira página do PDF) */}
           {selectedCover && (
             <div 
               className="pdf-cover"
@@ -531,174 +493,168 @@ export default function LayoutCotacaoHarmony() {
             </div>
           )}
           
-          {/* 1️⃣ Cabeçalho */}
-          <header className={cn(
-            "p-8",
-            usarLogoColorida 
-              ? "bg-card" 
-              : "bg-gradient-to-r from-harmony-orange to-harmony-green"
-          )}>
-            <div className="flex items-center justify-between">
-              {/* Logo à esquerda */}
-              <div className="flex-shrink-0">
+          {/* Cabeçalho com CTA */}
+          <header className="proposal-header relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(25,95%,53%)] via-[hsl(25,90%,60%)] to-[hsl(30,85%,70%)]" />
+            <div className="relative z-10 p-8 md:p-10">
+              <div className="flex items-center justify-between mb-6">
                 <img 
-                  src={usarLogoColorida ? logoColorida : logoBranca} 
+                  src={logoBranca} 
                   alt={`${nomeEmpresa} - Clube de Benefícios`}
-                  className="h-[70px] w-auto object-contain"
-                  style={{ maxHeight: '90px', minHeight: '60px' }}
+                  className="h-[60px] w-auto object-contain"
+                  style={{ maxHeight: '80px', minHeight: '50px' }}
                 />
+                <div className="text-right">
+                  <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider">
+                    Atendimento em todo território nacional
+                  </span>
+                </div>
               </div>
               
-              {/* Título à direita */}
-              <div className="text-right">
-                <h1 className={cn(
-                  "text-2xl md:text-3xl font-bold uppercase tracking-wider mb-1",
-                  usarLogoColorida ? "text-harmony-orange" : "text-card"
-                )}>
+              <div className="text-center text-white">
+                <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-wide mb-2">
                   Proposta de Cotação
                 </h1>
-                <p className={cn(
-                  "text-sm md:text-base",
-                  usarLogoColorida ? "text-muted-foreground" : "text-card/90"
-                )}>
+                <p className="text-lg text-white/90 mb-4">
                   Proteção Veicular • Carros • Motos • Camionetes • Caminhões • Máquinas Agrícolas
                 </p>
+                <div className="inline-block bg-white text-[hsl(25,95%,45%)] font-bold text-lg px-8 py-3 rounded-full shadow-lg">
+                  CONTRATE AGORA
+                </div>
               </div>
             </div>
           </header>
 
-          {/* 2️⃣ Seção Principal – Resumo da Proposta */}
-          <section className="p-6 md:p-8">
-            <div className="grid md:grid-cols-2 gap-6">
+          {/* Seção Principal – Resumo da Proposta */}
+          <section className="proposal-section p-6 md:p-10">
+            <div className="grid md:grid-cols-2 gap-8">
               {/* Dados do Veículo */}
-              <Card className="border-2 border-harmony-orange/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-harmony-orange">
-                    <Car className="w-5 h-5" />
+              <div className="bg-white rounded-2xl shadow-lg border border-[hsl(25,95%,90%)] overflow-hidden">
+                <div className="bg-gradient-to-r from-[hsl(25,95%,53%)] to-[hsl(30,90%,60%)] p-4">
+                  <h2 className="text-lg font-bold text-white">
                     Dados do Veículo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Tipo do Bem</Label>
-                      <p className="mt-1 font-medium">
+                  </h2>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[hsl(25,95%,97%)] rounded-xl p-3">
+                      <p className="text-xs text-[hsl(25,50%,40%)] font-medium uppercase tracking-wide">Tipo</p>
+                      <p className="font-semibold text-[hsl(25,50%,25%)] mt-1">
                         {cotacao?.tipo_bem ? tipoBemLabels[cotacao.tipo_bem] : "–"}
                       </p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Marca</Label>
-                      <p className="mt-1 font-medium">{formatValue(cotacao?.marca)}</p>
+                    <div className="bg-[hsl(25,95%,97%)] rounded-xl p-3">
+                      <p className="text-xs text-[hsl(25,50%,40%)] font-medium uppercase tracking-wide">Marca</p>
+                      <p className="font-semibold text-[hsl(25,50%,25%)] mt-1">{formatValue(cotacao?.marca)}</p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Modelo</Label>
-                      <p className="mt-1 font-medium">{formatValue(cotacao?.modelo)}</p>
+                    <div className="bg-[hsl(25,95%,97%)] rounded-xl p-3">
+                      <p className="text-xs text-[hsl(25,50%,40%)] font-medium uppercase tracking-wide">Modelo</p>
+                      <p className="font-semibold text-[hsl(25,50%,25%)] mt-1">{formatValue(cotacao?.modelo)}</p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Ano</Label>
-                      <p className="mt-1 font-medium">
+                    <div className="bg-[hsl(25,95%,97%)] rounded-xl p-3">
+                      <p className="text-xs text-[hsl(25,50%,40%)] font-medium uppercase tracking-wide">Ano</p>
+                      <p className="font-semibold text-[hsl(25,50%,25%)] mt-1">
                         {cotacao?.ano_fabricacao 
                           ? `${cotacao.ano_fabricacao}${cotacao.ano_modelo ? `/${cotacao.ano_modelo}` : ""}`
                           : "–"}
                       </p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Valor FIPE</Label>
-                      <p className="mt-1 font-medium text-harmony-green">
-                        {formatCurrency(cotacao?.valor_fipe || cotacao?.valor_bem)}
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-[hsl(142,71%,95%)] to-[hsl(142,71%,90%)] rounded-xl p-4 text-center">
+                    <p className="text-xs text-[hsl(142,50%,30%)] font-medium uppercase tracking-wide">Valor FIPE</p>
+                    <p className="text-2xl font-bold text-[hsl(142,71%,35%)] mt-1">
+                      {formatCurrency(cotacao?.valor_fipe || cotacao?.valor_bem)}
+                    </p>
+                    {cotacao?.codigo_fipe && (
+                      <p className="text-xs text-[hsl(142,50%,40%)] mt-1 font-mono">
+                        Código: {cotacao.codigo_fipe}
                       </p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Código FIPE</Label>
-                      <p className="mt-1 font-medium font-mono">
-                        {formatValue(cotacao?.codigo_fipe)}
-                      </p>
-                    </div>
-                    {cotacao?.chassi && (
-                      <div className="col-span-2">
-                        <Label className="text-muted-foreground text-xs">Chassi</Label>
-                        <p className="mt-1 font-medium font-mono text-xs break-all">
-                          {cotacao.chassi}
-                        </p>
-                      </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                  
+                  {cotacao?.chassi && (
+                    <div className="bg-[hsl(25,95%,97%)] rounded-xl p-3">
+                      <p className="text-xs text-[hsl(25,50%,40%)] font-medium uppercase tracking-wide">Chassi</p>
+                      <p className="font-mono text-xs text-[hsl(25,50%,25%)] mt-1 break-all">
+                        {cotacao.chassi}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Valores em Destaque */}
-              <Card className="border-2 border-harmony-green bg-gradient-to-br from-harmony-green/5 to-harmony-orange/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-harmony-green">
-                    <Shield className="w-5 h-5" />
+              <div className="bg-white rounded-2xl shadow-lg border border-[hsl(142,71%,85%)] overflow-hidden">
+                <div className="bg-gradient-to-r from-[hsl(142,71%,45%)] to-[hsl(142,60%,55%)] p-4">
+                  <h2 className="text-lg font-bold text-white">
                     Valores da Proposta
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  </h2>
+                </div>
+                <div className="p-5 space-y-4">
                   {/* Mensalidade em Destaque */}
-                  <div className="bg-harmony-orange text-card rounded-lg p-4 text-center">
-                    <p className="text-xs uppercase tracking-wider opacity-90">Mensalidade</p>
-                    <p className="text-3xl md:text-4xl font-bold mt-1">
+                  <div className="bg-gradient-to-br from-[hsl(25,95%,53%)] to-[hsl(25,90%,45%)] text-white rounded-2xl p-6 text-center shadow-lg">
+                    <p className="text-sm uppercase tracking-wider opacity-90 font-medium">Mensalidade</p>
+                    <p className="text-4xl md:text-5xl font-bold mt-2">
                       {formatCurrency(cotacao?.mensalidade)}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Cota Aplicada</Label>
-                      <p className="mt-1 font-medium">{formatValue(cotaNome)}</p>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[hsl(142,71%,97%)] rounded-xl p-3 text-center">
+                      <p className="text-xs text-[hsl(142,50%,30%)] font-medium uppercase">Cota</p>
+                      <p className="font-semibold text-[hsl(142,50%,25%)] mt-1">{formatValue(cotaNome)}</p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Participação (7%)</Label>
-                      <p className="mt-1 font-medium">
+                    <div className="bg-[hsl(142,71%,97%)] rounded-xl p-3 text-center">
+                      <p className="text-xs text-[hsl(142,50%,30%)] font-medium uppercase">Participação (7%)</p>
+                      <p className="font-semibold text-[hsl(142,50%,25%)] mt-1">
                         {cotacao?.participacao !== null && cotacao?.participacao !== undefined
                           ? formatCurrency(cotacao.participacao)
                           : "7%"}
                       </p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Taxas</Label>
-                      <p className="mt-1 font-medium">Sem taxas adicionais</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Validade</Label>
-                      <p className="mt-1 font-medium">{calcularValidade()}</p>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <Label className="text-muted-foreground text-xs">Nº da Cotação</Label>
-                    <p className="mt-1 font-mono text-sm font-medium">{numeroCotacao}</p>
                   </div>
                   
-                  {/* Cláusula COTA 01 - Valor Mínimo de Participação */}
+                  <div className="bg-[hsl(25,95%,97%)] rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-[hsl(25,50%,40%)]">Taxas adicionais:</span>
+                      <span className="font-semibold text-[hsl(142,71%,35%)]">Sem taxas</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-[hsl(25,50%,40%)]">Validade:</span>
+                      <span className="font-semibold text-[hsl(25,50%,25%)]">{calcularValidade()}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-[hsl(25,95%,90%)]">
+                      <span className="text-sm text-[hsl(25,50%,40%)]">Nº Cotação:</span>
+                      <span className="font-mono text-sm font-semibold text-[hsl(25,50%,25%)]">{numeroCotacao}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Cláusula COTA 01 */}
                   {cotaNome && isCota01(cotaNome) && (
-                    <div className="pt-3 mt-3 border-t border-dashed border-harmony-orange/30">
-                      <div className="bg-harmony-orange/10 rounded-lg p-3">
-                        <p className="text-xs font-semibold text-harmony-orange mb-2">
-                          📋 Cota de Participação – COTA 01
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          Para veículos enquadrados nesta cota, aplica-se valor mínimo de participação:
-                        </p>
-                        <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                          <li>• Moto: mínimo de <strong>R$ 1.100,00</strong></li>
-                          <li>• Carro: mínimo de <strong>R$ 1.800,00</strong></li>
-                          <li>• Camionete: mínimo de <strong>R$ 2.500,00</strong></li>
-                        </ul>
-                        <p className="text-xs text-muted-foreground mt-1 italic">
-                          Caso o valor calculado seja inferior ao mínimo, prevalecerá o valor mínimo estabelecido.
-                        </p>
-                      </div>
+                    <div className="bg-[hsl(25,95%,95%)] border border-[hsl(25,95%,80%)] rounded-xl p-4">
+                      <p className="text-sm font-bold text-[hsl(25,95%,40%)] mb-2">
+                        📋 Cota de Participação – COTA 01
+                      </p>
+                      <p className="text-xs text-[hsl(25,50%,35%)] leading-relaxed">
+                        Para veículos enquadrados nesta cota, aplica-se valor mínimo de participação:
+                      </p>
+                      <ul className="text-xs text-[hsl(25,50%,35%)] mt-2 space-y-1">
+                        <li>• Moto: mínimo de <strong>R$ 1.100,00</strong></li>
+                        <li>• Carro: mínimo de <strong>R$ 1.800,00</strong></li>
+                        <li>• Camionete: mínimo de <strong>R$ 2.500,00</strong></li>
+                      </ul>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* 3️⃣ Seção de Imagem do Veículo */}
-          <section className="px-6 md:px-8 pb-6">
+          {/* Seção de Imagem do Veículo */}
+          <section className="px-6 md:px-10 pb-8">
             <div
-              className="relative h-48 md:h-64 rounded-xl overflow-hidden bg-gradient-to-br from-harmony-orange/10 via-harmony-green/10 to-harmony-orange/5 border-2 border-dashed border-muted cursor-pointer group"
+              className="relative h-56 md:h-72 rounded-2xl overflow-hidden bg-gradient-to-br from-[hsl(25,95%,95%)] to-[hsl(142,71%,95%)] border-2 border-dashed border-[hsl(25,50%,80%)] cursor-pointer group"
               onClick={() => fileInputRef.current?.click()}
             >
               <input
@@ -715,64 +671,79 @@ export default function LayoutCotacaoHarmony() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                  <Upload className="w-12 h-12 mb-2 opacity-50" />
-                  <p className="text-sm">Clique para adicionar imagem do veículo</p>
-                  <p className="text-xs opacity-70 print:hidden">ou arraste uma imagem aqui</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-[hsl(25,50%,50%)]">
+                  <Upload className="w-16 h-16 mb-3 opacity-40" />
+                  <p className="text-base font-medium">Clique para adicionar imagem do veículo</p>
+                  <p className="text-sm opacity-70 print:hidden">ou arraste uma imagem aqui</p>
                 </div>
               )}
               <div className="absolute inset-0 bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity print:hidden" />
             </div>
           </section>
 
-          {/* 4️⃣ Benefícios em Cards */}
-          <section className="px-6 md:px-8 pb-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-harmony-green" />
-              Benefícios Inclusos
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {beneficios.map((beneficio, index) => (
+          {/* Benefícios Detalhados */}
+          <section className="px-6 md:px-10 pb-10">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-[hsl(25,95%,40%)]">
+                Benefícios Inclusos
+              </h2>
+              <p className="text-[hsl(25,50%,50%)] mt-2">Proteção completa para você e seu veículo</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-5">
+              {beneficiosDetalhados.map((beneficio, index) => (
                 <div
                   key={index}
-                  className="flex flex-col items-center gap-2 p-3 rounded-lg bg-gradient-to-br from-harmony-orange/5 to-harmony-green/5 border text-center"
+                  className="bg-white rounded-2xl p-6 shadow-md border border-[hsl(25,95%,90%)] hover:shadow-lg transition-shadow"
                 >
-                  <div className="w-10 h-10 rounded-full bg-harmony-orange/10 flex items-center justify-center">
-                    <beneficio.icon className="w-5 h-5 text-harmony-orange" />
-                  </div>
-                  <span className="text-xs font-medium leading-tight">{beneficio.label}</span>
+                  <h3 className="text-lg font-bold text-[hsl(25,95%,40%)] mb-1">
+                    {beneficio.titulo}
+                  </h3>
+                  {beneficio.subtitulo && (
+                    <p className="text-sm text-[hsl(25,70%,50%)] font-medium mb-2">
+                      {beneficio.subtitulo}
+                    </p>
+                  )}
+                  <p className="text-sm text-[hsl(25,30%,35%)] leading-relaxed">
+                    {beneficio.descricao}
+                  </p>
+                  {beneficio.nota && (
+                    <p className="text-xs text-[hsl(25,50%,50%)] mt-3 italic font-medium">
+                      *{beneficio.nota}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </section>
 
-          {/* 5️⃣ Condições Importantes */}
-          <section className="px-6 md:px-8 pb-6">
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-harmony-orange" />
-              Condições Importantes
-            </h3>
-            <Textarea
-              value={condicoes}
-              onChange={(e) => setCondicoes(e.target.value)}
-              className="min-h-[80px] text-sm text-muted-foreground print:border-none print:p-0 print:resize-none"
-              placeholder="Adicione observações e condições importantes..."
-            />
+          {/* Condições Importantes */}
+          <section className="px-6 md:px-10 pb-8">
+            <div className="bg-[hsl(25,95%,97%)] rounded-2xl p-6 border border-[hsl(25,95%,90%)]">
+              <h3 className="text-lg font-bold text-[hsl(25,95%,40%)] mb-4">
+                Condições Importantes
+              </h3>
+              <Textarea
+                value={condicoes}
+                onChange={(e) => setCondicoes(e.target.value)}
+                className="min-h-[100px] text-sm text-[hsl(25,30%,35%)] bg-white border-[hsl(25,95%,85%)] rounded-xl print:border-none print:p-0 print:resize-none"
+                placeholder="Adicione observações e condições importantes..."
+              />
+            </div>
           </section>
 
-          <Separator />
+          <Separator className="mx-6 md:mx-10" />
 
-          {/* 6️⃣ Assinaturas */}
-          <section className="px-6 md:px-8 py-8">
-            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-              <User className="w-5 h-5 text-harmony-green" />
+          {/* Assinaturas */}
+          <section className="px-6 md:px-10 py-10">
+            <h3 className="text-xl font-bold text-[hsl(25,95%,40%)] mb-8 text-center">
               Assinatura e Aceite
             </h3>
             
             {/* Dados do Cliente */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
               <div className="space-y-2">
-                <Label htmlFor="nomeCliente" className="text-sm font-medium">
+                <Label htmlFor="nomeCliente" className="text-sm font-semibold text-[hsl(25,50%,30%)]">
                   Nome Completo do Cliente *
                 </Label>
                 <Input
@@ -780,20 +751,18 @@ export default function LayoutCotacaoHarmony() {
                   value={nomeCliente}
                   onChange={(e) => setNomeCliente(e.target.value)}
                   placeholder="Digite o nome completo"
-                  className="print:border-none print:p-0 print:shadow-none"
+                  className="rounded-xl border-[hsl(25,95%,85%)] print:border-none print:p-0 print:shadow-none"
                 />
-                {/* Exibir nome no PDF */}
                 <p className="hidden print:block font-medium">{nomeCliente || "________________"}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cpfCliente" className="text-sm font-medium">
+                <Label htmlFor="cpfCliente" className="text-sm font-semibold text-[hsl(25,50%,30%)]">
                   CPF *
                 </Label>
                 <Input
                   id="cpfCliente"
                   value={cpfCliente}
                   onChange={(e) => {
-                    // Formatar CPF
                     const value = e.target.value.replace(/\D/g, "");
                     if (value.length <= 11) {
                       const formatted = value
@@ -804,18 +773,16 @@ export default function LayoutCotacaoHarmony() {
                     }
                   }}
                   placeholder="000.000.000-00"
-                  className="print:border-none print:p-0 print:shadow-none"
+                  className="rounded-xl border-[hsl(25,95%,85%)] print:border-none print:p-0 print:shadow-none"
                 />
-                {/* Exibir CPF no PDF */}
                 <p className="hidden print:block font-medium">{cpfCliente || "___.___.___-__"}</p>
               </div>
             </div>
 
             {/* Área de Assinaturas */}
-            <div className="grid md:grid-cols-2 gap-8 mb-6">
-              {/* Assinatura do Cliente */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Assinatura do Cliente *</Label>
+            <div className="grid md:grid-cols-2 gap-10 mb-8">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)]">Assinatura do Cliente *</Label>
                 <div className="print:hidden">
                   <SignaturePad
                     onSignatureChange={setAssinaturaCliente}
@@ -823,26 +790,24 @@ export default function LayoutCotacaoHarmony() {
                     height={100}
                   />
                 </div>
-                {/* Exibir assinatura no PDF */}
                 <div className="hidden print:block">
                   {assinaturaCliente ? (
                     <img 
                       src={assinaturaCliente} 
                       alt="Assinatura do Cliente" 
-                      className="h-20 object-contain border-b-2 border-foreground/30"
+                      className="h-20 object-contain border-b-2 border-[hsl(25,50%,60%)]"
                     />
                   ) : (
-                    <div className="h-20 border-b-2 border-foreground/30" />
+                    <div className="h-20 border-b-2 border-[hsl(25,50%,60%)]" />
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-sm text-[hsl(25,50%,50%)] text-center font-medium">
                   {nomeCliente || "Nome do Cliente"}
                 </p>
               </div>
 
-              {/* Assinatura Representante */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Assinatura {nomeEmpresa}</Label>
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)]">Assinatura {nomeEmpresa}</Label>
                 <div className="print:hidden">
                   <SignaturePad
                     onSignatureChange={setAssinaturaRepresentante}
@@ -850,19 +815,18 @@ export default function LayoutCotacaoHarmony() {
                     height={100}
                   />
                 </div>
-                {/* Exibir assinatura no PDF */}
                 <div className="hidden print:block">
                   {assinaturaRepresentante ? (
                     <img 
                       src={assinaturaRepresentante} 
                       alt="Assinatura Representante" 
-                      className="h-20 object-contain border-b-2 border-foreground/30"
+                      className="h-20 object-contain border-b-2 border-[hsl(25,50%,60%)]"
                     />
                   ) : (
-                    <div className="h-20 border-b-2 border-foreground/30" />
+                    <div className="h-20 border-b-2 border-[hsl(25,50%,60%)]" />
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-sm text-[hsl(25,50%,50%)] text-center font-medium">
                   Representante {nomeEmpresa}
                 </p>
               </div>
@@ -871,64 +835,64 @@ export default function LayoutCotacaoHarmony() {
             {/* Data */}
             <div className="flex items-center justify-center gap-4">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <Label className="text-sm font-medium">Data:</Label>
+                <Calendar className="w-5 h-5 text-[hsl(25,50%,50%)]" />
+                <Label className="text-sm font-semibold text-[hsl(25,50%,30%)]">Data:</Label>
               </div>
               <Input
                 type="text"
                 value={dataAssinatura}
                 onChange={(e) => setDataAssinatura(e.target.value)}
-                className="w-40 text-center print:border-none print:p-0 print:shadow-none"
+                className="w-44 text-center rounded-xl border-[hsl(25,95%,85%)] print:border-none print:p-0 print:shadow-none"
               />
             </div>
           </section>
 
-          {/* 7️⃣ QR Code de Validação */}
+          {/* QR Code de Validação */}
           {cotacaoId && (
-            <section className="px-6 md:px-8 pb-6">
-              <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-gradient-to-br from-harmony-orange/5 to-harmony-green/5 border">
-                <div className="flex items-center gap-2 mb-3">
-                  <QrCode className="w-5 h-5 text-harmony-orange" />
-                  <span className="text-sm font-semibold">Validar Proposta</span>
+            <section className="px-6 md:px-10 pb-10">
+              <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-[hsl(25,95%,97%)] to-[hsl(142,71%,97%)] border border-[hsl(25,95%,90%)]">
+                <div className="flex items-center gap-2 mb-4">
+                  <QrCode className="w-5 h-5 text-[hsl(25,95%,53%)]" />
+                  <span className="text-base font-bold text-[hsl(25,50%,30%)]">Validar Proposta</span>
                 </div>
-                <div className="bg-card p-3 rounded-lg shadow-sm">
+                <div className="bg-white p-4 rounded-xl shadow-md">
                   <QRCodeSVG
                     value={`${window.location.origin}/validar-proposta?id=${cotacaoId}`}
-                    size={100}
+                    size={110}
                     level="M"
                     includeMargin={false}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center max-w-[200px]">
+                <p className="text-sm text-[hsl(25,50%,50%)] mt-3 text-center max-w-[250px]">
                   Escaneie o QR Code para validar a autenticidade desta proposta
                 </p>
               </div>
             </section>
           )}
 
-          {/* 8️⃣ Rodapé */}
-          <footer className="bg-gradient-to-r from-harmony-green to-harmony-orange p-6 text-card">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-card/20 flex items-center justify-center">
-                  <span className="text-card text-sm font-bold">{nomeEmpresa.charAt(0)}</span>
+          {/* Rodapé */}
+          <footer className="bg-gradient-to-r from-[hsl(142,71%,45%)] via-[hsl(100,60%,50%)] to-[hsl(25,95%,53%)] p-8 text-white">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <span className="text-white text-xl font-bold">{nomeEmpresa.charAt(0)}</span>
                 </div>
-                <span className="font-bold">{nomeEmpresa}</span>
+                <span className="text-xl font-bold">{nomeEmpresa}</span>
               </div>
-              <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-card/90">
-                <div className="flex items-center gap-1">
-                  <Phone className="w-4 h-4" />
-                  <span>{telefoneEmpresa}</span>
+              <div className="flex flex-col md:flex-row items-center gap-6 text-white/95">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-5 h-5" />
+                  <span className="font-medium">{telefoneEmpresa}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Globe className="w-4 h-4" />
-                  <span>{siteEmpresa}</span>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  <span className="font-medium">{siteEmpresa}</span>
                 </div>
               </div>
             </div>
           </footer>
 
-          {/* 9️⃣ Contra-Capa (só aparece no PDF quando configurada) */}
+          {/* Contra-Capa */}
           {temContracapa && (
             <div 
               className="pdf-back-cover"
@@ -936,7 +900,7 @@ export default function LayoutCotacaoHarmony() {
                 pageBreakBefore: "always",
                 width: "210mm",
                 height: "297mm",
-                display: "none", // Escondido por padrão, mostrado via JS no momento da geração
+                display: "none",
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: "#ffffff",
@@ -992,26 +956,8 @@ export default function LayoutCotacaoHarmony() {
         .to-harmony-green {
           --tw-gradient-to: hsl(142, 71%, 45%);
         }
-        .border-harmony-orange\\/20 {
-          border-color: hsl(25, 95%, 53%, 0.2);
-        }
-        .border-harmony-green {
-          border-color: hsl(142, 71%, 45%);
-        }
-        .bg-harmony-orange\\/10 {
-          background-color: hsl(25, 95%, 53%, 0.1);
-        }
-        .bg-harmony-green\\/10 {
-          background-color: hsl(142, 71%, 45%, 0.1);
-        }
-        .bg-harmony-orange\\/5 {
-          background-color: hsl(25, 95%, 53%, 0.05);
-        }
-        .bg-harmony-green\\/5 {
-          background-color: hsl(142, 71%, 45%, 0.05);
-        }
-        .hover\\:bg-harmony-orange\\/90:hover {
-          background-color: hsl(25, 95%, 53%, 0.9);
+        .hover\\:bg-harmony-green\\/90:hover {
+          background-color: hsl(142, 71%, 45%, 0.9);
         }
       `}</style>
 
