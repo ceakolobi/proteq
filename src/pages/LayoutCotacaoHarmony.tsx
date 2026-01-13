@@ -469,13 +469,14 @@ export default function LayoutCotacaoHarmony() {
           {/* CAPA (primeira página do PDF) */}
           {selectedCover && (
             <div 
-              className="pdf-cover p-6"
+              className="pdf-cover"
               style={{
                 width: "210mm",
                 minHeight: "297mm",
                 display: "flex",
                 flexDirection: "column",
                 backgroundColor: "#ffffff",
+                padding: "24px",
                 pageBreakAfter: "always",
               }}
             >
@@ -495,7 +496,7 @@ export default function LayoutCotacaoHarmony() {
           )}
           
           {/* Cabeçalho - Card separado com bordas arredondadas */}
-          <div className="p-4 md:p-6">
+          <div className="px-6 pt-6 md:px-6 md:pt-6">
             <header className="proposal-header relative overflow-hidden rounded-2xl shadow-lg">
               <div className="absolute inset-0 bg-gradient-to-br from-[hsl(25,95%,53%)] via-[hsl(25,90%,60%)] to-[hsl(30,85%,70%)]" />
               <div className="relative z-10 p-6 md:p-8">
