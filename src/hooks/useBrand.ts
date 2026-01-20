@@ -2,14 +2,11 @@ import { useMemo } from "react";
 import { useSettings } from "./useSettings";
 import { useAppTheme } from "./useTheme";
 
-// Logos padrão do sistema (MARKA) - 3 versões para cada contexto
-import logoMarkaPrimaria from "@/assets/logo-marka-colorida.png";
-import logoMarkaBranca from "@/assets/logo-marka-branca.png";
-import logoMarkaPreta from "@/assets/logo-marka-preta.png";
-
-// Logos Harmony (fallback para compatibilidade)
+// Logos padrão do sistema (Harmony) - 3 versões para cada contexto
 import logoHarmonyPrimaria from "@/assets/logo-harmony-colorida.png";
 import logoHarmonyBranca from "@/assets/logo-harmony-branca.png";
+import logoHarmonyIcone from "@/assets/logo-harmony-icone.png";
+import logoHarmonyIconeBranca from "@/assets/logo-harmony-icone-branca.png";
 
 export interface BrandLogos {
   primary: string;    // Logo colorida (login, splash, fundos neutros)
@@ -60,17 +57,17 @@ export function useBrand() {
         dark: configuredLogoDark || configuredLogoPrimary,
       };
     } else {
-      // Padrão: usa logos MARKA (3 versões)
+      // Padrão: usa logos Harmony (3 versões)
       logos = {
-        primary: logoMarkaPrimaria,  // Colorida (azul/laranja)
-        light: logoMarkaBranca,       // Branca (para fundos escuros)
-        dark: logoMarkaPreta,         // Preta (para fundos claros)
+        primary: logoHarmonyPrimaria,  // Colorida (laranja)
+        light: logoHarmonyBranca,       // Branca (para fundos escuros)
+        dark: logoHarmonyPrimaria,      // Colorida (para fundos claros/relatórios)
       };
     }
 
     return {
-      name: settings.empresa_nome || "MARKA CRM",
-      subtitle: "Sistema de Gestão",
+      name: settings.empresa_nome || "Harmony CRM",
+      subtitle: "Clube de Benefícios",
       logos,
       colors: {
         primary: settings.cor_primaria || "#F97316",
