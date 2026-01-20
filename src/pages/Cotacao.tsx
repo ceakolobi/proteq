@@ -62,7 +62,7 @@ export default function Cotacao() {
   const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('cotacoes');
 
   useEffect(() => {
-    document.title = 'Cotação | MARKA CRM';
+    document.title = 'Cotação | Harmony CRM';
   }, []);
 
   const [formData, setFormData] = useState({

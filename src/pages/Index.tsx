@@ -1,9 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Car, Users, Lock, ArrowRight } from 'lucide-react';
+import { useBrand } from '@/hooks/useBrand';
+import { useEffect } from 'react';
 
 export default function Index() {
   const navigate = useNavigate();
+  const { brand, getLogoForContext } = useBrand();
+
+  useEffect(() => {
+    document.title = `${brand.name}`;
+  }, [brand.name]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -12,11 +19,11 @@ export default function Index() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src="/images/logo-marka-colorida.png" 
-              alt="MARKA CRM"
+              src={getLogoForContext('auto')} 
+              alt={brand.name}
               className="h-12 object-contain"
             />
-            <span className="font-bold text-xl">MARKA CRM</span>
+            <span className="font-bold text-xl">{brand.name}</span>
           </div>
           <Button onClick={() => navigate('/auth')}>
             Acessar Sistema
@@ -31,7 +38,7 @@ export default function Index() {
           <div className="max-w-3xl mx-auto space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                <span className="text-primary">MARKA CRM</span>
+                <span className="text-primary">{brand.name}</span>
                 <span className="block">Sistema de Gestão</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

@@ -75,7 +75,7 @@ export default function Auth() {
   };
 
   useEffect(() => {
-    document.title = 'Acesso | MARKA CRM';
+    document.title = `Acesso | ${brand.name}`;
 
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     if (hashParams.get('type') === 'recovery') {
