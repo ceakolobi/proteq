@@ -65,9 +65,16 @@ export function useBrand() {
       };
     }
 
+    // Nome e subtítulo: só usa do banco se for white-label
+    const brandName = isWhiteLabel && settings.empresa_nome 
+      ? settings.empresa_nome 
+      : "Harmony Agro";
+    
+    const brandSubtitle = "Clube de Benefícios";
+
     return {
-      name: settings.empresa_nome || "Harmony CRM",
-      subtitle: "Clube de Benefícios",
+      name: brandName,
+      subtitle: brandSubtitle,
       logos,
       colors: {
         primary: settings.cor_primaria || "#F97316",

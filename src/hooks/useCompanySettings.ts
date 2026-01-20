@@ -66,7 +66,7 @@ export interface SystemSettings {
 
 const defaultSettings: SystemSettings = {
   id: "",
-  empresa_nome: "Harmony CRM",
+  empresa_nome: "Harmony Agro",
   cnpj: null,
   empresa_logo: null,
   empresa_logo_branca: null,
