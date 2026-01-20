@@ -292,7 +292,7 @@ export default function Leads() {
       : roleCanCreate;
 
   useEffect(() => {
-    document.title = 'Leads | MARKA CRM';
+    document.title = 'Leads | Harmony CRM';
   }, []);
 
   useEffect(() => {

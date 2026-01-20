@@ -149,7 +149,7 @@ export default function Ativacoes() {
   const [formMotivoCancelamento, setFormMotivoCancelamento] = useState('');
 
   useEffect(() => {
-    document.title = 'Ativações | MARKA CRM';
+    document.title = 'Ativações | Harmony CRM';
   }, []);
 
   const generateContractNumber = () => {

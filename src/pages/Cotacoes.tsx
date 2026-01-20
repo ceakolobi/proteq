@@ -29,7 +29,7 @@ export default function Cotacoes() {
   const [leadData, setLeadData] = useState<{ id?: string; nome?: string } | null>(null);
 
   useEffect(() => {
-    document.title = 'Cotações | MARKA CRM';
+    document.title = 'Cotações | Harmony CRM';
   }, []);
 
   // Verificar se veio de um Lead

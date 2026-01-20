@@ -498,7 +498,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Footer */}
       <div className="px-3 py-3 border-t border-sidebar-border/50">
         <p className="text-[10px] text-muted-foreground/60 text-center">
-          © {new Date().getFullYear()} MARKA SOLUÇÕES EM TECNOLOGIA
+          © {new Date().getFullYear()} Harmony Clube de Benefícios
         </p>
       </div>
     </div>
