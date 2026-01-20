@@ -474,16 +474,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <div className="flex flex-col h-full">
       {/* Logo dinâmica baseada no tema */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-sidebar-border/50">
+      <div className="flex items-center justify-center px-5 py-4 border-b border-sidebar-border/50">
         <img 
           src={getLogoForContext('sidebar')} 
           alt={brand.name}
-          className="h-8 object-contain"
+          className="h-10 w-auto object-contain"
         />
-        <div>
-          <h1 className="font-bold text-base text-sidebar-foreground tracking-tight">{brand.name}</h1>
-          <p className="text-[10px] text-muted-foreground/80 font-medium">{brand.subtitle}</p>
-        </div>
       </div>
 
       {/* Navigation */}
@@ -591,7 +587,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               alt={brand.name}
               className="h-6 object-contain"
             />
-            <span className="font-bold text-sm">{brand.name}</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
