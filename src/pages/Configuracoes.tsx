@@ -6,6 +6,7 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useSettings } from "@/hooks/useSettings";
 import { useSystemInfo } from "@/hooks/useSystemInfo";
 import { useAuth } from "@/contexts/AuthContext";
+import { ApiTokensCard } from "@/components/settings/ApiTokensCard";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -922,6 +923,9 @@ export default function Configuracoes() {
 
           {/* Versão do Sistema */}
           <SystemVersionCard />
+
+          {/* Tokens de API */}
+          <ApiTokensCard />
         </div>
       </div>
     </DashboardLayout>
