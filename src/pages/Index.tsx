@@ -23,7 +23,6 @@ export default function Index() {
               alt={brand.name}
               className="h-12 object-contain"
             />
-            <span className="font-bold text-xl">{brand.name}</span>
           </div>
           <Button onClick={() => navigate('/auth')}>
             Acessar Sistema
