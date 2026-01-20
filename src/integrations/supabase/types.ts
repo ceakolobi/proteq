@@ -145,6 +145,53 @@ export type Database = {
           },
         ]
       }
+      api_tokens: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          name: string
+          token: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name: string
+          token: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       associados: {
         Row: {
           bairro: string | null
@@ -2716,6 +2763,7 @@ export type Database = {
         Args: { _company_id: string }
         Returns: boolean
       }
+      generate_api_token: { Args: never; Returns: string }
       gerar_mensalidades_mes: {
         Args: { p_company_id?: string; p_mes_referencia: string }
         Returns: number
@@ -2768,6 +2816,14 @@ export type Database = {
       strict_company_isolation: {
         Args: { _company_id: string }
         Returns: boolean
+      }
+      validate_api_token: {
+        Args: { _token: string }
+        Returns: {
+          company_id: string
+          is_valid: boolean
+          token_id: string
+        }[]
       }
     }
     Enums: {
