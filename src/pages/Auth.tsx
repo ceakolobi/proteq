@@ -377,7 +377,7 @@ export default function Auth() {
       </div>
 
       {/* Right side - 30% Auth form */}
-      <div className="flex-1 lg:w-[30%] flex flex-col items-center justify-center p-6 lg:p-8 bg-card">
+      <div className="flex-1 lg:w-[30%] flex flex-col items-center justify-between p-6 lg:p-8 bg-card">
         {/* Logo Harmony */}
         <div className="mb-8">
           <img 
@@ -570,6 +570,13 @@ export default function Auth() {
             )}
           </CardContent>
         </Card>
+
+        {/* Footer credit */}
+        <div className="mt-auto pt-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            Desenvolvido por <span className="font-medium">Marka Tecnologia</span>
+          </p>
+        </div>
       </div>
     </div>
   );
