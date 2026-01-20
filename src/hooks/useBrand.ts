@@ -96,8 +96,8 @@ export function useBrand() {
         return brand.logos.light;
       
       case 'login':
-        // Login tem fundo primary (colorido) - usa logo branca para contraste
-        return brand.logos.light;
+        // Login (layout atual) usa fundo neutro/claro no formulário, então prioriza a logo colorida.
+        return brand.logos.primary;
       
       case 'report':
         // Relatórios usam logo escura (para imprimir bem em papel branco)
