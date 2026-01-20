@@ -356,6 +356,24 @@ export default function Auth() {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent" />
+
+        {/* Watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <img
+            src={getLogoForContext('splash')}
+            alt={`${brand.name} - marca d'água`}
+            className="w-[520px] max-w-[70%] h-auto object-contain opacity-10"
+          />
+        </div>
+
+        {/* Footer logo */}
+        <div className="absolute bottom-6 left-6 right-6 flex items-center justify-start pointer-events-none select-none">
+          <img
+            src={getLogoForContext('splash')}
+            alt={brand.name}
+            className="h-10 w-auto object-contain opacity-90"
+          />
+        </div>
       </div>
 
       {/* Right side - 30% Auth form */}
