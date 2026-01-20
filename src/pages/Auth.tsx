@@ -17,7 +17,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Car, Lock, CreditCard, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff, Mail } from 'lucide-react';
+import authHeroImage from '@/assets/auth-hero-illustration.jpg';
 
 export default function Auth() {
   const [loginIdentifier, setLoginIdentifier] = useState(''); // CPF ou Email
@@ -346,68 +347,30 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
-        <div className="relative z-10 flex flex-col justify-center px-12 text-primary-foreground">
-          <div className="flex items-center gap-4 mb-8">
-            <img 
-              src={getLogoForContext('login')} 
-              alt={brand.name}
-              className="h-14 object-contain"
-            />
-            <div>
-              <h1 className="text-3xl font-bold">{brand.name}</h1>
-              <p className="text-primary-foreground/80">{brand.subtitle}</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary-foreground/10 rounded-lg mt-1">
-                <Car className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">Gestão Completa</h3>
-                <p className="text-primary-foreground/70 text-sm">
-                  Gerencie associados, veículos e cotações de forma simples e eficiente.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary-foreground/10 rounded-lg mt-1">
-                <Lock className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">Segurança em Primeiro Lugar</h3>
-                <p className="text-primary-foreground/70 text-sm">
-                  Sistema privado com controle de acesso por perfil e auditoria completa.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Decorative elements */}
-        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-primary-foreground/5 rounded-full" />
-        <div className="absolute -top-20 -right-10 w-60 h-60 bg-primary-foreground/5 rounded-full" />
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+      {/* Left side - 70% Hero Image */}
+      <div className="hidden lg:block lg:w-[70%] relative overflow-hidden">
+        <img 
+          src={authHeroImage} 
+          alt="Harmony Agro - Tecnologia e Rastreamento"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent" />
       </div>
 
-      {/* Right side - Auth form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md border-0 shadow-xl">
-          <CardHeader className="space-y-1 text-center">
-            <div className="flex items-center justify-center gap-3 mb-4 lg:hidden">
-              <img 
-                src={getLogoForContext('login')} 
-                alt={brand.name}
-                className="h-10 object-contain"
-              />
-              <span className="text-xl font-bold">{brand.name}</span>
-            </div>
+      {/* Right side - 30% Auth form */}
+      <div className="flex-1 lg:w-[30%] flex flex-col items-center justify-center p-6 lg:p-8 bg-card">
+        {/* Logo Harmony */}
+        <div className="mb-8">
+          <img 
+            src={getLogoForContext('login')} 
+            alt={brand.name}
+            className="h-16 w-auto object-contain"
+          />
+        </div>
 
+        <Card className="w-full max-w-sm border-0 shadow-none bg-transparent">
+          <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">
               {isRecoveryMode || isForcedChangeMode ? 'Redefinir senha' : 'Acesse sua conta'}
             </CardTitle>
@@ -490,7 +453,7 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="login-identifier">CPF ou Email</Label>
                     <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-identifier"
                         type="text"
@@ -560,7 +523,7 @@ export default function Auth() {
                       <div className="space-y-2">
                         <Label htmlFor="reset-identifier">CPF ou Email</Label>
                         <div className="relative">
-                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             id="reset-identifier"
                             type="text"
