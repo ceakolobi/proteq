@@ -62,7 +62,7 @@ export default function Cotacao() {
   const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('cotacoes');
 
   useEffect(() => {
-    document.title = 'Cotação | Harmony CRM';
+    document.title = 'Cotação | Harmony Agro';
   }, []);
 
   const [formData, setFormData] = useState({

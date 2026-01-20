@@ -47,7 +47,7 @@ export default function Perfil() {
   });
 
   useEffect(() => {
-    document.title = 'Meu Perfil | Harmony CRM';
+    document.title = 'Meu Perfil | Harmony Agro';
   }, []);
 
   useEffect(() => {

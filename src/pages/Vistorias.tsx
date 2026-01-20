@@ -149,7 +149,7 @@ export default function Vistorias() {
   const [formChecklist, setFormChecklist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    document.title = 'Vistorias | Harmony CRM';
+    document.title = 'Vistorias | Harmony Agro';
   }, []);
 
   const fetchData = useCallback(async () => {

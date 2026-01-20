@@ -221,7 +221,7 @@ export default function Veiculos() {
   }, []);
 
   useEffect(() => {
-    document.title = 'Veículos | Harmony CRM';
+    document.title = 'Veículos | Harmony Agro';
   }, []);
 
   useEffect(() => {
