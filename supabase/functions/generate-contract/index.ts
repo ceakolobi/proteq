@@ -60,6 +60,169 @@ function applyVariables(template: string, vars: Record<string, string>) {
   });
 }
 
+async function fetchPublicAssetBytes(publicPath: string) {
+  try {
+    const origin = (globalThis as any).__CONTRACT_ORIGIN__ as string | undefined;
+    const base = origin || "https://painelharmonyagrocombr.lovable.app";
+    const url = `${base}${publicPath.startsWith("/") ? "" : "/"}${publicPath}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+function wrapTextToLines(text: string, maxChars: number) {
+  const lines: string[] = [];
+  const paragraphs = text.split("\n");
+  for (const p of paragraphs) {
+    const words = p.split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      lines.push("");
+      continue;
+    }
+    let line = "";
+    for (const w of words) {
+      const next = line ? `${line} ${w}` : w;
+      if (next.length > maxChars) {
+        if (line) lines.push(line);
+        line = w;
+      } else {
+        line = next;
+      }
+    }
+    if (line) lines.push(line);
+    lines.push("");
+  }
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  return lines;
+}
+
+async function createPdfBytesFromTemplate(params: {
+  title: string;
+  text: string;
+  logoBytes: Uint8Array | null;
+  templateBytes: Uint8Array | null;
+}) {
+  if (!params.templateBytes) return null;
+
+  const pdfDoc = await PDFDocument.load(params.templateBytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const logoImage = params.logoBytes ? await pdfDoc.embedPng(params.logoBytes) : null;
+
+  const margin = 48;
+  const headerH = 46;
+  const footerH = 42;
+  const fontSize = 11;
+  const lineHeight = 16;
+
+  const pages = pdfDoc.getPages();
+  if (pages.length === 0) {
+    pdfDoc.addPage([595.28, 841.89]);
+  }
+
+  const drawTimbrado = (p: any) => {
+    const { width, height } = p.getSize();
+
+    // Cabeçalho: logo topo-esquerda
+    if (logoImage) {
+      const targetH = 22;
+      const scale = targetH / logoImage.height;
+      const targetW = logoImage.width * scale;
+      p.drawImage(logoImage, {
+        x: margin,
+        y: height - margin - targetH,
+        width: targetW,
+        height: targetH,
+      });
+    }
+
+    // Rodapé: linha + texto
+    const footerY = margin + 18;
+    p.drawLine({
+      start: { x: margin, y: margin + footerH - 10 },
+      end: { x: width - margin, y: margin + footerH - 10 },
+      thickness: 1,
+      color: rgb(0.85, 0.85, 0.85),
+    });
+    p.drawText("Harmony Agro • Clube de Benefícios", {
+      x: margin,
+      y: footerY,
+      size: 9,
+      font,
+      color: rgb(0.35, 0.35, 0.35),
+    });
+
+    // Marca d’água: logo central com baixa opacidade
+    if (logoImage) {
+      const { width, height } = p.getSize();
+      const maxW = width * 0.62;
+      const scale = Math.min(maxW / logoImage.width, 1);
+      const w = logoImage.width * scale;
+      const h = logoImage.height * scale;
+      p.drawImage(logoImage, {
+        x: (width - w) / 2,
+        y: (height - h) / 2,
+        width: w,
+        height: h,
+        opacity: 0.08,
+      });
+    }
+  };
+
+  // Render do conteúdo por cima do PDF base, respeitando áreas de timbrado
+  const textLines = wrapTextToLines(params.text, 95);
+  let pageIndex = 0;
+
+  const ensurePage = () => {
+    const existing = pdfDoc.getPages();
+    if (pageIndex < existing.length) return existing[pageIndex];
+    const newPage = pdfDoc.addPage([595.28, 841.89]);
+    return newPage;
+  };
+
+  let page = ensurePage();
+  drawTimbrado(page);
+  const size0 = page.getSize();
+  let y = size0.height - margin - headerH - 60; // espaço para layout do modelo
+  const contentBottomY = margin + footerH;
+  const maxWidth = size0.width - margin * 2;
+
+  // Título (pequeno, não briga com o layout do modelo)
+  page.drawText(params.title, {
+    x: margin,
+    y: size0.height - margin - headerH - 24,
+    size: 12,
+    font: fontBold,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  for (const line of textLines) {
+    if (y < contentBottomY) {
+      pageIndex += 1;
+      page = ensurePage();
+      drawTimbrado(page);
+      const s = page.getSize();
+      y = s.height - margin - headerH - 40;
+    }
+
+    // Evita ultrapassar margem horizontal
+    page.drawText(line, {
+      x: margin,
+      y,
+      size: fontSize,
+      font,
+      maxWidth,
+    });
+    y -= lineHeight;
+  }
+
+  return await pdfDoc.save();
+}
+
 async function createSimplePdfBytes(title: string, text: string) {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -67,19 +230,7 @@ async function createSimplePdfBytes(title: string, text: string) {
 
   // Logo padrão (Harmony Agro) vindo do frontend (public/images). Usamos o Origin da request
   // para funcionar em preview e publicado.
-  const logoBytes = await (async () => {
-    try {
-      // fallback para ambiente sem origin
-      const origin = (globalThis as any).__CONTRACT_ORIGIN__ as string | undefined;
-      const base = origin || "https://painelharmonyagrocombr.lovable.app";
-      const url = `${base}/images/logo-marka-colorida.png`;
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      return new Uint8Array(await res.arrayBuffer());
-    } catch {
-      return null;
-    }
-  })();
+  const logoBytes = await fetchPublicAssetBytes("/images/harmony-logo-agro.png");
 
   const logoImage = logoBytes ? await pdfDoc.embedPng(logoBytes) : null;
 
@@ -391,7 +542,16 @@ Deno.serve(async (req) => {
     const rendered = applyVariables(contentSnapshot, vars);
     const plain = stripMarkdown(rendered);
 
-    const pdfBytes = await createSimplePdfBytes(template.title ?? "Contrato", plain);
+    // Preferir PDF modelo (layout) e escrever por cima. Fallback para PDF simples.
+    const baseTemplateBytes = await fetchPublicAssetBytes("/templates/contract-base.pdf");
+    const logoBytes = await fetchPublicAssetBytes("/images/harmony-logo-agro.png");
+    const templated = await createPdfBytesFromTemplate({
+      title: template.title ?? "Contrato",
+      text: plain,
+      logoBytes,
+      templateBytes: baseTemplateBytes,
+    });
+    const pdfBytes = templated ?? (await createSimplePdfBytes(template.title ?? "Contrato", plain));
 
     // Criar registro primeiro (para gerar path)
     const ipRaw = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? null;
