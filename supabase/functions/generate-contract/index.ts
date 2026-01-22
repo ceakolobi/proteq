@@ -65,7 +65,7 @@ async function createSimplePdfBytes(title: string, text: string) {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const page = pdfDoc.addPage([595.28, 841.89]); // A4
+  let page = pdfDoc.addPage([595.28, 841.89]); // A4
   const { width, height } = page.getSize();
 
   const margin = 48;
@@ -92,11 +92,8 @@ async function createSimplePdfBytes(title: string, text: string) {
   for (const line of lines) {
     if (y < margin) {
       // new page
-      const newPage = pdfDoc.addPage([595.28, 841.89]);
-      y = newPage.getSize().height - margin;
-      newPage.drawText(line, { x: margin, y, size: fontSize, font });
-      y -= lineHeight;
-      continue;
+      page = pdfDoc.addPage([595.28, 841.89]);
+      y = page.getSize().height - margin;
     }
     page.drawText(line, {
       x: margin,
