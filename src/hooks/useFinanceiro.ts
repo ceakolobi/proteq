@@ -217,6 +217,16 @@ export function useFinanceiro() {
         .eq('id', mensalidadeId);
 
       if (error) throw error;
+
+      // Geração automática de contrato (backend). Não bloqueia o fluxo de pagamento.
+      try {
+        await supabase.functions.invoke('generate-contract', {
+          body: { mensalidadeId },
+        });
+      } catch (e) {
+        console.warn('Falha ao disparar geração de contrato:', e);
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Erro ao registrar pagamento:', error);
