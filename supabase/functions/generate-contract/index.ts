@@ -1,7 +1,7 @@
 /// <reference lib="deno.ns" />
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { PDFDocument, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,10 +65,32 @@ async function createSimplePdfBytes(title: string, text: string) {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+  // Logo padrão (Harmony Agro) vindo do frontend (public/images). Usamos o Origin da request
+  // para funcionar em preview e publicado.
+  const logoBytes = await (async () => {
+    try {
+      // fallback para ambiente sem origin
+      const origin = (globalThis as any).__CONTRACT_ORIGIN__ as string | undefined;
+      const base = origin || "https://painelharmonyagrocombr.lovable.app";
+      const url = `${base}/images/logo-marka-colorida.png`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return new Uint8Array(await res.arrayBuffer());
+    } catch {
+      return null;
+    }
+  })();
+
+  const logoImage = logoBytes ? await pdfDoc.embedPng(logoBytes) : null;
+
   let page = pdfDoc.addPage([595.28, 841.89]); // A4
   const { width, height } = page.getSize();
 
   const margin = 48;
+  const headerH = 46;
+  const footerH = 42;
+  const contentTopY = height - margin - headerH;
+  const contentBottomY = margin + footerH;
   const fontSize = 11;
   const lineHeight = 16;
   const maxWidth = width - margin * 2;
@@ -77,7 +99,55 @@ async function createSimplePdfBytes(title: string, text: string) {
   const avgCharWidth = font.widthOfTextAtSize("ABCDEFGHIJKLMNOPQRSTUVWXYZ", fontSize) / 26;
   const maxChars = Math.max(40, Math.floor(maxWidth / avgCharWidth));
 
-  let y = height - margin;
+  const drawTimbrado = (p: any) => {
+    // Cabeçalho: logo topo-esquerda
+    if (logoImage) {
+      const targetH = 22;
+      const scale = targetH / logoImage.height;
+      const targetW = logoImage.width * scale;
+      p.drawImage(logoImage, {
+        x: margin,
+        y: height - margin - targetH,
+        width: targetW,
+        height: targetH,
+      });
+    }
+
+    // Rodapé: linha + texto
+    const footerY = margin + 18;
+    p.drawLine({
+      start: { x: margin, y: margin + footerH - 10 },
+      end: { x: width - margin, y: margin + footerH - 10 },
+      thickness: 1,
+      color: rgb(0.85, 0.85, 0.85),
+    });
+    p.drawText("Harmony Agro • Clube de Benefícios", {
+      x: margin,
+      y: footerY,
+      size: 9,
+      font,
+      color: rgb(0.35, 0.35, 0.35),
+    });
+
+    // Marca d’água: logo central com baixa opacidade
+    if (logoImage) {
+      const maxW = width * 0.62;
+      const scale = Math.min(maxW / logoImage.width, 1);
+      const w = logoImage.width * scale;
+      const h = logoImage.height * scale;
+      p.drawImage(logoImage, {
+        x: (width - w) / 2,
+        y: (height - h) / 2,
+        width: w,
+        height: h,
+        opacity: 0.08,
+      });
+    }
+  };
+
+  drawTimbrado(page);
+
+  let y = contentTopY;
 
   // Title
   page.drawText(title, {
@@ -90,10 +160,11 @@ async function createSimplePdfBytes(title: string, text: string) {
 
   const lines = wrapText(text, maxChars);
   for (const line of lines) {
-    if (y < margin) {
+    if (y < contentBottomY) {
       // new page
       page = pdfDoc.addPage([595.28, 841.89]);
-      y = page.getSize().height - margin;
+      drawTimbrado(page);
+      y = page.getSize().height - margin - headerH;
     }
     page.drawText(line, {
       x: margin,
@@ -145,6 +216,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Guardamos o origin para a geração do PDF conseguir buscar o logo padrão do frontend.
+    (globalThis as any).__CONTRACT_ORIGIN__ = req.headers.get("origin") ?? undefined;
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
