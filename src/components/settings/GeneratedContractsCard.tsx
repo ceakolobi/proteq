@@ -19,7 +19,10 @@ type ContractRow = {
   veiculo_id: string | null;
   mensalidade_id: string | null;
   contract_number: string | null;
-  associados?: { nome_completo: string; cpf: string } | { nome_completo: string; cpf: string }[] | null;
+  associados?:
+    | { nome_completo: string; cpf: string; rg: string | null }
+    | { nome_completo: string; cpf: string; rg: string | null }[]
+    | null;
   veiculos?: { placa: string | null; modelo: string | null; ano: number | null } | { placa: string | null; modelo: string | null; ano: number | null }[] | null;
 };
 
@@ -34,6 +37,10 @@ function formatDateTimeBR(iso: string) {
 function getEmbedOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 export function GeneratedContractsCard() {
@@ -53,7 +60,7 @@ export function GeneratedContractsCard() {
       .from("generated_contracts")
       .select(
         `id, status, generated_at, pdf_path, associado_id, veiculo_id, mensalidade_id, contract_number,
-         associados:associados(nome_completo, cpf),
+         associados:associados(nome_completo, cpf, rg),
          veiculos:veiculos(placa, modelo, ano)`
       )
       .order("generated_at", { ascending: false })
@@ -139,6 +146,7 @@ export function GeneratedContractsCard() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const qDigits = digitsOnly(q);
     return items.filter((c) => {
       if (status !== "all" && c.status !== status) return false;
 
@@ -146,8 +154,17 @@ export function GeneratedContractsCard() {
 
       const a = getEmbedOne(c.associados);
       const nome = (a?.nome_completo ?? "").toLowerCase();
-      const cpf = (a?.cpf ?? "").toLowerCase();
-      return nome.includes(q) || cpf.includes(q);
+      const cpfRaw = (a?.cpf ?? "").toLowerCase();
+      const rgRaw = (a?.rg ?? "").toLowerCase();
+
+      // Quando o usuário digita números, comparamos também por versão "somente dígitos"
+      if (qDigits) {
+        const cpfDigits = digitsOnly(cpfRaw);
+        const rgDigits = digitsOnly(rgRaw);
+        if (cpfDigits.includes(qDigits) || rgDigits.includes(qDigits)) return true;
+      }
+
+      return nome.includes(q) || cpfRaw.includes(q) || rgRaw.includes(q);
     });
   }, [items, search, status]);
 
@@ -198,7 +215,7 @@ export function GeneratedContractsCard() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou CPF"
+              placeholder="Buscar por nome, CPF ou RG"
             />
           </div>
           <Select value={status} onValueChange={setStatus}>
