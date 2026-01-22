@@ -60,6 +60,291 @@ function applyVariables(template: string, vars: Record<string, string>) {
   });
 }
 
+type ContractSection = {
+  title: string;
+  body: string;
+};
+
+function parseMarkdownToSections(md: string): { docTitle: string; sections: ContractSection[] } {
+  const lines = md.replace(/\r/g, "").split("\n");
+
+  let docTitle = "Contrato";
+  const sections: ContractSection[] = [];
+
+  let currentTitle = "";
+  let currentBody: string[] = [];
+
+  const flush = () => {
+    const body = currentBody.join("\n").trim();
+    const title = currentTitle.trim();
+    if (title || body) {
+      sections.push({
+        title: title || "Seção",
+        body,
+      });
+    }
+    currentTitle = "";
+    currentBody = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const h1 = line.match(/^#\s+(.+)$/);
+    const h2 = line.match(/^##\s+(.+)$/);
+    if (h1) {
+      // Primeiro H1 vira título do documento; demais viram seção.
+      if (docTitle === "Contrato") {
+        docTitle = h1[1].trim();
+        continue;
+      }
+      flush();
+      currentTitle = h1[1].trim();
+      continue;
+    }
+    if (h2) {
+      flush();
+      currentTitle = h2[1].trim();
+      continue;
+    }
+    currentBody.push(line);
+  }
+  flush();
+
+  // Se o template não tem headings, vira uma seção única
+  if (sections.length === 0) {
+    sections.push({ title: "Conteúdo", body: md.trim() });
+  }
+
+  return { docTitle, sections };
+}
+
+function drawRoundedRectPath(x: number, y: number, w: number, h: number, r: number) {
+  // SVG path (y cresce para cima no pdf-lib)
+  const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  const x0 = x;
+  const y0 = y;
+  const x1 = x + w;
+  const y1 = y + h;
+  return [
+    `M ${x0 + rr} ${y0}`,
+    `L ${x1 - rr} ${y0}`,
+    `Q ${x1} ${y0} ${x1} ${y0 + rr}`,
+    `L ${x1} ${y1 - rr}`,
+    `Q ${x1} ${y1} ${x1 - rr} ${y1}`,
+    `L ${x0 + rr} ${y1}`,
+    `Q ${x0} ${y1} ${x0} ${y1 - rr}`,
+    `L ${x0} ${y0 + rr}`,
+    `Q ${x0} ${y0} ${x0 + rr} ${y0}`,
+    "Z",
+  ].join(" ");
+}
+
+function wrapToWidth(font: any, text: string, fontSize: number, maxWidth: number) {
+  const out: string[] = [];
+  const paragraphs = text.replace(/\r/g, "").split("\n");
+  for (const p of paragraphs) {
+    const words = p.split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      out.push("");
+      continue;
+    }
+    let line = "";
+    for (const w of words) {
+      const next = line ? `${line} ${w}` : w;
+      const width = font.widthOfTextAtSize(next, fontSize);
+      if (width > maxWidth) {
+        if (line) out.push(line);
+        line = w;
+      } else {
+        line = next;
+      }
+    }
+    if (line) out.push(line);
+    out.push("");
+  }
+  while (out.length && out[out.length - 1] === "") out.pop();
+  return out;
+}
+
+async function createContractPdfBytes(params: {
+  title: string;
+  markdown: string;
+}) {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const logoBytes = await fetchPublicAssetBytes("/images/harmony-logo-agro.png");
+  const logoImage = logoBytes ? await pdfDoc.embedPng(logoBytes) : null;
+
+  const { docTitle, sections } = parseMarkdownToSections(params.markdown);
+
+  const pageSize: [number, number] = [595.28, 841.89]; // A4
+  const margin = 48;
+  const headerH = 46;
+  const footerH = 42;
+
+  const titleSize = 16;
+  const sectionTitleSize = 12;
+  const bodySize = 11;
+  const lineHeight = 16;
+
+  const cardRadius = 12;
+  const cardPaddingX = 16;
+  const cardPaddingY = 14;
+  const cardGap = 14;
+  const borderColor = rgb(0.85, 0.85, 0.85);
+  const textColor = rgb(0.12, 0.12, 0.12);
+  const mutedColor = rgb(0.35, 0.35, 0.35);
+
+  const drawTimbrado = (p: any) => {
+    const { width, height } = p.getSize();
+
+    if (logoImage) {
+      const targetH = 22;
+      const scale = targetH / logoImage.height;
+      const targetW = logoImage.width * scale;
+      p.drawImage(logoImage, {
+        x: margin,
+        y: height - margin - targetH,
+        width: targetW,
+        height: targetH,
+      });
+    }
+
+    // Rodapé
+    const footerY = margin + 18;
+    p.drawLine({
+      start: { x: margin, y: margin + footerH - 10 },
+      end: { x: width - margin, y: margin + footerH - 10 },
+      thickness: 1,
+      color: borderColor,
+    });
+    p.drawText("Harmony Agro • Clube de Benefícios", {
+      x: margin,
+      y: footerY,
+      size: 9,
+      font,
+      color: mutedColor,
+    });
+
+    // Marca d'água
+    if (logoImage) {
+      const maxW = width * 0.62;
+      const scale = Math.min(maxW / logoImage.width, 1);
+      const w = logoImage.width * scale;
+      const h = logoImage.height * scale;
+      p.drawImage(logoImage, {
+        x: (width - w) / 2,
+        y: (height - h) / 2,
+        width: w,
+        height: h,
+        opacity: 0.08,
+      });
+    }
+  };
+
+  const newPage = () => {
+    const p = pdfDoc.addPage(pageSize);
+    drawTimbrado(p);
+    return p;
+  };
+
+  let page = newPage();
+  const { width, height } = page.getSize();
+  const contentTopY = height - margin - headerH;
+  const contentBottomY = margin + footerH;
+  const contentW = width - margin * 2;
+
+  let y = contentTopY;
+
+  // Título do documento
+  page.drawText(params.title || docTitle, {
+    x: margin,
+    y,
+    size: titleSize,
+    font: fontBold,
+    color: textColor,
+  });
+  y -= 24;
+
+  const drawCard = (section: ContractSection) => {
+    const safeTitle = stripMarkdown(section.title).trim();
+    const safeBody = stripMarkdown(section.body).trim();
+
+    const innerW = contentW - cardPaddingX * 2;
+    const titleLines = wrapToWidth(fontBold, safeTitle, sectionTitleSize, innerW);
+    const bodyLines = wrapToWidth(font, safeBody, bodySize, innerW);
+
+    const titleH = titleLines.length ? titleLines.length * (sectionTitleSize + 4) : 0;
+    const bodyH = bodyLines.length ? bodyLines.length * lineHeight : 0;
+    const cardH = cardPaddingY + titleH + (titleH && bodyH ? 10 : 0) + bodyH + cardPaddingY;
+
+    if (y - cardH < contentBottomY) {
+      page = newPage();
+      y = page.getSize().height - margin - headerH;
+    }
+
+    const cardX = margin;
+    const cardY = y - cardH;
+
+    const path = drawRoundedRectPath(cardX, cardY, contentW, cardH, cardRadius);
+    page.drawSvgPath(path, {
+      borderColor,
+      borderWidth: 1,
+      color: rgb(1, 1, 1),
+      opacity: 0, // “fill” invisível; só borda
+    });
+
+    let ty = y - cardPaddingY - sectionTitleSize;
+    for (const l of titleLines) {
+      if (!l.trim()) continue;
+      page.drawText(l, {
+        x: cardX + cardPaddingX,
+        y: ty,
+        size: sectionTitleSize,
+        font: fontBold,
+        color: textColor,
+        maxWidth: innerW,
+      });
+      ty -= sectionTitleSize + 4;
+    }
+
+    if (titleLines.length && bodyLines.length) {
+      ty -= 6;
+      page.drawLine({
+        start: { x: cardX + cardPaddingX, y: ty },
+        end: { x: cardX + contentW - cardPaddingX, y: ty },
+        thickness: 1,
+        color: borderColor,
+      });
+      ty -= 14;
+    }
+
+    for (const l of bodyLines) {
+      if (!l.trim()) {
+        ty -= lineHeight;
+        continue;
+      }
+      page.drawText(l, {
+        x: cardX + cardPaddingX,
+        y: ty,
+        size: bodySize,
+        font,
+        color: textColor,
+        maxWidth: innerW,
+      });
+      ty -= lineHeight;
+    }
+
+    y = cardY - cardGap;
+  };
+
+  for (const s of sections) drawCard(s);
+
+  return await pdfDoc.save();
+}
+
 async function fetchPublicAssetBytes(publicPath: string) {
   try {
     const origin = (globalThis as any).__CONTRACT_ORIGIN__ as string | undefined;
@@ -539,19 +824,11 @@ Deno.serve(async (req) => {
     };
 
     const contentSnapshot = version.content_markdown;
-    const rendered = applyVariables(contentSnapshot, vars);
-    const plain = stripMarkdown(rendered);
-
-    // Preferir PDF modelo (layout) e escrever por cima. Fallback para PDF simples.
-    const baseTemplateBytes = await fetchPublicAssetBytes("/templates/contract-base.pdf");
-    const logoBytes = await fetchPublicAssetBytes("/images/harmony-logo-agro.png");
-    const templated = await createPdfBytesFromTemplate({
+    const renderedMarkdown = applyVariables(contentSnapshot, vars);
+    const pdfBytes = await createContractPdfBytes({
       title: template.title ?? "Contrato",
-      text: plain,
-      logoBytes,
-      templateBytes: baseTemplateBytes,
+      markdown: renderedMarkdown,
     });
-    const pdfBytes = templated ?? (await createSimplePdfBytes(template.title ?? "Contrato", plain));
 
     // Criar registro primeiro (para gerar path)
     const ipRaw = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? null;
@@ -567,7 +844,7 @@ Deno.serve(async (req) => {
         template_version_id: version.id,
         status: "gerado",
         content_markdown_snapshot: contentSnapshot,
-        rendered_text_snapshot: plain,
+          rendered_text_snapshot: stripMarkdown(renderedMarkdown),
         generated_by: userId,
         generated_ip: settings?.record_ip_and_date ? ip : null,
       })

@@ -117,98 +117,76 @@ export default function DocumentosContratos() {
       title: "Contrato Padrão",
       description: "Modelo base usado na geração automática após pagamento.",
       content_markdown: `# HARMONY CLUBE DE BENEFÍCIOS
-## REGULAMENTO DO PROGRAMA DE PROTEÇÃO VEICULAR
+## TERMO DE ADESÃO AO PROGRAMA DE BENEFÍCIOS (SOCORRO MÚTUO)
+
+---
+
+## 1) Identificação do Associado e do Veículo
 
 **Associado:** {{nome}}  
 **CPF:** {{cpf}}  
-**Plano:** {{plano}}  
+**Plano/Programa:** {{plano}}  
 **Veículo:** {{modelo}} / {{ano}}  
 **Placa:** {{placa}}  
-**Mensalidade:** {{mensalidade}}  
+**Mensalidade/Contribuição:** {{mensalidade}}  
 **Data:** {{data}}
 
 ---
 
-## CLÁUSULA PRIMEIRA – DA NATUREZA JURÍDICA
+## 2) Natureza Jurídica e Regras Gerais
 
 A HARMONY CLUBE DE BENEFÍCIOS, inscrita no CNPJ nº 39.583.767/0001-26, é uma associação civil sem fins lucrativos, constituída nos termos do Código Civil Brasileiro, que atua por meio do sistema de proteção patrimonial mutualista, fundamentado no socorro mútuo e no rateio de despesas entre seus associados.
 
-## CLÁUSULA SEGUNDA – DO CADASTRAMENTO JUNTO À SUSEP
+O Associado declara ciência de que:
 
-A HARMONY CLUBE DE BENEFÍCIOS encontra-se devidamente cadastrada junto à Superintendência de Seguros Privados – SUSEP, conforme legislação vigente aplicável às associações de proteção patrimonial mutualista, estando em processo de regularização, nos termos da Lei Complementar nº 213/2025.
+- A Associação **não é seguradora**;
+- **Não comercializa seguros**, não emite apólices e não opera sob regime securitário;
+- Os benefícios decorrem do **sistema de socorro mútuo** e do **rateio** entre associados;
+- O recebimento de qualquer benefício depende do cumprimento deste termo/regulamento e da **regularidade financeira**.
 
-O associado declara ciência de que:
+## 3) Enquadramento Normativo (SUSEP)
 
-I – A Associação não é seguradora;  
-II – Não comercializa seguros, não emite apólices e não opera sob o regime securitário;  
-III – Os benefícios decorrem exclusivamente do sistema de socorro mútuo e rateio;  
-IV – A adesão não caracteriza contrato de seguro;  
-V – O recebimento de qualquer benefício depende do cumprimento deste regulamento e da regularidade financeira do associado.
+Este termo observa as regras aplicáveis às associações e aos modelos mutualistas, incluindo a legislação vigente e normas correlatas, com vistas à conformidade regulatória.
 
-## CLÁUSULA TERCEIRA – DO OBJETO
+## 4) Cobertura Contratada Neste Momento
 
-O presente regulamento tem por finalidade estabelecer as regras de funcionamento do Programa de Proteção Veicular, destinado a oferecer suporte mutualista aos associados em caso de eventos previstos neste regulamento, respeitando os princípios do associativismo.
+Neste momento, o Associado declara ciência de que a cobertura principal contratada é **Furto e Roubo**.
 
-## CLÁUSULA QUARTA – DO INÍCIO DA PROTEÇÃO
+Benefícios/coberturas **opcionais** (podem existir por convênio/plano, conforme contratação):
 
-A proteção inicia-se:
+- Assistência 24h (reboque/guincho, chaveiro, pane seca, socorro elétrico/mecânico, etc.)
+- Colisão / Perda Total
+- Terceiros
+- Carro reserva
+- Vidros
 
-a) Após a realização da vistoria;  
-b) Após a aprovação cadastral;  
-c) Após o pagamento da taxa inicial;  
-d) Após o prazo mínimo de 72 (setenta e duas) horas.
+## 5) Carência e Início de Funcionamento
 
-## CLÁUSULA QUINTA – DO GUINCHO E ASSISTÊNCIA
+O Associado declara ciência de que, como regra geral, os serviços/benefícios passam a funcionar **72 (setenta e duas) horas** após a **adesão**.
 
-O serviço de guincho e assistência somente estará disponível após o prazo de 72 horas da ativação.
+**Exceção:** a cobertura de **Furto e Roubo** é considerada **imediata** a partir da adesão, observado o cumprimento das exigências cadastrais e documentais.
 
-O associado inadimplente perde automaticamente o direito a qualquer assistência, incluindo:
+## 6) Vencimento, Pagamento e Inadimplência
 
-- guincho
-- reboque
-- socorro mecânico
-- chaveiro
-- qualquer outro benefício
+O não pagamento na data correta implica em **suspensão imediata** dos benefícios/coberturas até a regularização.
 
-Não haverá reembolso de serviços utilizados durante período de inadimplência.
+Durante a inadimplência:
 
-## CLÁUSULA SEXTA – DA INADIMPLÊNCIA
+- não há autorização de uso de benefícios;
+- não há reembolso de despesas;
+- a Associação pode exigir nova inspeção/vistoria e reinício de carência para reativação.
 
-O atraso no pagamento suspende automaticamente todos os benefícios.
+## 7) Socorro Mútuo e Rateio
 
-A reativação dependerá:
+Os benefícios decorrem do socorro mútuo entre associados. Os valores e critérios de rateio, quando aplicáveis, seguem regras internas técnicas, visando o equilíbrio do grupo e a continuidade do programa.
 
-- da quitação integral do débito;
-- nova vistoria, se exigida;
-- novo prazo de carência.
+## 8) Aceite Eletrônico e Assinatura
 
-## CLÁUSULA SÉTIMA – DO RATEIO
+O Associado concorda com o aceite eletrônico. Quando habilitado, o sistema registra **data/hora** e **IP do dispositivo** para fins de auditoria e validade jurídica.
 
-O rateio será realizado entre os associados ativos, conforme critérios técnicos definidos pela Diretoria, respeitando o equilíbrio financeiro da associação.
+---
 
-## CLÁUSULA OITAVA – DA EXCLUSÃO
-
-O associado poderá ser excluído em caso de:
-
-- inadimplência;
-- fraude;
-- omissão de informações;
-- descumprimento do regulamento.
-
-## CLÁUSULA NONA – DA RESPONSABILIDADE
-
-A associação não se responsabiliza por:
-
-- atos dolosos;
-- mau uso do veículo;
-- eventos não previstos neste regulamento;
-- prejuízos decorrentes de informações falsas.
-
-## CLÁUSULA DÉCIMA – DISPOSIÇÕES FINAIS
-
-O presente regulamento poderá ser alterado pela Diretoria Executiva, com comunicação aos associados.
-
-Fica eleito o foro da comarca da sede da Associação para dirimir quaisquer controvérsias.
+**Declaração final:** Ao prosseguir, o Associado declara que leu, compreendeu e aceita os termos acima.
 `,
       is_active: true,
     },
