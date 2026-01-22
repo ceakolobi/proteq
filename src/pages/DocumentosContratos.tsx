@@ -116,7 +116,100 @@ export default function DocumentosContratos() {
     contract: {
       title: "Contrato Padrão",
       description: "Modelo base usado na geração automática após pagamento.",
-      content_markdown: "# Contrato\n\nAssociado: **{{nome}}** (CPF: {{cpf}})\n\nPlano: {{plano}}\n\nData: {{data}}\n",
+      content_markdown: `# HARMONY CLUBE DE BENEFÍCIOS
+## REGULAMENTO DO PROGRAMA DE PROTEÇÃO VEICULAR
+
+**Associado:** {{nome}}  
+**CPF:** {{cpf}}  
+**Plano:** {{plano}}  
+**Veículo:** {{modelo}} / {{ano}}  
+**Placa:** {{placa}}  
+**Mensalidade:** {{mensalidade}}  
+**Data:** {{data}}
+
+---
+
+## CLÁUSULA PRIMEIRA – DA NATUREZA JURÍDICA
+
+A HARMONY CLUBE DE BENEFÍCIOS, inscrita no CNPJ nº 39.583.767/0001-26, é uma associação civil sem fins lucrativos, constituída nos termos do Código Civil Brasileiro, que atua por meio do sistema de proteção patrimonial mutualista, fundamentado no socorro mútuo e no rateio de despesas entre seus associados.
+
+## CLÁUSULA SEGUNDA – DO CADASTRAMENTO JUNTO À SUSEP
+
+A HARMONY CLUBE DE BENEFÍCIOS encontra-se devidamente cadastrada junto à Superintendência de Seguros Privados – SUSEP, conforme legislação vigente aplicável às associações de proteção patrimonial mutualista, estando em processo de regularização, nos termos da Lei Complementar nº 213/2025.
+
+O associado declara ciência de que:
+
+I – A Associação não é seguradora;  
+II – Não comercializa seguros, não emite apólices e não opera sob o regime securitário;  
+III – Os benefícios decorrem exclusivamente do sistema de socorro mútuo e rateio;  
+IV – A adesão não caracteriza contrato de seguro;  
+V – O recebimento de qualquer benefício depende do cumprimento deste regulamento e da regularidade financeira do associado.
+
+## CLÁUSULA TERCEIRA – DO OBJETO
+
+O presente regulamento tem por finalidade estabelecer as regras de funcionamento do Programa de Proteção Veicular, destinado a oferecer suporte mutualista aos associados em caso de eventos previstos neste regulamento, respeitando os princípios do associativismo.
+
+## CLÁUSULA QUARTA – DO INÍCIO DA PROTEÇÃO
+
+A proteção inicia-se:
+
+a) Após a realização da vistoria;  
+b) Após a aprovação cadastral;  
+c) Após o pagamento da taxa inicial;  
+d) Após o prazo mínimo de 72 (setenta e duas) horas.
+
+## CLÁUSULA QUINTA – DO GUINCHO E ASSISTÊNCIA
+
+O serviço de guincho e assistência somente estará disponível após o prazo de 72 horas da ativação.
+
+O associado inadimplente perde automaticamente o direito a qualquer assistência, incluindo:
+
+- guincho
+- reboque
+- socorro mecânico
+- chaveiro
+- qualquer outro benefício
+
+Não haverá reembolso de serviços utilizados durante período de inadimplência.
+
+## CLÁUSULA SEXTA – DA INADIMPLÊNCIA
+
+O atraso no pagamento suspende automaticamente todos os benefícios.
+
+A reativação dependerá:
+
+- da quitação integral do débito;
+- nova vistoria, se exigida;
+- novo prazo de carência.
+
+## CLÁUSULA SÉTIMA – DO RATEIO
+
+O rateio será realizado entre os associados ativos, conforme critérios técnicos definidos pela Diretoria, respeitando o equilíbrio financeiro da associação.
+
+## CLÁUSULA OITAVA – DA EXCLUSÃO
+
+O associado poderá ser excluído em caso de:
+
+- inadimplência;
+- fraude;
+- omissão de informações;
+- descumprimento do regulamento.
+
+## CLÁUSULA NONA – DA RESPONSABILIDADE
+
+A associação não se responsabiliza por:
+
+- atos dolosos;
+- mau uso do veículo;
+- eventos não previstos neste regulamento;
+- prejuízos decorrentes de informações falsas.
+
+## CLÁUSULA DÉCIMA – DISPOSIÇÕES FINAIS
+
+O presente regulamento poderá ser alterado pela Diretoria Executiva, com comunicação aos associados.
+
+Fica eleito o foro da comarca da sede da Associação para dirimir quaisquer controvérsias.
+`,
       is_active: true,
     },
     cancel: {

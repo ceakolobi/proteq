@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Car, Users, Lock, ArrowRight } from 'lucide-react';
 import { useBrand } from '@/hooks/useBrand';
 import { useEffect } from 'react';
+import { HARMONY_APP_TEXTO_CURTO } from '@/lib/termoAceiteContent';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function Index() {
                 <span className="block">Sistema de Gestão</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Plataforma completa para gerenciar associados, veículos, cotações e toda a operação da sua associação de proteção veicular.
+                {HARMONY_APP_TEXTO_CURTO}
               </p>
             </div>
 
