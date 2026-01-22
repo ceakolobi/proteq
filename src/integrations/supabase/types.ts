@@ -1094,6 +1094,119 @@ export type Database = {
           },
         ]
       }
+      document_settings: {
+        Row: {
+          auto_generate_contract: boolean
+          company_id: string
+          created_at: string
+          record_ip_and_date: boolean
+          require_digital_accept: boolean
+          send_contract_by_email: boolean
+          show_contract_in_associate_area: boolean
+          updated_at: string
+        }
+        Insert: {
+          auto_generate_contract?: boolean
+          company_id: string
+          created_at?: string
+          record_ip_and_date?: boolean
+          require_digital_accept?: boolean
+          send_contract_by_email?: boolean
+          show_contract_in_associate_area?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auto_generate_contract?: boolean
+          company_id?: string
+          created_at?: string
+          record_ip_and_date?: boolean
+          require_digital_accept?: boolean
+          send_contract_by_email?: boolean
+          show_contract_in_associate_area?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      document_template_versions: {
+        Row: {
+          content_markdown: string
+          created_at: string
+          created_by: string | null
+          id: string
+          template_id: string
+          version: number
+        }
+        Insert: {
+          content_markdown: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          template_id: string
+          version: number
+        }
+        Update: {
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          company_id: string
+          content_markdown: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          template_key: string
+          template_type: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          content_markdown: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          template_key: string
+          template_type: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          template_key?: string
+          template_type?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       documentos_associado: {
         Row: {
           associado_id: string
@@ -1297,6 +1410,154 @@ export type Database = {
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      generated_contracts: {
+        Row: {
+          accepted_at: string | null
+          accepted_ip: unknown
+          accepted_user_agent: string | null
+          associado_id: string
+          company_id: string
+          content_markdown_snapshot: string
+          contract_number: string | null
+          created_at: string
+          generated_at: string
+          generated_by: string | null
+          generated_ip: unknown
+          id: string
+          mensalidade_id: string | null
+          pdf_path: string | null
+          rendered_text_snapshot: string | null
+          status: string
+          template_version_id: string
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_ip?: unknown
+          accepted_user_agent?: string | null
+          associado_id: string
+          company_id: string
+          content_markdown_snapshot: string
+          contract_number?: string | null
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          generated_ip?: unknown
+          id?: string
+          mensalidade_id?: string | null
+          pdf_path?: string | null
+          rendered_text_snapshot?: string | null
+          status?: string
+          template_version_id: string
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_ip?: unknown
+          accepted_user_agent?: string | null
+          associado_id?: string
+          company_id?: string
+          content_markdown_snapshot?: string
+          contract_number?: string | null
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          generated_ip?: unknown
+          id?: string
+          mensalidade_id?: string | null
+          pdf_path?: string | null
+          rendered_text_snapshot?: string | null
+          status?: string
+          template_version_id?: string
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_contracts_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_contracts_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_contracts_mensalidade_id_fkey"
+            columns: ["mensalidade_id"]
+            isOneToOne: false
+            referencedRelation: "mensalidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_contracts_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_contracts_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "v_veiculos_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_contracts_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_documents: {
+        Row: {
+          category: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_path: string
+          id: string
+          mime_type: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2757,6 +3018,7 @@ export type Database = {
       }
       can_create_lead: { Args: { _user_id: string }; Returns: boolean }
       can_edit_mensalidade: { Args: { _user_id: string }; Returns: boolean }
+      can_manage_documents: { Args: { _user_id: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       enforce_company_isolation: {
