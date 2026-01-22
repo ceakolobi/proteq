@@ -1,27 +1,28 @@
 // Termo de Aceite - Harmony Clube de Benefícios
 // Versão 2.0
 
-export const TERMO_ACEITE_VERSAO = '2.0';
+export const TERMO_ACEITE_VERSAO = '2.1';
 
 export const TERMO_ACEITE_TITULO = 'TERMO DE ACEITE – HARMONY CLUBE DE BENEFÍCIOS';
 
 export const TERMO_ACEITE_DECLARACAO = `
 DECLARAÇÃO DE ACEITE
 
-Declaro que li e compreendi o Regulamento do Harmony Clube de Benefícios e estou ciente de que:
+Declaro que li e concordo com o Regulamento da HARMONY CLUBE DE BENEFÍCIOS,
+ciente de que se trata de uma associação de proteção veicular baseada no
+sistema de socorro mútuo, não caracterizada como seguradora, conforme
+legislação vigente.
 
-• A HARMONY é uma associação, não uma seguradora.
-
-• A proteção funciona por meio de socorro mútuo, com divisão de despesas entre os associados.
-
-• Os benefícios dependem do pagamento em dia, do cumprimento das regras e, quando exigido, da instalação de rastreador.
-
-• Em caso de utilização dos benefícios, haverá ajuda participativa, conforme regulamento.
-
-• Existe permanência mínima no programa e regras para desfiliação.
-
-Declaro que aceito integralmente os termos do Regulamento Interno e autorizo o uso dos meus dados para fins administrativos, operacionais e legais da associação.
+Estou ciente de que os benefícios dependem do cumprimento das regras do
+regulamento e da regularidade das contribuições.
 `.trim();
+
+// Texto curto para o app (informativo)
+export const HARMONY_APP_TEXTO_CURTO = `A HARMONY CLUBE DE BENEFÍCIOS é uma associação de proteção veicular baseada no socorro mútuo entre associados.
+
+Não se trata de seguro. Os benefícios dependem do cumprimento do regulamento e da regularidade financeira.
+
+Associação cadastrada junto à SUSEP.`.trim();
 
 export interface DadosTermoAceite {
   nomeAssociado: string;
