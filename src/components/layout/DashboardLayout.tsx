@@ -253,6 +253,13 @@ const navSections: NavSection[] = [
         module: 'configuracoes',
         roles: ['admin_principal', 'admin_nivel_basico'],
       },
+      {
+        title: 'Documentos e Contratos',
+        href: '/configuracoes/documentos-contratos',
+        icon: <FileText className="h-4 w-4" />,
+        module: 'configuracoes',
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
+      },
     ],
   },
 ];
