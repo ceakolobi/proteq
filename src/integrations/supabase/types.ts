@@ -719,6 +719,53 @@ export type Database = {
           },
         ]
       }
+      contract_status_logs: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          changed_ip: unknown
+          changed_user_agent: string | null
+          company_id: string
+          contract_id: string
+          created_at: string
+          id: string
+          new_status: string
+          old_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          changed_ip?: unknown
+          changed_user_agent?: string | null
+          company_id: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          changed_ip?: unknown
+          changed_user_agent?: string | null
+          company_id?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_status_logs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "generated_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotacao_contatos: {
         Row: {
           company_id: string | null
@@ -2995,6 +3042,10 @@ export type Database = {
     Functions: {
       atualizar_status_mensalidades: { Args: never; Returns: number }
       atualizar_status_mensalidades_atrasadas: { Args: never; Returns: number }
+      can_access_contracts_internal: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       can_access_financial: { Args: { _user_id: string }; Returns: boolean }
       can_access_lead: {
         Args: { _lead_id: string; _user_id: string }
@@ -3078,6 +3129,15 @@ export type Database = {
       strict_company_isolation: {
         Args: { _company_id: string }
         Returns: boolean
+      }
+      update_contract_status_internal: {
+        Args: {
+          p_contract_id: string
+          p_ip?: unknown
+          p_new_status: string
+          p_user_agent?: string
+        }
+        Returns: undefined
       }
       validate_api_token: {
         Args: { _token: string }
