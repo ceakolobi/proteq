@@ -32,6 +32,7 @@ import NotFound from "./pages/NotFound";
 import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
 import Configuracoes from "./pages/Configuracoes";
+import DocumentosContratos from "./pages/DocumentosContratos";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
@@ -155,6 +156,7 @@ const App = () => (
                 <Route path="/cotas" element={<ProtectedRoute><Cotas /></ProtectedRoute>} />
                 <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
                 <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+                <Route path="/configuracoes/documentos-contratos" element={<ProtectedRoute><DocumentosContratos /></ProtectedRoute>} />
                 
                 {/* Admin Regional or above */}
                 <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
