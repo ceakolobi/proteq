@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.processar-assinatura]
 verify_jwt = false
+
+[functions.generate-contract]
+verify_jwt = false
+
+[functions.generate-contract-manual]
+verify_jwt = false

@@ -7,6 +7,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useSystemInfo } from "@/hooks/useSystemInfo";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiTokensCard } from "@/components/settings/ApiTokensCard";
+import { GeneratedContractsCard } from "@/components/settings/GeneratedContractsCard";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -926,6 +927,9 @@ export default function Configuracoes() {
 
           {/* Tokens de API */}
           <ApiTokensCard />
+
+          {/* Contratos gerados */}
+          <GeneratedContractsCard />
         </div>
       </div>
     </DashboardLayout>
