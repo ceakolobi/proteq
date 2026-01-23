@@ -70,7 +70,6 @@ export default function Configuracoes() {
   const contracapaInputRef = useRef<HTMLInputElement>(null);
   const cover1InputRef = useRef<HTMLInputElement>(null);
   const cover2InputRef = useRef<HTMLInputElement>(null);
-  const cover3InputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     empresa_nome: "",
@@ -94,7 +93,6 @@ export default function Configuracoes() {
   const [uploadingContracapa, setUploadingContracapa] = useState(false);
   const [uploadingCover1, setUploadingCover1] = useState(false);
   const [uploadingCover2, setUploadingCover2] = useState(false);
-  const [uploadingCover3, setUploadingCover3] = useState(false);
 
   // Inicializar form com dados do settings
   if (!isFormInitialized && !isLoading && settings.id) {
@@ -180,26 +178,6 @@ export default function Configuracoes() {
     setUploading(false);
   };
 
-  const handleContractPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      toast({
-        title: "Formato inválido",
-        description: "Envie um arquivo PDF (.pdf).",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploadingCover3(true);
-    const url = await uploadImage(file, "cover_3");
-    if (url) {
-      await updateSettings({ cover_3: url });
-    }
-    setUploadingCover3(false);
-  };
 
   if (isChecking || isLoading) {
     return (
@@ -692,52 +670,6 @@ export default function Configuracoes() {
                   </div>
                 </div>
 
-                {/* Cover 3 */}
-                <div className="space-y-2">
-                  <Label>Contrato (PDF)</Label>
-                  <div
-                    className="relative aspect-[210/297] w-full border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
-                    onClick={() => cover3InputRef.current?.click()}
-                  >
-                    <input
-                      ref={cover3InputRef}
-                      type="file"
-                      accept="application/pdf"
-                      onChange={handleContractPdfUpload}
-                      className="hidden"
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2 p-3">
-                      {uploadingCover3 ? (
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      ) : (
-                        <>
-                          <FileText className="w-7 h-7" />
-                          <div className="text-center">
-                            <p className="text-xs font-medium">PDF do contrato</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {settings.cover_3 ? "Enviado" : "Clique para enviar"}
-                            </p>
-                          </div>
-                          {settings.cover_3 && (
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                  window.open(settings.cover_3!, "_blank", "noopener,noreferrer");
-                                }}
-                              >
-                                Abrir
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
