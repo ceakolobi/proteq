@@ -8,7 +8,7 @@ import { useSystemInfo } from "@/hooks/useSystemInfo";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiTokensCard } from "@/components/settings/ApiTokensCard";
 import { GeneratedContractsCard } from "@/components/settings/GeneratedContractsCard";
-import { PdfCoversCard } from "@/components/settings/PdfCoversCard";
+import { PdfCoversManager } from "@/components/settings/PdfCoversManager";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ import { useAppTheme, themeOptions } from "@/hooks/useTheme";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Configuracoes() {
   const navigate = useNavigate();
@@ -109,12 +110,16 @@ export default function Configuracoes() {
       modo_white_label: settings.modo_white_label || false,
       esconder_marca_harmony: settings.esconder_marca_harmony || false,
       cover_mode: settings.cover_mode || "fixed",
-      cover_fixed_index: (settings.cover_fixed_index && settings.cover_fixed_index <= 4)
-        ? settings.cover_fixed_index
-        : 1,
+      cover_fixed_index: settings.cover_fixed_index || 1,
     });
     setIsFormInitialized(true);
   }
+
+  const removeFromStorage = async (filePath: string) => {
+    // best-effort: se falhar, ainda tentamos limpar o campo
+    const { error } = await supabase.storage.from("vistoria-fotos").remove([filePath]);
+    if (error) console.warn("Erro ao remover arquivo:", error);
+  };
 
   const handleSave = async () => {
     await updateSettings(formData);
@@ -544,8 +549,9 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
 
-          <PdfCoversCard
-            settings={{
+          <PdfCoversManager
+            companyId={settings.id}
+            legacyCovers={{
               cover_1: settings.cover_1,
               cover_2: settings.cover_2,
               cover_3: (settings as any).cover_3 ?? null,
@@ -555,8 +561,9 @@ export default function Configuracoes() {
             coverFixedIndex={formData.cover_fixed_index}
             onChangeCoverMode={(mode) => setFormData({ ...formData, cover_mode: mode })}
             onChangeCoverFixedIndex={(index) => setFormData({ ...formData, cover_fixed_index: index })}
-            uploadImage={uploadImage as any}
-            updateSettings={updateSettings as any}
+            uploadLegacyImage={uploadImage as any}
+            updateCompanySettings={updateSettings as any}
+            removeStorageFile={removeFromStorage}
           />
 
           {/* Contatos */}
