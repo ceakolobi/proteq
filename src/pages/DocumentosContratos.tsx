@@ -116,43 +116,67 @@ export default function DocumentosContratos() {
     contract: {
       title: "Contrato Padrão",
       description: "Modelo base usado na geração automática após pagamento.",
-      content_markdown: `# HARMONY CLUBE DE BENEFÍCIOS
-## TERMO DE ADESÃO AO PROGRAMA DE BENEFÍCIOS (SOCORRO MÚTUO)
+      content_markdown: `# FICHA DE AFILIAÇÃO
 
----
+## 1. CABEÇALHO
 
-## 1) Identificação do Associado e do Veículo
+Nome da Associação: HARMONY CLUBE DE BENEFÍCIOS
 
-**Associado:** {{nome}}  
-**CPF:** {{cpf}}  
-**Plano/Programa:** {{plano}}  
-**Veículo:** {{modelo}} / {{ano}}  
-**Placa:** {{placa}}  
-**Mensalidade/Contribuição:** {{mensalidade}}  
-**Data:** {{data}}
+CNPJ: 39.583.767/0001-26
 
----
+Endereço completo: _________________________________________________
 
-## 2) Natureza Jurídica e Regras Gerais
+Telefone: (__) ____________________
 
-A HARMONY CLUBE DE BENEFÍCIOS, inscrita no CNPJ nº 39.583.767/0001-26, é uma associação civil sem fins lucrativos, constituída nos termos do Código Civil Brasileiro, que atua por meio do sistema de proteção patrimonial mutualista, fundamentado no socorro mútuo e no rateio de despesas entre seus associados.
+## 2. TÍTULO DO DOCUMENTO
 
-O Associado declara ciência de que:
+FICHA DE AFILIAÇÃO
 
-- A Associação **não é seguradora**;
-- **Não comercializa seguros**, não emite apólices e não opera sob regime securitário;
-- Os benefícios decorrem do **sistema de socorro mútuo** e do **rateio** entre associados;
-- O recebimento de qualquer benefício depende do cumprimento deste termo/regulamento e da **regularidade financeira**.
+## 3. DADOS DO ASSOCIADO
 
-## 3) Enquadramento Normativo (SUSEP)
+Nome / Razão Social: {{nome}}
 
-Este termo observa as regras aplicáveis às associações e aos modelos mutualistas, incluindo a legislação vigente e normas correlatas, com vistas à conformidade regulatória.
+CPF / CNPJ: {{cpf}}
 
-## 4) Cobertura Contratada Neste Momento
+RG / Inscrição: _____________________________
 
-Neste momento, o Associado declara ciência de que a cobertura principal contratada é **Furto e Roubo**.
+Endereço: ______________________________________
 
-Benefícios/coberturas **opcionais** (podem existir por convênio/plano, conforme contratação):
+Bairro: __________  Cidade: __________  UF: ______
+
+Telefone: __________________  E-mail: __________________
+
+## 4. DADOS DO VEÍCULO
+
+( ) Carro   ( ) Moto   ( ) Caminhão
+
+Marca / Modelo: {{modelo}}
+
+Placa: {{placa}}
+
+Ano / Modelo: {{ano}}
+
+Combustível: __________________________
+
+Código FIPE: __________________________
+
+## 5. CONTRIBUIÇÕES
+
+Mensalidade: {{mensalidade}}
+
+Ajuda Participativa: ______________________
+
+Vencimento: ____ / ____ / ______
+
+Observações: _____________________________
+
+## 6. BENEFÍCIOS
+
+Lista de benefícios conforme regulamento interno da associação, incluindo proteção veicular, assistência e demais serviços previstos.
+
+Cobertura principal contratada neste momento: **Furto e Roubo** (imediata a partir da adesão, observadas as exigências cadastrais e documentais).
+
+Benefícios/coberturas opcionais (conforme convênio/plano, quando contratados):
 
 - Assistência 24h (reboque/guincho, chaveiro, pane seca, socorro elétrico/mecânico, etc.)
 - Colisão / Perda Total
@@ -160,33 +184,39 @@ Benefícios/coberturas **opcionais** (podem existir por convênio/plano, conform
 - Carro reserva
 - Vidros
 
-## 5) Carência e Início de Funcionamento
+Carência geral: os serviços/benefícios passam a funcionar **72 (setenta e duas) horas** após a **adesão**, exceto Furto/Roubo.
 
-O Associado declara ciência de que, como regra geral, os serviços/benefícios passam a funcionar **72 (setenta e duas) horas** após a **adesão**.
+## 7. DECLARAÇÃO
 
-**Exceção:** a cobertura de **Furto e Roubo** é considerada **imediata** a partir da adesão, observado o cumprimento das exigências cadastrais e documentais.
+Declaro que li e estou ciente das regras do regulamento interno, bem como das condições de participação no sistema de socorro mútuo, não se tratando de contrato de seguro.
 
-## 6) Vencimento, Pagamento e Inadimplência
+A Associação não é seguradora, não comercializa seguros, não emite apólices e não opera sob regime securitário. Os benefícios decorrem do sistema de socorro mútuo e do rateio entre associados.
 
-O não pagamento na data correta implica em **suspensão imediata** dos benefícios/coberturas até a regularização.
+O não pagamento na data correta implica em **suspensão imediata** dos benefícios/coberturas até a regularização. Durante a inadimplência: não há autorização de uso de benefícios; não há reembolso de despesas; a Associação pode exigir nova inspeção/vistoria e reinício de carência para reativação.
 
-Durante a inadimplência:
+## 8. DATA E ASSINATURAS
 
-- não há autorização de uso de benefícios;
-- não há reembolso de despesas;
-- a Associação pode exigir nova inspeção/vistoria e reinício de carência para reativação.
+Data: ____ / ____ / ______
 
-## 7) Socorro Mútuo e Rateio
+Assinatura do Associado: _______________________________
 
-Os benefícios decorrem do socorro mútuo entre associados. Os valores e critérios de rateio, quando aplicáveis, seguem regras internas técnicas, visando o equilíbrio do grupo e a continuidade do programa.
+Assinatura da Associação: ______________________________
 
-## 8) Aceite Eletrônico e Assinatura
+## 9. TERMO DE CIÊNCIA DE RESPONSABILIDADE
 
-O Associado concorda com o aceite eletrônico. Quando habilitado, o sistema registra **data/hora** e **IP do dispositivo** para fins de auditoria e validade jurídica.
+Declaro estar ciente de todas as normas, direitos e deveres, conforme regulamento da associação.
 
----
+Assinatura: ______________________   Data: ___/___/____
 
-**Declaração final:** Ao prosseguir, o Associado declara que leu, compreendeu e aceita os termos acima.
+## 10. RECIBO
+
+Valor pago: R$ ______________________
+
+Forma de pagamento: __________________
+
+Data: ___ / ___ / _____
+
+Assinatura: __________________________
 `,
       is_active: true,
     },

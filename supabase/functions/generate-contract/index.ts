@@ -174,151 +174,179 @@ async function createContractPdfBytes(params: {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const logoBytes = await fetchPublicAssetBytes("/images/harmony-logo-agro.png");
-  const logoImage = logoBytes ? await pdfDoc.embedPng(logoBytes) : null;
-
+  // Layout oficial (formulário) – sem marca d’água/ícones/decoração
   const { docTitle, sections } = parseMarkdownToSections(params.markdown);
 
   const pageSize: [number, number] = [595.28, 841.89]; // A4
   const margin = 48;
-  const headerH = 46;
-  const footerH = 42;
+  const footerH = 28;
 
-  const titleSize = 16;
-  const sectionTitleSize = 12;
+  const headerBoxH = 86;
+  const docTitleBoxH = 44;
+
+  const titleSize = 14;
+  const sectionTitleSize = 10;
   const bodySize = 11;
-  const lineHeight = 16;
+  const lineHeight = 15;
 
-  const cardRadius = 12;
-  const cardPaddingX = 16;
-  const cardPaddingY = 14;
-  const cardGap = 14;
-  const borderColor = rgb(0.85, 0.85, 0.85);
-  const textColor = rgb(0.12, 0.12, 0.12);
-  const mutedColor = rgb(0.35, 0.35, 0.35);
+  const borderColor = rgb(0.35, 0.35, 0.35);
+  const titleGray = rgb(0.45, 0.45, 0.45);
+  const textBlack = rgb(0, 0, 0);
 
-  const drawTimbrado = (p: any) => {
+  const headerLines = [
+    "HARMONY CLUBE DE BENEFÍCIOS",
+    "CNPJ: 39.583.767/0001-26",
+    "Endereço: _________________________________________________",
+    "Telefone: (__) ____________________",
+  ];
+
+  const drawHeaderBox = (p: any, pageNumber: number) => {
     const { width, height } = p.getSize();
+    const x = margin;
+    const yTop = height - margin;
+    const w = width - margin * 2;
+    const y = yTop - headerBoxH;
 
-    if (logoImage) {
-      const targetH = 22;
-      const scale = targetH / logoImage.height;
-      const targetW = logoImage.width * scale;
-      p.drawImage(logoImage, {
-        x: margin,
-        y: height - margin - targetH,
-        width: targetW,
-        height: targetH,
-      });
-    }
-
-    // Rodapé
-    const footerY = margin + 18;
-    p.drawLine({
-      start: { x: margin, y: margin + footerH - 10 },
-      end: { x: width - margin, y: margin + footerH - 10 },
-      thickness: 1,
-      color: borderColor,
-    });
-    p.drawText("Harmony Agro • Clube de Benefícios", {
-      x: margin,
-      y: footerY,
-      size: 9,
-      font,
-      color: mutedColor,
-    });
-
-    // Marca d'água
-    if (logoImage) {
-      const maxW = width * 0.62;
-      const scale = Math.min(maxW / logoImage.width, 1);
-      const w = logoImage.width * scale;
-      const h = logoImage.height * scale;
-      p.drawImage(logoImage, {
-        x: (width - w) / 2,
-        y: (height - h) / 2,
-        width: w,
-        height: h,
-        opacity: 0.08,
-      });
-    }
-  };
-
-  const newPage = () => {
-    const p = pdfDoc.addPage(pageSize);
-    drawTimbrado(p);
-    return p;
-  };
-
-  let page = newPage();
-  const { width, height } = page.getSize();
-  const contentTopY = height - margin - headerH;
-  const contentBottomY = margin + footerH;
-  const contentW = width - margin * 2;
-
-  let y = contentTopY;
-
-  // Título do documento
-  page.drawText(params.title || docTitle, {
-    x: margin,
-    y,
-    size: titleSize,
-    font: fontBold,
-    color: textColor,
-  });
-  y -= 24;
-
-  const drawCard = (section: ContractSection) => {
-    const safeTitle = stripMarkdown(section.title).trim();
-    const safeBody = stripMarkdown(section.body).trim();
-
-    const innerW = contentW - cardPaddingX * 2;
-    const titleLines = wrapToWidth(fontBold, safeTitle, sectionTitleSize, innerW);
-    const bodyLines = wrapToWidth(font, safeBody, bodySize, innerW);
-
-    const titleH = titleLines.length ? titleLines.length * (sectionTitleSize + 4) : 0;
-    const bodyH = bodyLines.length ? bodyLines.length * lineHeight : 0;
-    const cardH = cardPaddingY + titleH + (titleH && bodyH ? 10 : 0) + bodyH + cardPaddingY;
-
-    if (y - cardH < contentBottomY) {
-      page = newPage();
-      y = page.getSize().height - margin - headerH;
-    }
-
-    const cardX = margin;
-    const cardY = y - cardH;
-
-    const path = drawRoundedRectPath(cardX, cardY, contentW, cardH, cardRadius);
-    page.drawSvgPath(path, {
+    p.drawRectangle({
+      x,
+      y,
+      width: w,
+      height: headerBoxH,
       borderColor,
       borderWidth: 1,
       color: rgb(1, 1, 1),
-      opacity: 0, // “fill” invisível; só borda
+      opacity: 0,
     });
 
-    let ty = y - cardPaddingY - sectionTitleSize;
+    let ty = yTop - 18;
+    for (const l of headerLines) {
+      p.drawText(l, { x: x + 12, y: ty, size: 10.5, font, color: textBlack });
+      ty -= 14;
+    }
+
+    // Linha divisória dentro do cabeçalho
+    p.drawLine({
+      start: { x: x + 10, y: y + 14 },
+      end: { x: x + w - 10, y: y + 14 },
+      thickness: 1,
+      color: borderColor,
+    });
+
+    // Numeração discreta
+    p.drawText(`Página ${pageNumber}`, {
+      x: x + w - 90,
+      y: y + 18,
+      size: 9,
+      font,
+      color: titleGray,
+    });
+  };
+
+  const drawDocTitleBox = (p: any, title: string, yTop: number) => {
+    const { width } = p.getSize();
+    const x = margin;
+    const w = width - margin * 2;
+    const y = yTop - docTitleBoxH;
+
+    p.drawRectangle({
+      x,
+      y,
+      width: w,
+      height: docTitleBoxH,
+      borderColor,
+      borderWidth: 1,
+      color: rgb(1, 1, 1),
+      opacity: 0,
+    });
+
+    const safe = stripMarkdown(title).trim() || "FICHA DE AFILIAÇÃO";
+    const textW = fontBold.widthOfTextAtSize(safe, titleSize);
+    p.drawText(safe, {
+      x: x + (w - textW) / 2,
+      y: y + (docTitleBoxH - titleSize) / 2 + 2,
+      size: titleSize,
+      font: fontBold,
+      color: textBlack,
+    });
+  };
+
+  const newPage = (pageNumber: number) => {
+    const p = pdfDoc.addPage(pageSize);
+    drawHeaderBox(p, pageNumber);
+    const { height } = p.getSize();
+    drawDocTitleBox(p, params.title || docTitle, height - margin - headerBoxH - 10);
+    return p;
+  };
+
+  let pageNumber = 1;
+  let page = newPage(pageNumber);
+  const { width, height } = page.getSize();
+  const contentW = width - margin * 2;
+  const contentTopY = height - margin - headerBoxH - 10 - docTitleBoxH - 14;
+  const contentBottomY = margin + footerH;
+
+  let y = contentTopY;
+
+  const sectionPaddingX = 12;
+  const sectionPaddingY = 10;
+  const sectionGap = 12;
+
+  const drawSectionBox = (section: ContractSection) => {
+    const safeTitle = stripMarkdown(section.title).trim();
+    const safeBody = stripMarkdown(section.body).trim();
+
+    const innerW = contentW - sectionPaddingX * 2;
+    const titleLines = wrapToWidth(fontBold, safeTitle, sectionTitleSize, innerW);
+    const bodyLines = wrapToWidth(font, safeBody, bodySize, innerW);
+
+    const titleH = titleLines.length ? titleLines.length * (sectionTitleSize + 3) : 0;
+    const bodyH = bodyLines.length ? bodyLines.length * lineHeight : 0;
+    const boxH = sectionPaddingY + titleH + (titleH && bodyH ? 8 : 0) + bodyH + sectionPaddingY;
+
+    if (y - boxH < contentBottomY) {
+      pageNumber += 1;
+      page = newPage(pageNumber);
+      const ph = page.getSize().height;
+      y = ph - margin - headerBoxH - 10 - docTitleBoxH - 14;
+    }
+
+    const x = margin;
+    const yBox = y - boxH;
+
+    page.drawRectangle({
+      x,
+      y: yBox,
+      width: contentW,
+      height: boxH,
+      borderColor,
+      borderWidth: 1,
+      color: rgb(1, 1, 1),
+      opacity: 0,
+    });
+
+    let ty = y - sectionPaddingY - sectionTitleSize;
     for (const l of titleLines) {
       if (!l.trim()) continue;
       page.drawText(l, {
-        x: cardX + cardPaddingX,
+        x: x + sectionPaddingX,
         y: ty,
         size: sectionTitleSize,
         font: fontBold,
-        color: textColor,
+        color: titleGray,
         maxWidth: innerW,
       });
-      ty -= sectionTitleSize + 4;
+      ty -= sectionTitleSize + 3;
     }
 
     if (titleLines.length && bodyLines.length) {
-      ty -= 6;
+      ty -= 4;
       page.drawLine({
-        start: { x: cardX + cardPaddingX, y: ty },
-        end: { x: cardX + contentW - cardPaddingX, y: ty },
+        start: { x: x + sectionPaddingX, y: ty },
+        end: { x: x + contentW - sectionPaddingX, y: ty },
         thickness: 1,
         color: borderColor,
       });
-      ty -= 14;
+      ty -= 12;
     }
 
     for (const l of bodyLines) {
@@ -327,20 +355,20 @@ async function createContractPdfBytes(params: {
         continue;
       }
       page.drawText(l, {
-        x: cardX + cardPaddingX,
+        x: x + sectionPaddingX,
         y: ty,
         size: bodySize,
         font,
-        color: textColor,
+        color: textBlack,
         maxWidth: innerW,
       });
       ty -= lineHeight;
     }
 
-    y = cardY - cardGap;
+    y = yBox - sectionGap;
   };
 
-  for (const s of sections) drawCard(s);
+  for (const s of sections) drawSectionBox(s);
 
   return await pdfDoc.save();
 }
