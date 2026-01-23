@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAccessControl } from "@/hooks/useAccessControl";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useSettings } from "@/hooks/useSettings";
+import { supabase } from "@/integrations/supabase/client";
 import { useSystemInfo } from "@/hooks/useSystemInfo";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiTokensCard } from "@/components/settings/ApiTokensCard";
@@ -70,6 +71,7 @@ export default function Configuracoes() {
   const contracapaInputRef = useRef<HTMLInputElement>(null);
   const cover1InputRef = useRef<HTMLInputElement>(null);
   const cover2InputRef = useRef<HTMLInputElement>(null);
+  const newCoverInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     empresa_nome: "",
@@ -93,6 +95,9 @@ export default function Configuracoes() {
   const [uploadingContracapa, setUploadingContracapa] = useState(false);
   const [uploadingCover1, setUploadingCover1] = useState(false);
   const [uploadingCover2, setUploadingCover2] = useState(false);
+  const [uploadingNewCover, setUploadingNewCover] = useState(false);
+  const [covers, setCovers] = useState<Array<{id: string; url: string; path: string}>>([]);
+  const [isLoadingCovers, setIsLoadingCovers] = useState(true);
 
   // Inicializar form com dados do settings
   if (!isFormInitialized && !isLoading && settings.id) {
@@ -115,6 +120,123 @@ export default function Configuracoes() {
     });
     setIsFormInitialized(true);
   }
+
+  // Carregar capas do company_covers
+  useEffect(() => {
+    const fetchCovers = async () => {
+      if (!settings.id) return;
+      setIsLoadingCovers(true);
+      try {
+        const { data, error } = await supabase
+          .from('company_covers')
+          .select('*')
+          .eq('company_id', settings.id)
+          .order('created_at', { ascending: true });
+        
+        if (!error && data) {
+          setCovers(data.map((c: any) => ({ id: c.id, url: c.public_url, path: c.file_path })));
+        }
+      } catch (err) {
+        console.error('Erro ao carregar capas:', err);
+      } finally {
+        setIsLoadingCovers(false);
+      }
+    };
+    fetchCovers();
+  }, [settings.id]);
+
+  const handleAddCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings.id) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Formato inválido',
+        description: 'Envie uma imagem (JPG, PNG, WEBP, etc.).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingNewCover(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `companies/${settings.id}/covers/cover_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('vistoria-fotos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('vistoria-fotos')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData.publicUrl;
+
+      const { data: insertData, error: insertError } = await supabase
+        .from('company_covers')
+        .insert({
+          company_id: settings.id,
+          file_path: fileName,
+          public_url: publicUrl,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setCovers((prev) => [...prev, { id: insertData.id, url: publicUrl, path: fileName }]);
+      toast({
+        title: 'Capa adicionada',
+        description: 'A nova capa foi salva com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao adicionar capa:', error);
+      toast({
+        title: 'Erro ao adicionar capa',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingNewCover(false);
+      if (newCoverInputRef.current) newCoverInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteCover = async (coverId: string, filePath: string) => {
+    if (!confirm('Excluir esta capa permanentemente?')) return;
+
+    try {
+      const { error: storageError } = await supabase.storage
+        .from('vistoria-fotos')
+        .remove([filePath]);
+
+      if (storageError) console.warn('Erro ao remover arquivo do storage:', storageError);
+
+      const { error: dbError } = await supabase
+        .from('company_covers')
+        .delete()
+        .eq('id', coverId);
+
+      if (dbError) throw dbError;
+
+      setCovers((prev) => prev.filter((c) => c.id !== coverId));
+      toast({
+        title: 'Capa excluída',
+        description: 'A capa e o arquivo foram removidos.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao excluir capa:', error);
+      toast({
+        title: 'Erro ao excluir capa',
+        description: error.message || 'Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSave = async () => {
     await updateSettings(formData);
@@ -599,77 +721,66 @@ export default function Configuracoes() {
               <Separator />
 
               {/* Covers Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Cover 1 */}
-                <div className="space-y-2">
-                  <Label>Cover 1</Label>
-                  <div
-                    className="relative aspect-[210/297] w-full border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
-                    onClick={() => cover1InputRef.current?.click()}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Capas Cadastradas</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => newCoverInputRef.current?.click()}
+                    disabled={uploadingNewCover}
                   >
-                    <input
-                      ref={cover1InputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleCoverUpload(e, 1)}
-                      className="hidden"
-                    />
-                    {settings.cover_1 ? (
-                      <img
-                        src={settings.cover_1}
-                        alt="Cover 1"
-                        className="w-full h-full object-cover"
-                      />
+                    {uploadingNewCover ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                        {uploadingCover1 ? (
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-6 h-6 mb-1" />
-                            <p className="text-xs">Upload</p>
-                          </>
-                        )}
-                      </div>
+                      <Plus className="w-4 h-4 mr-2" />
                     )}
-                  </div>
+                    Adicionar Capa
+                  </Button>
+                  <input
+                    ref={newCoverInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAddCover}
+                    className="hidden"
+                  />
                 </div>
-
-                {/* Cover 2 */}
-                <div className="space-y-2">
-                  <Label>Cover 2</Label>
-                  <div
-                    className="relative aspect-[210/297] w-full border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
-                    onClick={() => cover2InputRef.current?.click()}
-                  >
-                    <input
-                      ref={cover2InputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleCoverUpload(e, 2)}
-                      className="hidden"
-                    />
-                    {settings.cover_2 ? (
-                      <img
-                        src={settings.cover_2}
-                        alt="Cover 2"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                        {uploadingCover2 ? (
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-6 h-6 mb-1" />
-                            <p className="text-xs">Upload</p>
-                          </>
-                        )}
+                
+                {isLoadingCovers ? (
+                  <div className="text-sm text-muted-foreground">Carregando capas...</div>
+                ) : covers.length === 0 ? (
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground">
+                    <p className="text-sm">Nenhuma capa cadastrada.</p>
+                    <p className="text-xs">Clique em "Adicionar Capa" para enviar uma imagem.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {covers.map((cover, idx) => (
+                      <div key={cover.id} className="relative group">
+                        <div className="aspect-[210/297] w-full border-2 rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={cover.url}
+                            alt={`Capa ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDeleteCover(cover.id, cover.path)}
+                        >
+                          Excluir
+                        </Button>
+                        <div className="mt-1 text-xs text-center text-muted-foreground">
+                          Capa {idx + 1}
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-
+                )}
               </div>
             </CardContent>
           </Card>
