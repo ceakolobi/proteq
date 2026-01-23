@@ -190,6 +190,8 @@ export default function LayoutCotacaoHarmony() {
   const coverOptions: CoverOption[] = [
     { index: 1, url: settings.cover_1, label: "Capa 1" },
     { index: 2, url: settings.cover_2, label: "Capa 2" },
+    { index: 3, url: (settings as any).cover_3 ?? null, label: "Capa 3" },
+    { index: 4, url: (settings as any).cover_4 ?? null, label: "Capa 4" },
   ];
   
   // Capas disponíveis (com URL configurada)
@@ -202,7 +204,7 @@ export default function LayoutCotacaoHarmony() {
     const mode = settings.cover_mode || "fixed";
     
     if (mode === "fixed") {
-      const fixedIndex = (settings.cover_fixed_index || 1) - 1;
+      const fixedIndex = Math.min(Math.max((settings.cover_fixed_index || 1), 1), 4) - 1;
       const cover = coverOptions[fixedIndex];
       return cover?.url || availableCovers[0]?.url || null;
     } else if (mode === "random") {
