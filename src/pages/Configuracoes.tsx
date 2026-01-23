@@ -71,7 +71,6 @@ export default function Configuracoes() {
   const cover1InputRef = useRef<HTMLInputElement>(null);
   const cover2InputRef = useRef<HTMLInputElement>(null);
   const cover3InputRef = useRef<HTMLInputElement>(null);
-  const cover4InputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     empresa_nome: "",
@@ -96,7 +95,6 @@ export default function Configuracoes() {
   const [uploadingCover1, setUploadingCover1] = useState(false);
   const [uploadingCover2, setUploadingCover2] = useState(false);
   const [uploadingCover3, setUploadingCover3] = useState(false);
-  const [uploadingCover4, setUploadingCover4] = useState(false);
 
   // Inicializar form com dados do settings
   if (!isFormInitialized && !isLoading && settings.id) {
@@ -113,7 +111,9 @@ export default function Configuracoes() {
       modo_white_label: settings.modo_white_label || false,
       esconder_marca_harmony: settings.esconder_marca_harmony || false,
       cover_mode: settings.cover_mode || "fixed",
-      cover_fixed_index: settings.cover_fixed_index || 1,
+      cover_fixed_index: (settings.cover_fixed_index && settings.cover_fixed_index <= 2)
+        ? settings.cover_fixed_index
+        : 1,
     });
     setIsFormInitialized(true);
   }
@@ -160,7 +160,7 @@ export default function Configuracoes() {
 
   const handleCoverUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    coverNum: 1 | 2 | 3 | 4
+    coverNum: 1 | 2
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -168,11 +168,9 @@ export default function Configuracoes() {
     const setUploading = {
       1: setUploadingCover1,
       2: setUploadingCover2,
-      3: setUploadingCover3,
-      4: setUploadingCover4,
     }[coverNum];
 
-    const coverField = `cover_${coverNum}` as "cover_1" | "cover_2" | "cover_3" | "cover_4";
+    const coverField = `cover_${coverNum}` as "cover_1" | "cover_2";
 
     setUploading(true);
     const url = await uploadImage(file, coverField);
@@ -180,6 +178,27 @@ export default function Configuracoes() {
       await updateSettings({ [coverField]: url });
     }
     setUploading(false);
+  };
+
+  const handleContractPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "Formato inválido",
+        description: "Envie um arquivo PDF (.pdf).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingCover3(true);
+    const url = await uploadImage(file, "cover_3");
+    if (url) {
+      await updateSettings({ cover_3: url });
+    }
+    setUploadingCover3(false);
   };
 
   if (isChecking || isLoading) {
@@ -595,8 +614,6 @@ export default function Configuracoes() {
                   >
                     <option value={1}>Capa 1</option>
                     <option value={2}>Capa 2</option>
-                    <option value={3}>Capa 3</option>
-                    <option value={4}>Capa 4</option>
                   </select>
                 </div>
               )}
@@ -677,7 +694,7 @@ export default function Configuracoes() {
 
                 {/* Cover 3 */}
                 <div className="space-y-2">
-                  <Label>Cover 3</Label>
+                  <Label>Contrato (PDF)</Label>
                   <div
                     className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
                     onClick={() => cover3InputRef.current?.click()}
@@ -685,63 +702,40 @@ export default function Configuracoes() {
                     <input
                       ref={cover3InputRef}
                       type="file"
-                      accept="image/*"
-                      onChange={(e) => handleCoverUpload(e, 3)}
+                      accept="application/pdf"
+                      onChange={handleContractPdfUpload}
                       className="hidden"
                     />
-                    {settings.cover_3 ? (
-                      <img
-                        src={settings.cover_3}
-                        alt="Cover 3"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                        {uploadingCover3 ? (
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-6 h-6 mb-1" />
-                            <p className="text-xs">Upload</p>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Cover 4 */}
-                <div className="space-y-2">
-                  <Label>Cover 4</Label>
-                  <div
-                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
-                    onClick={() => cover4InputRef.current?.click()}
-                  >
-                    <input
-                      ref={cover4InputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleCoverUpload(e, 4)}
-                      className="hidden"
-                    />
-                    {settings.cover_4 ? (
-                      <img
-                        src={settings.cover_4}
-                        alt="Cover 4"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                        {uploadingCover4 ? (
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-6 h-6 mb-1" />
-                            <p className="text-xs">Upload</p>
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2 p-3">
+                      {uploadingCover3 ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <>
+                          <FileText className="w-7 h-7" />
+                          <div className="text-center">
+                            <p className="text-xs font-medium">PDF do contrato</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {settings.cover_3 ? "Enviado" : "Clique para enviar"}
+                            </p>
+                          </div>
+                          {settings.cover_3 && (
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  window.open(settings.cover_3!, "_blank", "noopener,noreferrer");
+                                }}
+                              >
+                                Abrir
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
