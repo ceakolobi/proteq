@@ -626,7 +626,7 @@ export default function Configuracoes() {
                 <div className="space-y-2">
                   <Label>Cover 1</Label>
                   <div
-                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    className="relative aspect-[210/297] w-full border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
                     onClick={() => cover1InputRef.current?.click()}
                   >
                     <input
@@ -661,7 +661,7 @@ export default function Configuracoes() {
                 <div className="space-y-2">
                   <Label>Cover 2</Label>
                   <div
-                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    className="relative aspect-[210/297] w-full border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
                     onClick={() => cover2InputRef.current?.click()}
                   >
                     <input
@@ -696,7 +696,7 @@ export default function Configuracoes() {
                 <div className="space-y-2">
                   <Label>Contrato (PDF)</Label>
                   <div
-                    className="relative h-32 border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+                    className="relative aspect-[210/297] w-full border-2 border-dashed rounded-lg overflow-hidden bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
                     onClick={() => cover3InputRef.current?.click()}
                   >
                     <input
