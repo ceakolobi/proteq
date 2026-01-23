@@ -148,6 +148,7 @@ export default function LayoutCotacaoHarmony() {
   const [pdfFilename, setPdfFilename] = useState("");
   const [showCoverSelector, setShowCoverSelector] = useState(false);
   const [selectedCoverOverride, setSelectedCoverOverride] = useState<string | null>(null);
+  const [companyCovers, setCompanyCovers] = useState<{ id: string; public_url: string }[]>([]);
   
   // Estados para assinatura
   const [nomeCliente, setNomeCliente] = useState("");
@@ -185,14 +186,43 @@ export default function LayoutCotacaoHarmony() {
   // Contra-capa
   const temContracapa = !!settings.pdf_contracapa;
   const contracapaImage = settings.pdf_contracapa || "/pdf-back-cover.png";
+
+  // Capas ilimitadas (tabela company_covers)
+  useEffect(() => {
+    const loadCompanyCovers = async () => {
+      if (settingsLoading || !settings.id) return;
+      const { data, error } = await supabase
+        .from("company_covers")
+        .select("id, public_url")
+        .eq("company_id", settings.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erro ao carregar capas ilimitadas:", error);
+        return;
+      }
+      setCompanyCovers((data ?? []) as any);
+    };
+
+    loadCompanyCovers();
+  }, [settings.id, settingsLoading]);
   
-  // Configuração de capas do PDF
-  const coverOptions: CoverOption[] = [
-    { index: 1, url: settings.cover_1, label: "Capa 1" },
-    { index: 2, url: settings.cover_2, label: "Capa 2" },
-    { index: 3, url: (settings as any).cover_3 ?? null, label: "Capa 3" },
-    { index: 4, url: (settings as any).cover_4 ?? null, label: "Capa 4" },
+  // Configuração de capas do PDF (4 legadas + ilimitadas)
+  const legacyCoverUrls: (string | null)[] = [
+    settings.cover_1,
+    settings.cover_2,
+    (settings as any).cover_3 ?? null,
+    (settings as any).cover_4 ?? null,
   ];
+  const allCoverUrls: (string | null)[] = [
+    ...legacyCoverUrls,
+    ...companyCovers.map((c) => c.public_url),
+  ];
+  const coverOptions: CoverOption[] = allCoverUrls.map((url, i) => ({
+    index: i + 1,
+    url,
+    label: `Capa ${i + 1}`,
+  }));
   
   // Capas disponíveis (com URL configurada)
   const availableCovers = coverOptions.filter((c) => c.url !== null) as { index: number; url: string; label: string }[];
@@ -204,7 +234,8 @@ export default function LayoutCotacaoHarmony() {
     const mode = settings.cover_mode || "fixed";
     
     if (mode === "fixed") {
-      const fixedIndex = Math.min(Math.max((settings.cover_fixed_index || 1), 1), 4) - 1;
+      const max = Math.max(coverOptions.length, 1);
+      const fixedIndex = Math.min(Math.max((settings.cover_fixed_index || 1), 1), max) - 1;
       const cover = coverOptions[fixedIndex];
       return cover?.url || availableCovers[0]?.url || null;
     } else if (mode === "random") {
