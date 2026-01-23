@@ -11,7 +11,8 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 96%;
+    /* Fundo suave (verde-azulado bem claro) para reduzir fadiga visual */
+    --background: 170 25% 96%;
     --foreground: 0 0% 9%;
 
     --card: 0 0% 98%;
