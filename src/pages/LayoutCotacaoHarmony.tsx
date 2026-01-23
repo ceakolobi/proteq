@@ -190,8 +190,6 @@ export default function LayoutCotacaoHarmony() {
   const coverOptions: CoverOption[] = [
     { index: 1, url: settings.cover_1, label: "Capa 1" },
     { index: 2, url: settings.cover_2, label: "Capa 2" },
-    { index: 3, url: settings.cover_3, label: "Capa 3" },
-    { index: 4, url: settings.cover_4, label: "Capa 4" },
   ];
   
   // Capas disponíveis (com URL configurada)
