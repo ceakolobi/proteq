@@ -88,11 +88,24 @@ function parseMarkdownToSections(md: string): { docTitle: string; sections: Cont
     currentBody = [];
   };
 
-  for (const raw of lines) {
+  const isImplicitSectionTitle = (line: string) => {
+    const t = stripMarkdown(line).trim();
+    if (!t) return false;
+    if (/^(CL[ÁA]USULA|CAP[ÍI]TULO|SE[CÇ][ÃA]O)\b/i.test(t)) return true;
+    const isAllCaps = t === t.toUpperCase() && /[A-ZÁÉÍÓÚÇÃÕ]/.test(t);
+    if (isAllCaps && t.length <= 70) return true;
+    return false;
+  };
+
+  let sawAnyHeading = false;
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i] ?? "";
     const line = raw.trimEnd();
+
     const h1 = line.match(/^#\s+(.+)$/);
     const h2 = line.match(/^##\s+(.+)$/);
     if (h1) {
+      sawAnyHeading = true;
       if (docTitle === "Contrato") {
         docTitle = h1[1].trim();
         continue;
@@ -102,10 +115,20 @@ function parseMarkdownToSections(md: string): { docTitle: string; sections: Cont
       continue;
     }
     if (h2) {
+      sawAnyHeading = true;
       flush();
       currentTitle = h2[1].trim();
       continue;
     }
+
+    const prev = (lines[i - 1] ?? "").trim();
+    const isNewBlock = prev === "";
+    if (!sawAnyHeading && isNewBlock && isImplicitSectionTitle(line)) {
+      flush();
+      currentTitle = line.trim();
+      continue;
+    }
+
     currentBody.push(line);
   }
   flush();
@@ -139,13 +162,21 @@ function drawRoundedRectPath(x: number, y: number, w: number, h: number, r: numb
 
 function wrapToWidth(font: any, text: string, fontSize: number, maxWidth: number) {
   const out: string[] = [];
-  const paragraphs = text.replace(/\r/g, "").split("\n");
-  for (const p of paragraphs) {
-    const words = p.split(/\s+/).filter(Boolean);
-    if (words.length === 0) {
+  const rows = text.replace(/\r/g, "").split("\n");
+  for (const row of rows) {
+    const p = row.trimEnd();
+    if (!p.trim()) {
       out.push("");
       continue;
     }
+
+    const naturalWidth = font.widthOfTextAtSize(p, fontSize);
+    if (naturalWidth <= maxWidth) {
+      out.push(p);
+      continue;
+    }
+
+    const words = p.split(/\s+/).filter(Boolean);
     let line = "";
     for (const w of words) {
       const next = line ? `${line} ${w}` : w;
@@ -158,7 +189,6 @@ function wrapToWidth(font: any, text: string, fontSize: number, maxWidth: number
       }
     }
     if (line) out.push(line);
-    out.push("");
   }
   while (out.length && out[out.length - 1] === "") out.pop();
   return out;
@@ -191,13 +221,6 @@ async function createContractPdfBytes(params: {
   const titleGray = rgb(0.45, 0.45, 0.45);
   const textBlack = rgb(0, 0, 0);
 
-  const headerLines = [
-    "HARMONY CLUBE DE BENEFÍCIOS",
-    "CNPJ: 39.583.767/0001-26",
-    "Endereço: _________________________________________________",
-    "Telefone: (__) ____________________",
-  ];
-
   const drawHeaderBox = (p: any, pageNumber: number) => {
     const { width, height } = p.getSize();
     const x = margin;
@@ -212,15 +235,35 @@ async function createContractPdfBytes(params: {
       height: headerBoxH,
       borderColor,
       borderWidth: 1,
-      color: rgb(1, 1, 1),
-      opacity: 0,
     });
 
+    const left = x + 12;
     let ty = yTop - 18;
-    for (const l of headerLines) {
-      p.drawText(l, { x: x + 12, y: ty, size: 10.5, font, color: textBlack });
-      ty -= 14;
-    }
+    p.drawText("HARMONY CLUBE DE BENEFÍCIOS", { x: left, y: ty, size: 11, font: fontBold, color: textBlack });
+    ty -= 15;
+    p.drawText("CNPJ: 39.583.767/0001-26", { x: left, y: ty, size: 10.5, font, color: textBlack });
+    ty -= 15;
+
+    const labelEndereco = "Endereço:";
+    p.drawText(labelEndereco, { x: left, y: ty, size: 10.5, font, color: textBlack });
+    const endLabelW = font.widthOfTextAtSize(labelEndereco, 10.5);
+    p.drawLine({
+      start: { x: left + endLabelW + 6, y: ty + 3 },
+      end: { x: x + w - 12, y: ty + 3 },
+      thickness: 1,
+      color: borderColor,
+    });
+    ty -= 15;
+
+    const labelTel = "Telefone: (__)";
+    p.drawText(labelTel, { x: left, y: ty, size: 10.5, font, color: textBlack });
+    const telLabelW = font.widthOfTextAtSize(labelTel, 10.5);
+    p.drawLine({
+      start: { x: left + telLabelW + 6, y: ty + 3 },
+      end: { x: left + telLabelW + 6 + 180, y: ty + 3 },
+      thickness: 1,
+      color: borderColor,
+    });
 
     p.drawLine({
       start: { x: x + 10, y: y + 14 },
@@ -251,8 +294,6 @@ async function createContractPdfBytes(params: {
       height: docTitleBoxH,
       borderColor,
       borderWidth: 1,
-      color: rgb(1, 1, 1),
-      opacity: 0,
     });
 
     const safe = stripMarkdown(title).trim() || "FICHA DE AFILIAÇÃO";
@@ -286,6 +327,7 @@ async function createContractPdfBytes(params: {
   const sectionPaddingX = 12;
   const sectionPaddingY = 10;
   const sectionGap = 12;
+  const sectionHeaderH = 24;
 
   const drawSectionBox = (section: ContractSection) => {
     const safeTitle = stripMarkdown(section.title).trim();
@@ -297,7 +339,7 @@ async function createContractPdfBytes(params: {
 
     const titleH = titleLines.length ? titleLines.length * (sectionTitleSize + 3) : 0;
     const bodyH = bodyLines.length ? bodyLines.length * lineHeight : 0;
-    const boxH = sectionPaddingY + titleH + (titleH && bodyH ? 8 : 0) + bodyH + sectionPaddingY;
+    const boxH = sectionHeaderH + sectionPaddingY + bodyH + sectionPaddingY;
 
     if (y - boxH < contentBottomY) {
       pageNumber += 1;
@@ -316,38 +358,37 @@ async function createContractPdfBytes(params: {
       height: boxH,
       borderColor,
       borderWidth: 1,
-      color: rgb(1, 1, 1),
-      opacity: 0,
     });
 
-    let ty = y - sectionPaddingY - sectionTitleSize;
-    for (const l of titleLines) {
-      if (!l.trim()) continue;
-      page.drawText(l, {
-        x: x + sectionPaddingX,
-        y: ty,
-        size: sectionTitleSize,
-        font: fontBold,
-        color: titleGray,
-        maxWidth: innerW,
-      });
-      ty -= sectionTitleSize + 3;
-    }
+    page.drawRectangle({
+      x,
+      y: y + (-sectionHeaderH),
+      width: contentW,
+      height: sectionHeaderH,
+      color: rgb(0.97, 0.97, 0.97),
+    });
+    page.drawLine({
+      start: { x, y: y - sectionHeaderH },
+      end: { x: x + contentW, y: y - sectionHeaderH },
+      thickness: 1,
+      color: borderColor,
+    });
 
-    if (titleLines.length && bodyLines.length) {
-      ty -= 4;
-      page.drawLine({
-        start: { x: x + sectionPaddingX, y: ty },
-        end: { x: x + contentW - sectionPaddingX, y: ty },
-        thickness: 1,
-        color: borderColor,
-      });
-      ty -= 12;
-    }
+    const titleText = titleLines.filter((l) => l.trim()).join(" ").trim() || "SEÇÃO";
+    page.drawText(titleText, {
+      x: x + sectionPaddingX,
+      y: y - 16,
+      size: sectionTitleSize,
+      font: fontBold,
+      color: titleGray,
+      maxWidth: innerW,
+    });
+
+    let ty = y - sectionHeaderH - sectionPaddingY - bodySize;
 
     for (const l of bodyLines) {
       if (!l.trim()) {
-        ty -= lineHeight;
+        ty -= Math.round(lineHeight * 0.8);
         continue;
       }
       page.drawText(l, {
