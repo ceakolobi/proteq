@@ -666,6 +666,33 @@ export type Database = {
         }
         Relationships: []
       }
+      company_covers: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          file_path: string
+          id: string
+          public_url: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          file_path: string
+          id?: string
+          public_url: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_path?: string
+          id?: string
+          public_url?: string
+        }
+        Relationships: []
+      }
       configuracoes_financeiras: {
         Row: {
           chave_pix: string | null
