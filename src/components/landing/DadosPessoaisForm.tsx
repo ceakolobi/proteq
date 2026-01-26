@@ -136,7 +136,7 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
               Voltar
             </Button>
             <Button type="submit" className="flex-1">
-              Continuar
+              Salvar e Continuar
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
