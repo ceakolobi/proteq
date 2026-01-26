@@ -1,100 +1,152 @@
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Car, Users, Lock, ArrowRight } from 'lucide-react';
-import { useBrand } from '@/hooks/useBrand';
 import { useEffect } from 'react';
-import { HARMONY_APP_TEXTO_CURTO } from '@/lib/termoAceiteContent';
+import { useBrand } from '@/hooks/useBrand';
+import { usePublicQuotation } from '@/hooks/usePublicQuotation';
+import { 
+  HeroSection, 
+  DadosPessoaisForm, 
+  DadosVeiculoForm, 
+  ResultadoCotacao,
+  BeneficiosSection,
+  ConfiancaSection,
+  CTAFinalSection,
+  PagamentoSection,
+  LandingFooter 
+} from '@/components/landing';
+import { Button } from '@/components/ui/button';
+import { LogIn } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
-  const { brand, getLogoForContext } = useBrand();
+  const { brand } = useBrand();
+  const quotation = usePublicQuotation();
 
   useEffect(() => {
-    document.title = `${brand.name}`;
+    document.title = `${brand.name} - Proteção Veicular`;
   }, [brand.name]);
+
+  // Renderizar etapa atual do funil
+  const renderEtapa = () => {
+    switch (quotation.etapa) {
+      case 'hero':
+        return (
+          <>
+            <HeroSection onStart={quotation.avancarParaDadosPessoais} />
+            <BeneficiosSection />
+            <ConfiancaSection />
+            <CTAFinalSection onStart={quotation.avancarParaDadosPessoais} />
+          </>
+        );
+      
+      case 'dados_pessoais':
+        return (
+          <DadosPessoaisForm
+            initialData={quotation.dadosPessoais}
+            onSubmit={quotation.salvarDadosPessoais}
+            onBack={quotation.voltarEtapa}
+          />
+        );
+      
+      case 'dados_veiculo':
+        return (
+          <DadosVeiculoForm
+            onSubmit={quotation.salvarDadosVeiculo}
+            onBack={quotation.voltarEtapa}
+            loading={quotation.loading}
+          />
+        );
+      
+      case 'resultado':
+        return (
+          <ResultadoCotacao
+            dadosPessoais={quotation.dadosPessoais}
+            dadosVeiculo={quotation.dadosVeiculo}
+            cotacao={quotation.cotacao}
+            onBack={quotation.voltarEtapa}
+            onContinue={quotation.avancarParaPagamento}
+            onWhatsApp={quotation.enviarPropostaWhatsApp}
+          />
+        );
+      
+      case 'pagamento':
+        return (
+          <PagamentoSection
+            chavePix={quotation.configFinanceira?.chave_pix || null}
+            tipoChavePix={quotation.configFinanceira?.tipo_chave_pix || null}
+            onBack={quotation.voltarEtapa}
+            onConfirm={quotation.confirmarPagamento}
+          />
+        );
+      
+      case 'contrato':
+        // TODO: Implementar assinatura de contrato
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Contrato</h2>
+              <p className="text-muted-foreground mb-6">
+                Em breve: assinatura digital do contrato
+              </p>
+              <Button onClick={quotation.finalizarCadastro}>
+                Simular finalização
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 'finalizado':
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-primary/5">
+            <div className="text-center max-w-md p-8">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-4xl">🎉</span>
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Parabéns!</h2>
+              <p className="text-lg text-muted-foreground mb-6">
+                Sua proteção veicular foi ativada com sucesso.
+                Você receberá uma confirmação por e-mail e WhatsApp.
+              </p>
+              <div className="space-y-3">
+                <Button onClick={() => navigate('/auth')} className="w-full">
+                  Acessar minha conta
+                </Button>
+                <Button variant="outline" onClick={quotation.reiniciar} className="w-full">
+                  Nova cotação
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      
+      default:
+        return <HeroSection onStart={quotation.avancarParaDadosPessoais} />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img 
-              src={getLogoForContext('auto')} 
-              alt={brand.name}
-              className="h-12 object-contain"
-            />
-          </div>
-          <Button onClick={() => navigate('/auth')}>
+      {/* Header fixo com acesso ao sistema */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-end">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/auth')}
+            className="gap-2"
+          >
+            <LogIn className="h-4 w-4" />
             Acessar Sistema
-            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex items-center justify-center">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <div className="max-w-3xl mx-auto space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                <span className="text-primary">{brand.name}</span>
-                <span className="block">Sistema de Gestão</span>
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                {HARMONY_APP_TEXTO_CURTO}
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate('/auth')}>
-                Acessar Sistema
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Features */}
-            <div className="grid md:grid-cols-3 gap-6 pt-12">
-              <div className="p-6 rounded-xl bg-card border text-left">
-                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
-                  <Car className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Gestão de Veículos</h3>
-                <p className="text-muted-foreground text-sm">
-                  Controle completo de veículos protegidos com cotação automática por FIPE.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-xl bg-card border text-left">
-                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Gestão de Associados</h3>
-                <p className="text-muted-foreground text-sm">
-                  Cadastro, vistorias, pagamentos e acompanhamento de inadimplência.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-xl bg-card border text-left">
-                <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
-                  <Lock className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Controle de Acesso</h3>
-                <p className="text-muted-foreground text-sm">
-                  Sistema de permissões por perfil com auditoria completa de ações.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Conteúdo principal */}
+      <main className="flex-1 pt-14">
+        {renderEtapa()}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-card py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Sistema Privado - Acesso Restrito</p>
-        </div>
-      </footer>
+      {/* Footer apenas na home */}
+      {quotation.etapa === 'hero' && <LandingFooter />}
     </div>
   );
 }
