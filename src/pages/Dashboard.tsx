@@ -17,6 +17,7 @@ import {
   Clock
 } from 'lucide-react';
 import { roleLabels } from '@/types/database';
+import AssociadoDashboard from './AssociadoDashboard';
 
 interface DashboardStats {
   totalAssociados: number;
@@ -31,6 +32,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, roles, isAdminPrincipal, user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
+  
+  // Check if user is an associate (has 'associado' role and no admin/staff roles)
+  const isAssociado = roles.includes('associado') && 
+    !isAdminPrincipal && 
+    !roles.some(r => ['admin_nivel_basico', 'gerente', 'consultor_vendas', 'financeiro'].includes(r));
   
   const [stats, setStats] = useState<DashboardStats>({
     totalAssociados: 0,
@@ -109,6 +115,11 @@ export default function Dashboard() {
 
   if (!isAllowed) {
     return null;
+  }
+
+  // If user is an associate, show their specific dashboard
+  if (isAssociado) {
+    return <AssociadoDashboard />;
   }
 
   const StatCard = ({ 
