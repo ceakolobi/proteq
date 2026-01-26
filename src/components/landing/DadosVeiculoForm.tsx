@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, ArrowLeft, Car, Loader2, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Car, Loader2, Search, CheckCircle2, Settings2, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { TIPOS_VEICULO_LANDING, type DadosVeiculo } from './types';
@@ -33,8 +33,7 @@ interface FipeValorResult {
   mesReferencia: string;
 }
 
-type PlacaStatus = 'idle' | 'loading' | 'found' | 'not_found' | 'invalid';
-type FipeMode = 'placa' | 'manual';
+type PlacaStatus = 'idle' | 'loading' | 'found_fipe' | 'found_no_fipe' | 'not_found' | 'invalid' | 'error';
 
 // Validação de placa brasileira
 const validatePlaca = (placa: string): boolean => {
@@ -44,30 +43,34 @@ const validatePlaca = (placa: string): boolean => {
   return padraoAntigo.test(cleanPlaca) || padraoMercosul.test(cleanPlaca);
 };
 
-const formatPlaca = (value: string) => {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+const formatPlaca = (value: string): string => {
+  const clean = value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  if (clean.length <= 3) return clean;
+  return clean.slice(0, 3) + '-' + clean.slice(3, 7);
+};
+
+// Map tipo_bem to categoria label
+const getCategoriaLabel = (tipo: string): string => {
+  switch (tipo) {
+    case 'carro': return 'Carro';
+    case 'moto': return 'Moto';
+    case 'pickup': return 'Caminhonete';
+    case 'caminhao': return 'Caminhão';
+    case 'utilitario': return 'Utilitário';
+    default: return tipo;
+  }
 };
 
 export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoFormProps) {
-  // Modo: placa (auto) ou manual
-  const [mode, setMode] = useState<FipeMode>('placa');
+  // Tipo do bem
+  const [tipoVeiculo, setTipoVeiculo] = useState<'carro' | 'moto' | 'pickup' | 'caminhao' | 'utilitario'>('carro');
   
-  // Dados da placa
+  // Placa
   const [placa, setPlaca] = useState('');
   const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
   const [placaMessage, setPlacaMessage] = useState('');
   
-  // Dados do veículo encontrado via placa
-  const [veiculoPlaca, setVeiculoPlaca] = useState<{
-    marca: string;
-    modelo: string;
-    ano: number;
-    valorFipe: number;
-    codigoFipe: string;
-  } | null>(null);
-  
   // Seleção manual FIPE
-  const [tipoVeiculo, setTipoVeiculo] = useState<'carro' | 'moto' | 'pickup' | 'caminhao' | 'utilitario'>('carro');
   const [marcas, setMarcas] = useState<FipeItem[]>([]);
   const [modelos, setModelos] = useState<FipeItem[]>([]);
   const [anos, setAnos] = useState<FipeItem[]>([]);
@@ -110,8 +113,6 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
 
   // Buscar marcas quando tipo mudar
   const fetchMarcas = useCallback(async () => {
-    if (mode !== 'manual') return;
-    
     setLoadingMarcas(true);
     setMarcas([]);
     setModelos([]);
@@ -130,7 +131,7 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
     } finally {
       setLoadingMarcas(false);
     }
-  }, [tipoVeiculo, mode]);
+  }, [tipoVeiculo]);
 
   // Buscar modelos quando marca mudar
   const fetchModelos = useCallback(async (marcaId: string) => {
@@ -194,6 +195,7 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
       });
       
       setValorEncontrado(response.data as FipeValorResult);
+      toast.success('Valor FIPE encontrado!');
     } catch (error) {
       console.error('Erro ao buscar valor FIPE:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao buscar valor FIPE');
@@ -202,12 +204,10 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
     }
   }, [tipoVeiculo, selectedMarcaId, selectedModeloId, selectedAnoId]);
 
-  // Carregar marcas quando entrar em modo manual
+  // Carregar marcas quando tipo mudar
   useEffect(() => {
-    if (mode === 'manual') {
-      fetchMarcas();
-    }
-  }, [mode, tipoVeiculo, fetchMarcas]);
+    fetchMarcas();
+  }, [tipoVeiculo, fetchMarcas]);
 
   // Handlers
   const handleMarcaChange = (value: string) => {
@@ -235,140 +235,87 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
     setValorEncontrado(null);
   };
 
-  // Consultar placa - usa a mesma API, sem autenticação para landing
-  const consultarPlaca = async () => {
-    const cleanPlaca = placa.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  const handlePlacaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPlaca(e.target.value);
+    setPlaca(formatted);
     
-    if (!validatePlaca(cleanPlaca)) {
-      setPlacaStatus('invalid');
-      setPlacaMessage('Formato não reconhecido. Use ABC1234 ou ABC1D23');
-      return;
-    }
-
-    setPlacaStatus('loading');
-    setPlacaMessage('Consultando veículo...');
-    setVeiculoPlaca(null);
-
-    try {
-      // Consulta placa não é permitida sem auth, então vamos pular para modo manual
-      // Para landing page, apenas oferecemos o modo manual por enquanto
-      // A consulta por placa requer API_PLACAS_KEY que precisa de autenticação
-      
-      setPlacaStatus('not_found');
-      setPlacaMessage('Para agilizar, preencha os dados manualmente abaixo.');
-      setMode('manual');
-      
-    } catch (err) {
-      console.error('[PlacaLookup] Erro:', err);
-      setPlacaStatus('not_found');
-      setPlacaMessage('Erro ao consultar. Preencha os dados manualmente.');
-      setMode('manual');
+    if (placaStatus !== 'idle' && placaStatus !== 'loading') {
+      setPlacaStatus('idle');
+      setPlacaMessage('');
     }
   };
 
+  // Consulta placa - para landing, vai direto ao modo manual
   const handlePlacaSearch = () => {
     if (placa.length >= 7) {
-      // Ir direto para modo manual pois placa requer auth
-      setMode('manual');
-      toast.info('Para agilizar, selecione o veículo manualmente');
+      // Para landing page, consulta por placa requer auth
+      // Então informamos e mantemos modo manual
+      toast.info('Para agilizar, selecione o veículo pela tabela FIPE abaixo');
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Se encontrou via placa
-    if (mode === 'placa' && veiculoPlaca) {
-      onSubmit({
-        tipo_bem: tipoVeiculo,
-        marca: veiculoPlaca.marca,
-        modelo: veiculoPlaca.modelo,
-        ano: veiculoPlaca.ano,
-        placa: placa || undefined,
-        valor_fipe: veiculoPlaca.valorFipe,
-        codigo_fipe: veiculoPlaca.codigoFipe,
-      });
-      return;
-    }
-    
-    // Se preencheu manualmente
     if (valorEncontrado) {
       onSubmit({
         tipo_bem: tipoVeiculo,
         marca: valorEncontrado.marca,
         modelo: valorEncontrado.modelo,
         ano: valorEncontrado.anoModelo,
-        placa: placa || undefined,
+        placa: placa ? placa.replace(/-/g, '') : undefined,
         valor_fipe: valorEncontrado.valor,
         codigo_fipe: valorEncontrado.codigoFipe,
       });
     }
   };
 
-  const isComplete = mode === 'manual' && selectedMarcaId && selectedModeloId && selectedAnoId;
-  const hasResult = mode === 'placa' ? !!veiculoPlaca : !!valorEncontrado;
+  const isComplete = selectedMarcaId && selectedModeloId && selectedAnoId;
+
+  const getPlacaStatusBadge = () => {
+    switch (placaStatus) {
+      case 'loading':
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Consultando
+          </Badge>
+        );
+      case 'found_fipe':
+        return (
+          <Badge className="gap-1 bg-green-500">
+            <CheckCircle2 className="w-3 h-3" />
+            FIPE encontrada
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
-      <Card className="w-full max-w-lg shadow-xl border-border/50">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Car className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Dados do veículo</CardTitle>
-          <CardDescription>Informe os dados do veículo para calcular a proteção</CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Placa - Primeiro para auto-preenchimento */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="placa" className="font-semibold">Placa do veículo</Label>
-                {placaStatus === 'loading' && (
-                  <Badge variant="secondary" className="gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Consultando
-                  </Badge>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  id="placa"
-                  placeholder="ABC1234"
-                  value={placa}
-                  onChange={(e) => setPlaca(formatPlaca(e.target.value))}
-                  maxLength={7}
-                  className={cn(
-                    "text-lg font-mono tracking-wider h-12 text-center uppercase flex-1",
-                    "border-2 transition-colors",
-                    placaStatus === 'found' && "border-primary bg-primary/10",
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-12 w-12"
-                  onClick={handlePlacaSearch}
-                  disabled={placa.length < 7 || placaStatus === 'loading'}
-                >
-                  <Search className="w-5 h-5" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {mode === 'placa' 
-                  ? 'Digite a placa ou preencha os dados abaixo' 
-                  : 'Placa opcional - preencha os dados do veículo abaixo'}
-              </p>
-            </div>
+    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-8 px-4">
+      <div className="w-full max-w-xl space-y-4">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold">Nova Cotação</h1>
+        </div>
 
-            {/* Tipo de veículo */}
-            <div className="space-y-2">
-              <Label>Tipo de veículo</Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ETAPA 1: Tipo do Bem */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Car className="w-5 h-5" />
+                1. Tipo do Bem
+              </CardTitle>
+              <CardDescription>
+                A categoria será definida automaticamente
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <Select value={tipoVeiculo} onValueChange={handleTipoChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder="Selecione o tipo do veículo" />
                 </SelectTrigger>
                 <SelectContent>
                   {TIPOS_VEICULO_LANDING.map((tipo) => (
@@ -378,145 +325,243 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
                   ))}
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Marca */}
-            <div className="space-y-2">
-              <Label>Marca</Label>
-              <Select 
-                value={selectedMarcaId} 
-                onValueChange={handleMarcaChange}
-                disabled={loadingMarcas}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingMarcas ? "Carregando..." : "Selecione a marca"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {marcas.map((marca) => (
-                    <SelectItem key={marca.id} value={marca.id}>
-                      {marca.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Exibir categoria calculada */}
+              <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                <Badge variant="secondary" className="text-sm">
+                  Categoria: {getCategoriaLabel(tipoVeiculo)}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  (definida automaticamente)
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Modelo */}
-            <div className="space-y-2">
-              <Label>Modelo</Label>
-              <Select 
-                value={selectedModeloId} 
-                onValueChange={handleModeloChange}
-                disabled={!selectedMarcaId || loadingModelos}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingModelos ? "Carregando..." : "Selecione o modelo"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelos.map((modelo) => (
-                    <SelectItem key={modelo.id} value={modelo.id}>
-                      {modelo.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* ETAPA 2: Placa */}
+          <Card className="border-2 border-primary/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
+                Identificação por Placa
+              </CardTitle>
+              <CardDescription>
+                Digite a placa para consulta automática dos dados
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Car className="w-4 h-4" />
+                  Placa do Veículo
+                </Label>
+                {getPlacaStatusBadge()}
+              </div>
+              
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    value={placa}
+                    onChange={handlePlacaChange}
+                    placeholder="ABC-1234"
+                    maxLength={8}
+                    disabled={placaStatus === 'loading'}
+                    className={cn(
+                      "text-xl font-mono tracking-wider h-14 text-center uppercase",
+                      "border-2 transition-colors",
+                      placaStatus === 'found_fipe' && "border-green-500 bg-green-50 dark:bg-green-950",
+                      placaStatus === 'idle' && placa.length === 0 && "border-primary/50",
+                    )}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14"
+                  onClick={handlePlacaSearch}
+                  disabled={placaStatus === 'loading' || placa.length < 7}
+                >
+                  {placaStatus === 'loading' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Search className="w-5 h-5" />
+                  )}
+                </Button>
+              </div>
 
-            {/* Ano */}
-            <div className="space-y-2">
-              <Label>Ano</Label>
-              <Select 
-                value={selectedAnoId} 
-                onValueChange={handleAnoChange}
-                disabled={!selectedModeloId || loadingAnos}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingAnos ? "Carregando..." : "Selecione o ano"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {anos.map((ano) => (
-                    <SelectItem key={ano.id} value={ano.id}>
-                      {ano.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <p className="text-xs text-muted-foreground">
+                Digite a placa e pressione Tab ou clique na lupa para consultar automaticamente
+              </p>
+            </CardContent>
+          </Card>
 
-            {/* Botão de buscar valor */}
-            {isComplete && !valorEncontrado && (
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                onClick={fetchValor}
-                disabled={loadingValor}
-              >
-                {loadingValor ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Buscando valor...
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4 mr-2" />
-                    Buscar Valor FIPE
-                  </>
-                )}
-              </Button>
-            )}
-
-            {/* Resultado FIPE */}
-            {valorEncontrado && (
-              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-primary">Valor FIPE encontrado</span>
+          {/* ETAPA 3: Dados do Veículo / FIPE */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Settings2 className="w-5 h-5" />
+                3. Dados do Veículo
+              </CardTitle>
+              <CardDescription>
+                Preencha manualmente ou busque na tabela FIPE
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* FIPE Selector */}
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Buscar na Tabela FIPE</Label>
+                  {valorEncontrado && (
+                    <div className="flex items-center gap-1 text-green-600 text-sm">
+                      <CheckCircle2 className="w-4 h-4" />
+                      FIPE encontrada
                     </div>
-                    <p className="font-semibold">
-                      {valorEncontrado.marca} {valorEncontrado.modelo}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Ano: {valorEncontrado.anoModelo} | Código: {valorEncontrado.codigoFipe}
-                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Marca */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Marca</Label>
+                    <Select
+                      value={selectedMarcaId}
+                      onValueChange={handleMarcaChange}
+                      disabled={loadingMarcas}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingMarcas ? "Carregando..." : "Selecione a..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {marcas.map((marca) => (
+                          <SelectItem key={marca.id} value={marca.id}>
+                            {marca.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">
-                      {valorEncontrado.valorFormatado}
-                    </p>
+
+                  {/* Modelo */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Modelo</Label>
+                    <Select
+                      value={selectedModeloId}
+                      onValueChange={handleModeloChange}
+                      disabled={!selectedMarcaId || loadingModelos}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingModelos ? "Carregando..." : "Selecione o..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modelos.map((modelo) => (
+                          <SelectItem key={modelo.id} value={modelo.id}>
+                            {modelo.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Ano */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Ano</Label>
+                    <Select
+                      value={selectedAnoId}
+                      onValueChange={handleAnoChange}
+                      disabled={!selectedModeloId || loadingAnos}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingAnos ? "Carregando..." : "Selecione o..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {anos.map((ano) => (
+                          <SelectItem key={ano.id} value={ano.id}>
+                            {ano.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </div>
-            )}
 
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onBack} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-              </Button>
-              <Button 
-                type="submit" 
-                className="flex-1"
-                disabled={!hasResult || loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Calculando...
-                  </>
-                ) : (
-                  <>
-                    Simular proteção
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
+                {/* Botão de buscar valor */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={fetchValor}
+                  disabled={!isComplete || loadingValor}
+                >
+                  {loadingValor ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Buscando valor...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 mr-2" />
+                      Buscar Valor FIPE
+                    </>
+                  )}
+                </Button>
+
+                {/* Resultado */}
+                {valorEncontrado && (
+                  <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-green-800 dark:text-green-200">
+                          {valorEncontrado.marca} {valorEncontrado.modelo}
+                        </p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          Ano: {valorEncontrado.anoModelo} | Código: {valorEncontrado.codigoFipe}
+                        </p>
+                        <p className="text-xs text-green-600/70 dark:text-green-400/70">
+                          Ref: {valorEncontrado.mesReferencia}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-green-700 dark:text-green-300">
+                          {valorEncontrado.valorFormatado}
+                        </p>
+                        <p className="text-xs text-green-600/50 dark:text-green-400/50">
+                          Origem: FIPE
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Botões de navegação */}
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={onBack} className="flex-1">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={!valorEncontrado || loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Calculando...
+                </>
+              ) : (
+                <>
+                  Calcular Cotação
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
     </section>
   );
 }
