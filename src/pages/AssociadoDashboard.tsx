@@ -1,22 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Car, 
   Shield, 
-  Calendar,
-  CheckCircle,
-  Clock,
+  CreditCard,
   FileText,
-  AlertTriangle
+  Camera,
+  Bell,
+  BookOpen,
+  MapPin,
+  MessageCircle,
+  Download,
+  Eye,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
-import { associateStatusLabels, vehicleStatusLabels, AssociateStatus, VehicleStatus } from '@/types/database';
+import { AssociateStatus, VehicleStatus } from '@/types/database';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useBrand } from '@/hooks/useBrand';
 
 interface AssociadoData {
   id: string;
@@ -46,13 +54,22 @@ interface MensalidadeData {
   status: string;
 }
 
+interface VistoriaData {
+  id: string;
+  status: string;
+}
+
+type ProtectionStatus = 'ativa' | 'aguardando_pagamento' | 'suspensa';
+
 export default function AssociadoDashboard() {
   const { profile, user } = useAuth();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
+  const { brand } = useBrand();
   
   const [associado, setAssociado] = useState<AssociadoData | null>(null);
-  const [veiculos, setVeiculos] = useState<VeiculoData[]>([]);
+  const [veiculo, setVeiculo] = useState<VeiculoData | null>(null);
   const [proximaMensalidade, setProximaMensalidade] = useState<MensalidadeData | null>(null);
+  const [vistoria, setVistoria] = useState<VistoriaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +77,6 @@ export default function AssociadoDashboard() {
 
     const fetchAssociadoData = async () => {
       try {
-        // Busca dados do associado pelo user_id
         const { data: associadoData, error: associadoError } = await supabase
           .from('associados')
           .select('id, nome_completo, status, termos_aceitos, termos_aceitos_em, created_at')
@@ -75,14 +91,29 @@ export default function AssociadoDashboard() {
         if (associadoData) {
           setAssociado(associadoData as AssociadoData);
 
-          // Busca veículos do associado
+          // Busca primeiro veículo do associado
           const { data: veiculosData, error: veiculosError } = await supabase
             .from('veiculos')
             .select('id, marca, modelo, ano, placa, veiculo_status, protecao_ativa, protecao_ativada_em, mensalidade')
-            .eq('associado_id', associadoData.id);
+            .eq('associado_id', associadoData.id)
+            .limit(1)
+            .maybeSingle();
 
           if (!veiculosError && veiculosData) {
-            setVeiculos(veiculosData as VeiculoData[]);
+            setVeiculo(veiculosData as VeiculoData);
+
+            // Busca vistoria do veículo
+            const { data: vistoriaData } = await supabase
+              .from('vistorias')
+              .select('id, status')
+              .eq('veiculo_id', veiculosData.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (vistoriaData) {
+              setVistoria(vistoriaData as VistoriaData);
+            }
           }
 
           // Busca próxima mensalidade
@@ -90,7 +121,7 @@ export default function AssociadoDashboard() {
             .from('mensalidades')
             .select('id, valor_final, data_vencimento, status')
             .eq('associado_id', associadoData.id)
-            .in('status', ['A VENCER', 'ATRASADO'])
+            .in('status', ['A VENCER', 'ATRASADO', 'pendente', 'a_vencer'])
             .order('data_vencimento', { ascending: true })
             .limit(1)
             .maybeSingle();
@@ -126,199 +157,266 @@ export default function AssociadoDashboard() {
     return null;
   }
 
-  const getStatusBadgeVariant = (status: AssociateStatus) => {
+  // Determina status da proteção
+  const getProtectionStatus = (): ProtectionStatus => {
+    if (associado?.status === 'suspenso' || associado?.status === 'cancelado') return 'suspensa';
+    if (associado?.status === 'inadimplente') return 'aguardando_pagamento';
+    if (veiculo?.protecao_ativa) return 'ativa';
+    return 'aguardando_pagamento';
+  };
+
+  const protectionStatus = getProtectionStatus();
+
+  const getStatusConfig = (status: ProtectionStatus) => {
     switch (status) {
-      case 'ativo': return 'default';
-      case 'inadimplente': return 'destructive';
-      case 'suspenso': return 'secondary';
-      case 'cancelado': return 'outline';
-      default: return 'secondary';
+      case 'ativa':
+        return { 
+          label: 'Ativa', 
+          color: 'text-green-600', 
+          bgColor: 'bg-green-100',
+          icon: CheckCircle2 
+        };
+      case 'aguardando_pagamento':
+        return { 
+          label: 'Aguardando Pagamento', 
+          color: 'text-yellow-600', 
+          bgColor: 'bg-yellow-100',
+          icon: Clock 
+        };
+      case 'suspensa':
+        return { 
+          label: 'Suspensa', 
+          color: 'text-red-600', 
+          bgColor: 'bg-red-100',
+          icon: AlertCircle 
+        };
     }
   };
 
-  const veiculosProtegidos = veiculos.filter(v => v.protecao_ativa).length;
+  const statusConfig = getStatusConfig(protectionStatus);
+  const StatusIcon = statusConfig.icon;
+  const firstName = profile?.nome_completo?.split(' ')[0] || associado?.nome_completo?.split(' ')[0] || 'Associado';
+
+  const getVistoriaStatus = () => {
+    if (!vistoria) return { label: 'Pendente', color: 'text-yellow-600' };
+    switch (vistoria.status) {
+      case 'aprovada': return { label: 'Aprovada', color: 'text-green-600' };
+      case 'reprovada': return { label: 'Reprovada', color: 'text-red-600' };
+      case 'pendente': return { label: 'Pendente', color: 'text-yellow-600' };
+      default: return { label: 'Em análise', color: 'text-blue-600' };
+    }
+  };
+
+  const vistoriaStatus = getVistoriaStatus();
+
+  const quickActions = [
+    { icon: FileText, label: 'Ver contrato', onClick: () => {} },
+    { icon: Camera, label: 'Enviar vistoria', onClick: () => {} },
+    { icon: CreditCard, label: '2ª via de boleto', onClick: () => {} },
+    { icon: Bell, label: 'Notificações', onClick: () => {} },
+    { icon: BookOpen, label: 'Regulamento', onClick: () => {} },
+    { icon: MapPin, label: 'Rastreamento', onClick: () => {} },
+    { icon: MessageCircle, label: 'Falar com suporte', onClick: () => {} },
+  ];
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Minha Área</h1>
-          <p className="text-muted-foreground mt-1">
-            Bem-vindo, {profile?.nome_completo?.split(' ')[0] || 'Associado'}!
-          </p>
-          {associado && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              <Badge variant={getStatusBadgeVariant(associado.status)}>
-                {associateStatusLabels[associado.status]}
-              </Badge>
-              {associado.termos_aceitos && (
-                <Badge variant="outline" className="border-primary text-primary">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Termo Assinado
-                </Badge>
-              )}
-            </div>
-          )}
+    <div className="min-h-screen bg-muted/30 flex flex-col">
+      {/* Header */}
+      <div className="bg-card border-b px-4 py-6 sm:px-6">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold text-foreground">
+            👋 Olá, {firstName}
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-muted-foreground">Status da Proteção:</span>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>
+              <StatusIcon className="h-4 w-4" />
+              {statusConfig.label}
+            </span>
+          </div>
         </div>
+      </div>
 
-        {/* Status Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* Veículos Protegidos */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Veículos Protegidos
-              </CardTitle>
-              <Shield className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">
-                {isLoading ? '-' : veiculosProtegidos}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                de {veiculos.length} veículo(s) cadastrado(s)
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Próximo Vencimento */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Próximo Vencimento
-              </CardTitle>
-              <Calendar className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="text-3xl font-bold">-</div>
-              ) : proximaMensalidade ? (
-                <>
-                  <div className="text-2xl font-bold">
-                    {format(new Date(proximaMensalidade.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+      {/* Main Content */}
+      <main className="flex-1 px-4 py-6 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Main Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Card: Meu Veículo */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-primary/10">
+                    <Car className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-lg font-semibold text-primary">
-                      R$ {proximaMensalidade.valor.toFixed(2)}
+                  <h3 className="font-semibold text-lg">Meu Veículo</h3>
+                </div>
+                
+                {isLoading ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </div>
+                ) : veiculo ? (
+                  <div className="space-y-2">
+                    <p className="text-foreground font-medium">
+                      {veiculo.marca} {veiculo.modelo}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      Placa: <span className="font-mono">{veiculo.placa}</span>
+                    </p>
+                    <p className="text-sm">
+                      Situação: <span className={veiculo.protecao_ativa ? 'text-green-600 font-medium' : 'text-yellow-600 font-medium'}>
+                        {veiculo.protecao_ativa ? 'Protegido' : 'Aguardando'}
+                      </span>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Nenhum veículo cadastrado</p>
+                )}
+                
+                <Button variant="ghost" size="sm" className="mt-4 w-full justify-between text-primary hover:text-primary">
+                  Ver detalhes
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Card: Situação Financeira */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-green-100">
+                    <CreditCard className="h-5 w-5 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Situação Financeira</h3>
+                </div>
+                
+                {isLoading ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm">
+                      Adesão: <span className="text-green-600 font-medium">Paga</span>
+                    </p>
+                    <p className="text-sm">
+                      Mensalidade: <span className={proximaMensalidade?.status?.includes('ATRASADO') || proximaMensalidade?.status === 'atrasada' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                        {proximaMensalidade?.status?.includes('ATRASADO') || proximaMensalidade?.status === 'atrasada' ? 'Atrasada' : 'Em dia'}
+                      </span>
+                    </p>
+                    {proximaMensalidade && (
+                      <p className="text-xs text-muted-foreground">
+                        Próx. vencimento: {format(new Date(proximaMensalidade.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                <Button variant="ghost" size="sm" className="mt-4 w-full justify-between text-primary hover:text-primary">
+                  2ª via de boleto
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Card: Contrato */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-blue-100">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Contrato</h3>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    Status: <span className={associado?.termos_aceitos ? 'text-green-600 font-medium' : 'text-yellow-600 font-medium'}>
+                      {associado?.termos_aceitos ? 'Assinado' : 'Pendente'}
                     </span>
-                    <Badge variant={proximaMensalidade.status === 'ATRASADO' ? 'destructive' : 'secondary'}>
-                      {proximaMensalidade.status}
-                    </Badge>
+                  </p>
+                  {associado?.termos_aceitos_em && (
+                    <p className="text-xs text-muted-foreground">
+                      Assinado em: {format(new Date(associado.termos_aceitos_em), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  <Button variant="ghost" size="sm" className="flex-1 text-primary hover:text-primary">
+                    <Eye className="h-4 w-4 mr-1" />
+                    Visualizar
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1 text-primary hover:text-primary">
+                    <Download className="h-4 w-4 mr-1" />
+                    Baixar PDF
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card: Vistoria */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-purple-100">
+                    <Camera className="h-5 w-5 text-purple-600" />
                   </div>
-                </>
-              ) : (
-                <div className="text-sm text-muted-foreground">Nenhuma mensalidade pendente</div>
-              )}
-            </CardContent>
-          </Card>
+                  <h3 className="font-semibold text-lg">Vistoria</h3>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    Status: <span className={`font-medium ${vistoriaStatus.color}`}>
+                      {vistoriaStatus.label}
+                    </span>
+                  </p>
+                </div>
+                
+                <Button variant="ghost" size="sm" className="mt-4 w-full justify-between text-primary hover:text-primary">
+                  Enviar vistoria
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Membro Desde */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Membro Desde
-              </CardTitle>
-              <Clock className="h-5 w-5 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading || !associado ? '-' : format(new Date(associado.created_at), 'MMMM yyyy', { locale: ptBR })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Meus Veículos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Car className="h-5 w-5" />
-              Meus Veículos
-            </CardTitle>
-            <CardDescription>Veículos cadastrados na sua conta</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="animate-pulse text-muted-foreground">Carregando...</div>
-            ) : veiculos.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Car className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum veículo cadastrado ainda.</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {veiculos.map((veiculo) => (
-                  <Card key={veiculo.id} className="bg-muted/30">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold">{veiculo.marca} {veiculo.modelo}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Ano {veiculo.ano} • Placa {veiculo.placa}
-                          </p>
-                        </div>
-                        {veiculo.protecao_ativa ? (
-                          <Badge variant="default">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Protegido
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            {vehicleStatusLabels[veiculo.veiculo_status || 'cadastrado']}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-border/50">
-                        <p className="text-sm">
-                          Mensalidade: <span className="font-semibold text-primary">R$ {veiculo.mensalidade.toFixed(2)}</span>
-                        </p>
-                        {veiculo.protecao_ativada_em && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Ativo desde {format(new Date(veiculo.protecao_ativada_em), 'dd/MM/yyyy', { locale: ptBR })}
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+          {/* Quick Actions */}
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="p-5">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                ⚡ Ações Rápidas
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {quickActions.map((action, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-auto py-3 px-4 flex flex-col items-center gap-2 rounded-xl hover:bg-primary/5 hover:border-primary/30"
+                    onClick={action.onClick}
+                  >
+                    <action.icon className="h-5 w-5 text-primary" />
+                    <span className="text-xs font-medium text-center">{action.label}</span>
+                  </Button>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Avisos / Alertas */}
-        {associado?.status === 'inadimplente' && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Atenção: Situação Financeira
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Identificamos pendências no seu cadastro. Entre em contato para regularizar sua situação e manter sua proteção ativa.
-              </p>
             </CardContent>
           </Card>
-        )}
+        </div>
+      </main>
 
-        {/* Informações de Contato */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Precisa de Ajuda?
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Em caso de sinistro ou dúvidas, entre em contato com nossa central de atendimento.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+      {/* Footer com cor azul escuro */}
+      <footer 
+        className="py-6 px-4 text-center"
+        style={{ backgroundColor: 'hsl(230, 70%, 18%)' }}
+      >
+        <p className="text-white/80 text-sm">
+          © {new Date().getFullYear()} {brand?.name || 'Harmony Clube de Benefícios'}. Todos os direitos reservados.
+        </p>
+      </footer>
+    </div>
   );
 }
