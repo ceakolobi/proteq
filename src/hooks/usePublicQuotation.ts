@@ -21,6 +21,7 @@ export function usePublicQuotation() {
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [configFinanceira, setConfigFinanceira] = useState<ConfiguracaoFinanceira | null>(null);
   const [loading, setLoading] = useState(false);
+  const [leadId, setLeadId] = useState<string | null>(null);
 
   // Carregar cotas públicas (ativas)
   useEffect(() => {
@@ -92,8 +93,64 @@ export function usePublicQuotation() {
     setEtapa('dados_pessoais');
   };
 
-  const salvarDadosPessoais = (dados: DadosPessoais) => {
+  const salvarDadosPessoais = async (dados: DadosPessoais) => {
     setDadosPessoais(dados);
+    
+    // Criar lead automaticamente no sistema
+    try {
+      // Buscar um consultor padrão (primeiro ativo) para associar o lead
+      const { data: consultores } = await supabase
+        .from('profiles')
+        .select('id, company_id')
+        .limit(1) as { data: { id: string; company_id: string | null }[] | null };
+
+      const consultorId = consultores?.[0]?.id;
+      const companyId = consultores?.[0]?.company_id;
+
+      if (consultorId) {
+        // Verificar se já existe um lead com esse telefone/email
+        const telefoneNormalizado = dados.telefone.replace(/\D/g, '');
+        const { data: existingLead } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('telefone', telefoneNormalizado)
+          .limit(1)
+          .maybeSingle() as { data: { id: string } | null };
+
+        if (existingLead) {
+          // Lead existente encontrado
+          setLeadId(existingLead.id);
+          console.log('[usePublicQuotation] Lead existente encontrado:', existingLead.id);
+        } else {
+          // Criar novo lead
+          const { data: novoLead, error: leadError } = await supabase
+            .from('leads')
+            .insert({
+              nome: dados.nome.trim(),
+              telefone: telefoneNormalizado,
+              email: dados.email.trim().toLowerCase(),
+              consultor_id: consultorId,
+              company_id: companyId,
+              origem: 'site' as const,
+              status: 'novo' as const,
+            })
+            .select('id')
+            .single();
+
+          if (leadError) {
+            console.error('[usePublicQuotation] Erro ao criar lead:', leadError);
+          } else if (novoLead) {
+            setLeadId(novoLead.id);
+            console.log('[usePublicQuotation] Lead criado com sucesso:', novoLead.id);
+          }
+        }
+      } else {
+        console.warn('[usePublicQuotation] Nenhum consultor encontrado para associar o lead');
+      }
+    } catch (error) {
+      console.error('[usePublicQuotation] Erro ao processar lead:', error);
+    }
+    
     setEtapa('dados_veiculo');
   };
 
@@ -103,6 +160,18 @@ export function usePublicQuotation() {
 
     try {
       const resultadoCotacao = calcularCotacao(veiculo);
+      
+      // Atualizar lead com dados do veículo
+      if (leadId) {
+        await supabase
+          .from('leads')
+          .update({
+            tipo_veiculo: veiculo.tipo_bem as any,
+            status: 'cotado' as const,
+          })
+          .eq('id', leadId);
+        console.log('[usePublicQuotation] Lead atualizado com veículo');
+      }
       
       if (!resultadoCotacao) {
         setCotacao(null);
