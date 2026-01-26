@@ -245,12 +245,73 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
     }
   };
 
-  // Consulta placa - para landing, vai direto ao modo manual
-  const handlePlacaSearch = () => {
-    if (placa.length >= 7) {
-      // Para landing page, consulta por placa requer auth
-      // Então informamos e mantemos modo manual
-      toast.info('Para agilizar, selecione o veículo pela tabela FIPE abaixo');
+  // Consulta placa via API pública
+  const handlePlacaSearch = async () => {
+    if (placa.length < 7) return;
+    
+    const cleanPlaca = placa.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    
+    if (!validatePlaca(cleanPlaca)) {
+      setPlacaStatus('invalid');
+      setPlacaMessage('Formato não reconhecido. Use AAA-1234 (antigo) ou ABC1D23 (Mercosul).');
+      return;
+    }
+
+    setPlacaStatus('loading');
+    setPlacaMessage('Consultando veículo...');
+
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-origem': 'landing',
+        },
+        body: JSON.stringify({ route: 'placa', placa: cleanPlaca }),
+      });
+
+      const result = await response.json();
+
+      if (!result?.success) {
+        console.log('[PlacaLookup] Erro na consulta:', result?.error);
+        setPlacaStatus('not_found');
+        setPlacaMessage(result?.error || 'Veículo não encontrado. Use a tabela FIPE abaixo.');
+        return;
+      }
+
+      const vehicleData = result.data;
+      console.log('[PlacaLookup] Veículo encontrado:', vehicleData);
+
+      // Determinar status baseado em se tem FIPE
+      if (vehicleData.fipeEncontrado && vehicleData.valor_fipe) {
+        setPlacaStatus('found_fipe');
+        setPlacaMessage(`${vehicleData.marca} ${vehicleData.modelo} - FIPE: R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`);
+        
+        // Preencher automaticamente com os dados da placa
+        setValorEncontrado({
+          tipoVeiculo: tipoVeiculo,
+          valor: vehicleData.valor_fipe,
+          valorFormatado: `R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`,
+          marca: vehicleData.marca || '',
+          modelo: vehicleData.modelo || '',
+          anoModelo: vehicleData.ano_modelo || vehicleData.ano_fabricacao,
+          combustivel: vehicleData.combustivel || '',
+          codigoFipe: vehicleData.codigo_fipe || '',
+          mesReferencia: vehicleData.mes_referencia || '',
+        });
+        
+        toast.success('Veículo encontrado com valor FIPE!');
+      } else {
+        setPlacaStatus('found_no_fipe');
+        setPlacaMessage(`${vehicleData.marca} ${vehicleData.modelo} encontrado. Use a tabela FIPE para o valor.`);
+        toast.info('Veículo encontrado, mas sem valor FIPE. Selecione manualmente abaixo.');
+      }
+
+    } catch (err) {
+      console.error('[PlacaLookup] Erro:', err);
+      setPlacaStatus('error');
+      setPlacaMessage('Erro ao consultar. Use a tabela FIPE abaixo.');
     }
   };
 
@@ -283,9 +344,33 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
         );
       case 'found_fipe':
         return (
-          <Badge className="gap-1 bg-green-500">
+          <Badge className="gap-1 bg-green-600 text-green-50">
             <CheckCircle2 className="w-3 h-3" />
             FIPE encontrada
+          </Badge>
+        );
+      case 'found_no_fipe':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-yellow-600 text-yellow-50">
+            Sem FIPE
+          </Badge>
+        );
+      case 'not_found':
+        return (
+          <Badge variant="secondary" className="gap-1">
+            Não encontrado
+          </Badge>
+        );
+      case 'invalid':
+        return (
+          <Badge variant="outline" className="gap-1">
+            Formato inválido
+          </Badge>
+        );
+      case 'error':
+        return (
+          <Badge variant="destructive" className="gap-1">
+            Erro
           </Badge>
         );
       default:
