@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, CheckCircle2, Play } from 'lucide-react';
 import { useBrand } from '@/hooks/useBrand';
-import heroImage from '@/assets/hero-vehicle-protection.jpg';
+import heroImage from '@/assets/hero-family-car.png';
 
 interface HeroSectionProps {
   onStart: () => void;
