@@ -224,7 +224,7 @@ export function ResultadoCotacao({
                 Voltar
               </Button>
               <Button onClick={onContinue} className="flex-1 py-6 text-lg">
-                Continuar para pagamento
+                Aceitar proposta
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>

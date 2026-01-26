@@ -30,7 +30,31 @@ export interface DadosCompletos {
   cotacao: ResultadoCotacaoPublica | null;
 }
 
-export type EtapaFunil = 'hero' | 'dados_pessoais' | 'dados_veiculo' | 'resultado' | 'pagamento' | 'contrato' | 'finalizado';
+export type EtapaFunil = 'hero' | 'dados_pessoais' | 'dados_veiculo' | 'resultado' | 'cadastro' | 'documentos' | 'pagamento' | 'sucesso';
+
+// Dados do cadastro completo
+export interface DadosCadastro {
+  cpf: string;
+  dataNascimento: string;
+  cep: string;
+  endereco: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  diaVencimento: number;
+  senha: string;
+  confirmarSenha: string;
+}
+
+// Documento para upload
+export interface DocumentoUploadLanding {
+  tipo: string;
+  label: string;
+  file?: File;
+  preview?: string;
+  categoria: 'pessoal' | 'veiculo';
+}
 
 export const TIPOS_VEICULO_LANDING = [
   { value: 'carro', label: 'Carro' },
