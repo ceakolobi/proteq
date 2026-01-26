@@ -185,7 +185,7 @@ serve(async (req) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Extrair dados de autenticação - OBRIGATÓRIO
+  // Extrair dados de autenticação
   const authHeader = req.headers.get('authorization');
   let userId: string | null = null;
   let userEmail: string | null = null;
@@ -199,9 +199,23 @@ serve(async (req) => {
     }
   }
 
-  // Exigir autenticação para todas as requisições
-  if (!userId) {
-    console.error('[API] Requisição não autenticada rejeitada');
+  // Dados de auditoria e verificações de rota
+  const origem = req.headers.get('x-origem') || 'web';
+  const url = new URL(req.url);
+  const pathParts = url.pathname.split('/').filter(Boolean);
+  const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+  const userAgent = req.headers.get('user-agent') || 'unknown';
+  
+  // Identificar se é endpoint FIPE (marcas, modelos, anos, valor)
+  const fipeIndex = pathParts.indexOf('fipe');
+  const isFipeEndpoint = fipeIndex >= 0;
+  
+  // Permitir acesso público para FIPE quando vem da landing page
+  const isPublicFipeRequest = isFipeEndpoint && origem === 'landing';
+  
+  // Exigir autenticação para endpoints protegidos (placa requer auth, FIPE da landing não)
+  if (!userId && !isPublicFipeRequest) {
+    console.error('[API] Requisição não autenticada rejeitada - origem:', origem);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -211,16 +225,10 @@ serve(async (req) => {
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-
-  // Dados de auditoria
-  const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
-  const userAgent = req.headers.get('user-agent') || 'unknown';
-  const origem = req.headers.get('x-origem') || 'web';
+  
+  console.log(`[API] Request: ${url.pathname}, origem: ${origem}, userId: ${userId || 'public'}, isPublicFipe: ${isPublicFipeRequest}`);
 
   try {
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split('/').filter(Boolean);
-
     // Permite chamada via POST (supabase.functions.invoke) com JSON: { route: 'placa', placa: 'ABC1234' }
     let body: any = null;
     if (req.method === 'POST') {
