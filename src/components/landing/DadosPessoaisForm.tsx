@@ -56,78 +56,92 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
   };
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
-      <Card className="w-full max-w-md shadow-xl border-border/50">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <User className="h-6 w-6 text-primary" />
+    <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 px-4">
+      <div className="container mx-auto max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Seus Dados</h1>
+          <p className="text-muted-foreground">Preencha suas informações para continuar</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* ETAPA 1: Dados Pessoais */}
+          <Card className="border-2 border-primary/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
+                Informações de Contato
+              </CardTitle>
+              <CardDescription>
+                Precisamos dessas informações para entrar em contato
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Nome */}
+              <div className="space-y-2">
+                <Label htmlFor="nome">Nome completo *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="nome"
+                    placeholder="Digite seu nome completo"
+                    value={dados.nome}
+                    onChange={(e) => setDados(prev => ({ ...prev, nome: e.target.value }))}
+                    className={`pl-10 ${errors.nome ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
+              </div>
+
+              {/* Telefone */}
+              <div className="space-y-2">
+                <Label htmlFor="telefone">Telefone / WhatsApp *</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="telefone"
+                    placeholder="(00) 00000-0000"
+                    value={dados.telefone}
+                    onChange={handleTelefoneChange}
+                    maxLength={15}
+                    className={`pl-10 ${errors.telefone ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.telefone && <p className="text-sm text-destructive">{errors.telefone}</p>}
+              </div>
+
+              {/* E-mail */}
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={dados.email}
+                    onChange={(e) => setDados(prev => ({ ...prev, email: e.target.value }))}
+                    className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
+                  />
+                </div>
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Botões de ação */}
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={onBack} className="flex-1">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar
+            </Button>
+            <Button type="submit" className="flex-1">
+              Continuar
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
-          <CardTitle className="text-2xl">Seus dados</CardTitle>
-          <CardDescription>Preencha suas informações para continuar</CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome completo</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="nome"
-                  placeholder="Digite seu nome"
-                  value={dados.nome}
-                  onChange={(e) => setDados(prev => ({ ...prev, nome: e.target.value }))}
-                  className={`pl-10 ${errors.nome ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.nome && <p className="text-sm text-destructive">{errors.nome}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="telefone">Telefone / WhatsApp</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="telefone"
-                  placeholder="(00) 00000-0000"
-                  value={dados.telefone}
-                  onChange={handleTelefoneChange}
-                  maxLength={15}
-                  className={`pl-10 ${errors.telefone ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.telefone && <p className="text-sm text-destructive">{errors.telefone}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={dados.email}
-                  onChange={(e) => setDados(prev => ({ ...prev, email: e.target.value }))}
-                  className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
-                />
-              </div>
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onBack} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-              </Button>
-              <Button type="submit" className="flex-1">
-                Continuar
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        </form>
+      </div>
     </section>
   );
 }
