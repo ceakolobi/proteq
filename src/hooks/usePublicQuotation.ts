@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica, EtapaFunil } from '@/components/landing/types';
-import { calcularCotacaoCompleta, getCategoriaByTipoVeiculo } from '@/lib/cotacaoUtils';
+import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica, EtapaFunil, DadosCadastro, DocumentoUploadLanding } from '@/components/landing/types';
+import { calcularCotacaoCompleta } from '@/lib/cotacaoUtils';
 import type { Cota } from '@/lib/cotacaoUtils';
 import type { VehicleType } from '@/types/database';
+import { toast } from 'sonner';
 
 interface ConfiguracaoFinanceira {
   chave_pix: string | null;
@@ -15,16 +16,15 @@ export function usePublicQuotation() {
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoais>({ nome: '', telefone: '', email: '' });
   const [dadosVeiculo, setDadosVeiculo] = useState<DadosVeiculo | null>(null);
   const [cotacao, setCotacao] = useState<ResultadoCotacaoPublica | null>(null);
+  const [dadosCadastro, setDadosCadastro] = useState<DadosCadastro | null>(null);
+  const [documentos, setDocumentos] = useState<DocumentoUploadLanding[]>([]);
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [configFinanceira, setConfigFinanceira] = useState<ConfiguracaoFinanceira | null>(null);
   const [loading, setLoading] = useState(false);
-  const [leadId, setLeadId] = useState<string | null>(null);
-  const [cotacaoId, setCotacaoId] = useState<string | null>(null);
 
   // Carregar cotas públicas (ativas)
   useEffect(() => {
     const fetchCotas = async () => {
-      // Buscar apenas cotas ativas, ordenadas por fipe_min para consistência
       const { data, error } = await supabase
         .from('cotas')
         .select('*')
@@ -42,7 +42,6 @@ export function usePublicQuotation() {
     };
 
     const fetchConfig = async () => {
-      // Buscar configuração financeira da empresa padrão
       const { data } = await supabase
         .from('configuracoes_financeiras')
         .select('chave_pix, tipo_chave_pix')
@@ -59,19 +58,7 @@ export function usePublicQuotation() {
   }, []);
 
   const calcularCotacao = (veiculo: DadosVeiculo): ResultadoCotacaoPublica | null => {
-    console.log('[usePublicQuotation] calcularCotacao chamado:', {
-      valor_fipe: veiculo.valor_fipe,
-      tipo_bem: veiculo.tipo_bem,
-      cotasDisponiveis: cotas.length,
-    });
-
-    if (!veiculo.valor_fipe) {
-      console.log('[usePublicQuotation] Sem valor FIPE');
-      return null;
-    }
-    
-    if (cotas.length === 0) {
-      console.log('[usePublicQuotation] Nenhuma cota carregada');
+    if (!veiculo.valor_fipe || cotas.length === 0) {
       return null;
     }
 
@@ -81,17 +68,7 @@ export function usePublicQuotation() {
       cotas
     );
 
-    console.log('[usePublicQuotation] Resultado do cálculo:', resultado);
-
     if (!resultado) {
-      console.log('[usePublicQuotation] Nenhuma cota encontrada para valor:', veiculo.valor_fipe);
-      // Log das faixas disponíveis para debug
-      console.log('[usePublicQuotation] Cotas disponíveis:', cotas.map(c => ({
-        nome: c.cota_nome,
-        min: c.fipe_min,
-        max: c.fipe_max,
-        aplica_carro: c.aplica_carro,
-      })));
       return null;
     }
 
@@ -121,29 +98,19 @@ export function usePublicQuotation() {
   };
 
   const salvarDadosVeiculo = async (veiculo: DadosVeiculo) => {
-    console.log('[usePublicQuotation] salvarDadosVeiculo:', veiculo);
     setDadosVeiculo(veiculo);
     setLoading(true);
 
     try {
-      // Calcular cotação
       const resultadoCotacao = calcularCotacao(veiculo);
       
       if (!resultadoCotacao) {
-        console.error('[usePublicQuotation] Falha ao calcular cotação - não foi encontrada cota para o valor');
-        // Mostrar tela de erro mesmo assim
         setCotacao(null);
         setEtapa('resultado');
         return;
       }
       
       setCotacao(resultadoCotacao);
-
-      // Para landing pública, armazenamos os dados localmente
-      // O lead será criado apenas se o usuário decidir continuar com o cadastro
-      // Isso evita problemas com RLS e consultor_id obrigatório
-      
-      // Salvar no localStorage para persistência entre etapas
       localStorage.setItem('cotacao_publica', JSON.stringify({
         pessoais: dadosPessoais,
         veiculo,
@@ -172,24 +139,147 @@ export function usePublicQuotation() {
       case 'resultado':
         setEtapa('dados_veiculo');
         break;
-      case 'pagamento':
+      case 'cadastro':
         setEtapa('resultado');
+        break;
+      case 'documentos':
+        setEtapa('cadastro');
+        break;
+      case 'pagamento':
+        setEtapa('documentos');
         break;
       default:
         setEtapa('hero');
     }
   };
 
-  const avancarParaPagamento = () => {
+  // Novo fluxo: resultado -> cadastro
+  const aceitarProposta = () => {
+    setEtapa('cadastro');
+  };
+
+  // Criar conta no sistema
+  const criarConta = async (dados: DadosCadastro) => {
+    setLoading(true);
+    setDadosCadastro(dados);
+
+    try {
+      // Criar usuário no Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: dadosPessoais.email,
+        password: dados.senha,
+        options: {
+          data: {
+            nome_completo: dadosPessoais.nome,
+            telefone: dadosPessoais.telefone,
+          },
+        },
+      });
+
+      if (authError) {
+        console.error('Erro ao criar conta:', authError);
+        if (authError.message.includes('already registered')) {
+          toast.error('Este email já está cadastrado. Faça login.');
+        } else {
+          toast.error('Erro ao criar conta: ' + authError.message);
+        }
+        return;
+      }
+
+      if (!authData.user) {
+        toast.error('Erro ao criar conta. Tente novamente.');
+        return;
+      }
+
+      toast.success('Conta criada! Continue enviando seus documentos.');
+      setEtapa('documentos');
+    } catch (error) {
+      console.error('Erro ao criar conta:', error);
+      toast.error('Erro inesperado. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Salvar documentos
+  const salvarDocumentos = async (docs: DocumentoUploadLanding[]) => {
+    setDocumentos(docs);
+    // Por enquanto, documentos são salvos após pagamento
+    // Avança para pagamento
     setEtapa('pagamento');
   };
 
-  const confirmarPagamento = () => {
-    setEtapa('contrato');
-  };
+  // Confirmar pagamento e finalizar
+  const confirmarPagamento = async () => {
+    setLoading(true);
 
-  const finalizarCadastro = () => {
-    setEtapa('finalizado');
+    try {
+      // Criar associado no sistema
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user || !dadosCadastro || !dadosVeiculo || !cotacao) {
+        toast.error('Dados incompletos. Tente novamente.');
+        return;
+      }
+
+      // Inserir associado com status 'rascunho' (será ativado após análise dos docs)
+      const { data: associado, error: associadoError } = await supabase
+        .from('associados')
+        .insert({
+          nome_completo: dadosPessoais.nome,
+          email: dadosPessoais.email,
+          telefone: dadosPessoais.telefone,
+          cpf: dadosCadastro.cpf.replace(/\D/g, ''),
+          data_nascimento: dadosCadastro.dataNascimento,
+          cep: dadosCadastro.cep.replace(/\D/g, ''),
+          endereco: dadosCadastro.endereco,
+          numero: dadosCadastro.numero,
+          bairro: dadosCadastro.bairro,
+          cidade: dadosCadastro.cidade,
+          estado: dadosCadastro.estado,
+          dia_vencimento: dadosCadastro.diaVencimento,
+          status: 'rascunho',
+        })
+        .select()
+        .single();
+
+      if (associadoError) {
+        console.error('Erro ao criar associado:', associadoError);
+        toast.error('Erro ao finalizar cadastro');
+        return;
+      }
+
+      // Inserir veículo
+      const { error: veiculoError } = await supabase
+        .from('veiculos')
+        .insert({
+          associado_id: associado.id,
+          tipo: dadosVeiculo.tipo_bem,
+          marca: dadosVeiculo.marca,
+          modelo: dadosVeiculo.modelo,
+          ano: dadosVeiculo.ano,
+          placa: dadosVeiculo.placa || '',
+          valor_fipe: dadosVeiculo.valor_fipe,
+          codigo_fipe: dadosVeiculo.codigo_fipe,
+          mensalidade: cotacao.mensalidade,
+          veiculo_status: 'aguardando_vistoria',
+        });
+
+      if (veiculoError) {
+        console.error('Erro ao criar veículo:', veiculoError);
+      }
+
+      // TODO: Upload de documentos para storage
+      // TODO: Registrar pagamento da adesão
+
+      toast.success('Cadastro finalizado! Sua proteção será ativada em até 72h.');
+      setEtapa('sucesso');
+    } catch (error) {
+      console.error('Erro ao finalizar:', error);
+      toast.error('Erro ao finalizar cadastro');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const reiniciar = () => {
@@ -197,8 +287,8 @@ export function usePublicQuotation() {
     setDadosPessoais({ nome: '', telefone: '', email: '' });
     setDadosVeiculo(null);
     setCotacao(null);
-    setLeadId(null);
-    setCotacaoId(null);
+    setDadosCadastro(null);
+    setDocumentos([]);
   };
 
   const enviarPropostaWhatsApp = () => {
@@ -228,18 +318,20 @@ export function usePublicQuotation() {
     dadosPessoais,
     dadosVeiculo,
     cotacao,
+    dadosCadastro,
+    documentos,
     configFinanceira,
     loading,
-    leadId,
     
     // Actions
     avancarParaDadosPessoais,
     salvarDadosPessoais,
     salvarDadosVeiculo,
     voltarEtapa,
-    avancarParaPagamento,
+    aceitarProposta,
+    criarConta,
+    salvarDocumentos,
     confirmarPagamento,
-    finalizarCadastro,
     reiniciar,
     enviarPropostaWhatsApp,
   };

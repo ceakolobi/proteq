@@ -9,3 +9,5 @@ export { ConfiancaSection } from './ConfiancaSection';
 export { CTAFinalSection } from './CTAFinalSection';
 export { PagamentoSection } from './PagamentoSection';
 export { LandingFooter } from './LandingFooter';
+export { CadastroContaForm } from './CadastroContaForm';
+export { DocumentosUploadForm } from './DocumentosUploadForm';

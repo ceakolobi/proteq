@@ -12,10 +12,12 @@ import {
   ConfiancaSection,
   CTAFinalSection,
   PagamentoSection,
-  LandingFooter 
+  LandingFooter,
+  CadastroContaForm,
+  DocumentosUploadForm
 } from '@/components/landing';
 import { Button } from '@/components/ui/button';
-import { LogIn, CheckCircle2, Shield, PartyPopper } from 'lucide-react';
+import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -65,8 +67,27 @@ export default function Index() {
             dadosVeiculo={quotation.dadosVeiculo}
             cotacao={quotation.cotacao}
             onBack={quotation.voltarEtapa}
-            onContinue={quotation.avancarParaPagamento}
+            onContinue={quotation.aceitarProposta}
             onWhatsApp={quotation.enviarPropostaWhatsApp}
+          />
+        );
+      
+      case 'cadastro':
+        return (
+          <CadastroContaForm
+            dadosPessoais={quotation.dadosPessoais}
+            onSubmit={quotation.criarConta}
+            onBack={quotation.voltarEtapa}
+            loading={quotation.loading}
+          />
+        );
+      
+      case 'documentos':
+        return (
+          <DocumentosUploadForm
+            onSubmit={quotation.salvarDocumentos}
+            onBack={quotation.voltarEtapa}
+            loading={quotation.loading}
           />
         );
       
@@ -80,25 +101,7 @@ export default function Index() {
           />
         );
       
-      case 'contrato':
-        return (
-          <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 py-16 px-4">
-            <div className="text-center max-w-md">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Assinatura do Contrato</h2>
-              <p className="text-muted-foreground mb-6">
-                Em breve você receberá o link para assinatura digital do contrato
-              </p>
-              <Button onClick={quotation.finalizarCadastro} size="lg" className="w-full">
-                Finalizar cadastro
-              </Button>
-            </div>
-          </section>
-        );
-      
-      case 'finalizado':
+      case 'sucesso':
         return (
           <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background py-16 px-4">
             <div className="text-center max-w-lg">
@@ -116,22 +119,32 @@ export default function Index() {
                 Parabéns! 🎉
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Sua proteção veicular foi ativada com sucesso.
-                Você receberá uma confirmação por e-mail e WhatsApp.
+                Seu cadastro foi finalizado com sucesso!
+                Sua proteção será ativada após análise dos documentos.
               </p>
               
               {/* Info cards */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-card border border-border/50 rounded-xl p-4 text-left">
+                  <Clock className="h-6 w-6 text-primary mb-2" />
+                  <p className="text-sm font-medium">Carência 72h</p>
+                  <p className="text-xs text-muted-foreground">Após ativação</p>
+                </div>
+                <div className="bg-card border border-border/50 rounded-xl p-4 text-left">
                   <Shield className="h-6 w-6 text-primary mb-2" />
                   <p className="text-sm font-medium">Proteção Ativa</p>
                   <p className="text-xs text-muted-foreground">Em até 24h úteis</p>
                 </div>
-                <div className="bg-card border border-border/50 rounded-xl p-4 text-left">
-                  <CheckCircle2 className="h-6 w-6 text-primary mb-2" />
-                  <p className="text-sm font-medium">Contrato Enviado</p>
-                  <p className="text-xs text-muted-foreground">Verifique seu e-mail</p>
-                </div>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-8 text-left">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  📋 Importante sobre a carência
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A proteção contra furto e roubo é <strong>imediata</strong>. 
+                  Os demais benefícios entram em vigor após 72 horas da ativação.
+                </p>
               </div>
               
               <div className="space-y-3">
