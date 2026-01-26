@@ -210,11 +210,16 @@ serve(async (req) => {
   const fipeIndex = pathParts.indexOf('fipe');
   const isFipeEndpoint = fipeIndex >= 0;
   
-  // Permitir acesso público para FIPE quando vem da landing page
-  const isPublicFipeRequest = isFipeEndpoint && origem === 'landing';
+  // Check if it's a placa endpoint (antes de verificar auth para permitir landing)
+  const placaIndexCheck = pathParts.indexOf('placa');
+  const isPlacaEndpoint = placaIndexCheck >= 0 || (req.method === 'POST');
   
-  // Exigir autenticação para endpoints protegidos (placa requer auth, FIPE da landing não)
-  if (!userId && !isPublicFipeRequest) {
+  // Permitir acesso público para FIPE e PLACA quando vem da landing page
+  const isPublicFipeRequest = isFipeEndpoint && origem === 'landing';
+  const isPublicPlacaRequest = origem === 'landing'; // Permitir placa da landing também
+  
+  // Exigir autenticação para endpoints protegidos (exceto FIPE/Placa da landing)
+  if (!userId && !isPublicFipeRequest && !isPublicPlacaRequest) {
     console.error('[API] Requisição não autenticada rejeitada - origem:', origem);
     return new Response(
       JSON.stringify({ 
@@ -226,7 +231,7 @@ serve(async (req) => {
     );
   }
   
-  console.log(`[API] Request: ${url.pathname}, origem: ${origem}, userId: ${userId || 'public'}, isPublicFipe: ${isPublicFipeRequest}`);
+  console.log(`[API] Request: ${url.pathname}, origem: ${origem}, userId: ${userId || 'public'}, isPublicFipe: ${isPublicFipeRequest}, isPublicPlaca: ${isPublicPlacaRequest}`);
 
   try {
     // Permite chamada via POST (supabase.functions.invoke) com JSON: { route: 'placa', placa: 'ABC1234' }
