@@ -43,13 +43,36 @@ export function ResultadoCotacao({
   onContinue,
   onWhatsApp 
 }: ResultadoCotacaoProps) {
-  if (!cotacao || !dadosVeiculo) {
+  if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
         <Card className="w-full max-w-lg text-center">
           <CardContent className="pt-8">
-            <p className="text-muted-foreground">Não foi possível calcular a cotação. Tente novamente.</p>
+            <p className="text-muted-foreground">Dados do veículo não encontrados. Tente novamente.</p>
             <Button onClick={onBack} className="mt-4">Voltar</Button>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
+  if (!cotacao) {
+    return (
+      <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
+        <Card className="w-full max-w-lg text-center">
+          <CardContent className="pt-8 space-y-4">
+            <div className="w-16 h-16 mx-auto bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-8 w-8 text-destructive" />
+            </div>
+            <h3 className="font-semibold text-lg">Cotação não disponível</h3>
+            <p className="text-muted-foreground text-sm">
+              Não encontramos uma faixa de proteção para o veículo informado 
+              ({dadosVeiculo.marca} {dadosVeiculo.modelo} - {formatCurrency(dadosVeiculo.valor_fipe || 0)}).
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Por favor, entre em contato conosco para uma cotação personalizada.
+            </p>
+            <Button onClick={onBack} className="mt-4">Voltar e tentar novamente</Button>
           </CardContent>
         </Card>
       </section>

@@ -318,17 +318,28 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (valorEncontrado) {
-      onSubmit({
-        tipo_bem: tipoVeiculo,
-        marca: valorEncontrado.marca,
-        modelo: valorEncontrado.modelo,
-        ano: valorEncontrado.anoModelo,
-        placa: placa ? placa.replace(/-/g, '') : undefined,
-        valor_fipe: valorEncontrado.valor,
-        codigo_fipe: valorEncontrado.codigoFipe,
-      });
+    if (!valorEncontrado) {
+      toast.error('Busque o valor FIPE antes de continuar');
+      return;
     }
+
+    console.log('[DadosVeiculoForm] Enviando:', {
+      tipo_bem: tipoVeiculo,
+      marca: valorEncontrado.marca,
+      modelo: valorEncontrado.modelo,
+      ano: valorEncontrado.anoModelo,
+      valor_fipe: valorEncontrado.valor,
+    });
+
+    onSubmit({
+      tipo_bem: tipoVeiculo,
+      marca: valorEncontrado.marca,
+      modelo: valorEncontrado.modelo,
+      ano: valorEncontrado.anoModelo,
+      placa: placa ? placa.replace(/-/g, '') : undefined,
+      valor_fipe: valorEncontrado.valor,
+      codigo_fipe: valorEncontrado.codigoFipe,
+    });
   };
 
   const isComplete = selectedMarcaId && selectedModeloId && selectedAnoId;
