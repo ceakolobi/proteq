@@ -24,12 +24,19 @@ export function usePublicQuotation() {
   // Carregar cotas públicas (ativas)
   useEffect(() => {
     const fetchCotas = async () => {
-      const { data } = await supabase
+      // Buscar apenas cotas ativas, ordenadas por fipe_min para consistência
+      const { data, error } = await supabase
         .from('cotas')
         .select('*')
-        .eq('ativo', true);
+        .eq('ativo', true)
+        .order('fipe_min', { ascending: true });
+      
+      if (error) {
+        console.error('[usePublicQuotation] Erro ao buscar cotas:', error);
+      }
       
       if (data) {
+        console.log('[usePublicQuotation] Cotas carregadas:', data.length);
         setCotas(data as unknown as Cota[]);
       }
     };
@@ -52,7 +59,21 @@ export function usePublicQuotation() {
   }, []);
 
   const calcularCotacao = (veiculo: DadosVeiculo): ResultadoCotacaoPublica | null => {
-    if (!veiculo.valor_fipe || cotas.length === 0) return null;
+    console.log('[usePublicQuotation] calcularCotacao chamado:', {
+      valor_fipe: veiculo.valor_fipe,
+      tipo_bem: veiculo.tipo_bem,
+      cotasDisponiveis: cotas.length,
+    });
+
+    if (!veiculo.valor_fipe) {
+      console.log('[usePublicQuotation] Sem valor FIPE');
+      return null;
+    }
+    
+    if (cotas.length === 0) {
+      console.log('[usePublicQuotation] Nenhuma cota carregada');
+      return null;
+    }
 
     const resultado = calcularCotacaoCompleta(
       veiculo.valor_fipe,
@@ -60,7 +81,19 @@ export function usePublicQuotation() {
       cotas
     );
 
-    if (!resultado) return null;
+    console.log('[usePublicQuotation] Resultado do cálculo:', resultado);
+
+    if (!resultado) {
+      console.log('[usePublicQuotation] Nenhuma cota encontrada para valor:', veiculo.valor_fipe);
+      // Log das faixas disponíveis para debug
+      console.log('[usePublicQuotation] Cotas disponíveis:', cotas.map(c => ({
+        nome: c.cota_nome,
+        min: c.fipe_min,
+        max: c.fipe_max,
+        aplica_carro: c.aplica_carro,
+      })));
+      return null;
+    }
 
     return {
       mensalidade: resultado.valorFinal,
@@ -88,12 +121,22 @@ export function usePublicQuotation() {
   };
 
   const salvarDadosVeiculo = async (veiculo: DadosVeiculo) => {
+    console.log('[usePublicQuotation] salvarDadosVeiculo:', veiculo);
     setDadosVeiculo(veiculo);
     setLoading(true);
 
     try {
       // Calcular cotação
       const resultadoCotacao = calcularCotacao(veiculo);
+      
+      if (!resultadoCotacao) {
+        console.error('[usePublicQuotation] Falha ao calcular cotação - não foi encontrada cota para o valor');
+        // Mostrar tela de erro mesmo assim
+        setCotacao(null);
+        setEtapa('resultado');
+        return;
+      }
+      
       setCotacao(resultadoCotacao);
 
       // Para landing pública, armazenamos os dados localmente
@@ -111,6 +154,8 @@ export function usePublicQuotation() {
       setEtapa('resultado');
     } catch (error) {
       console.error('Erro ao processar cotação:', error);
+      setCotacao(null);
+      setEtapa('resultado');
     } finally {
       setLoading(false);
     }
