@@ -73,9 +73,9 @@ export function DigitalNativeSection({ onStart }: DigitalNativeSectionProps) {
             </div>
           </div>
 
-          {/* Right Content - CTA Card (desktop only, positioned over phone) */}
-          <div className="hidden lg:flex justify-end items-center">
-            <div className="bg-card text-card-foreground rounded-2xl p-8 shadow-2xl max-w-xs border border-border">
+          {/* Right Content - CTA Card (desktop only, positioned to the left of phone) */}
+          <div className="hidden lg:flex justify-center items-center">
+            <div className="bg-card text-card-foreground rounded-2xl p-8 shadow-2xl max-w-xs border border-border mr-20">
               {/* Icon */}
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
                 <Smartphone className="h-6 w-6 text-primary" />
