@@ -19,8 +19,8 @@ export function HeroSection({ onStart }: HeroSectionProps) {
           alt="Família protegida com seu veículo"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/98 to-background/80" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
       </div>
 
       {/* Decorative Elements */}
