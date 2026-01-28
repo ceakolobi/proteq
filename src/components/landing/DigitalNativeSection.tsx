@@ -14,7 +14,7 @@ export function DigitalNativeSection({ onStart }: DigitalNativeSectionProps) {
         <img 
           src={sectionBg}
           alt=""
-          className="w-full h-full object-cover object-right"
+          className="w-full h-full object-contain object-right lg:object-cover lg:object-[center_right]"
         />
         {/* Gradient overlay for text readability on left */}
         <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/95 to-transparent lg:to-secondary/20" />
