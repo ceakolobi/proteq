@@ -110,34 +110,34 @@ export function HeroSection({ onStart }: HeroSectionProps) {
 
           {/* Right Content - Stats Cards (visible on large screens) */}
           <div className="hidden lg:grid grid-cols-2 gap-4">
-            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-6 shadow-xl border-2 border-secondary">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-primary" />
+            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-5 shadow-xl border-2 border-secondary">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                  <Shield className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-secondary-foreground/60 uppercase tracking-wide">Proteção Veicular</p>
-                  <div className="text-3xl font-bold text-primary">R$ 89,90</div>
+                  <p className="text-[10px] text-secondary-foreground/70 uppercase tracking-wide">Proteção Veicular</p>
+                  <div className="text-2xl font-bold text-primary">R$ 89,90</div>
                 </div>
               </div>
-              <p className="text-secondary-foreground/80 text-sm mb-4">A partir de / mês</p>
+              <p className="text-secondary-foreground/80 text-xs mb-3">A partir de / mês</p>
               
-              <div className="space-y-2 pt-3 border-t border-secondary-foreground/10">
-                <div className="flex items-center gap-2 text-sm text-secondary-foreground/90">
-                  <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-secondary-foreground/10">
+                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <span>Carro reserva 30 dias</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-secondary-foreground/90">
-                  <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>Guincho 500km inclusos</span>
+                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span>Guincho 500km</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-secondary-foreground/90">
-                  <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <span>Assistência 24h</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-secondary-foreground/90">
-                  <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span>Cobertura para vidros</span>
+                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span>Vidros cobertos</span>
                 </div>
               </div>
             </div>
