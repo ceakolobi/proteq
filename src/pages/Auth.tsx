@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Lock, Eye, EyeOff, Mail } from 'lucide-react';
+import { Lock, Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
 import authHeroImage from '@/assets/auth-hero-illustration.jpg';
 
 export default function Auth() {
@@ -378,14 +378,24 @@ export default function Auth() {
 
       {/* Right side - 30% Auth form */}
       <div className="flex-1 lg:w-[30%] flex flex-col items-center justify-between p-6 lg:p-8 bg-card">
-        {/* Logo Harmony */}
-        <div className="mb-8">
+        {/* Back to home button */}
+        <div className="w-full flex justify-start mb-4">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar para Home
+            </Button>
+          </Link>
+        </div>
+
+        {/* Logo Harmony - clickable */}
+        <Link to="/" className="mb-8">
           <img 
             src={getLogoForContext('login')} 
             alt={brand.name}
-            className="h-16 w-auto object-contain"
+            className="h-16 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
           />
-        </div>
+        </Link>
 
         <Card className="w-full max-w-sm border-0 shadow-none bg-transparent">
           <CardHeader className="space-y-1 text-center">
