@@ -9,7 +9,7 @@ import {
   DadosVeiculoForm, 
   ResultadoCotacao,
   BeneficiosSection,
-  ConfiancaSection,
+  FamiliaProtegidaBanner,
   CTAFinalSection,
   PagamentoSection,
   LandingFooter,
@@ -55,7 +55,7 @@ export default function Index() {
             <ComoFuncionaSection />
             <BeneficiosSection />
             <ArtigosSection />
-            <ConfiancaSection />
+            <FamiliaProtegidaBanner />
             <ContatoSection />
             <CTAFinalSection onStart={quotation.avancarParaDadosPessoais} />
           </>
