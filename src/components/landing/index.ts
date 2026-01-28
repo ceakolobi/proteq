@@ -6,6 +6,7 @@ export { DadosVeiculoForm } from './DadosVeiculoForm';
 export { ResultadoCotacao } from './ResultadoCotacao';
 export { BeneficiosSection } from './BeneficiosSection';
 export { ConfiancaSection } from './ConfiancaSection';
+export { FamiliaProtegidaBanner } from './FamiliaProtegidaBanner';
 export { CTAFinalSection } from './CTAFinalSection';
 export { PagamentoSection } from './PagamentoSection';
 export { LandingFooter } from './LandingFooter';
