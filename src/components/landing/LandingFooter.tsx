@@ -59,7 +59,7 @@ export function LandingFooter() {
         {/* Bottom */}
         <div className="border-t border-secondary-foreground/20 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-secondary-foreground/70">
-            © {currentYear} Harmony Clube de Benefícios. Todos os direitos reservados.
+            Copyright {currentYear} © | Desenvolvido por <span className="font-medium">Marka Tecnologia</span> Todos os Direitos Reservados.
           </p>
           <div className="flex gap-6 text-sm text-secondary-foreground/70">
             <a href="#" className="hover:text-primary transition-colors">Termos de uso</a>
