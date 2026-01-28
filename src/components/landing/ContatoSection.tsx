@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, MessageCircle } from 'lucide-react';
+import { Mail, MapPin, Clock, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const contactInfo = [
   {
@@ -20,25 +22,54 @@ const contactInfo = [
   },
 ];
 
+const assuntoOptions = [
+  { value: 'Financeiro', label: 'Financeiro' },
+  { value: 'Eventos', label: 'Eventos' },
+  { value: 'Cadastro', label: 'Cadastro' },
+  { value: 'RH', label: 'RH' },
+  { value: 'Serviços', label: 'Serviços' },
+  { value: 'Outros', label: 'Outros' },
+];
+
 export function ContatoSection() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
     telefone: '',
+    assunto: '',
     mensagem: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.assunto) {
+      toast.error('Por favor, selecione um assunto.');
+      return;
+    }
+    
     setLoading(true);
 
-    // Simular envio
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: formData,
+      });
 
-    toast.success('Mensagem enviada com sucesso! Entraremos em contato em breve.');
-    setFormData({ nome: '', email: '', telefone: '', mensagem: '' });
-    setLoading(false);
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Mensagem enviada com sucesso! Entraremos em contato em breve.');
+        setFormData({ nome: '', email: '', telefone: '', assunto: '', mensagem: '' });
+      } else {
+        throw new Error(data?.error || 'Erro ao enviar mensagem');
+      }
+    } catch (error: any) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast.error(error.message || 'Erro ao enviar mensagem. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -129,9 +160,26 @@ export function ContatoSection() {
                     placeholder="(00) 00000-0000"
                     value={formData.telefone}
                     onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                    required
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Assunto</label>
+                <Select
+                  value={formData.assunto}
+                  onValueChange={(value) => setFormData({ ...formData, assunto: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um assunto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assuntoOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Mensagem</label>
