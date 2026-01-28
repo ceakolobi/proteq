@@ -10,11 +10,11 @@ export function DigitalNativeSection({ onStart }: DigitalNativeSectionProps) {
   return (
     <section className="relative min-h-[600px] lg:min-h-[700px] overflow-hidden">
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-secondary">
         <img 
           src={sectionBg}
           alt=""
-          className="w-full h-full object-contain object-right lg:object-cover lg:object-[center_right]"
+          className="w-full h-full object-contain object-right"
         />
         {/* Gradient overlay for text readability on left */}
         <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/95 to-transparent lg:to-secondary/20" />
