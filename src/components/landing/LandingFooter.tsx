@@ -21,7 +21,7 @@ export function LandingFooter() {
             </p>
             <div className="flex items-center gap-2 text-sm text-secondary-foreground/80">
               <Shield className="h-4 w-4 text-primary" />
-              <span>Empresa regulamentada</span>
+              <span>Associação regulamentada</span>
             </div>
           </div>
           
