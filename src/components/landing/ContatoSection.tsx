@@ -73,7 +73,7 @@ export function ContatoSection() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-muted-foreground">{info.title}</p>
-                      <p className="font-semibold truncate">{info.content}</p>
+                      <p className="font-semibold text-sm break-all">{info.content}</p>
                       <p className="text-xs text-muted-foreground mt-1">{info.description}</p>
                     </div>
                   </div>
