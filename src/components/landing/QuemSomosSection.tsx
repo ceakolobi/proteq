@@ -25,15 +25,19 @@ const values = [
 
 export function QuemSomosSection() {
   return (
-    <section id="quem-somos" className="py-20 md:py-28 bg-muted/30">
-      <div className="container mx-auto px-4">
+    <section id="quem-somos" className="py-20 md:py-28 bg-secondary/5 relative overflow-hidden">
+      {/* Blue decorative elements */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-secondary via-primary to-secondary" />
+      <div className="absolute -top-40 -right-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />
+      
+      <div className="container mx-auto px-4 relative">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full mb-4">
+          <span className="inline-block px-4 py-1.5 bg-secondary/10 text-secondary text-sm font-semibold rounded-full mb-4 border border-secondary/20">
             Quem Somos
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-            Sua segurança é nossa <span className="text-primary">prioridade</span>
+            Sua segurança é nossa <span className="text-secondary">prioridade</span>
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
             Somos uma associação de proteção veicular comprometida em oferecer 
@@ -61,9 +65,9 @@ export function QuemSomosSection() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-16 border-t border-border/50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-16 border-t border-secondary/30">
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">10+</div>
+            <div className="text-4xl md:text-5xl font-bold text-secondary mb-2">10+</div>
             <p className="text-sm text-muted-foreground">Anos de Experiência</p>
           </div>
           <div className="text-center">
@@ -71,7 +75,7 @@ export function QuemSomosSection() {
             <p className="text-sm text-muted-foreground">Veículos Protegidos</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">98%</div>
+            <div className="text-4xl md:text-5xl font-bold text-secondary mb-2">98%</div>
             <p className="text-sm text-muted-foreground">Satisfação</p>
           </div>
           <div className="text-center">

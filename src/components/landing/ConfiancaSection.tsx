@@ -35,17 +35,21 @@ const itensConfianca = [
 
 export function ConfiancaSection() {
   return (
-    <section className="py-16 bg-muted/50 border-y border-border/50">
+    <section className="py-16 bg-gradient-to-r from-secondary/5 via-background to-secondary/5 border-y border-secondary/20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <h3 className="text-xl md:text-2xl font-bold">Por que escolher a gente?</h3>
+          <h3 className="text-xl md:text-2xl font-bold">Por que escolher a <span className="text-secondary">gente</span>?</h3>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 max-w-5xl mx-auto">
           {itensConfianca.map((item, index) => (
             <div key={index} className="text-center group">
-              <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                <item.icon className="h-6 w-6 text-primary" />
+              <div className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-colors ${
+                index % 2 === 0 
+                  ? 'bg-primary/10 group-hover:bg-primary/20' 
+                  : 'bg-secondary/10 group-hover:bg-secondary/20'
+              }`}>
+                <item.icon className={`h-6 w-6 ${index % 2 === 0 ? 'text-primary' : 'text-secondary'}`} />
               </div>
               <h4 className="font-semibold text-sm mb-1">{item.titulo}</h4>
               <p className="text-xs text-muted-foreground">{item.descricao}</p>
