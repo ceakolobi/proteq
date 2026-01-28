@@ -85,7 +85,7 @@ export function LandingNavbar() {
               className="gap-2"
             >
               <LogIn className="h-4 w-4" />
-              Acessar
+              Área Restrita
             </Button>
           </div>
 
