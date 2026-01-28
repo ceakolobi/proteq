@@ -107,7 +107,7 @@ export function ContatoSection() {
               {contactInfo.map((info, index) => (
                 <div
                   key={index}
-                  className="bg-muted/50 border border-border/50 rounded-xl p-5 hover:border-primary/30 transition-colors min-w-0"
+                  className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-primary/30 transition-colors min-w-0 shadow-md"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -124,7 +124,7 @@ export function ContatoSection() {
             </div>
 
             {/* Map placeholder */}
-            <div className="bg-muted/50 border border-border/50 rounded-xl p-6">
+            <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-6 shadow-md">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <MapPin className="h-5 w-5 text-primary" />
