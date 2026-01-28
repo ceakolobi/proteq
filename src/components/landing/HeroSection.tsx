@@ -110,33 +110,35 @@ export function HeroSection({ onStart }: HeroSectionProps) {
 
           {/* Right Content - Stats Cards (visible on large screens) */}
           <div className="hidden lg:grid grid-cols-2 gap-4">
-            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-5 shadow-xl border-2 border-secondary">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                  <Shield className="h-5 w-5 text-primary-foreground" />
+            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-4 shadow-xl border-2 border-secondary">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <div>
-                  <p className="text-[10px] text-secondary-foreground/70 uppercase tracking-wide">Proteção Veicular</p>
-                  <div className="text-2xl font-bold text-primary">R$ 89,90</div>
+                <div className="flex-1">
+                  <p className="text-[10px] text-secondary-foreground/70 uppercase tracking-wide leading-tight">Proteção Veicular</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-primary leading-none">R$ 89,90</span>
+                    <span className="text-secondary-foreground/70 text-[10px]">/ mês</span>
+                  </div>
                 </div>
               </div>
-              <p className="text-secondary-foreground/80 text-xs mb-3">A partir de / mês</p>
               
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-2 border-t border-secondary-foreground/10">
-                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 pt-2 border-t border-secondary-foreground/10">
+                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
                   <span>Carro reserva 30 dias</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
                   <span>Guincho 500km</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
                   <span>Assistência 24h</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
+                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
                   <span>Vidros cobertos</span>
                 </div>
               </div>
