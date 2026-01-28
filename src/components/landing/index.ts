@@ -20,3 +20,4 @@ export { ContatoSection } from './ContatoSection';
 export { AnnouncementBanner } from './AnnouncementBanner';
 export { WhatsAppFloat } from './WhatsAppFloat';
 export { PromoBanner } from './PromoBanner';
+export { StepIndicator } from './StepIndicator';
