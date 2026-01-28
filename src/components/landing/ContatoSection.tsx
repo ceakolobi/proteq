@@ -7,21 +7,9 @@ import { toast } from 'sonner';
 
 const contactInfo = [
   {
-    icon: Phone,
-    title: 'Telefone',
-    content: '(00) 00000-0000',
-    description: 'Ligue para nossa central',
-  },
-  {
-    icon: MessageCircle,
-    title: 'WhatsApp',
-    content: '(00) 00000-0000',
-    description: 'Atendimento rápido',
-  },
-  {
     icon: Mail,
     title: 'E-mail',
-    content: 'contato@harmonycrm.com.br',
+    content: 'contato@harmonyagro.com.br',
     description: 'Envie sua mensagem',
   },
   {
