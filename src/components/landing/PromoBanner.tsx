@@ -1,5 +1,6 @@
 import { Gift, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import promoBannerBg from '@/assets/promo-banner-bg.jpg';
 
 interface PromoBannerProps {
   onStart: () => void;
@@ -8,14 +9,19 @@ interface PromoBannerProps {
 export function PromoBanner({ onStart }: PromoBannerProps) {
   return (
     <section className="relative py-16 md:py-20 overflow-hidden">
-      {/* Background with gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/95 to-secondary" />
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src={promoBannerBg} 
+          alt="Família protegida" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/85 to-secondary/80" />
+      </div>
       
       {/* Decorative patterns */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,white_2px,transparent_2px)] bg-[length:40px_40px]" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/30 rounded-full blur-2xl" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
