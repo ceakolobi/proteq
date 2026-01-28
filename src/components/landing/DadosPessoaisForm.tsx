@@ -4,7 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowRight, ArrowLeft, User, Phone, Mail } from 'lucide-react';
+import { StepIndicator } from './StepIndicator';
 import type { DadosPessoais } from './types';
+
+const QUOTATION_STEPS = [
+  { number: 1, label: 'Seus Dados' },
+  { number: 2, label: 'Veículo' },
+  { number: 3, label: 'Proposta' },
+];
 
 interface DadosPessoaisFormProps {
   initialData: DadosPessoais;
@@ -58,6 +65,9 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
   return (
     <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 px-4">
       <div className="container mx-auto max-w-2xl">
+        {/* Step Indicator */}
+        <StepIndicator currentStep={1} steps={QUOTATION_STEPS} />
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Seus Dados</h1>

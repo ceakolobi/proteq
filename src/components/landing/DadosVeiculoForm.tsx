@@ -9,6 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { TIPOS_VEICULO_LANDING, type DadosVeiculo } from './types';
 import { cn } from '@/lib/utils';
+import { StepIndicator } from './StepIndicator';
+
+const QUOTATION_STEPS = [
+  { number: 1, label: 'Seus Dados' },
+  { number: 2, label: 'Veículo' },
+  { number: 3, label: 'Proposta' },
+];
 
 interface DadosVeiculoFormProps {
   onSubmit: (data: DadosVeiculo) => void;
@@ -390,10 +397,14 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
   };
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-8 px-4">
-      <div className="w-full max-w-xl space-y-4">
+    <section className="min-h-screen bg-gradient-to-br from-background to-muted/20 py-8 px-4">
+      <div className="container mx-auto max-w-xl">
+        {/* Step Indicator */}
+        <StepIndicator currentStep={2} steps={QUOTATION_STEPS} />
+
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Nova Cotação</h1>
+          <h1 className="text-2xl font-bold">Dados do Veículo</h1>
+          <p className="text-muted-foreground">Informe os dados do seu veículo</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

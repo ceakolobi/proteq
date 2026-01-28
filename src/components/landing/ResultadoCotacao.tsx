@@ -17,7 +17,14 @@ import {
   Zap,
   Sparkles
 } from 'lucide-react';
+import { StepIndicator } from './StepIndicator';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+
+const QUOTATION_STEPS = [
+  { number: 1, label: 'Seus Dados' },
+  { number: 2, label: 'Veículo' },
+  { number: 3, label: 'Proposta' },
+];
 
 interface ResultadoCotacaoProps {
   dadosPessoais: DadosPessoais;
@@ -91,8 +98,11 @@ export function ResultadoCotacao({
   ];
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-16 px-4">
+    <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 px-4">
       <div className="container mx-auto max-w-5xl">
+        {/* Step Indicator */}
+        <StepIndicator currentStep={3} steps={QUOTATION_STEPS} />
+
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
