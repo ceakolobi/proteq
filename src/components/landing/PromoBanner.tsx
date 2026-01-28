@@ -34,7 +34,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-6 max-w-xl">
               Cadastre-se até <strong>30 de março</strong> e ganhe sua primeira mensalidade. 
-              Proteção completa para seu veículo sem pagar nada no primeiro mês!
+              Só pague a partir de <strong>10 de março</strong>!
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
