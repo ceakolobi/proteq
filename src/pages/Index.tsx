@@ -14,7 +14,12 @@ import {
   PagamentoSection,
   LandingFooter,
   CadastroContaForm,
-  DocumentosUploadForm
+  DocumentosUploadForm,
+  LandingNavbar,
+  QuemSomosSection,
+  ServicosSection,
+  ArtigosSection,
+  ContatoSection
 } from '@/components/landing';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
@@ -25,7 +30,13 @@ export default function Index() {
   const quotation = usePublicQuotation();
 
   useEffect(() => {
-    document.title = `${brand.name} - Proteção Veicular`;
+    document.title = `${brand.name} - Proteção Veicular | Cotação Online`;
+    
+    // Meta description dinâmica
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', `${brand.name} - Proteção veicular 100% digital. Faça sua cotação online em 2 minutos, contratação sem burocracia e ativação imediata. Sem ligações de vendedores!`);
+    }
   }, [brand.name]);
 
   // Renderizar etapa atual do funil
@@ -35,9 +46,13 @@ export default function Index() {
         return (
           <>
             <HeroSection onStart={quotation.avancarParaDadosPessoais} />
+            <QuemSomosSection />
+            <ServicosSection onStart={quotation.avancarParaDadosPessoais} />
             <ComoFuncionaSection />
             <BeneficiosSection />
+            <ArtigosSection />
             <ConfiancaSection />
+            <ContatoSection />
             <CTAFinalSection onStart={quotation.avancarParaDadosPessoais} />
           </>
         );
@@ -137,8 +152,8 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-8 text-left">
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              <div className="bg-accent/50 border border-accent-foreground/20 rounded-xl p-4 mb-8 text-left">
+                <p className="text-sm font-medium text-accent-foreground">
                   📋 Importante sobre a carência
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -167,23 +182,11 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header fixo com acesso ao sistema */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-end">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/auth')}
-            className="gap-2"
-          >
-            <LogIn className="h-4 w-4" />
-            Acessar Sistema
-          </Button>
-        </div>
-      </header>
+      {/* Navbar - só mostra na home */}
+      {quotation.etapa === 'hero' && <LandingNavbar />}
 
       {/* Conteúdo principal */}
-      <main className="flex-1 pt-14">
+      <main className="flex-1">
         {renderEtapa()}
       </main>
 

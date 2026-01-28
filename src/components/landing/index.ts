@@ -11,3 +11,8 @@ export { PagamentoSection } from './PagamentoSection';
 export { LandingFooter } from './LandingFooter';
 export { CadastroContaForm } from './CadastroContaForm';
 export { DocumentosUploadForm } from './DocumentosUploadForm';
+export { LandingNavbar } from './LandingNavbar';
+export { QuemSomosSection } from './QuemSomosSection';
+export { ServicosSection } from './ServicosSection';
+export { ArtigosSection } from './ArtigosSection';
+export { ContatoSection } from './ContatoSection';
