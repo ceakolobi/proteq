@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
@@ -15,10 +16,13 @@ import {
   Car,
   Key,
   Zap,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { StepIndicator } from './StepIndicator';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -42,6 +46,126 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+// Gera HTML para o PDF da cotação pública
+const generatePdfHtml = (
+  dadosPessoais: DadosPessoais,
+  dadosVeiculo: DadosVeiculo,
+  cotacao: ResultadoCotacaoPublica
+) => {
+  const dataAtual = new Date().toLocaleDateString('pt-BR');
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Proposta de Cotação</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #f97316; }
+        .header h1 { color: #f97316; font-size: 28px; margin-bottom: 5px; }
+        .header p { color: #666; }
+        .section { margin-bottom: 25px; }
+        .section-title { font-size: 16px; font-weight: bold; color: #f97316; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-item { padding: 8px 0; }
+        .info-label { font-size: 12px; color: #666; }
+        .info-value { font-size: 14px; font-weight: bold; }
+        .highlight-box { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; }
+        .highlight-box .amount { font-size: 36px; font-weight: bold; }
+        .highlight-box .label { font-size: 14px; opacity: 0.9; }
+        .benefits { background: #f9fafb; padding: 20px; border-radius: 10px; }
+        .benefit-item { padding: 8px 0; display: flex; align-items: center; }
+        .benefit-item::before { content: "✓"; color: #22c55e; font-weight: bold; margin-right: 10px; }
+        .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; padding-top: 20px; border-top: 1px solid #eee; }
+        .validity { background: #fef3c7; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; }
+        @media print { body { padding: 20px; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🛡️ Proteção Veicular</h1>
+        <p>Proposta de Cotação</p>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">👤 Dados do Cliente</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Nome</div>
+            <div class="info-value">${dadosPessoais.nome}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Telefone</div>
+            <div class="info-value">${dadosPessoais.telefone}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">E-mail</div>
+            <div class="info-value">${dadosPessoais.email}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Data</div>
+            <div class="info-value">${dataAtual}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">🚗 Dados do Veículo</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Marca/Modelo</div>
+            <div class="info-value">${dadosVeiculo.marca} ${dadosVeiculo.modelo}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Ano</div>
+            <div class="info-value">${dadosVeiculo.ano}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Valor FIPE</div>
+            <div class="info-value">${formatCurrency(cotacao.valorFipe)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Participação</div>
+            <div class="info-value">${formatCurrency(cotacao.participacao)}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="highlight-box">
+        <div class="label">Mensalidade</div>
+        <div class="amount">${formatCurrency(cotacao.mensalidade)}</div>
+        <div class="label">por mês</div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">✅ Benefícios Inclusos</div>
+        <div class="benefits">
+          <div class="benefit-item">Proteção Total - Roubo e Furto (100% FIPE)</div>
+          <div class="benefit-item">Assistência 24h - Suporte Integral</div>
+          <div class="benefit-item">Rastreamento - Tempo Real</div>
+          <div class="benefit-item">Guincho 500km - 250km ida/volta</div>
+          <div class="benefit-item">Carro Reserva - 30 dias inclusos</div>
+          <div class="benefit-item">Chaveiro 24h - Gratuito</div>
+          <div class="benefit-item">Pane Elétrica/Mecânica - Assistência Inclusa</div>
+          <div class="benefit-item">Eventos da Natureza - Proteção Completa</div>
+        </div>
+      </div>
+      
+      <div class="validity">
+        ⏳ <strong>Validade da proposta:</strong> 7 dias
+      </div>
+      
+      <div class="footer">
+        <p>Proposta gerada em ${dataAtual}</p>
+        <p>Proteção Veicular - Protegendo o que é seu com transparência e confiança.</p>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 export function ResultadoCotacao({ 
   dadosPessoais, 
   dadosVeiculo, 
@@ -50,6 +174,81 @@ export function ResultadoCotacao({
   onContinue,
   onWhatsApp 
 }: ResultadoCotacaoProps) {
+  const [loadingPdf, setLoadingPdf] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState(false);
+
+  // Gerar e baixar PDF
+  const handleDownloadPdf = async () => {
+    if (!dadosVeiculo || !cotacao) return;
+    
+    setLoadingPdf(true);
+    try {
+      const htmlContent = generatePdfHtml(dadosPessoais, dadosVeiculo, cotacao);
+      
+      // Abrir em nova janela para impressão/download
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        // Auto print
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+        toast.success('PDF aberto para download!');
+      } else {
+        toast.error('Bloqueador de pop-up ativo. Permita pop-ups para baixar o PDF.');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    } finally {
+      setLoadingPdf(false);
+    }
+  };
+
+  // Enviar por email
+  const handleSendEmail = async () => {
+    if (!dadosVeiculo || !cotacao) return;
+    
+    if (!dadosPessoais.email) {
+      toast.error('E-mail não informado');
+      return;
+    }
+    
+    setLoadingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-proposta-email', {
+        body: {
+          to: dadosPessoais.email,
+          clienteNome: dadosPessoais.nome,
+          modelo: `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`,
+          mensalidade: formatCurrency(cotacao.mensalidade),
+          validadeDias: 7,
+          pdfUrl: null,
+          pdfBase64: null, // HTML email já contém as informações
+          filename: `Proposta-${dadosVeiculo.marca}-${dadosVeiculo.modelo}.pdf`,
+          empresaNome: 'Proteção Veicular'
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao enviar email:', error);
+        toast.error('Erro ao enviar e-mail. Tente novamente.');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success(`Proposta enviada para ${dadosPessoais.email}!`);
+      } else {
+        toast.error(data?.error || 'Erro ao enviar e-mail');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar email:', error);
+      toast.error('Erro ao enviar e-mail');
+    } finally {
+      setLoadingEmail(false);
+    }
+  };
   if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
@@ -208,23 +407,29 @@ export function ResultadoCotacao({
               <Button 
                 variant="outline" 
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
-                onClick={() => {
-                  alert('Em breve: envio por email');
-                }}
+                onClick={handleSendEmail}
+                disabled={loadingEmail}
               >
-                <Mail className="h-5 w-5 text-primary" />
-                <span className="text-xs">E-mail</span>
+                {loadingEmail ? (
+                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                ) : (
+                  <Mail className="h-5 w-5 text-primary" />
+                )}
+                <span className="text-xs">{loadingEmail ? 'Enviando...' : 'E-mail'}</span>
               </Button>
               
               <Button 
                 variant="outline" 
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
-                onClick={() => {
-                  alert('Em breve: download PDF');
-                }}
+                onClick={handleDownloadPdf}
+                disabled={loadingPdf}
               >
-                <FileText className="h-5 w-5 text-primary" />
-                <span className="text-xs">Baixar PDF</span>
+                {loadingPdf ? (
+                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                ) : (
+                  <FileText className="h-5 w-5 text-primary" />
+                )}
+                <span className="text-xs">{loadingPdf ? 'Gerando...' : 'Baixar PDF'}</span>
               </Button>
             </div>
 
