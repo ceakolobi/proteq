@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Smartphone, Shield, Clock, Zap, Bot } from 'lucide-react';
-import pwaMockup from '@/assets/pwa-mockup-floating.png';
+import sectionBg from '@/assets/digital-section-bg.jpg';
 
 interface DigitalNativeSectionProps {
   onStart: () => void;
@@ -8,14 +8,19 @@ interface DigitalNativeSectionProps {
 
 export function DigitalNativeSection({ onStart }: DigitalNativeSectionProps) {
   return (
-    <section className="relative py-20 overflow-hidden bg-secondary">
-      {/* Background decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-primary/5 rounded-full blur-2xl" />
+    <section className="relative min-h-[600px] lg:min-h-[700px] overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={sectionBg}
+          alt=""
+          className="w-full h-full object-cover object-right"
+        />
+        {/* Gradient overlay for text readability on left */}
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/95 to-transparent lg:to-secondary/20" />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 py-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div className="space-y-8 text-secondary-foreground">
@@ -46,7 +51,7 @@ export function DigitalNativeSection({ onStart }: DigitalNativeSectionProps) {
                 { icon: Clock, text: 'Assistência 24h' },
                 { icon: Smartphone, text: 'Tudo pelo celular' },
               ].map((item) => (
-                <div key={item.text} className="flex items-center gap-3 bg-white/5 rounded-lg p-3">
+                <div key={item.text} className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-3">
                   <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
                     <item.icon className="h-5 w-5 text-primary" />
                   </div>
@@ -54,27 +59,29 @@ export function DigitalNativeSection({ onStart }: DigitalNativeSectionProps) {
                 </div>
               ))}
             </div>
+
+            {/* CTA Button - Mobile */}
+            <div className="lg:hidden">
+              <Button 
+                onClick={onStart}
+                size="lg" 
+                className="text-base group shadow-lg shadow-primary/30"
+              >
+                Cotar agora
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </div>
           </div>
 
-          {/* Right Content - Phone + CTA Card */}
-          <div className="relative flex items-center justify-center lg:justify-end">
-            {/* Phone Mockup */}
-            <div className="relative">
-              <img 
-                src={pwaMockup}
-                alt="App Harmony Proteção Veicular"
-                className="h-[450px] md:h-[550px] object-contain drop-shadow-2xl"
-              />
-            </div>
-
-            {/* CTA Card */}
-            <div className="absolute -right-4 md:right-0 bottom-10 lg:bottom-16 bg-card text-card-foreground rounded-2xl p-6 md:p-8 shadow-2xl max-w-[280px] md:max-w-xs border border-border">
+          {/* Right Content - CTA Card (desktop only, positioned over phone) */}
+          <div className="hidden lg:flex justify-end items-center">
+            <div className="bg-card text-card-foreground rounded-2xl p-8 shadow-2xl max-w-xs border border-border">
               {/* Icon */}
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
                 <Smartphone className="h-6 w-6 text-primary" />
               </div>
               
-              <h3 className="text-xl md:text-2xl font-bold mb-2">
+              <h3 className="text-2xl font-bold mb-2">
                 Faça sua cotação agora mesmo!
               </h3>
               
