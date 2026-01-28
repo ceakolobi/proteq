@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useReferenceData } from '@/hooks/useReferenceData';
@@ -785,6 +787,7 @@ export default function Leads() {
                       <TableHead>Lead</TableHead>
                       <TableHead>Contato</TableHead>
                       <TableHead>Localização</TableHead>
+                      <TableHead>Data</TableHead>
                       <TableHead>Origem</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Consultor</TableHead>
@@ -794,11 +797,11 @@ export default function Leads() {
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">Carregando...</TableCell>
+                        <TableCell colSpan={8} className="text-center py-8">Carregando...</TableCell>
                       </TableRow>
                     ) : filteredLeads.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           <div className="flex flex-col items-center gap-2">
                             <Users className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">Nenhum lead encontrado</p>
@@ -852,6 +855,11 @@ export default function Leads() {
                                 {lead.cidade}{lead.cidade && lead.estado && '/'}{lead.estado}
                               </div>
                             ) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(lead.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            </span>
                           </TableCell>
                           <TableCell>
                             {lead.origem && (
