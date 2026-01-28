@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, MapPin, Clock, Send } from 'lucide-react';
+import callcenterBg from '@/assets/contact-callcenter-bg.jpg';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -73,8 +74,18 @@ export function ContatoSection() {
   };
 
   return (
-    <section id="contato" className="py-20 md:py-28 bg-background">
-      <div className="container mx-auto px-4">
+    <section id="contato" className="relative py-20 md:py-28 overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src={callcenterBg} 
+          alt="Central de atendimento" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/90" />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
           <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full mb-4">
