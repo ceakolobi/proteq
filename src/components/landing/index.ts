@@ -16,3 +16,5 @@ export { QuemSomosSection } from './QuemSomosSection';
 export { ServicosSection } from './ServicosSection';
 export { ArtigosSection } from './ArtigosSection';
 export { ContatoSection } from './ContatoSection';
+export { AnnouncementBanner } from './AnnouncementBanner';
+export { WhatsAppFloat } from './WhatsAppFloat';
