@@ -62,21 +62,21 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
 
           {/* Right content - Promo card */}
           <div className="flex-shrink-0">
-            <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
+            <div className="bg-white rounded-3xl p-8 shadow-2xl border-4 border-secondary">
               <div className="text-center">
                 <div className="w-20 h-20 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Gift className="h-10 w-10 text-secondary-foreground" />
+                  <span className="text-4xl">💰</span>
                 </div>
                 
-                <p className="text-primary-foreground/80 text-sm mb-2">Você economiza</p>
-                <p className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
-                  R$ <span className="text-secondary">150</span>
+                <p className="text-muted-foreground text-sm mb-2 uppercase tracking-wide font-semibold">Adesão única</p>
+                <p className="text-5xl md:text-6xl font-bold text-primary mb-2">
+                  R$ <span className="text-secondary">50</span>
                 </p>
-                <p className="text-primary-foreground/80 text-sm">valor médio da 1ª mensalidade</p>
+                <p className="text-lg text-foreground font-medium">para qualquer veículo</p>
                 
-                <div className="mt-6 pt-6 border-t border-white/20">
-                  <p className="text-xs text-primary-foreground/70">
-                    *Válido para cadastros até 30/03/2025
+                <div className="mt-6 pt-6 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
+                    ✅ Carros, motos, caminhonetes
                   </p>
                 </div>
               </div>
