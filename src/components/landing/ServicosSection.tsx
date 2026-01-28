@@ -89,12 +89,12 @@ export function ServicosSection({ onStart }: ServicosSectionProps) {
           ))}
         </div>
 
-        {/* Benefits Bar */}
-        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8">
+        {/* Benefits Bar - Blue themed */}
+        <div className="bg-secondary text-secondary-foreground rounded-2xl p-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {benefits.map((benefit, index) => (
               <div key={index} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-secondary-foreground/10 rounded-lg flex items-center justify-center">
                   <benefit.icon className="h-5 w-5 text-primary" />
                 </div>
                 <span className="font-medium text-sm">{benefit.text}</span>

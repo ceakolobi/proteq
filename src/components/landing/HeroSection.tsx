@@ -24,7 +24,7 @@ export function HeroSection({ onStart }: HeroSectionProps) {
       </div>
 
       {/* Decorative Elements */}
-      <div className="absolute top-40 left-10 w-96 h-96 bg-primary/20 rounded-full blur-[150px] animate-pulse" />
+      <div className="absolute top-40 left-10 w-96 h-96 bg-secondary/20 rounded-full blur-[150px] animate-pulse" />
       <div className="absolute bottom-20 right-20 w-80 h-80 bg-primary/15 rounded-full blur-[120px]" />
 
       <div className="container mx-auto px-4 py-16 relative z-10">
@@ -110,16 +110,16 @@ export function HeroSection({ onStart }: HeroSectionProps) {
 
           {/* Right Content - Stats Cards (visible on large screens) */}
           <div className="hidden lg:grid grid-cols-2 gap-4">
-            <div className="col-span-2 bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-xl">
+            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-6 shadow-xl border-2 border-secondary">
               <div className="text-4xl font-bold text-primary mb-2">R$ 89,90</div>
-              <p className="text-muted-foreground">A partir de / mês</p>
-              <p className="text-sm text-muted-foreground mt-2">Proteção completa para seu veículo</p>
+              <p className="text-secondary-foreground/80">A partir de / mês</p>
+              <p className="text-sm text-secondary-foreground/70 mt-2">Proteção completa para seu veículo</p>
             </div>
-            <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl p-5 shadow-lg">
-              <div className="text-2xl font-bold text-primary mb-1">15k+</div>
+            <div className="bg-card/80 backdrop-blur-sm border-2 border-secondary/30 rounded-2xl p-5 shadow-lg">
+              <div className="text-2xl font-bold text-secondary mb-1">15k+</div>
               <p className="text-sm text-muted-foreground">Veículos protegidos</p>
             </div>
-            <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl p-5 shadow-lg">
+            <div className="bg-card/80 backdrop-blur-sm border-2 border-primary/30 rounded-2xl p-5 shadow-lg">
               <div className="text-2xl font-bold text-primary mb-1">24h</div>
               <p className="text-sm text-muted-foreground">Assistência disponível</p>
             </div>
