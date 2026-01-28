@@ -61,19 +61,19 @@ export function ContatoSection() {
           {/* Contact Info */}
           <div>
             <h3 className="text-2xl font-semibold mb-6">Informações de Contato</h3>
-            <div className="grid sm:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {contactInfo.map((info, index) => (
                 <div
                   key={index}
-                  className="bg-muted/50 border border-border/50 rounded-xl p-5 hover:border-primary/30 transition-colors"
+                  className="bg-muted/50 border border-border/50 rounded-xl p-5 hover:border-primary/30 transition-colors min-w-0"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <info.icon className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm text-muted-foreground">{info.title}</p>
-                      <p className="font-semibold">{info.content}</p>
+                      <p className="font-semibold truncate">{info.content}</p>
                       <p className="text-xs text-muted-foreground mt-1">{info.description}</p>
                     </div>
                   </div>
