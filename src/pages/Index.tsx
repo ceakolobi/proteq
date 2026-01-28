@@ -21,7 +21,8 @@ import {
   ArtigosSection,
   ContatoSection,
   AnnouncementBanner,
-  WhatsAppFloat
+  WhatsAppFloat,
+  PromoBanner
 } from '@/components/landing';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
@@ -48,6 +49,7 @@ export default function Index() {
         return (
           <>
             <HeroSection onStart={quotation.avancarParaDadosPessoais} />
+            <PromoBanner onStart={quotation.avancarParaDadosPessoais} />
             <QuemSomosSection />
             <ServicosSection onStart={quotation.avancarParaDadosPessoais} />
             <ComoFuncionaSection />

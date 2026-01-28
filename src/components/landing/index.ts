@@ -18,3 +18,4 @@ export { ArtigosSection } from './ArtigosSection';
 export { ContatoSection } from './ContatoSection';
 export { AnnouncementBanner } from './AnnouncementBanner';
 export { WhatsAppFloat } from './WhatsAppFloat';
+export { PromoBanner } from './PromoBanner';
