@@ -186,9 +186,6 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Banner de promoção - só mostra na home */}
-      {quotation.etapa === 'hero' && <AnnouncementBanner />}
-      
       {/* Navbar - só mostra na home */}
       {quotation.etapa === 'hero' && <LandingNavbar />}
 
