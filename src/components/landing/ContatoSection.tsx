@@ -82,7 +82,7 @@ export function ContatoSection() {
           alt="Central de atendimento" 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/80 to-background/70" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
