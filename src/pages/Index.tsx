@@ -19,7 +19,9 @@ import {
   QuemSomosSection,
   ServicosSection,
   ArtigosSection,
-  ContatoSection
+  ContatoSection,
+  AnnouncementBanner,
+  WhatsAppFloat
 } from '@/components/landing';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
@@ -182,6 +184,9 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Banner de promoção - só mostra na home */}
+      {quotation.etapa === 'hero' && <AnnouncementBanner />}
+      
       {/* Navbar - só mostra na home */}
       {quotation.etapa === 'hero' && <LandingNavbar />}
 
@@ -192,6 +197,9 @@ export default function Index() {
 
       {/* Footer apenas na home */}
       {quotation.etapa === 'hero' && <LandingFooter />}
+      
+      {/* WhatsApp flutuante - sempre visível */}
+      <WhatsAppFloat phoneNumber="5500000000000" />
     </div>
   );
 }
