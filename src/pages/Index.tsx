@@ -5,6 +5,7 @@ import { usePublicQuotation } from '@/hooks/usePublicQuotation';
 import { 
   HeroSection, 
   ComoFuncionaSection,
+  DigitalNativeSection,
   DadosPessoaisForm, 
   DadosVeiculoForm, 
   ResultadoCotacao,
@@ -52,6 +53,7 @@ export default function Index() {
             <PromoBanner onStart={quotation.avancarParaDadosPessoais} />
             <QuemSomosSection />
             <ServicosSection onStart={quotation.avancarParaDadosPessoais} />
+            <DigitalNativeSection onStart={quotation.avancarParaDadosPessoais} />
             <ComoFuncionaSection />
             <BeneficiosSection />
             <ArtigosSection />

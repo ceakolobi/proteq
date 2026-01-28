@@ -1,6 +1,7 @@
 export * from './types';
 export { HeroSection } from './HeroSection';
 export { ComoFuncionaSection } from './ComoFuncionaSection';
+export { DigitalNativeSection } from './DigitalNativeSection';
 export { DadosPessoaisForm } from './DadosPessoaisForm';
 export { DadosVeiculoForm } from './DadosVeiculoForm';
 export { ResultadoCotacao } from './ResultadoCotacao';
