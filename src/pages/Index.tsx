@@ -204,7 +204,7 @@ export default function Index() {
       <ChatWidget />
       
       {/* WhatsApp flutuante - apenas na home para não conflitar com chat */}
-      {quotation.etapa === 'hero' && <WhatsAppFloat phoneNumber="5500000000000" />}
+      {quotation.etapa === 'hero' && <WhatsAppFloat phoneNumber="5547997604371" />}
     </div>
   );
 }
