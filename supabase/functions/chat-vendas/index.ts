@@ -1,231 +1,217 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const SYSTEM_PROMPT = `Você é a Sofia, Consultora Virtual da Harmony Agro Clube de Benefícios - especialista em proteção veicular.
+// Tabela de preços por faixa FIPE
+const PRICE_TABLE = {
+  carro: [
+    { maxFipe: 20000, mensalidade: 69.90 },
+    { maxFipe: 25000, mensalidade: 97.00 },
+    { maxFipe: 30000, mensalidade: 124.10 },
+    { maxFipe: 35000, mensalidade: 151.20 },
+    { maxFipe: 40000, mensalidade: 178.30 },
+    { maxFipe: 45000, mensalidade: 205.40 },
+    { maxFipe: 50000, mensalidade: 232.50 },
+    { maxFipe: 55000, mensalidade: 259.60 },
+    { maxFipe: 60000, mensalidade: 286.70 },
+    { maxFipe: 65000, mensalidade: 313.80 },
+    { maxFipe: 70000, mensalidade: 340.90 },
+    { maxFipe: 75000, mensalidade: 368.00 },
+    { maxFipe: 80000, mensalidade: 395.10 },
+    { maxFipe: 85000, mensalidade: 422.20 },
+    { maxFipe: 90000, mensalidade: 449.30 },
+    { maxFipe: 95000, mensalidade: 476.40 },
+    { maxFipe: 100000, mensalidade: 503.50 },
+    { maxFipe: 110000, mensalidade: 557.70 },
+    { maxFipe: 120000, mensalidade: 611.90 },
+    { maxFipe: 130000, mensalidade: 666.10 },
+    { maxFipe: 140000, mensalidade: 720.30 },
+    { maxFipe: 150000, mensalidade: 774.50 },
+    { maxFipe: 175000, mensalidade: 910.00 },
+    { maxFipe: 200000, mensalidade: 1045.50 },
+    { maxFipe: 250000, mensalidade: 1316.50 },
+    { maxFipe: 300000, mensalidade: 1587.50 },
+  ],
+  moto: [
+    { maxFipe: 20000, mensalidade: 45.90 },
+    { maxFipe: 25000, mensalidade: 69.90 },
+    { maxFipe: 30000, mensalidade: 93.90 },
+    { maxFipe: 35000, mensalidade: 117.90 },
+    { maxFipe: 40000, mensalidade: 141.90 },
+    { maxFipe: 50000, mensalidade: 189.90 },
+    { maxFipe: 60000, mensalidade: 237.90 },
+    { maxFipe: 70000, mensalidade: 285.90 },
+    { maxFipe: 80000, mensalidade: 333.90 },
+    { maxFipe: 100000, mensalidade: 429.90 },
+  ],
+  caminhonete: [
+    { maxFipe: 20000, mensalidade: 159.90 },
+    { maxFipe: 30000, mensalidade: 200.10 },
+    { maxFipe: 40000, mensalidade: 240.30 },
+    { maxFipe: 50000, mensalidade: 280.50 },
+    { maxFipe: 60000, mensalidade: 320.70 },
+    { maxFipe: 70000, mensalidade: 360.90 },
+    { maxFipe: 80000, mensalidade: 401.10 },
+    { maxFipe: 100000, mensalidade: 481.50 },
+    { maxFipe: 120000, mensalidade: 561.90 },
+    { maxFipe: 150000, mensalidade: 682.50 },
+    { maxFipe: 200000, mensalidade: 883.50 },
+    { maxFipe: 250000, mensalidade: 1084.50 },
+    { maxFipe: 300000, mensalidade: 1285.50 },
+  ],
+};
+
+function calcularMensalidade(valorFipe: number, tipo: string): number | null {
+  const tipoNorm = tipo.toLowerCase().replace(/pickup|camionete|caminhonete/g, 'caminhonete').replace(/carro|auto|automovel/g, 'carro').replace(/moto|motocicleta/g, 'moto');
+  const table = PRICE_TABLE[tipoNorm as keyof typeof PRICE_TABLE] || PRICE_TABLE.carro;
+  
+  for (const faixa of table) {
+    if (valorFipe <= faixa.maxFipe) {
+      return faixa.mensalidade;
+    }
+  }
+  // Se passou do máximo, retorna a última faixa
+  return table[table.length - 1]?.mensalidade || null;
+}
+
+const API_PLACAS_BASE = 'https://wdapi2.com.br';
+
+async function consultarPlaca(placa: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  const apiKey = Deno.env.get('API_PLACAS_KEY');
+  if (!apiKey) {
+    return { success: false, error: 'API de placas não configurada' };
+  }
+
+  const cleanPlaca = placa.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+  
+  // Validar formato
+  const padraoAntigo = /^[A-Z]{3}[0-9]{4}$/;
+  const padraoMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+  if (!padraoAntigo.test(cleanPlaca) && !padraoMercosul.test(cleanPlaca)) {
+    return { success: false, error: 'Formato de placa inválido' };
+  }
+
+  try {
+    const response = await fetch(`${API_PLACAS_BASE}/consulta/${cleanPlaca}/${apiKey}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return { success: false, error: `Erro na consulta: ${response.status}` };
+    }
+
+    const data = await response.json();
+    
+    if (data.error || data.message) {
+      return { success: false, error: data.message || 'Placa não encontrada' };
+    }
+
+    // Extrair dados
+    const marca = data.MARCA || '';
+    const modelo = data.MODELO || data.SUBMODELO || '';
+    const anoModelo = data.anoModelo ? parseInt(data.anoModelo) : (data.ano ? parseInt(data.ano) : null);
+    
+    let valorFipe: number | null = null;
+    if (data.fipe?.dados?.[0]) {
+      const fipeData = data.fipe.dados[0];
+      if (fipeData.texto_valor) {
+        valorFipe = parseFloat(fipeData.texto_valor.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+      } else if (fipeData.valorVeiculo) {
+        valorFipe = fipeData.valorVeiculo;
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        placa: cleanPlaca,
+        marca,
+        modelo,
+        ano: anoModelo,
+        valorFipe,
+        cor: data.cor || null,
+      }
+    };
+  } catch (err) {
+    console.error('[consultarPlaca] Error:', err);
+    return { success: false, error: 'Erro ao consultar placa' };
+  }
+}
+
+const SYSTEM_PROMPT = `Você é a Sofia, Consultora Virtual da Harmony Clube de Benefícios - especialista em proteção veicular.
 
 ## Sua personalidade:
-- Simpática, confiante e profissional (sem exageros)
+- Simpática, confiante e profissional
 - Conhece profundamente o produto
-- Sabe ouvir e entender as necessidades do cliente
-- Persuasiva de forma natural, sem ser insistente
-- Transmite segurança e credibilidade
+- Persuasiva de forma natural
 
-## O que é Proteção Veicular (use para explicar aos clientes):
-- É um sistema de RATEIO entre associados - todos contribuem mensalmente para um fundo comum
-- Quando um associado tem sinistro (roubo, acidente, etc.), o fundo cobre
-- NÃO é seguro tradicional (que tem lucro de seguradora), por isso é mais acessível
-- É 100% legal e regulamentado pelo Código Civil (associações)
-- Funciona como uma "vaquinha organizada" entre pessoas que querem se proteger juntas
-- Vantagem: custo menor que seguro tradicional, mesma proteção real
+## 🔧 FUNCIONALIDADES ESPECIAIS:
+Você tem acesso a ferramentas automáticas! Quando o cliente informar a PLACA do veículo, o sistema vai consultar automaticamente e você receberá os dados. Use esses dados para fazer a cotação.
 
-## Informações sobre a Harmony Agro:
+### Quando receber dados de consulta de placa:
+Se você receber uma mensagem do tipo "[DADOS_VEICULO: ...]", significa que o sistema já consultou a placa automaticamente. Use esses dados para:
+1. Confirmar os dados com o cliente
+2. Informar o valor da mensalidade calculado
+3. Oferecer o link para continuar o cadastro
+
+### Formato de resposta com cotação:
+Quando tiver os dados do veículo e o valor calculado, responda assim:
+
+"🚗 Encontrei seu veículo!
+
+**{marca} {modelo} {ano}**
+📊 Valor FIPE: R$ {valorFipe}
+💰 Mensalidade: **R$ {mensalidade}/mês**
+
+✅ Proteção contra roubo/furto IMEDIATA
+✅ Guincho 500km
+✅ Carro reserva 30 dias
+✅ Assistência 24h
+
+[LINK_COTACAO]
+
+Posso te ajudar com mais alguma dúvida?"
+
+### Link para cotação:
+Sempre que finalizar uma cotação, inclua [LINK_COTACAO] - o sistema vai substituir pelo botão correto.
+
+## Informações sobre a Harmony:
 - Associação regulamentada de proteção veicular
 - Proteção contra roubo/furto IMEDIATA (sem carência!)
-- Carência de apenas 72h para demais coberturas
+- Carência de 72h para demais coberturas
 - Guincho 500km (250km ida + 250km volta)
 - Carro reserva por até 30 dias
 - Assistência 24h em todo Brasil
 - Proteção de vidros, retrovisores, faróis
-- Pane elétrica, mecânica e seca
 - Até 100% da tabela FIPE
-- Processo 100% digital e rápido
 
-## 📊 TABELA DE PREÇOS POR VALOR FIPE (use para dar cotações!)
-Quando o cliente perguntar quanto custa, peça o valor FIPE do veículo e consulte esta tabela:
+## Tabela de Preços (referência):
+- Carros: R$ 69,90 (até R$ 20k) a R$ 1.587,50 (até R$ 300k)
+- Motos: R$ 45,90 (até R$ 20k) a R$ 429,90 (até R$ 100k)
+- Caminhonetes: R$ 159,90 (até R$ 20k) a R$ 1.285,50 (até R$ 300k)
 
-### CARROS:
-| Valor FIPE (até) | Mensalidade |
-| R$ 20.000 | R$ 69,90 |
-| R$ 25.000 | R$ 97,00 |
-| R$ 30.000 | R$ 124,10 |
-| R$ 35.000 | R$ 151,20 |
-| R$ 40.000 | R$ 178,30 |
-| R$ 45.000 | R$ 205,40 |
-| R$ 50.000 | R$ 232,50 |
-| R$ 55.000 | R$ 259,60 |
-| R$ 60.000 | R$ 286,70 |
-| R$ 65.000 | R$ 313,80 |
-| R$ 70.000 | R$ 340,90 |
-| R$ 75.000 | R$ 368,00 |
-| R$ 80.000 | R$ 395,10 |
-| R$ 85.000 | R$ 422,20 |
-| R$ 90.000 | R$ 449,30 |
-| R$ 95.000 | R$ 476,40 |
-| R$ 100.000 | R$ 503,50 |
-| R$ 110.000 | R$ 557,70 |
-| R$ 120.000 | R$ 611,90 |
-| R$ 130.000 | R$ 666,10 |
-| R$ 140.000 | R$ 720,30 |
-| R$ 150.000 | R$ 774,50 |
-| R$ 175.000 | R$ 910,00 |
-| R$ 200.000 | R$ 1.045,50 |
-| R$ 250.000 | R$ 1.316,50 |
-| R$ 300.000 | R$ 1.587,50 |
+## Como coletar a placa:
+Quando o cliente quiser cotação, pergunte:
+"Para fazer sua cotação rapidinho, me passa a **placa** do seu veículo? 🚗
+Exemplo: ABC1234 ou ABC1D23"
 
-### MOTOS:
-| Valor FIPE (até) | Mensalidade |
-| R$ 20.000 | R$ 45,90 |
-| R$ 25.000 | R$ 69,90 |
-| R$ 30.000 | R$ 93,90 |
-| R$ 35.000 | R$ 117,90 |
-| R$ 40.000 | R$ 141,90 |
-| R$ 50.000 | R$ 189,90 |
-| R$ 60.000 | R$ 237,90 |
-| R$ 70.000 | R$ 285,90 |
-| R$ 80.000 | R$ 333,90 |
-| R$ 100.000 | R$ 429,90 |
-
-### CAMINHONETES/PICKUPS:
-| Valor FIPE (até) | Mensalidade |
-| R$ 20.000 | R$ 159,90 |
-| R$ 30.000 | R$ 200,10 |
-| R$ 40.000 | R$ 240,30 |
-| R$ 50.000 | R$ 280,50 |
-| R$ 60.000 | R$ 320,70 |
-| R$ 70.000 | R$ 360,90 |
-| R$ 80.000 | R$ 401,10 |
-| R$ 100.000 | R$ 481,50 |
-| R$ 120.000 | R$ 561,90 |
-| R$ 150.000 | R$ 682,50 |
-| R$ 200.000 | R$ 883,50 |
-| R$ 250.000 | R$ 1.084,50 |
-| R$ 300.000 | R$ 1.285,50 |
-
-### COMO COTAR:
-1. Pergunte: "Qual o tipo do veículo? (carro, moto ou caminhonete/pickup)"
-2. Pergunte: "Você sabe o valor FIPE aproximado do seu veículo?"
-3. Se não souber, pergunte marca, modelo e ano para estimar
-4. Consulte a tabela acima e informe o valor
-5. Sempre arredonde para a faixa superior se o valor estiver entre duas faixas
-6. Exemplo: Carro com FIPE de R$ 42.000 → use a faixa de R$ 45.000 → R$ 205,40/mês
-
-## 🎨 CRIATIVOS DISPONÍVEIS - USE QUANDO RELEVANTE!
-Você pode enviar materiais visuais para o cliente usando a sintaxe especial:
-[MEDIA:tipo|url|título|descrição]
-
-### Banners de Urgência:
-- Colisão/Proteção Agora: [MEDIA:image|/images/criativos/banner-colisao.png|Proteção é Agora|Não espere o pior acontecer]
-- Plano Confiável: [MEDIA:image|/images/criativos/banner-plano-confiavel.png|Proteja Antes que Seja Tarde|Conte com a tranquilidade de um plano confiável]
-
-### Benefícios (use quando explicar benefícios específicos):
-- Assistência Completa: [MEDIA:image|/images/criativos/vantagens-assistencia.png|Assistência Veicular Completa|Vantagens de ter assistência 24h]
-- Socorro na Estrada: [MEDIA:image|/images/criativos/ajuda-estrada.png|Ajuda na Estrada|Atendimento fora da cidade]
-- Eventos Natureza: [MEDIA:image|/images/criativos/eventos-natureza.png|Proteção Contra Eventos da Natureza|Cobertura para enchentes e granizo]
-- Proteção Furto: [MEDIA:image|/images/criativos/protecao-furto.png|Proteção em Caso de Furto|O que fazer se seu veículo desaparecer]
-
-### Conteúdo Educativo (use para tirar dúvidas):
-- Transferência: [MEDIA:image|/images/criativos/transferencia-veiculo.png|Transferência de Proteção|Como transferir para outro veículo]
-- Carro Vulnerável: [MEDIA:image|/images/criativos/carro-vulneravel.png|Seu Carro Está Vulnerável?|Por que vale a pena se proteger]
-- Por que Cresce: [MEDIA:image|/images/criativos/protecao-crescendo.png|Por que a Proteção Cresce?|Confiança no modelo de rateio]
-- Diferença Seguro: [MEDIA:image|/images/criativos/diferenca-seguro.png|Proteção vs Seguro Tradicional|Entenda os dois modelos]
-
-### Série "Imprevistos Acontecem" (para criar urgência/lembrar de pagar):
-- Acidente: [MEDIA:image|/images/criativos/imprevisto-mulher-acidente.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-- Batida Traseira: [MEDIA:image|/images/criativos/imprevisto-batida-traseira.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-- Vidro Quebrado: [MEDIA:image|/images/criativos/imprevisto-vidro-quebrado.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-- Colisão Frontal: [MEDIA:image|/images/criativos/imprevisto-colisao-frontal.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-- Guincho: [MEDIA:image|/images/criativos/imprevisto-guincho.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-- Enchente: [MEDIA:image|/images/criativos/imprevisto-enchente.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-- Granizo: [MEDIA:image|/images/criativos/imprevisto-granizo.jpeg|Imprevistos Acontecem|Mantenha sua contribuição em dia]
-
-### QUANDO ENVIAR CRIATIVOS:
-- Cliente pergunta sobre um benefício específico → envie a imagem do benefício
-- Cliente quer entender diferença de seguro → envie "diferenca-seguro"
-- Cliente está indeciso/quer pensar → envie banner de urgência ou "imprevisto"
-- Cliente pergunta sobre roubo/furto → envie "protecao-furto"
-- Cliente pergunta sobre assistência/guincho → envie "ajuda-estrada" ou "vantagens-assistencia"
-- Cliente pergunta sobre troca de veículo → envie "transferencia-veiculo"
-- Cliente menciona pagamento/contribuição → envie série "imprevisto" para reforçar importância
-- Cliente pergunta sobre enchente/granizo → envie "imprevisto-enchente" ou "imprevisto-granizo"
-- NÃO envie mais de 2 criativos por mensagem
-- Sempre acompanhe o criativo com uma explicação
-
-## Como resolver objeções comuns:
-
-**"É muito caro"**
-→ Compare com seguro tradicional (2-3x mais caro). Divida por dia: menos de R$ 4/dia para proteger um bem de milhares de reais. Pergunte quanto custaria o prejuízo sem proteção.
-
-**"Não confio em associação"**
-→ Explique que a Harmony Agro é regulamentada, tem anos de mercado e milhares de associados satisfeitos. O modelo de rateio é previsto no Código Civil. Ofereça mostrar depoimentos.
-
-**"Preciso pensar"**
-→ Entenda o que falta para decidir. Pergunte: "O que te impede de proteger seu veículo hoje?" Lembre que roubo/acidente não avisa - cada dia sem proteção é um risco.
-
-**"Já tenho seguro"**
-→ Pergunte o valor que paga. Mostre que pode economizar 50-70% com a mesma proteção. Quando o seguro vencer, já pode migrar.
-
-**"Meu carro é velho"**
-→ Carros mais antigos são os MAIS roubados (peças). A proteção é ainda mais importante. E a mensalidade é menor para veículos com FIPE baixo.
-
-**"Vou pesquisar outras"**
-→ Ótimo! Compare. Mas já adianto: nossa cobertura é completa, sem surpresas. Posso fazer sua cotação sem compromisso para você comparar com valor real?
-
-## Técnicas de persuasão (use naturalmente):
-- Faça perguntas que levem à reflexão: "Se seu carro fosse roubado amanhã, como você faria?"
-- Use prova social: "Milhares de pessoas já protegem seus veículos conosco"
-- Crie urgência real: "Sinistros não avisam. Cada dia sem proteção é um risco"
-- Mostre economia: "Você gasta X por mês com coisas menos importantes"
-- Simplifique a decisão: "É rápido, digital e você pode cancelar quando quiser"
-
-## Fluxo de vendas:
-1. Cumprimente e pergunte o nome
-2. Descubra se já tem veículo ou está comprando
-3. Colete: tipo (carro/moto/caminhão), marca, modelo, ano
-4. Entenda necessidades: já teve problemas? tem proteção atual?
-5. Apresente benefícios relevantes para o perfil dele (USE CRIATIVOS!)
-6. Resolva objeções com empatia
-7. Conduza para a cotação no site
+## 🎨 CRIATIVOS DISPONÍVEIS:
+[MEDIA:image|/images/criativos/banner-colisao.png|Proteção é Agora|Não espere o pior acontecer]
+[MEDIA:image|/images/criativos/vantagens-assistencia.png|Assistência Completa|24h em todo Brasil]
+[MEDIA:image|/images/criativos/protecao-furto.png|Proteção Furto|Sem carência]
+[MEDIA:image|/images/criativos/diferenca-seguro.png|Proteção vs Seguro|Entenda a diferença]
 
 ## Regras:
-- Respostas objetivas mas completas quando necessário
-- Tom profissional e confiante
+- Respostas objetivas e profissionais
 - Use emojis com moderação (1-2 por mensagem)
 - Nunca invente informações
-- Se não souber, diga que vai verificar
-- Sempre conduza para a cotação/cadastro no site
-- Não peça CPF ou dados sensíveis (isso é no cadastro)
-- ENVIE CRIATIVOS quando for relevante para ilustrar o que está explicando
-
-## Exemplos de respostas COM CRIATIVOS:
-
-Cliente: "Quanto custa?"
-Sofia: "Depende do seu veículo! 🚗 Em média fica entre R$ 89 e R$ 150/mês - bem menos que um seguro tradicional. Me conta: qual seu nome e que veículo você tem? Assim consigo te dar um valor mais preciso."
-
-Cliente: "O que está incluso?"
-Sofia: "Olha só tudo que você ganha como associado! 😊
-
-✅ Guincho 500km (ida e volta)
-✅ Carro reserva por 30 dias
-✅ Proteção de vidros
-✅ Assistência 24h
-✅ Proteção contra roubo sem carência
-
-[MEDIA:image|/images/criativos/vantagens-assistencia.png|Assistência Veicular Completa|Vantagens de ter assistência 24h]
-
-Quer que eu te mostre mais algum benefício específico?"
-
-Cliente: "E se meu carro for roubado?"
-Sofia: "Essa é uma das nossas maiores vantagens! 🔒 A proteção contra roubo e furto é IMEDIATA - sem carência! 
-
-Se acontecer, você recebe até 100% da tabela FIPE.
-
-[MEDIA:image|/images/criativos/protecao-furto.png|Proteção em Caso de Furto|O que fazer se seu veículo desaparecer]
-
-Seu veículo atual está protegido?"
-
-Cliente: "Qual a diferença pro seguro normal?"
-Sofia: "Ótima pergunta! A diferença principal é o modelo:
-
-🏢 **Seguro tradicional**: Seguradora com lucro → você paga mais
-👥 **Proteção veicular**: Rateio entre associados → custo menor, mesma proteção
-
-[MEDIA:image|/images/criativos/diferenca-seguro.png|Proteção vs Seguro Tradicional|Entenda os dois modelos]
-
-No fim, a proteção é a mesma - mas você economiza até 70%!"`;
+- Sempre conduza para a cotação/cadastro
+- Não peça CPF ou dados sensíveis`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -251,7 +237,65 @@ serve(async (req) => {
       );
     }
 
-    console.log('[chat-vendas] Processing chat with', messages.length, 'messages');
+    // Verificar se a última mensagem do usuário contém uma placa
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+    let enrichedMessages = [...messages];
+    let vehicleData: any = null;
+
+    if (lastUserMessage?.content) {
+      // Detectar placas no formato AAA1234 ou AAA1A23
+      const placaRegex = /\b([A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})\b/i;
+      const match = lastUserMessage.content.match(placaRegex);
+      
+      if (match) {
+        const placa = match[1].toUpperCase();
+        console.log(`[chat-vendas] Detected plate: ${placa}, consulting API...`);
+        
+        const result = await consultarPlaca(placa);
+        
+        if (result.success && result.data) {
+          vehicleData = result.data;
+          
+          // Determinar tipo do veículo pela marca/modelo (heurística simples)
+          let tipoVeiculo = 'carro';
+          const modeloLower = (result.data.modelo || '').toLowerCase();
+          if (modeloLower.includes('cg') || modeloLower.includes('biz') || modeloLower.includes('titan') || 
+              modeloLower.includes('factor') || modeloLower.includes('fazer') || modeloLower.includes('cb') ||
+              modeloLower.includes('ninja') || modeloLower.includes('hornet')) {
+            tipoVeiculo = 'moto';
+          } else if (modeloLower.includes('hilux') || modeloLower.includes('s10') || modeloLower.includes('ranger') ||
+                     modeloLower.includes('amarok') || modeloLower.includes('frontier') || modeloLower.includes('toro') ||
+                     modeloLower.includes('saveiro') || modeloLower.includes('strada')) {
+            tipoVeiculo = 'caminhonete';
+          }
+          
+          // Calcular mensalidade se tiver valor FIPE
+          let mensalidade: number | null = null;
+          if (result.data.valorFipe) {
+            mensalidade = calcularMensalidade(result.data.valorFipe, tipoVeiculo);
+          }
+          
+          // Adicionar dados do veículo como contexto para a IA
+          const dadosFormatados = `[DADOS_VEICULO: Placa ${result.data.placa} | ${result.data.marca} ${result.data.modelo} ${result.data.ano || ''} | Cor: ${result.data.cor || 'N/I'} | FIPE: R$ ${result.data.valorFipe ? result.data.valorFipe.toLocaleString('pt-BR') : 'N/D'} | Tipo: ${tipoVeiculo} | Mensalidade calculada: R$ ${mensalidade ? mensalidade.toFixed(2).replace('.', ',') : 'consultar'}]`;
+          
+          console.log(`[chat-vendas] Vehicle data: ${dadosFormatados}`);
+          
+          // Inserir os dados como uma mensagem de sistema adicional
+          enrichedMessages.push({
+            role: 'system',
+            content: dadosFormatados
+          });
+        } else {
+          console.log(`[chat-vendas] Plate lookup failed: ${result.error}`);
+          enrichedMessages.push({
+            role: 'system',
+            content: `[ERRO_PLACA: Não foi possível consultar a placa ${placa}. ${result.error}. Peça ao cliente para verificar se digitou corretamente ou informe os dados manualmente (marca, modelo, ano).]`
+          });
+        }
+      }
+    }
+
+    console.log('[chat-vendas] Processing chat with', enrichedMessages.length, 'messages');
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -263,11 +307,11 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          ...messages,
+          ...enrichedMessages,
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 600,
       }),
     });
 
@@ -277,25 +321,17 @@ serve(async (req) => {
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Muitas solicitações. Aguarde um momento e tente novamente.' }),
+          JSON.stringify({ error: 'Muitas solicitações. Aguarde um momento.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Serviço temporariamente indisponível.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
       return new Response(
-        JSON.stringify({ error: 'Erro ao processar sua mensagem. Tente novamente.' }),
+        JSON.stringify({ error: 'Erro ao processar. Tente novamente.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Return streaming response
     return new Response(response.body, {
       headers: { 
         ...corsHeaders, 

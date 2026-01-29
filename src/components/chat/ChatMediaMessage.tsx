@@ -1,4 +1,4 @@
-import { Download, Play, FileText, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Download, Play, FileText, Image as ImageIcon, ExternalLink, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,26 @@ export interface MediaItem {
   title: string;
   description?: string;
   thumbnail?: string;
+}
+
+// Componente de botão CTA para cotação
+export function QuotationCTAButton({ className }: { className?: string }) {
+  const handleClick = () => {
+    // Scroll para o topo e iniciar cotação
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Disparar evento customizado para iniciar cotação
+    window.dispatchEvent(new CustomEvent('start-quotation'));
+  };
+
+  return (
+    <Button 
+      onClick={handleClick}
+      className={cn("w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold", className)}
+    >
+      Fazer minha cotação
+      <ArrowRight className="ml-2 h-4 w-4" />
+    </Button>
+  );
 }
 
 interface ChatMediaMessageProps {
@@ -106,7 +126,7 @@ export function ChatMediaMessage({ media, className }: ChatMediaMessageProps) {
 }
 
 // Parse media tags from message content
-export function parseMediaFromContent(content: string): { text: string; media: MediaItem[] } {
+export function parseMediaFromContent(content: string): { text: string; media: MediaItem[]; hasQuotationLink: boolean } {
   const mediaRegex = /\[MEDIA:(\w+)\|(.*?)\|(.*?)(?:\|(.*?))?\]/g;
   const media: MediaItem[] = [];
   
@@ -123,8 +143,11 @@ export function parseMediaFromContent(content: string): { text: string; media: M
     }
   }
   
-  // Remove media tags from text
-  const text = content.replace(mediaRegex, '').trim();
+  // Check for quotation link
+  const hasQuotationLink = content.includes('[LINK_COTACAO]');
   
-  return { text, media };
+  // Remove media tags and quotation link from text
+  let text = content.replace(mediaRegex, '').replace(/\[LINK_COTACAO\]/g, '').trim();
+  
+  return { text, media, hasQuotationLink };
 }

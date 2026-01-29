@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatStream } from './useChatStream';
-import { ChatMediaMessage, parseMediaFromContent } from './ChatMediaMessage';
+import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton } from './ChatMediaMessage';
 import { cn } from '@/lib/utils';
 import sofiaAvatar from '@/assets/sofia-avatar.png';
 
@@ -125,7 +125,7 @@ export function ChatWidget() {
                 // Parse media from content
                 const parsed = msg.role === 'assistant' && msg.content 
                   ? parseMediaFromContent(msg.content)
-                  : { text: msg.content, media: [] };
+                  : { text: msg.content, media: [], hasQuotationLink: false };
                 
                 return (
                   <div
@@ -165,6 +165,11 @@ export function ChatWidget() {
                             <ChatMediaMessage key={idx} media={mediaItem} />
                           ))}
                         </div>
+                      )}
+                      
+                      {/* Quotation CTA button */}
+                      {parsed.hasQuotationLink && (
+                        <QuotationCTAButton className="mt-2" />
                       )}
                     </div>
                     {msg.role === 'user' && (
