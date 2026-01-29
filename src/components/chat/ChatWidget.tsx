@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatStream } from './useChatStream';
 import { cn } from '@/lib/utils';
+import sofiaAvatar from '@/assets/sofia-avatar.png';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,7 +56,7 @@ export function ChatWidget() {
             <X className="h-6 w-6" />
           ) : (
             <>
-              <Bot className="h-6 w-6" />
+              <img src={sofiaAvatar} alt="Sofia" className="h-8 w-8 rounded-full object-cover" />
               <span className="font-semibold text-sm hidden sm:block">Fale com a Consultora Sofia</span>
             </>
           )}
@@ -76,9 +77,7 @@ export function ChatWidget() {
           {/* Header */}
           <div className="bg-primary px-4 py-3 flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                <Bot className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img src={sofiaAvatar} alt="Sofia" className="w-10 h-10 rounded-full object-cover border-2 border-primary-foreground/30" />
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-primary" />
             </div>
             <div className="flex-1">
@@ -92,9 +91,7 @@ export function ChatWidget() {
           <ScrollArea className="flex-1 h-[320px] p-4">
             {messages.length === 0 && (
               <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="h-8 w-8 text-primary" />
-                </div>
+                <img src={sofiaAvatar} alt="Sofia" className="w-16 h-16 mx-auto mb-4 rounded-full object-cover border-2 border-primary/30" />
                 <p className="text-sm font-medium mb-1">Olá! 👋</p>
                 <p className="text-xs text-muted-foreground">
                   Sou a Sofia, sua Consultora Virtual.<br />
@@ -113,9 +110,7 @@ export function ChatWidget() {
                   )}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
+                    <img src={sofiaAvatar} alt="Sofia" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                   )}
                   <div
                     className={cn(
@@ -142,9 +137,7 @@ export function ChatWidget() {
 
               {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
                 <div className="flex gap-2 justify-start">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Bot className="h-4 w-4 text-primary" />
-                  </div>
+                  <img src={sofiaAvatar} alt="Sofia" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                   <div className="bg-muted rounded-2xl rounded-bl-md px-3 py-2">
                     <span className="flex items-center gap-1 text-muted-foreground text-sm">
                       <Loader2 className="h-3 w-3 animate-spin" />
