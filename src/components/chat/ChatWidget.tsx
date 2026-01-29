@@ -7,6 +7,7 @@ import { useChatStream } from './useChatStream';
 import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton } from './ChatMediaMessage';
 import { cn } from '@/lib/utils';
 import sofiaAvatar from '@/assets/sofia-avatar.png';
+import ReactMarkdown from 'react-markdown';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -149,7 +150,15 @@ export function ChatWidget() {
                               : "bg-muted text-foreground rounded-bl-md"
                           )}
                         >
-                          {parsed.text || (
+                          {parsed.text ? (
+                            msg.role === 'assistant' ? (
+                              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ul]:pl-4 [&>ul>li]:my-0.5 [&_strong]:text-primary [&_strong]:font-semibold">
+                                <ReactMarkdown>{parsed.text}</ReactMarkdown>
+                              </div>
+                            ) : (
+                              parsed.text
+                            )
+                          ) : (
                             <span className="flex items-center gap-1 text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
                               Digitando...
