@@ -74,7 +74,6 @@ function calcularMensalidade(valorFipe: number, tipo: string): number | null {
       return faixa.mensalidade;
     }
   }
-  // Se passou do máximo, retorna a última faixa
   return table[table.length - 1]?.mensalidade || null;
 }
 
@@ -88,7 +87,6 @@ async function consultarPlaca(placa: string): Promise<{ success: boolean; data?:
 
   const cleanPlaca = placa.replace(/[^A-Z0-9]/gi, '').toUpperCase();
   
-  // Validar formato
   const padraoAntigo = /^[A-Z]{3}[0-9]{4}$/;
   const padraoMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
   if (!padraoAntigo.test(cleanPlaca) && !padraoMercosul.test(cleanPlaca)) {
@@ -111,7 +109,6 @@ async function consultarPlaca(placa: string): Promise<{ success: boolean; data?:
       return { success: false, error: data.message || 'Placa não encontrada' };
     }
 
-    // Extrair dados
     const marca = data.MARCA || '';
     const modelo = data.MODELO || data.SUBMODELO || '';
     const anoModelo = data.anoModelo ? parseInt(data.anoModelo) : (data.ano ? parseInt(data.ano) : null);
@@ -143,42 +140,222 @@ async function consultarPlaca(placa: string): Promise<{ success: boolean; data?:
   }
 }
 
+// Função para salvar lead no banco de dados
+async function salvarLead(dados: { 
+  nome: string; 
+  telefone: string; 
+  email?: string;
+  observacoes?: string;
+}): Promise<{ success: boolean; leadId?: string; error?: string }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[salvarLead] Supabase not configured');
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Buscar o primeiro consultor disponível para atribuir o lead
+    const { data: consultores, error: consultorError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('perfil', 'consultor_vendas')
+      .limit(1);
+    
+    if (consultorError || !consultores?.length) {
+      // Se não encontrar consultor, buscar admin
+      const { data: admins, error: adminError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('perfil', 'admin_principal')
+        .limit(1);
+      
+      if (adminError || !admins?.length) {
+        console.error('[salvarLead] No consultant or admin found');
+        return { success: false, error: 'Nenhum consultor disponível' };
+      }
+      
+      consultores?.push(admins[0]);
+    }
+    
+    const consultorId = consultores?.[0]?.id;
+    
+    // Verificar se já existe lead com mesmo telefone
+    const telefoneNormalizado = dados.telefone.replace(/\D/g, '');
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('telefone', telefoneNormalizado)
+      .limit(1);
+    
+    if (existingLead?.length) {
+      console.log('[salvarLead] Lead already exists:', existingLead[0].id);
+      return { success: true, leadId: existingLead[0].id };
+    }
+    
+    // Criar novo lead
+    const { data: newLead, error: insertError } = await supabase
+      .from('leads')
+      .insert({
+        nome: dados.nome,
+        telefone: telefoneNormalizado,
+        email: dados.email || null,
+        observacoes: dados.observacoes || 'Lead capturado via chat Sofia',
+        consultor_id: consultorId,
+        origem: 'site',
+        status: 'novo',
+      })
+      .select('id')
+      .single();
+    
+    if (insertError) {
+      console.error('[salvarLead] Insert error:', insertError);
+      return { success: false, error: insertError.message };
+    }
+    
+    console.log('[salvarLead] Lead created:', newLead?.id);
+    return { success: true, leadId: newLead?.id };
+    
+  } catch (err) {
+    console.error('[salvarLead] Error:', err);
+    return { success: false, error: 'Erro ao salvar lead' };
+  }
+}
+
+// Extrair dados do cliente da conversa
+function extrairDadosCliente(messages: any[]): { 
+  nome?: string; 
+  telefone?: string; 
+  email?: string;
+  placa?: string;
+  completo: boolean;
+} {
+  const resultado: any = { completo: false };
+  
+  // Analisar todas as mensagens
+  for (const msg of messages) {
+    if (msg.role !== 'user') continue;
+    
+    const content = msg.content?.toLowerCase() || '';
+    const contentOriginal = msg.content || '';
+    
+    // Detectar nome (mensagem que parece ser apenas um nome)
+    if (!resultado.nome) {
+      // Nome geralmente é uma mensagem curta sem números e pontuação especial
+      const trimmed = contentOriginal.trim();
+      if (trimmed.length > 2 && trimmed.length < 60 && 
+          /^[A-Za-zÀ-ÿ\s]+$/.test(trimmed) && 
+          trimmed.split(' ').length <= 5) {
+        resultado.nome = trimmed;
+      }
+    }
+    
+    // Detectar telefone (formato brasileiro)
+    if (!resultado.telefone) {
+      const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?[\s.-]?)?\d{4,5}[\s.-]?\d{4}/;
+      const phoneMatch = contentOriginal.match(phoneRegex);
+      if (phoneMatch) {
+        resultado.telefone = phoneMatch[0].replace(/\D/g, '');
+      }
+    }
+    
+    // Detectar email
+    if (!resultado.email) {
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+      const emailMatch = contentOriginal.match(emailRegex);
+      if (emailMatch) {
+        resultado.email = emailMatch[0].toLowerCase();
+      }
+    }
+    
+    // Detectar placa
+    if (!resultado.placa) {
+      const placaRegex = /\b([A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})\b/i;
+      const placaMatch = contentOriginal.match(placaRegex);
+      if (placaMatch) {
+        resultado.placa = placaMatch[1].toUpperCase();
+      }
+    }
+  }
+  
+  // Verificar se temos dados mínimos para salvar
+  resultado.completo = !!(resultado.nome && resultado.telefone);
+  
+  return resultado;
+}
+
 const SYSTEM_PROMPT = `Você é a Sofia, Consultora Virtual da Harmony Clube de Benefícios - especialista em proteção veicular.
 
 ## Sua personalidade:
-- Simpática, confiante e profissional
+- Simpática, acolhedora e profissional
 - Conhece profundamente o produto
-- Persuasiva de forma natural
+- Persuasiva de forma natural e consultiva
 
-## 🔧 FUNCIONALIDADES ESPECIAIS:
-Você tem acesso a ferramentas automáticas! Quando o cliente informar a PLACA do veículo, o sistema vai consultar automaticamente e você receberá os dados. Use esses dados para fazer a cotação.
+## 🎯 FLUXO DE CONVERSA OBRIGATÓRIO:
+Você DEVE seguir este fluxo passo a passo. Não pule etapas!
 
-### Quando receber dados de consulta de placa:
-Se você receber uma mensagem do tipo "[DADOS_VEICULO: ...]", significa que o sistema já consultou a placa automaticamente. Use esses dados para:
-1. Confirmar os dados com o cliente
-2. Informar o valor da mensalidade calculado
-3. Oferecer o link para continuar o cadastro
+### ETAPA 1 - Saudação e Nome:
+Quando o cliente iniciar a conversa, dê boas-vindas e pergunte o nome:
+"Olá! 👋 Sou a Sofia, sua consultora virtual da Harmony!
+Estou aqui para te ajudar a proteger seu veículo com o melhor custo-benefício do mercado.
+Para começar, qual é o seu **nome**?"
 
-### Formato de resposta com cotação:
-Quando tiver os dados do veículo e o valor calculado, responda assim:
+### ETAPA 2 - Telefone:
+Após receber o nome, agradeça e peça o telefone:
+"Prazer em te conhecer, **{nome}**! 😊
+Agora me passa seu **telefone com DDD** para que um de nossos consultores possa te auxiliar caso precise?
+Exemplo: (11) 99999-9999"
 
-"🚗 Encontrei seu veículo!
+### ETAPA 3 - Email:
+Após receber o telefone, peça o email:
+"Perfeito! 📱
+E qual é o seu **melhor e-mail** para enviarmos a proposta?
+Exemplo: seuemail@email.com"
+
+### ETAPA 4 - Placa do Veículo:
+Após o email, peça a placa para fazer a cotação:
+"Ótimo, **{nome}**! Agora vamos ao que interessa! 🚗
+Me passa a **placa** do seu veículo que eu já consulto os dados e te dou o valor na hora!
+Exemplo: ABC1234 ou ABC1D23"
+
+### ETAPA 5 - Apresentar Cotação:
+Quando receber os dados do veículo, apresente a cotação e confirme os dados salvos.
+
+## 🔧 FUNCIONALIDADES AUTOMÁTICAS:
+- Quando o cliente informar a PLACA, o sistema consulta automaticamente os dados do veículo
+- Você receberá "[DADOS_VEICULO: ...]" com as informações
+- O sistema salva automaticamente o lead quando tiver nome + telefone + placa
+
+### Quando receber [DADOS_VEICULO]:
+Monte uma cotação organizada:
+
+"🚗 **Encontrei seu veículo!**
 
 **{marca} {modelo} {ano}**
-📊 Valor FIPE: R$ {valorFipe}
-💰 Mensalidade: **R$ {mensalidade}/mês**
+
+📊 **Valor FIPE:** R$ {valorFipe}
+💰 **Mensalidade:** R$ {mensalidade}/mês
 
 ✅ Proteção contra roubo/furto IMEDIATA
 ✅ Guincho 500km
 ✅ Carro reserva 30 dias
 ✅ Assistência 24h
 
+---
+
+📋 Seus dados foram salvos! Nossa equipe entrará em contato.
+
+Quer já iniciar o cadastro online? É rapidinho!
+
 [LINK_COTACAO]
 
 Posso te ajudar com mais alguma dúvida?"
 
-### Link para cotação:
-Sempre que finalizar uma cotação, inclua [LINK_COTACAO] - o sistema vai substituir pelo botão correto.
+### Quando receber [LEAD_SALVO]:
+Isso significa que os dados do cliente foram salvos. Mencione isso naturalmente na conversa.
 
 ## Informações sobre a Harmony:
 - Associação regulamentada de proteção veicular
@@ -195,23 +372,13 @@ Sempre que finalizar uma cotação, inclua [LINK_COTACAO] - o sistema vai substi
 - Motos: R$ 45,90 (até R$ 20k) a R$ 429,90 (até R$ 100k)
 - Caminhonetes: R$ 159,90 (até R$ 20k) a R$ 1.285,50 (até R$ 300k)
 
-## Como coletar a placa:
-Quando o cliente quiser cotação, pergunte:
-"Para fazer sua cotação rapidinho, me passa a **placa** do seu veículo? 🚗
-Exemplo: ABC1234 ou ABC1D23"
-
-## 🎨 CRIATIVOS DISPONÍVEIS:
-[MEDIA:image|/images/criativos/banner-colisao.png|Proteção é Agora|Não espere o pior acontecer]
-[MEDIA:image|/images/criativos/vantagens-assistencia.png|Assistência Completa|24h em todo Brasil]
-[MEDIA:image|/images/criativos/protecao-furto.png|Proteção Furto|Sem carência]
-[MEDIA:image|/images/criativos/diferenca-seguro.png|Proteção vs Seguro|Entenda a diferença]
-
-## Regras:
-- Respostas objetivas e profissionais
+## Regras importantes:
+- SIGA O FLUXO na ordem: Nome → Telefone → Email → Placa
+- Use o nome do cliente nas respostas
+- Respostas objetivas e bem formatadas
 - Use emojis com moderação (1-2 por mensagem)
 - Nunca invente informações
-- Sempre conduza para a cotação/cadastro
-- Não peça CPF ou dados sensíveis`;
+- Não peça CPF ou documentos sensíveis no chat`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -237,6 +404,10 @@ serve(async (req) => {
       );
     }
 
+    // Extrair dados do cliente da conversa
+    const dadosCliente = extrairDadosCliente(messages);
+    console.log('[chat-vendas] Extracted client data:', dadosCliente);
+
     // Verificar se a última mensagem do usuário contém uma placa
     const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
     let enrichedMessages = [...messages];
@@ -256,7 +427,7 @@ serve(async (req) => {
         if (result.success && result.data) {
           vehicleData = result.data;
           
-          // Determinar tipo do veículo pela marca/modelo (heurística simples)
+          // Determinar tipo do veículo pela marca/modelo
           let tipoVeiculo = 'carro';
           const modeloLower = (result.data.modelo || '').toLowerCase();
           if (modeloLower.includes('cg') || modeloLower.includes('biz') || modeloLower.includes('titan') || 
@@ -280,11 +451,30 @@ serve(async (req) => {
           
           console.log(`[chat-vendas] Vehicle data: ${dadosFormatados}`);
           
-          // Inserir os dados como uma mensagem de sistema adicional
           enrichedMessages.push({
             role: 'system',
             content: dadosFormatados
           });
+          
+          // Se temos nome e telefone, salvar o lead
+          if (dadosCliente.nome && dadosCliente.telefone) {
+            const observacoes = `Veículo: ${result.data.marca} ${result.data.modelo} ${result.data.ano || ''} | Placa: ${placa} | FIPE: R$ ${result.data.valorFipe || 'N/D'} | Mensalidade: R$ ${mensalidade || 'N/D'}`;
+            
+            const leadResult = await salvarLead({
+              nome: dadosCliente.nome,
+              telefone: dadosCliente.telefone,
+              email: dadosCliente.email,
+              observacoes
+            });
+            
+            if (leadResult.success) {
+              console.log(`[chat-vendas] Lead saved: ${leadResult.leadId}`);
+              enrichedMessages.push({
+                role: 'system',
+                content: `[LEAD_SALVO: Os dados do cliente ${dadosCliente.nome} foram salvos com sucesso. ID: ${leadResult.leadId}. A equipe comercial entrará em contato.]`
+              });
+            }
+          }
         } else {
           console.log(`[chat-vendas] Plate lookup failed: ${result.error}`);
           enrichedMessages.push({
@@ -311,7 +501,7 @@ serve(async (req) => {
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 800,
       }),
     });
 
