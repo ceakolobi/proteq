@@ -91,13 +91,32 @@ export function ChatWidget() {
           {/* Messages */}
           <ScrollArea className="flex-1 h-[320px] p-4">
             {messages.length === 0 && (
-              <div className="text-center py-8">
-                <img src={sofiaAvatar} alt="Sofia" className="w-16 h-16 mx-auto mb-4 rounded-full object-cover border-2 border-primary/30" />
+              <div className="text-center py-6">
+                <img src={sofiaAvatar} alt="Sofia" className="w-14 h-14 mx-auto mb-3 rounded-full object-cover border-2 border-primary/30" />
                 <p className="text-sm font-medium mb-1">Olá! 👋</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mb-4">
                   Sou a Sofia, sua Consultora Virtual.<br />
-                  Especialista em proteção veicular.
+                  Como posso ajudar?
                 </p>
+                
+                {/* Quick topic buttons */}
+                <div className="flex flex-wrap justify-center gap-2">
+                  {[
+                    { label: '📋 Nova Cotação', msg: 'Quero fazer uma cotação para meu veículo' },
+                    { label: '✅ Contratar Proteção', msg: 'Quero contratar a proteção veicular' },
+                    { label: '🔄 Renovação', msg: 'Quero renovar minha proteção' },
+                    { label: '❓ Tirar Dúvidas', msg: 'Tenho dúvidas sobre a proteção veicular' },
+                  ].map((topic) => (
+                    <button
+                      key={topic.label}
+                      type="button"
+                      onClick={() => sendMessage(topic.msg)}
+                      className="px-3 py-1.5 text-xs font-medium rounded-full bg-secondary/80 text-secondary-foreground hover:bg-secondary transition-colors"
+                    >
+                      {topic.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
