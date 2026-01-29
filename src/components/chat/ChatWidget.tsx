@@ -35,20 +35,38 @@ export function ChatWidget() {
 
   return (
     <>
-      {/* Chat Button */}
+      {/* Chat Button - Floating "Fale com a Sofia" */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "fixed bottom-6 right-6 z-50 rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-105",
-          "bg-primary text-primary-foreground",
-          isOpen && "rotate-90"
-        )}
-        aria-label={isOpen ? "Fechar chat" : "Abrir chat"}
+        className="fixed bottom-6 right-6 z-50 group"
+        aria-label={isOpen ? "Fechar chat" : "Abrir chat com Sofia"}
       >
-        {isOpen ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <MessageCircle className="h-6 w-6" />
+        {/* Pulse animation */}
+        {!isOpen && (
+          <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-30" />
+        )}
+        
+        <div className={cn(
+          "relative flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl transition-all duration-300",
+          "bg-primary text-primary-foreground hover:scale-105",
+          isOpen && "px-4"
+        )}>
+          {isOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <>
+              <Bot className="h-6 w-6" />
+              <span className="font-semibold text-sm hidden sm:block">Fale com a Sofia</span>
+            </>
+          )}
+        </div>
+        
+        {/* Tooltip on hover */}
+        {!isOpen && (
+          <div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-foreground text-background text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap hidden sm:block">
+            Atendente Virtual 24h
+            <div className="absolute top-full right-4 border-4 border-transparent border-t-foreground" />
+          </div>
         )}
       </button>
 

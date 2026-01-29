@@ -202,9 +202,8 @@ export default function Index() {
       
       {/* Chat de vendas com IA - sempre visível */}
       <ChatWidget />
-      
-      {/* WhatsApp flutuante - apenas na home para não conflitar com chat */}
-      {quotation.etapa === 'hero' && <WhatsAppFloat phoneNumber="5547997604371" />}
+      {/* Chat Sofia */}
+      <ChatWidget />
     </div>
   );
 }
