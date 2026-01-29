@@ -1,5 +1,5 @@
-// Catálogo de criativos da Sofia
-// Estes são os materiais que a Sofia pode enviar aos clientes
+// Catálogo de criativos da Emily
+// Estes são os materiais que a Emily pode enviar aos clientes
 
 export interface Creative {
   id: string;
@@ -9,7 +9,7 @@ export interface Creative {
   description: string;
   url: string;
   thumbnail?: string;
-  keywords: string[]; // palavras-chave para a Sofia encontrar
+  keywords: string[]; // palavras-chave para a Emily encontrar
 }
 
 // Criativos disponíveis
