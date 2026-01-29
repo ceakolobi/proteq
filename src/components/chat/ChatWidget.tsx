@@ -56,7 +56,7 @@ export function ChatWidget() {
           ) : (
             <>
               <Bot className="h-6 w-6" />
-              <span className="font-semibold text-sm hidden sm:block">Fale com a Sofia</span>
+              <span className="font-semibold text-sm hidden sm:block">Fale com a Consultora Sofia</span>
             </>
           )}
         </div>
