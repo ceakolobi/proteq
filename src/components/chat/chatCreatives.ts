@@ -4,7 +4,7 @@
 export interface Creative {
   id: string;
   type: 'image' | 'video' | 'pdf';
-  category: 'beneficio' | 'banner' | 'proposta' | 'video' | 'institucional';
+  category: 'beneficio' | 'banner' | 'proposta' | 'video' | 'institucional' | 'educativo';
   title: string;
   description: string;
   url: string;
@@ -12,137 +12,102 @@ export interface Creative {
   keywords: string[]; // palavras-chave para a Sofia encontrar
 }
 
-// URL base do storage público
-const PUBLIC_URL = 'https://sbtfhtllzpurjprivqoi.supabase.co/storage/v1/object/public';
-
 // Criativos disponíveis
-// NOTA: Adicione as URLs reais dos criativos aqui quando estiverem no storage
 export const CHAT_CREATIVES: Creative[] = [
+  // Banners de Urgência/Colisão
+  {
+    id: 'banner-colisao',
+    type: 'image',
+    category: 'banner',
+    title: 'Proteção é Agora',
+    description: 'Não espere o pior acontecer - proteja seu veículo hoje',
+    url: '/images/criativos/banner-colisao.png',
+    keywords: ['colisao', 'batida', 'acidente', 'bateu', 'colidiu', 'urgente', 'agora', 'proteger'],
+  },
+  {
+    id: 'banner-plano-confiavel',
+    type: 'image',
+    category: 'banner',
+    title: 'Proteja Antes que Seja Tarde',
+    description: 'Conte com a tranquilidade de quem tem um plano confiável',
+    url: '/images/criativos/banner-plano-confiavel.png',
+    keywords: ['plano', 'confiavel', 'tranquilidade', 'seguranca', 'proteger', 'tarde'],
+  },
+
+  // Conteúdo Educativo
+  {
+    id: 'transferencia-veiculo',
+    type: 'image',
+    category: 'educativo',
+    title: 'Transferência de Proteção',
+    description: 'Posso transferir a proteção para outro veículo? Entenda como funciona a troca de carro',
+    url: '/images/criativos/transferencia-veiculo.png',
+    keywords: ['transferir', 'transferencia', 'trocar', 'troca', 'outro carro', 'novo veiculo', 'mudar'],
+  },
+  {
+    id: 'carro-vulneravel',
+    type: 'image',
+    category: 'educativo',
+    title: 'Seu Carro Está Vulnerável?',
+    description: 'Descubra por que vale a pena se proteger agora',
+    url: '/images/criativos/carro-vulneravel.png',
+    keywords: ['vulneravel', 'desprotegido', 'sem protecao', 'risco', 'perigo'],
+  },
+  {
+    id: 'protecao-crescendo',
+    type: 'image',
+    category: 'educativo',
+    title: 'Por que a Proteção Veicular Cresce?',
+    description: 'Veja o que está por trás da confiança no modelo de rateio',
+    url: '/images/criativos/protecao-crescendo.png',
+    keywords: ['crescendo', 'cresce', 'popular', 'confianca', 'modelo', 'rateio', 'por que'],
+  },
+  {
+    id: 'diferenca-seguro',
+    type: 'image',
+    category: 'educativo',
+    title: 'Proteção vs Seguro Tradicional',
+    description: 'Qual a diferença entre proteção veicular e seguro tradicional? Entenda os dois modelos',
+    url: '/images/criativos/diferenca-seguro.png',
+    keywords: ['diferenca', 'seguro', 'tradicional', 'comparar', 'melhor', 'versus', 'vs'],
+  },
+
   // Benefícios
   {
-    id: 'beneficio-guincho',
+    id: 'vantagens-assistencia',
     type: 'image',
     category: 'beneficio',
-    title: 'Guincho 500km',
-    description: 'Cobertura de guincho incluindo 250km de ida e 250km de volta',
-    url: '/images/criativos/beneficio-guincho.jpg',
-    keywords: ['guincho', 'reboque', 'socorro', 'pane', 'quebrou', 'km', 'quilometro'],
+    title: 'Assistência Veicular Completa',
+    description: 'Vantagens de ter assistência veicular completa - tenha mais tranquilidade no dia a dia',
+    url: '/images/criativos/vantagens-assistencia.png',
+    keywords: ['assistencia', 'vantagens', 'completa', '24h', 'socorro', 'ajuda', 'tranquilidade'],
   },
   {
-    id: 'beneficio-carro-reserva',
+    id: 'ajuda-estrada',
     type: 'image',
     category: 'beneficio',
-    title: 'Carro Reserva 30 Dias',
-    description: 'Veículo reserva por até 30 dias em caso de sinistro',
-    url: '/images/criativos/beneficio-carro-reserva.jpg',
-    keywords: ['carro reserva', 'veiculo reserva', 'substituto', 'emprestado', 'sinistro'],
+    title: 'Ajuda na Estrada',
+    description: 'Precisa de ajuda na estrada? A gente resolve! Entenda como funciona o atendimento fora da cidade',
+    url: '/images/criativos/ajuda-estrada.png',
+    keywords: ['estrada', 'viagem', 'rodovia', 'fora', 'cidade', 'socorro', 'ajuda', 'pane'],
   },
   {
-    id: 'beneficio-vidros',
+    id: 'eventos-natureza',
     type: 'image',
     category: 'beneficio',
-    title: 'Proteção de Vidros',
-    description: 'Cobertura completa de para-brisa, vidros laterais e traseiro',
-    url: '/images/criativos/beneficio-vidros.jpg',
-    keywords: ['vidro', 'para-brisa', 'parabrisa', 'quebrado', 'trincado', 'pedra'],
+    title: 'Proteção Contra Eventos da Natureza',
+    description: 'Seu carro protegido contra enchentes e granizo',
+    url: '/images/criativos/eventos-natureza.png',
+    keywords: ['enchente', 'granizo', 'natureza', 'chuva', 'temporal', 'alagamento', 'clima'],
   },
   {
-    id: 'beneficio-assistencia',
+    id: 'protecao-furto',
     type: 'image',
     category: 'beneficio',
-    title: 'Assistência 24h',
-    description: 'Suporte completo 24 horas por dia, 7 dias por semana',
-    url: '/images/criativos/beneficio-assistencia.jpg',
-    keywords: ['assistencia', '24h', '24 horas', 'suporte', 'ajuda', 'socorro'],
-  },
-  {
-    id: 'beneficio-roubo',
-    type: 'image',
-    category: 'beneficio',
-    title: 'Proteção contra Roubo',
-    description: 'Cobertura imediata sem carência para roubo e furto',
-    url: '/images/criativos/beneficio-roubo.jpg',
-    keywords: ['roubo', 'furto', 'roubado', 'furtado', 'sem carencia'],
-  },
-  {
-    id: 'beneficio-colisao',
-    type: 'image',
-    category: 'beneficio',
-    title: 'Proteção Colisão',
-    description: 'Cobertura para acidentes e colisões',
-    url: '/images/criativos/beneficio-colisao.jpg',
-    keywords: ['colisao', 'batida', 'acidente', 'bateu', 'colidiu'],
-  },
-
-  // Banners Promocionais
-  {
-    id: 'banner-promocional-1',
-    type: 'image',
-    category: 'banner',
-    title: 'Promoção do Mês',
-    description: 'Arte promocional com condições especiais',
-    url: '/images/criativos/banner-promo.jpg',
-    keywords: ['promocao', 'desconto', 'oferta', 'especial', 'mes'],
-  },
-  {
-    id: 'banner-familia',
-    type: 'image',
-    category: 'banner',
-    title: 'Proteja sua Família',
-    description: 'Banner sobre proteção familiar',
-    url: '/images/criativos/banner-familia.jpg',
-    keywords: ['familia', 'proteger', 'seguranca', 'filhos', 'esposa'],
-  },
-
-  // Vídeos
-  {
-    id: 'video-explicativo',
-    type: 'video',
-    category: 'video',
-    title: 'Como Funciona a Proteção Veicular',
-    description: 'Vídeo explicando o sistema de rateio e benefícios',
-    url: 'https://www.youtube.com/watch?v=example1',
-    keywords: ['video', 'explicar', 'como funciona', 'entender', 'rateio'],
-  },
-  {
-    id: 'video-depoimento',
-    type: 'video',
-    category: 'video',
-    title: 'Depoimentos de Associados',
-    description: 'Clientes contando suas experiências com a Harmony',
-    url: 'https://www.youtube.com/watch?v=example2',
-    keywords: ['depoimento', 'cliente', 'experiencia', 'associado', 'satisfeito'],
-  },
-
-  // PDFs / Propostas
-  {
-    id: 'pdf-tabela-precos',
-    type: 'pdf',
-    category: 'proposta',
-    title: 'Tabela de Preços',
-    description: 'Tabela completa com valores por faixa FIPE',
-    url: '/templates/tabela-precos.pdf',
-    keywords: ['tabela', 'preco', 'valor', 'quanto custa', 'mensalidade'],
-  },
-  {
-    id: 'pdf-coberturas',
-    type: 'pdf',
-    category: 'proposta',
-    title: 'Detalhamento de Coberturas',
-    description: 'Documento completo com todas as coberturas oferecidas',
-    url: '/templates/coberturas.pdf',
-    keywords: ['cobertura', 'detalhe', 'inclui', 'incluso', 'beneficio'],
-  },
-
-  // Institucional
-  {
-    id: 'institucional-quem-somos',
-    type: 'image',
-    category: 'institucional',
-    title: 'Quem Somos',
-    description: 'Apresentação institucional da Harmony',
-    url: '/images/criativos/institucional.jpg',
-    keywords: ['quem somos', 'harmony', 'empresa', 'historia', 'sobre'],
+    title: 'Proteção em Caso de Furto',
+    description: 'Como é feita a proteção em caso de furto? Saiba o que fazer se seu veículo desaparecer',
+    url: '/images/criativos/protecao-furto.png',
+    keywords: ['furto', 'roubo', 'roubado', 'furtado', 'ladrão', 'sumiu', 'desapareceu'],
   },
 ];
 
