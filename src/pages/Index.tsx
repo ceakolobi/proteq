@@ -25,6 +25,7 @@ import {
   WhatsAppFloat,
   PromoBanner
 } from '@/components/landing';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
 
@@ -199,8 +200,11 @@ export default function Index() {
       {/* Footer apenas na home */}
       {quotation.etapa === 'hero' && <LandingFooter />}
       
-      {/* WhatsApp flutuante - sempre visível */}
-      <WhatsAppFloat phoneNumber="5500000000000" />
+      {/* Chat de vendas com IA - sempre visível */}
+      <ChatWidget />
+      
+      {/* WhatsApp flutuante - apenas na home para não conflitar com chat */}
+      {quotation.etapa === 'hero' && <WhatsAppFloat phoneNumber="5500000000000" />}
     </div>
   );
 }
