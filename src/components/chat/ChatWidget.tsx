@@ -43,12 +43,12 @@ export function ChatWidget() {
       >
         {/* Pulse animation */}
         {!isOpen && (
-          <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-30" />
+          <span className="absolute inset-0 rounded-full bg-secondary animate-ping opacity-30" />
         )}
         
         <div className={cn(
           "relative flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl transition-all duration-300",
-          "bg-primary text-primary-foreground hover:scale-105",
+          "bg-secondary text-secondary-foreground hover:scale-105 hover:bg-secondary/90",
           isOpen && "px-4"
         )}>
           {isOpen ? (
