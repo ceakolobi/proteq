@@ -210,9 +210,7 @@ export default function Index() {
       {/* Footer apenas na home */}
       {quotation.etapa === 'hero' && <LandingFooter />}
       
-      {/* Chat de vendas com IA - sempre visível */}
-      <ChatWidget />
-      {/* Chat Sofia */}
+      {/* Chat Emily - Consultora Virtual de vendas com IA */}
       <ChatWidget />
     </div>
   );
