@@ -4,7 +4,7 @@
 export interface Creative {
   id: string;
   type: 'image' | 'video' | 'pdf';
-  category: 'beneficio' | 'banner' | 'proposta' | 'video' | 'institucional' | 'educativo';
+  category: 'beneficio' | 'banner' | 'proposta' | 'video' | 'institucional' | 'educativo' | 'imprevisto';
   title: string;
   description: string;
   url: string;
@@ -108,6 +108,71 @@ export const CHAT_CREATIVES: Creative[] = [
     description: 'Como é feita a proteção em caso de furto? Saiba o que fazer se seu veículo desaparecer',
     url: '/images/criativos/protecao-furto.png',
     keywords: ['furto', 'roubo', 'roubado', 'furtado', 'ladrão', 'sumiu', 'desapareceu'],
+  },
+
+  // Série "Imprevistos Acontecem" - Urgência para manter pagamentos em dia
+  {
+    id: 'imprevisto-acidente',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Acidente',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-mulher-acidente.jpeg',
+    keywords: ['imprevisto', 'acidente', 'acontece', 'contribuicao', 'dia', 'transtorno', 'batida'],
+  },
+  {
+    id: 'imprevisto-batida-traseira',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Batida Traseira',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-batida-traseira.jpeg',
+    keywords: ['imprevisto', 'batida', 'traseira', 'engavetamento', 'contribuicao', 'transtorno'],
+  },
+  {
+    id: 'imprevisto-vidro',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Vidro Quebrado',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-vidro-quebrado.jpeg',
+    keywords: ['imprevisto', 'vidro', 'quebrado', 'parabrisa', 'trincado', 'pedra', 'contribuicao'],
+  },
+  {
+    id: 'imprevisto-colisao-frontal',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Colisão Frontal',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-colisao-frontal.jpeg',
+    keywords: ['imprevisto', 'colisao', 'frontal', 'acidente', 'grave', 'batida', 'perda total'],
+  },
+  {
+    id: 'imprevisto-guincho',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Guincho',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-guincho.jpeg',
+    keywords: ['imprevisto', 'guincho', 'reboque', 'pane', 'quebrou', 'socorro', 'contribuicao'],
+  },
+  {
+    id: 'imprevisto-enchente',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Enchente',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-enchente.jpeg',
+    keywords: ['imprevisto', 'enchente', 'alagamento', 'chuva', 'inundacao', 'agua', 'contribuicao'],
+  },
+  {
+    id: 'imprevisto-granizo',
+    type: 'image',
+    category: 'imprevisto',
+    title: 'Imprevistos Acontecem - Granizo',
+    description: 'Mantenha sua contribuição em dia e evite transtornos',
+    url: '/images/criativos/imprevisto-granizo.jpeg',
+    keywords: ['imprevisto', 'granizo', 'tempestade', 'pedra', 'gelo', 'amassado', 'contribuicao'],
   },
 ];
 
