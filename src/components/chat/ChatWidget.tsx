@@ -82,8 +82,8 @@ export function ChatWidget() {
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-primary" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-primary-foreground text-sm">Sofia - Atendente Virtual</p>
-              <p className="text-xs text-primary-foreground/80">Online agora</p>
+              <p className="font-semibold text-primary-foreground text-sm">Sofia - Consultora Virtual</p>
+              <p className="text-xs text-primary-foreground/80">Especialista em Proteção Veicular</p>
             </div>
             <Sparkles className="h-4 w-4 text-primary-foreground/60" />
           </div>
@@ -97,8 +97,8 @@ export function ChatWidget() {
                 </div>
                 <p className="text-sm font-medium mb-1">Olá! 👋</p>
                 <p className="text-xs text-muted-foreground">
-                  Sou a Sofia, sua atendente virtual.<br />
-                  Como posso ajudar você hoje?
+                  Sou a Sofia, sua Consultora Virtual.<br />
+                  Especialista em proteção veicular.
                 </p>
               </div>
             )}
