@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { X, Send, Loader2, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatStream } from './useChatStream';
+import { ChatMediaMessage, parseMediaFromContent } from './ChatMediaMessage';
 import { cn } from '@/lib/utils';
 import sofiaAvatar from '@/assets/sofia-avatar.png';
 
@@ -101,39 +102,60 @@ export function ChatWidget() {
             )}
 
             <div className="space-y-4">
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "flex gap-2",
-                    msg.role === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {msg.role === 'assistant' && (
-                    <img src={sofiaAvatar} alt="Sofia" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-                  )}
+              {messages.map((msg, i) => {
+                // Parse media from content
+                const parsed = msg.role === 'assistant' && msg.content 
+                  ? parseMediaFromContent(msg.content)
+                  : { text: msg.content, media: [] };
+                
+                return (
                   <div
+                    key={i}
                     className={cn(
-                      "max-w-[80%] rounded-2xl px-3 py-2 text-sm",
-                      msg.role === 'user'
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
+                      "flex gap-2",
+                      msg.role === 'user' ? "justify-end" : "justify-start"
                     )}
                   >
-                    {msg.content || (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Digitando...
-                      </span>
+                    {msg.role === 'assistant' && (
+                      <img src={sofiaAvatar} alt="Sofia" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-1" />
+                    )}
+                    <div className="max-w-[80%] space-y-2">
+                      {/* Text content */}
+                      {(parsed.text || !msg.content) && (
+                        <div
+                          className={cn(
+                            "rounded-2xl px-3 py-2 text-sm",
+                            msg.role === 'user'
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-muted text-foreground rounded-bl-md"
+                          )}
+                        >
+                          {parsed.text || (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Digitando...
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Media content */}
+                      {parsed.media.length > 0 && (
+                        <div className="space-y-2">
+                          {parsed.media.map((mediaItem, idx) => (
+                            <ChatMediaMessage key={idx} media={mediaItem} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {msg.role === 'user' && (
+                      <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-secondary-foreground" />
+                      </div>
                     )}
                   </div>
-                  {msg.role === 'user' && (
-                    <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-secondary-foreground" />
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
               {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
                 <div className="flex gap-2 justify-start">

@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
+import { MediaItem } from './ChatMediaMessage';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  media?: MediaItem[];
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-vendas`;
