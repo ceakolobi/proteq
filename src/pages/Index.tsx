@@ -44,6 +44,16 @@ export default function Index() {
     }
   }, [brand.name]);
 
+  // Listener para iniciar cotação via chat
+  useEffect(() => {
+    const handleStartQuotation = () => {
+      quotation.avancarParaDadosPessoais();
+    };
+    
+    window.addEventListener('start-quotation', handleStartQuotation);
+    return () => window.removeEventListener('start-quotation', handleStartQuotation);
+  }, [quotation]);
+
   // Renderizar etapa atual do funil
   const renderEtapa = () => {
     switch (quotation.etapa) {
