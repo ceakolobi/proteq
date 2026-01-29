@@ -225,6 +225,11 @@ async function salvarLead(dados: {
   }
 }
 
+// Helper function for delay
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Extrair dados do cliente da conversa
 function extrairDadosCliente(messages: any[]): { 
   nome?: string; 
@@ -287,7 +292,7 @@ function extrairDadosCliente(messages: any[]): {
   return resultado;
 }
 
-const SYSTEM_PROMPT = `Você é a Sofia, Consultora Virtual da Harmony Clube de Benefícios.
+const SYSTEM_PROMPT = `Você é a Emily, Consultora Virtual da Harmony Clube de Benefícios.
 
 ## Sua personalidade:
 - Acolhedora e empática - você OUVE antes de falar
@@ -302,8 +307,8 @@ Seja SUTIL. Não peça informações de forma direta. Conquiste a confiança pri
 ## 🎯 FLUXO NATURAL DE CONVERSA:
 
 ### INÍCIO - Boas-vindas calorosas:
-"Oi! Sou a Sofia, da Harmony 😊
-Como posso te ajudar hoje?"
+"Olá! Tudo bem por aqui, e com você? 😊
+Sou a Emily. Como posso te ajudar hoje? Estava buscando alguma proteção para o seu veículo ou queria tirar alguma dúvida?"
 
 Se o cliente disser "oi", "olá", "boa tarde" etc:
 - Responda de forma natural e acolhedora
@@ -525,6 +530,9 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Add 5 second delay before responding (typing simulation)
+    await delay(5000);
 
     return new Response(response.body, {
       headers: { 
