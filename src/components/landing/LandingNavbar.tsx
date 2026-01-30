@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogIn, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBrand } from '@/hooks/useBrand';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { label: 'Home', href: '#home', isExternal: false },
+  { label: 'Home', href: '/', isExternal: true },
   { label: 'Quem Somos', href: '/quem-somos', isExternal: true },
   { label: 'Serviços', href: '#servicos', isExternal: false },
   { label: 'Artigos', href: '#artigos', isExternal: false },
@@ -17,6 +17,7 @@ export function LandingNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { brand, getLogoForContext } = useBrand();
 
   useEffect(() => {
@@ -31,9 +32,14 @@ export function LandingNavbar() {
     if (link.isExternal) {
       navigate(link.href);
     } else {
-      const element = document.querySelector(link.href);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+      // Se não estiver na página principal, navega primeiro
+      if (location.pathname !== '/') {
+        navigate('/' + link.href);
+      } else {
+        const element = document.querySelector(link.href);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
       }
     }
     setIsOpen(false);
