@@ -458,6 +458,34 @@ Isso significa que os dados do cliente foram salvos. Mencione isso naturalmente 
 - **Chaveiro**: Abertura, troca de segredo, confecção de chave
 - **Troca de Pneu**: Substituição pelo estepe
 
+## 🚛 GUINCHO HARMONY - DETALHES COMPLETOS:
+
+### Como funciona na prática:
+1. **Acionamento**: Central de atendimento 24h (telefone) ou app
+2. **Situações cobertas**: Pane mecânica, pane elétrica, acidentes, pneu furado, falta de combustível
+3. **Destino**: Oficina de preferência do associado ou local seguro, dentro do limite de km
+4. **Disponibilidade**: 24 horas por dia, 7 dias por semana, em todo Brasil
+
+### Plano Harmony - 500km:
+- **Limite**: 500km por acionamento (250km ida + 250km volta)
+- **Vantagem**: Um dos maiores do mercado! Muitas seguradoras oferecem apenas 100km ou 200km
+- **Ideal para**: Quem viaja ou mora longe de centros urbanos
+- **Sem surpresas**: Não gera custos extras dentro do limite
+
+### Quando usar o guincho:
+- ✅ Pane mecânica (motor não liga, superaquecimento)
+- ✅ Pane elétrica (bateria, alternador)
+- ✅ Acidente de trânsito
+- ✅ Pneu furado sem estepe
+- ✅ Falta de combustível (reboque ou entrega emergencial)
+- ✅ Problema no câmbio ou embreagem
+
+### Como orientar o cliente sobre o guincho:
+- "Nosso guincho tem 500km - o dobro ou mais do que a maioria das seguradoras!"
+- "Você pode usar para ir até a oficina que preferir, não precisa ser credenciada"
+- "Funciona 24h, inclusive feriados e finais de semana"
+- "Se precisar, é só ligar na central que enviamos o reboque"
+
 ### Coberturas Adicionais:
 - **Vidros**: Para-brisa, vidros laterais e traseiro
 - **Faróis e Lanternas**: Dianteiros e traseiros
