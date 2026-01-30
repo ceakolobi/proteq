@@ -138,6 +138,8 @@ export function parseMediaFromContent(content: string): {
   media: MediaItem[]; 
   hasQuotationLink: boolean; 
   hasCertidaoLink: boolean;
+  hasVistoriaLink: boolean;
+  vistoriaUrl?: string;
   pixInfo?: PixInfo;
   cadastroInfo?: { email: string; senha: string };
 } {
@@ -162,6 +164,17 @@ export function parseMediaFromContent(content: string): {
   
   // Check for certidao SUSEP link
   const hasCertidaoLink = content.includes('[LINK_CERTIDAO_SUSEP]');
+  
+  // Check for vistoria link
+  const hasVistoriaLink = content.includes('[LINK_VISTORIA]');
+  
+  // Extract vistoria URL from CADASTRO_CRIADO
+  let vistoriaUrl: string | undefined;
+  const vistoriaUrlMatch = content.match(/VistoriaURL:\s*(https?:\/\/[^\s\]|]+)/);
+  if (vistoriaUrlMatch) {
+    vistoriaUrl = vistoriaUrlMatch[1].trim();
+    if (vistoriaUrl === 'N/A') vistoriaUrl = undefined;
+  }
   
   // Check for PIX link and extract info
   let pixInfo: PixInfo | undefined;
@@ -202,6 +215,7 @@ export function parseMediaFromContent(content: string): {
     .replace(/\[LINK_COTACAO\]/g, '')
     .replace(/\[LINK_CERTIDAO_SUSEP\]/g, '')
     .replace(/\[LINK_PIX_ADESAO\]/g, '')
+    .replace(/\[LINK_VISTORIA\]/g, '')
     .replace(/\[CADASTRO_CRIADO:[^\]]+\]/g, '')
     .replace(/\[LEAD_SALVO:[^\]]+\]/g, '')
     .replace(/\[DADOS_VEICULO:[^\]]+\]/g, '')
@@ -211,7 +225,7 @@ export function parseMediaFromContent(content: string): {
     .replace(/\[ERRO_[^\]]+\]/g, '')
     .trim();
   
-  return { text, media, hasQuotationLink, hasCertidaoLink, pixInfo, cadastroInfo };
+  return { text, media, hasQuotationLink, hasCertidaoLink, hasVistoriaLink, vistoriaUrl, pixInfo, cadastroInfo };
 }
 
 // Componente de botão para baixar Certidão SUSEP
@@ -286,6 +300,39 @@ export function PixAdesaoButton({ pixInfo, className }: { pixInfo?: PixInfo; cla
       
       <p className="text-[10px] text-muted-foreground mt-2">
         ⚡ Após pagamento, sua proteção é ativada em até 24h
+      </p>
+    </div>
+  );
+}
+
+// Componente de botão para vistoria
+export function VistoriaButton({ url, className }: { url: string; className?: string }) {
+  const handleClick = () => {
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className={cn("rounded-xl border border-secondary/30 bg-secondary/5 p-3 space-y-2", className)}>
+      <div className="flex items-center gap-2 text-secondary">
+        <ImageIcon className="h-5 w-5" />
+        <span className="font-semibold text-sm">Vistoria do Veículo</span>
+      </div>
+      
+      <p className="text-xs text-muted-foreground">
+        📸 Tire fotos do seu veículo para completar o cadastro
+      </p>
+      
+      <Button 
+        onClick={handleClick}
+        className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+        size="sm"
+      >
+        <ExternalLink className="mr-2 h-4 w-4" />
+        Fazer Vistoria Agora
+      </Button>
+      
+      <p className="text-[10px] text-muted-foreground">
+        ⏰ Link válido por 7 dias
       </p>
     </div>
   );

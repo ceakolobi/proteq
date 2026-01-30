@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatStream } from './useChatStream';
-import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton, CertidaoSUSEPButton, PixAdesaoButton, AccessDataCard } from './ChatMediaMessage';
+import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton, CertidaoSUSEPButton, PixAdesaoButton, AccessDataCard, VistoriaButton } from './ChatMediaMessage';
 import { cn } from '@/lib/utils';
 import emilyAvatar from '@/assets/sofia-avatar.png'; // Reusing avatar for Emily
 import ReactMarkdown from 'react-markdown';
@@ -126,7 +126,7 @@ export function ChatWidget() {
                 // Parse media from content
                 const parsed = msg.role === 'assistant' && msg.content 
                   ? parseMediaFromContent(msg.content)
-                  : { text: msg.content, media: [], hasQuotationLink: false, hasCertidaoLink: false, pixInfo: undefined, cadastroInfo: undefined };
+                  : { text: msg.content, media: [], hasQuotationLink: false, hasCertidaoLink: false, hasVistoriaLink: false, vistoriaUrl: undefined, pixInfo: undefined, cadastroInfo: undefined };
                 
                 return (
                   <div
@@ -193,6 +193,11 @@ export function ChatWidget() {
                           senha={parsed.cadastroInfo.senha} 
                           className="mt-2" 
                         />
+                      )}
+                      
+                      {/* Vistoria button */}
+                      {parsed.hasVistoriaLink && parsed.vistoriaUrl && (
+                        <VistoriaButton url={parsed.vistoriaUrl} className="mt-2" />
                       )}
                       
                       {/* PIX payment button */}
