@@ -1,4 +1,4 @@
-import { Shield, Users, Award, Handshake } from 'lucide-react';
+import { Shield, Users, Award, Handshake, Target, Eye, Heart } from 'lucide-react';
 
 const values = [
   {
@@ -20,6 +20,27 @@ const values = [
     icon: Handshake,
     title: 'Confiança',
     description: 'Fundada em 2020, com planejamento desde 2019, construindo uma história sólida.',
+  },
+];
+
+const missionVisionValues = [
+  {
+    icon: Target,
+    title: 'Nossa Missão',
+    description: 'Garantir a tranquilidade dos associados através de serviços de qualidade, proporcionando segurança e conforto. E, ademais, nos comprometendo com a satisfação de todos os envolvidos.',
+    color: 'primary',
+  },
+  {
+    icon: Eye,
+    title: 'Nossa Visão',
+    description: 'Ser referência em proteção veicular no Brasil com o reconhecimento pela excelência dos serviços prestados aos associados e colaboradores, garantindo tranquilidade a um número cada vez maior de pessoas.',
+    color: 'secondary',
+  },
+  {
+    icon: Heart,
+    title: 'Nossos Valores',
+    description: 'Respeito, ética, compromisso, qualidade, dedicação, tranquilidade ao associado e responsabilidade social.',
+    color: 'primary',
   },
 ];
 
@@ -51,6 +72,24 @@ export function QuemSomosSection() {
             veículos causados por colisão, incêndio, roubo ou furto, além de assistência 24 horas em 
             todo o território nacional. Tudo isso a um excelente custo-benefício.
           </p>
+        </div>
+
+        {/* Mission, Vision, Values */}
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {missionVisionValues.map((item, index) => (
+            <div
+              key={index}
+              className="bg-card border border-border/50 rounded-2xl p-6 text-center hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+            >
+              <div className={`w-16 h-16 bg-${item.color}/10 rounded-2xl flex items-center justify-center mx-auto mb-5`}>
+                <item.icon className={`h-8 w-8 text-${item.color}`} />
+              </div>
+              <h3 className="text-xl font-bold mb-4">{item.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {item.description}
+              </p>
+            </div>
+          ))}
         </div>
 
         {/* Values Grid */}
