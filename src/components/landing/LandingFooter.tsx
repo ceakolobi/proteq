@@ -1,4 +1,4 @@
-import { Shield, Mail, MapPin } from 'lucide-react';
+import { Shield, Mail, MapPin, Facebook, Instagram } from 'lucide-react';
 import logoHarmonyBrancaFull from '@/assets/logo-harmony-branca-full.png';
 
 export function LandingFooter() {
@@ -19,9 +19,31 @@ export function LandingFooter() {
               Proteção veicular 100% digital. Sem burocracia, sem ligações de vendedores, 
               com ativação imediata e os melhores benefícios do mercado.
             </p>
-            <div className="flex items-center gap-2 text-sm text-secondary-foreground/80">
+            <div className="flex items-center gap-2 text-sm text-secondary-foreground/80 mb-4">
               <Shield className="h-4 w-4 text-primary" />
               <span>Associação regulamentada</span>
+            </div>
+            
+            {/* Redes Sociais */}
+            <div className="flex items-center gap-3">
+              <a 
+                href="https://www.facebook.com/profile.php?id=100087681396094" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-secondary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a 
+                href="https://www.instagram.com/harmonyagro_official/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-secondary-foreground/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
             </div>
           </div>
           
