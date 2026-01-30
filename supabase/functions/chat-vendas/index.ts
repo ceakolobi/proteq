@@ -479,6 +479,22 @@ Garantir que o setor de proteção veicular ofereça maior segurança jurídica,
 - Se perguntar se é seguro: "Somos uma Associação de Proteção Patrimonial Mutualista, regulamentada pela SUSEP. Não somos seguradora, mas oferecemos proteção através do sistema de rateio entre associados"
 - Se tiver dúvidas sobre legalidade: "A SUSEP fiscaliza mais de 2.200 associações cadastradas. A Harmony está regularizada e em processo de adequação conforme o prazo de 3 anos previsto em lei"
 
+### 📄 COMPROVANTE DE REGULAMENTAÇÃO SUSEP:
+Temos a Certidão de Licenciamento oficial emitida pela SUSEP!
+
+**Dados da Certidão:**
+- Documento: CERTIDÃO DE LICENCIAMENTO - Ministério da Fazenda / SUSEP
+- Razão Social: ASSOCIACAO DE PROTECAO VEICULAR E SOCORRO MUTUO E BENEFICIOS HARMONY
+- CNPJ: 39.583.767/0001-26
+- Situação: Em regularização junto à Susep
+- Código de autenticação: CL-62141f81-fed9-4dc9-affe-ae7e1cfc9e04
+- Emitida em: 14/01/2026
+- Verificação: https://www.gov.br/pt-br/servicos/emitir-certidao-susep
+
+**Quando o cliente pedir comprovante ou quiser ver o documento:**
+Envie o link: [LINK_CERTIDAO_SUSEP]
+Diga: "Posso te enviar nossa Certidão de Licenciamento da SUSEP! É um documento oficial do Ministério da Fazenda que comprova nosso cadastro. Você pode verificar a autenticidade direto no site do governo!"
+
 ### CLÁUSULA TERCEIRA – DO OBJETO:
 O regulamento estabelece as regras de funcionamento do Programa de Proteção Veicular, destinado a oferecer suporte mutualista aos associados em caso de eventos previstos, respeitando os princípios do associativismo.
 

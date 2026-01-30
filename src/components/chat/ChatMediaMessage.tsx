@@ -126,7 +126,7 @@ export function ChatMediaMessage({ media, className }: ChatMediaMessageProps) {
 }
 
 // Parse media tags from message content
-export function parseMediaFromContent(content: string): { text: string; media: MediaItem[]; hasQuotationLink: boolean } {
+export function parseMediaFromContent(content: string): { text: string; media: MediaItem[]; hasQuotationLink: boolean; hasCertidaoLink: boolean } {
   const mediaRegex = /\[MEDIA:(\w+)\|(.*?)\|(.*?)(?:\|(.*?))?\]/g;
   const media: MediaItem[] = [];
   
@@ -146,8 +146,33 @@ export function parseMediaFromContent(content: string): { text: string; media: M
   // Check for quotation link
   const hasQuotationLink = content.includes('[LINK_COTACAO]');
   
-  // Remove media tags and quotation link from text
-  let text = content.replace(mediaRegex, '').replace(/\[LINK_COTACAO\]/g, '').trim();
+  // Check for certidao SUSEP link
+  const hasCertidaoLink = content.includes('[LINK_CERTIDAO_SUSEP]');
   
-  return { text, media, hasQuotationLink };
+  // Remove media tags and special links from text
+  let text = content
+    .replace(mediaRegex, '')
+    .replace(/\[LINK_COTACAO\]/g, '')
+    .replace(/\[LINK_CERTIDAO_SUSEP\]/g, '')
+    .trim();
+  
+  return { text, media, hasQuotationLink, hasCertidaoLink };
+}
+
+// Componente de botão para baixar Certidão SUSEP
+export function CertidaoSUSEPButton({ className }: { className?: string }) {
+  const handleClick = () => {
+    window.open('/documentos/certidao-susep.pdf', '_blank');
+  };
+
+  return (
+    <Button 
+      onClick={handleClick}
+      variant="outline"
+      className={cn("w-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground font-semibold", className)}
+    >
+      <FileText className="mr-2 h-4 w-4" />
+      Ver Certidão SUSEP
+    </Button>
+  );
 }

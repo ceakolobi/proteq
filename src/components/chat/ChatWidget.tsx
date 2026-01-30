@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatStream } from './useChatStream';
-import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton } from './ChatMediaMessage';
+import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton, CertidaoSUSEPButton } from './ChatMediaMessage';
 import { cn } from '@/lib/utils';
 import emilyAvatar from '@/assets/sofia-avatar.png'; // Reusing avatar for Emily
 import ReactMarkdown from 'react-markdown';
@@ -126,7 +126,7 @@ export function ChatWidget() {
                 // Parse media from content
                 const parsed = msg.role === 'assistant' && msg.content 
                   ? parseMediaFromContent(msg.content)
-                  : { text: msg.content, media: [], hasQuotationLink: false };
+                  : { text: msg.content, media: [], hasQuotationLink: false, hasCertidaoLink: false };
                 
                 return (
                   <div
@@ -179,6 +179,11 @@ export function ChatWidget() {
                       {/* Quotation CTA button */}
                       {parsed.hasQuotationLink && (
                         <QuotationCTAButton className="mt-2" />
+                      )}
+                      
+                      {/* Certidão SUSEP button */}
+                      {parsed.hasCertidaoLink && (
+                        <CertidaoSUSEPButton className="mt-2" />
                       )}
                     </div>
                     {msg.role === 'user' && (
