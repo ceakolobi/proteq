@@ -3153,6 +3153,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      setup_demo_user_profile: { Args: never; Returns: undefined }
       strict_company_isolation: {
         Args: { _company_id: string }
         Returns: boolean
