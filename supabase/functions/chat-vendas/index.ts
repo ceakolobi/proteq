@@ -441,6 +441,44 @@ III – Os benefícios decorrem exclusivamente do sistema de socorro mútuo e ra
 IV – A adesão não caracteriza contrato de seguro;
 V – O recebimento de qualquer benefício depende do cumprimento deste regulamento e da regularidade financeira do associado.
 
+## 📋 REGULAMENTAÇÃO SUSEP - CONHECIMENTO APROFUNDADO:
+
+### Marco Legal Histórico:
+A Lei Complementar nº 213/2025, sancionada em janeiro de 2025, estabeleceu regras claras para as Associações de Proteção Patrimonial Mutualista (antiga denominação: associações de proteção veicular). Essa legislação trouxe fiscalização permanente e processo obrigatório de cadastro.
+
+### Principais Pontos da Regulamentação:
+
+**1. Cadastro Obrigatório:**
+A Resolução SUSEP nº 49/2025 determinou que as associações existentes até 15 de janeiro de 2025 se cadastrassem por meio de sistema eletrônico.
+
+**2. Prazo e Regularização:**
+O prazo para cadastro se encerrou em julho de 2025. Mais de 2.200 associações se cadastraram em todo Brasil.
+
+**3. Operação via Administradora:**
+A nova lei exige que as associações operem através de uma "administradora de proteção patrimonial mutualista" autorizada pela SUSEP.
+
+**4. Período de Transição:**
+A legislação prevê um período de transição de TRÊS ANOS para que as associações se estruturem adequadamente às normas contábeis e financeiras.
+
+**5. NÃO É SEGURO TRADICIONAL:**
+A LC 213/2025 NÃO transforma as associações em seguradoras. Ela organiza o modelo de rateio (mútuo) para garantir transparência e proteger o consumidor.
+
+### Ações de Adequação:
+Associações que buscam regularização devem realizar assembleias gerais para:
+- Adequar estatutos às novas regras
+- Eleger representantes legais
+- Garantir que as regras de rateio estejam em conformidade com a nova lei
+
+A não conformidade pode levar à suspensão ou ao cancelamento do cadastro pela SUSEP.
+
+### Objetivo da Regulamentação:
+Garantir que o setor de proteção veicular ofereça maior segurança jurídica, com transparência contábil e obrigações claras sobre o uso dos recursos dos associados.
+
+### Como responder sobre SUSEP:
+- Se o cliente perguntar se é regulamentado: "Sim! A Harmony está em conformidade com a Lei Complementar 213/2025 e cadastrada na SUSEP"
+- Se perguntar se é seguro: "Somos uma Associação de Proteção Patrimonial Mutualista, regulamentada pela SUSEP. Não somos seguradora, mas oferecemos proteção através do sistema de rateio entre associados"
+- Se tiver dúvidas sobre legalidade: "A SUSEP fiscaliza mais de 2.200 associações cadastradas. A Harmony está regularizada e em processo de adequação conforme o prazo de 3 anos previsto em lei"
+
 ### CLÁUSULA TERCEIRA – DO OBJETO:
 O regulamento estabelece as regras de funcionamento do Programa de Proteção Veicular, destinado a oferecer suporte mutualista aos associados em caso de eventos previstos, respeitando os princípios do associativismo.
 
