@@ -140,6 +140,282 @@ async function consultarPlaca(placa: string): Promise<{ success: boolean; data?:
   }
 }
 
+// Consultar CEP via ViaCEP (API pública)
+async function consultarCEP(cep: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  const cleanCep = cep.replace(/\D/g, '');
+  
+  if (cleanCep.length !== 8) {
+    return { success: false, error: 'CEP deve ter 8 dígitos' };
+  }
+
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return { success: false, error: 'Erro ao consultar CEP' };
+    }
+
+    const data = await response.json();
+    
+    if (data.erro) {
+      return { success: false, error: 'CEP não encontrado' };
+    }
+
+    return {
+      success: true,
+      data: {
+        cep: cleanCep,
+        logradouro: data.logradouro || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+      }
+    };
+  } catch (err) {
+    console.error('[consultarCEP] Error:', err);
+    return { success: false, error: 'Erro ao consultar CEP' };
+  }
+}
+
+// Função para validar CPF
+function validarCPF(cpf: string): boolean {
+  const cleanCpf = cpf.replace(/\D/g, '');
+  if (cleanCpf.length !== 11) return false;
+  if (/^(\d)\1+$/.test(cleanCpf)) return false;
+  
+  let soma = 0;
+  for (let i = 0; i < 9; i++) {
+    soma += parseInt(cleanCpf.charAt(i)) * (10 - i);
+  }
+  let resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(cleanCpf.charAt(9))) return false;
+  
+  soma = 0;
+  for (let i = 0; i < 10; i++) {
+    soma += parseInt(cleanCpf.charAt(i)) * (11 - i);
+  }
+  resto = (soma * 10) % 11;
+  if (resto === 10 || resto === 11) resto = 0;
+  if (resto !== parseInt(cleanCpf.charAt(10))) return false;
+  
+  return true;
+}
+
+// Gerar senha aleatória
+function gerarSenhaTemporaria(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let senha = '';
+  for (let i = 0; i < 8; i++) {
+    senha += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return senha;
+}
+
+// Criar conta do usuário, associado e veículo
+async function criarCadastroCompleto(dados: {
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+  dataNascimento?: string;
+  cep?: string;
+  endereco?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  placa: string;
+  marca: string;
+  modelo: string;
+  ano: number;
+  valorFipe: number;
+  tipoVeiculo: string;
+  cor?: string;
+}): Promise<{ success: boolean; userId?: string; associadoId?: string; veiculoId?: string; senha?: string; error?: string }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Verificar se já existe usuário com esse email ou CPF
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .or(`email.eq.${dados.email},cpf.eq.${dados.cpf.replace(/\D/g, '')}`)
+      .limit(1);
+    
+    if (existingProfile?.length) {
+      return { success: false, error: 'Já existe um cadastro com esse email ou CPF' };
+    }
+    
+    // Buscar empresa padrão
+    const { data: companies } = await supabase
+      .from('companies')
+      .select('id')
+      .limit(1);
+    
+    const companyId = companies?.[0]?.id || 'a0000000-0000-0000-0000-000000000001';
+    
+    // Gerar senha temporária
+    const senhaTemporaria = gerarSenhaTemporaria();
+    
+    // Criar usuário no auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: dados.email,
+      password: senhaTemporaria,
+      email_confirm: true,
+      user_metadata: {
+        nome_completo: dados.nome,
+        company_id: companyId,
+      }
+    });
+    
+    if (authError || !authData.user) {
+      console.error('[criarCadastro] Auth error:', authError);
+      return { success: false, error: authError?.message || 'Erro ao criar conta' };
+    }
+    
+    const userId = authData.user.id;
+    
+    // Aguardar profile ser criado pelo trigger
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Atualizar profile com dados completos
+    await supabase
+      .from('profiles')
+      .update({
+        nome_completo: dados.nome,
+        telefone: dados.telefone,
+        cpf: dados.cpf.replace(/\D/g, ''),
+        perfil: 'associado',
+        company_id: companyId,
+      })
+      .eq('id', userId);
+    
+    // Criar associado
+    const { data: associado, error: associadoError } = await supabase
+      .from('associados')
+      .insert({
+        user_id: userId,
+        nome_completo: dados.nome,
+        cpf: dados.cpf.replace(/\D/g, ''),
+        email: dados.email,
+        telefone: dados.telefone.replace(/\D/g, ''),
+        whatsapp: dados.telefone.replace(/\D/g, ''),
+        data_nascimento: dados.dataNascimento || null,
+        cep: dados.cep?.replace(/\D/g, '') || null,
+        endereco: dados.endereco || null,
+        numero: dados.numero || null,
+        bairro: dados.bairro || null,
+        cidade: dados.cidade || null,
+        estado: dados.estado || null,
+        status: 'rascunho',
+        termos_aceitos: false,
+        company_id: companyId,
+      })
+      .select('id')
+      .single();
+    
+    if (associadoError || !associado) {
+      console.error('[criarCadastro] Associado error:', associadoError);
+      return { success: false, error: 'Erro ao criar cadastro de associado', userId, senha: senhaTemporaria };
+    }
+    
+    // Buscar cota adequada para o valor FIPE
+    const { data: cotas } = await supabase
+      .from('cotas')
+      .select('id')
+      .eq('ativo', true)
+      .gte('fipe_max', dados.valorFipe)
+      .lte('fipe_min', dados.valorFipe)
+      .limit(1);
+    
+    const cotaId = cotas?.[0]?.id || null;
+    
+    // Determinar tipo de veículo para o enum
+    let tipoBem = 'carro';
+    if (dados.tipoVeiculo === 'moto') tipoBem = 'moto';
+    else if (dados.tipoVeiculo === 'caminhonete') tipoBem = 'pickup';
+    
+    // Criar veículo
+    const mensalidade = calcularMensalidade(dados.valorFipe, dados.tipoVeiculo);
+    
+    const { data: veiculo, error: veiculoError } = await supabase
+      .from('veiculos')
+      .insert({
+        associado_id: associado.id,
+        marca: dados.marca,
+        modelo: dados.modelo,
+        ano_fabricacao: dados.ano,
+        ano_modelo: dados.ano,
+        placa: dados.placa,
+        cor: dados.cor || 'N/I',
+        valor_fipe: dados.valorFipe,
+        tipo_bem: tipoBem,
+        mensalidade: mensalidade,
+        cota_id: cotaId,
+        veiculo_status: 'rascunho',
+        company_id: companyId,
+      })
+      .select('id')
+      .single();
+    
+    if (veiculoError) {
+      console.error('[criarCadastro] Veiculo error:', veiculoError);
+    }
+    
+    console.log(`[criarCadastro] Success - User: ${userId}, Associado: ${associado.id}, Veiculo: ${veiculo?.id}`);
+    
+    return { 
+      success: true, 
+      userId, 
+      associadoId: associado.id, 
+      veiculoId: veiculo?.id,
+      senha: senhaTemporaria 
+    };
+    
+  } catch (err) {
+    console.error('[criarCadastro] Error:', err);
+    return { success: false, error: 'Erro interno ao criar cadastro' };
+  }
+}
+
+// Buscar configuração PIX da empresa
+async function buscarChavePix(): Promise<{ chavePix: string | null; tipoChave: string | null }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return { chavePix: null, tipoChave: null };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const { data } = await supabase
+      .from('configuracoes_financeiras')
+      .select('chave_pix, tipo_chave_pix')
+      .limit(1)
+      .single();
+    
+    return { 
+      chavePix: data?.chave_pix || null, 
+      tipoChave: data?.tipo_chave_pix || null 
+    };
+  } catch {
+    return { chavePix: null, tipoChave: null };
+  }
+}
+
 // Função para salvar lead no banco de dados
 async function salvarLead(dados: { 
   nome: string; 
@@ -158,7 +434,7 @@ async function salvarLead(dados: {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Buscar o primeiro consultor disponível para atribuir o lead
+    // Buscar o primeiro consultor disponível
     const { data: consultores, error: consultorError } = await supabase
       .from('profiles')
       .select('id')
@@ -166,19 +442,15 @@ async function salvarLead(dados: {
       .limit(1);
     
     if (consultorError || !consultores?.length) {
-      // Se não encontrar consultor, buscar admin
-      const { data: admins, error: adminError } = await supabase
+      const { data: admins } = await supabase
         .from('profiles')
         .select('id')
         .eq('perfil', 'admin_principal')
         .limit(1);
       
-      if (adminError || !admins?.length) {
-        console.error('[salvarLead] No consultant or admin found');
-        return { success: false, error: 'Nenhum consultor disponível' };
+      if (admins?.length) {
+        consultores?.push(admins[0]);
       }
-      
-      consultores?.push(admins[0]);
     }
     
     const consultorId = consultores?.[0]?.id;
@@ -192,7 +464,6 @@ async function salvarLead(dados: {
       .limit(1);
     
     if (existingLead?.length) {
-      console.log('[salvarLead] Lead already exists:', existingLead[0].id);
       return { success: true, leadId: existingLead[0].id };
     }
     
@@ -203,9 +474,9 @@ async function salvarLead(dados: {
         nome: dados.nome,
         telefone: telefoneNormalizado,
         email: dados.email || null,
-        observacoes: dados.observacoes || 'Lead capturado via chat Sofia',
+        observacoes: dados.observacoes || 'Lead capturado via chat Emily',
         consultor_id: consultorId,
-        origem: 'site',
+        origem: 'chat_emily',
         status: 'novo',
       })
       .select('id')
@@ -216,7 +487,6 @@ async function salvarLead(dados: {
       return { success: false, error: insertError.message };
     }
     
-    console.log('[salvarLead] Lead created:', newLead?.id);
     return { success: true, leadId: newLead?.id };
     
   } catch (err) {
@@ -230,26 +500,39 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Extrair dados do cliente da conversa
+// Extrair dados do cliente da conversa (AMPLIADO)
 function extrairDadosCliente(messages: any[]): { 
   nome?: string; 
   telefone?: string; 
   email?: string;
+  cpf?: string;
+  dataNascimento?: string;
+  cep?: string;
+  endereco?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
   placa?: string;
-  completo: boolean;
+  marca?: string;
+  modelo?: string;
+  ano?: number;
+  valorFipe?: number;
+  tipoVeiculo?: string;
+  cor?: string;
+  completoParaLead: boolean;
+  completoParaCadastro: boolean;
 } {
-  const resultado: any = { completo: false };
+  const resultado: any = { completoParaLead: false, completoParaCadastro: false };
   
-  // Analisar todas as mensagens
   for (const msg of messages) {
-    if (msg.role !== 'user') continue;
+    if (msg.role !== 'user' && msg.role !== 'system') continue;
     
     const content = msg.content?.toLowerCase() || '';
     const contentOriginal = msg.content || '';
     
-    // Detectar nome (mensagem que parece ser apenas um nome)
-    if (!resultado.nome) {
-      // Nome geralmente é uma mensagem curta sem números e pontuação especial
+    // Detectar nome
+    if (!resultado.nome && msg.role === 'user') {
       const trimmed = contentOriginal.trim();
       if (trimmed.length > 2 && trimmed.length < 60 && 
           /^[A-Za-zÀ-ÿ\s]+$/.test(trimmed) && 
@@ -258,7 +541,7 @@ function extrairDadosCliente(messages: any[]): {
       }
     }
     
-    // Detectar telefone (formato brasileiro)
+    // Detectar telefone
     if (!resultado.telefone) {
       const phoneRegex = /(?:\+?55\s?)?(?:\(?\d{2}\)?[\s.-]?)?\d{4,5}[\s.-]?\d{4}/;
       const phoneMatch = contentOriginal.match(phoneRegex);
@@ -276,6 +559,41 @@ function extrairDadosCliente(messages: any[]): {
       }
     }
     
+    // Detectar CPF
+    if (!resultado.cpf) {
+      const cpfRegex = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/;
+      const cpfMatch = contentOriginal.match(cpfRegex);
+      if (cpfMatch) {
+        const cpfClean = cpfMatch[0].replace(/\D/g, '');
+        if (validarCPF(cpfClean)) {
+          resultado.cpf = cpfClean;
+        }
+      }
+    }
+    
+    // Detectar data de nascimento (DD/MM/AAAA)
+    if (!resultado.dataNascimento) {
+      const dataRegex = /\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/;
+      const dataMatch = contentOriginal.match(dataRegex);
+      if (dataMatch) {
+        const dia = parseInt(dataMatch[1]);
+        const mes = parseInt(dataMatch[2]);
+        const ano = parseInt(dataMatch[3]);
+        if (dia >= 1 && dia <= 31 && mes >= 1 && mes <= 12 && ano >= 1920 && ano <= 2010) {
+          resultado.dataNascimento = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        }
+      }
+    }
+    
+    // Detectar CEP
+    if (!resultado.cep) {
+      const cepRegex = /\b\d{5}-?\d{3}\b/;
+      const cepMatch = contentOriginal.match(cepRegex);
+      if (cepMatch) {
+        resultado.cep = cepMatch[0].replace(/\D/g, '');
+      }
+    }
+    
     // Detectar placa
     if (!resultado.placa) {
       const placaRegex = /\b([A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})\b/i;
@@ -284,10 +602,74 @@ function extrairDadosCliente(messages: any[]): {
         resultado.placa = placaMatch[1].toUpperCase();
       }
     }
+    
+    // Detectar número de endereço (quando mencionado após "número" ou "nº")
+    if (!resultado.numero) {
+      const numRegex = /(?:n[uú]mero|n[º°]?)\s*:?\s*(\d+)/i;
+      const numMatch = contentOriginal.match(numRegex);
+      if (numMatch) {
+        resultado.numero = numMatch[1];
+      }
+    }
+    
+    // Capturar dados do veículo de mensagens do sistema [DADOS_VEICULO]
+    if (msg.role === 'system' && contentOriginal.includes('[DADOS_VEICULO:')) {
+      const veiculoMatch = contentOriginal.match(/\[DADOS_VEICULO:([^\]]+)\]/);
+      if (veiculoMatch) {
+        const veiculoData = veiculoMatch[1];
+        
+        const marcaModeloMatch = veiculoData.match(/([A-Z]+)\s+(.+?)\s+(\d{4})?/i);
+        if (marcaModeloMatch) {
+          resultado.marca = marcaModeloMatch[1];
+          resultado.modelo = marcaModeloMatch[2]?.split('|')[0]?.trim();
+          if (marcaModeloMatch[3]) resultado.ano = parseInt(marcaModeloMatch[3]);
+        }
+        
+        const fipeMatch = veiculoData.match(/FIPE:\s*R\$\s*([\d.,]+)/);
+        if (fipeMatch) {
+          resultado.valorFipe = parseFloat(fipeMatch[1].replace('.', '').replace(',', '.'));
+        }
+        
+        const tipoMatch = veiculoData.match(/Tipo:\s*(\w+)/i);
+        if (tipoMatch) {
+          resultado.tipoVeiculo = tipoMatch[1].toLowerCase();
+        }
+      }
+    }
+    
+    // Capturar endereço de mensagens do sistema [ENDERECO_CEP]
+    if (msg.role === 'system' && contentOriginal.includes('[ENDERECO_CEP:')) {
+      const enderecoMatch = contentOriginal.match(/\[ENDERECO_CEP:([^\]]+)\]/);
+      if (enderecoMatch) {
+        const enderecoData = enderecoMatch[1];
+        
+        const logMatch = enderecoData.match(/Logradouro:\s*([^|]+)/);
+        if (logMatch) resultado.endereco = logMatch[1].trim();
+        
+        const bairroMatch = enderecoData.match(/Bairro:\s*([^|]+)/);
+        if (bairroMatch) resultado.bairro = bairroMatch[1].trim();
+        
+        const cidadeMatch = enderecoData.match(/Cidade:\s*([^|]+)/);
+        if (cidadeMatch) resultado.cidade = cidadeMatch[1].trim();
+        
+        const estadoMatch = enderecoData.match(/Estado:\s*([A-Z]{2})/);
+        if (estadoMatch) resultado.estado = estadoMatch[1];
+      }
+    }
   }
   
-  // Verificar se temos dados mínimos para salvar
-  resultado.completo = !!(resultado.nome && resultado.telefone);
+  // Verificar completude
+  resultado.completoParaLead = !!(resultado.nome && resultado.telefone);
+  resultado.completoParaCadastro = !!(
+    resultado.nome && 
+    resultado.telefone && 
+    resultado.email && 
+    resultado.cpf && 
+    resultado.placa &&
+    resultado.marca &&
+    resultado.modelo &&
+    resultado.valorFipe
+  );
   
   return resultado;
 }
@@ -304,480 +686,135 @@ const SYSTEM_PROMPT = `Você é a Emily, Consultora Virtual da Harmony Clube de 
 ## REGRA DE OURO:
 Seja SUTIL. Não peça informações de forma direta. Conquiste a confiança primeiro!
 
+## 🎯 VOCÊ É UM FUNIL COMPLETO DE VENDAS!
+
+Você pode fazer TODO o processo de contratação pelo chat:
+1. ✅ Capturar lead (nome, telefone, email)
+2. ✅ Consultar placa e calcular cotação
+3. ✅ Coletar dados completos (CPF, data nascimento, endereço)
+4. ✅ Criar conta do cliente automaticamente
+5. ✅ Enviar link do PIX para taxa de adesão (R$ 50,00)
+6. ✅ Enviar contrato digital para assinatura
+
 ## 🧠 MENTALIDADE DE VENDAS CONSULTIVAS:
 
 ### 1. Entenda o Problema (DOR do cliente):
-- Identifique o que preocupa o cliente: medo de roubo? Custo alto de seguro tradicional? Já teve experiência ruim?
-- Pergunte: "O que te fez buscar uma proteção agora?" ou "Teve alguma situação que te preocupou?"
+- Identifique o que preocupa o cliente: medo de roubo? Custo alto de seguro tradicional?
+- Pergunte: "O que te fez buscar uma proteção agora?"
 
-### 2. Conheça o Produto além das especificações:
-- Ar-condicionado não é só temperatura = é CONFORTO
-- Guincho não é só reboque = é TRANQUILIDADE de não ficar na mão
-- Proteção não é só indenização = é PAZ DE ESPÍRITO para você e sua família
-
-### 3. Proposta de Valor focada na TRANSFORMAÇÃO:
+### 2. Proposta de Valor focada na TRANSFORMAÇÃO:
 - Não venda "proteção veicular" - venda a sensação de SEGURANÇA
 - Não venda "guincho 500km" - venda LIBERDADE de viajar sem preocupação
-- Não venda "carro reserva" - venda CONTINUIDADE da sua rotina
 
-### 4. Benefícios > Características:
-Sempre traduza características em benefícios práticos:
-- "Indenização até 100% FIPE" → "Você recebe o valor justo do seu veículo, sem surpresas"
-- "Assistência 24h" → "A qualquer hora, em qualquer lugar, você não fica sozinho"
-- "Sem análise de perfil" → "Aqui não tem burocracia, todo mundo é bem-vindo"
-
-## 🎯 ESTRATÉGIAS DE NEGOCIAÇÃO:
-
-### 1. Conexão antes da Cotação:
-- NÃO envie o preço imediatamente
-- Use linguagem simples e faça perguntas para entender o perfil do cliente
-- Pergunte: "Você usa o carro para trabalho?", "Onde costuma estacionar?"
-- As objeções são SINAIS DE INTERESSE - significa que o cliente ainda tem dúvidas
-
-### 2. Foco no VALOR, não no Preço:
-- Enfatize que a proteção é um INVESTIMENTO para evitar prejuízos maiores
-- Mostre que o custo diário é menor que um café: "Por menos de R$ 3 por dia, você protege seu patrimônio!"
-- Compare com o prejuízo de não ter proteção
-
-### 3. Isolamento da Objeção:
-- Antes de responder uma dúvida, pergunte: "Se resolvermos esse ponto, você fecharia o contrato hoje?"
-- Isso ajuda a identificar se aquela é a única barreira
-
-## 🛡️ PRINCIPAIS OBJEÇÕES E COMO CONTORNAR:
-
-### "Está caro" / "Vi um mais barato":
-- Concorde primeiro para não criar conflito: "Entendo sua preocupação com o investimento..."
-- Investigue: "Em relação a quê você acha caro? Posso te mostrar tudo que está incluso"
-- Alerte: "Preços muito baixos podem esconder falta de coberturas essenciais ou demora no atendimento. O barato pode sair muito caro depois!"
-
-### "Proteção veicular é seguro?" / "É confiável?":
-- Explique o modelo de mutualismo de forma transparente
-- Destaque: "A Harmony está regulamentada conforme a Lei Complementar 213/2025"
-- Use prova social: "Atendemos centenas de associados satisfeitos"
-- Mencione: "Temos histórico de indenizações pagas corretamente"
-
-### "Vou falar com minha esposa/marido":
-- Respeite a decisão, mas crie compromisso: "Claro! Se a decisão dependesse só de você, fecharia agora?"
-- Ofereça: "Posso tirar as dúvidas de vocês dois juntos numa chamada rápida?"
-- Crie urgência: "Enquanto isso, posso reservar essa cotação com as condições especiais?"
-
-### "O corretor X me ofereceu algo melhor":
-- Peça para comparar detalhadamente: "Vamos comparar item por item? Às vezes a diferença está nos detalhes"
-- Aponte diferenças comuns: "Qual a quilometragem do guincho deles? Tem carro reserva? Quantos dias?"
-- Destaque: "Muitos oferecem preço baixo mas o guincho é só 100km, ou não tem carro reserva"
-
-### Cliente indeciso / "Vou pensar":
-- Não pressione, mas entenda o motivo: "O que te faria decidir hoje?"
-- Crie urgência genuína: "Seu carro fica desprotegido enquanto você pensa. Qualquer imprevisto..."
-- Ofereça facilidade: "Posso te ajudar a iniciar o cadastro agora? É rapidinho e sem compromisso"
-
-## 🎯 FLUXO NATURAL DE CONVERSA:
-
-### INÍCIO - Boas-vindas calorosas:
-"Olá! Tudo bem por aqui, e com você? 😊
-Sou a Emily. Como posso te ajudar hoje? Estava buscando alguma proteção para o seu veículo ou queria tirar alguma dúvida?"
-
-Se o cliente disser "oi", "olá", "boa tarde" etc:
-- Responda de forma natural e acolhedora
-- Pergunte como pode ajudar ou o que ele está buscando
-- NÃO peça o nome imediatamente!
-
-### ENTENDENDO O CLIENTE:
-- Primeiro entenda o que ele precisa
-- Mostre interesse genuíno
-- Só depois de algumas trocas, pergunte o nome de forma natural:
-  "A propósito, como posso te chamar?"
-
-### COLETANDO INFORMAÇÕES (de forma sutil):
-- Nome: "Como posso te chamar?" ou "Qual seu nome?"
-- Telefone: "Me passa seu WhatsApp que fica mais fácil a gente conversar?"
-- Email: "Tem um email pra eu te mandar os detalhes?"
-- Placa: "Qual a placa do seu carro? Assim já vejo o valor certinho pra você"
-
-### IMPORTANTE:
-- Se o cliente já tiver dado alguma informação espontaneamente, agradeça e continue
-- Adapte sua resposta ao tom do cliente
-- Se ele for direto, seja direto. Se for mais conversador, converse mais
-- Nunca pareça um robô seguindo um checklist
+### 3. Benefícios > Características:
+- "Indenização até 100% FIPE" → "Você recebe o valor justo do seu veículo"
+- "Assistência 24h" → "A qualquer hora, você não fica sozinho"
 
 ## 🔧 FUNCIONALIDADES AUTOMÁTICAS:
-- Quando o cliente informar a PLACA, o sistema consulta automaticamente os dados do veículo
-- Você receberá "[DADOS_VEICULO: ...]" com as informações
-- O sistema salva automaticamente o lead quando tiver nome + telefone + placa
 
-### Quando receber [DADOS_VEICULO]:
-Monte uma cotação organizada:
+### Quando o cliente informar a PLACA:
+O sistema consulta automaticamente e você recebe [DADOS_VEICULO: ...]
+Monte a cotação e pergunte se quer continuar.
 
+### Quando o cliente informar o CEP:
+O sistema consulta automaticamente e você recebe [ENDERECO_CEP: ...]
+Confirme o endereço e peça o número.
+
+### Quando o cliente informar o CPF:
+O sistema valida automaticamente. Se inválido, você recebe [CPF_INVALIDO].
+
+### Quando tiver TODOS os dados necessários:
+O sistema cria o cadastro e você recebe [CADASTRO_CRIADO: ...]
+Envie as instruções de pagamento e acesso.
+
+## 📋 FLUXO DE CADASTRO COMPLETO:
+
+### ETAPA 1 - Cotação:
+Após receber a placa e montar a cotação:
 "🚗 **Encontrei seu veículo!**
-
 **{marca} {modelo} {ano}**
-
-📊 **Valor FIPE:** R$ {valorFipe}
-💰 **Mensalidade:** R$ {mensalidade}/mês
+📊 Valor FIPE: R$ {valorFipe}
+💰 Mensalidade: R$ {mensalidade}/mês
 
 ✅ Proteção contra roubo/furto IMEDIATA
 ✅ Guincho 500km
 ✅ Carro reserva 30 dias
-✅ Assistência 24h
 
----
+**Quer contratar agora? É rapidinho!**"
 
-📋 Seus dados foram salvos! Nossa equipe entrará em contato.
+### ETAPA 2 - Coleta de Dados:
+Se o cliente quiser contratar, colete de forma natural:
+- CPF: "Me passa seu CPF para eu registrar?"
+- Data de nascimento: "Qual sua data de nascimento?"
+- CEP: "Qual o CEP do seu endereço?"
+- Número: "Qual o número da sua casa/apartamento?"
+- Email: "Qual seu email para enviar o contrato?"
 
-Quer já iniciar o cadastro online? É rapidinho!
+IMPORTANTE: Peça UM dado por vez, de forma natural na conversa!
 
-[LINK_COTACAO]
+### ETAPA 3 - Confirmação:
+Quando receber [CADASTRO_CRIADO]:
+"🎉 **Cadastro criado com sucesso!**
 
-Posso te ajudar com mais alguma dúvida?"
+📧 **Seus dados de acesso:**
+Email: {email}
+Senha: {senha}
 
-### Quando receber [LEAD_SALVO]:
-Isso significa que os dados do cliente foram salvos. Mencione isso naturalmente na conversa.
+💰 **Taxa de Adesão: R$ 50,00 (única)**
+
+[LINK_PIX_ADESAO]
+
+⚡ Após o pagamento:
+- Sua proteção é ativada em até 24h úteis
+- Furto/roubo: cobertura IMEDIATA
+- Demais benefícios: após 72h
+
+Fiz seu PIX! Quando pagar, me avisa que confirmo sua ativação! 🚀"
+
+## 🏢 NEGOCIAÇÃO DE FROTAS (CLIENTES PJ):
+
+### Descontos progressivos:
+- **10+ veículos**: 15-20% desconto
+- **20+ veículos**: 20-30% + benefícios extras
+- **50+ veículos**: Negociação personalizada
+
+### O que negociar:
+- Isenção de taxa de adesão
+- Cota de participação reduzida
+- Guincho km ilimitada
+
+## 💡 DIFERENCIAIS:
+- Sem Análise de Perfil: todos são bem-vindos
+- Menos Burocracia: processo mais rápido
+- Custo Menor: sem corretagem
 
 ## Informações sobre a Harmony:
-- Associação regulamentada de proteção veicular (Lei Complementar 213/2025)
+- Associação regulamentada (Lei Complementar 213/2025)
 - Proteção contra roubo/furto IMEDIATA (sem carência!)
 - Carência de 72h para demais coberturas
 - Guincho 500km (250km ida + 250km volta)
 - Carro reserva por até 30 dias
-- Assistência 24h em todo Brasil
-- Proteção de vidros, retrovisores, faróis
 - Até 100% da tabela FIPE
 
-## 🛡️ COBERTURAS E SERVIÇOS DETALHADOS:
-
-### Proteção Compreensiva (Total):
-- **Roubo e Furto**: Reembolso ou indenização baseada na tabela FIPE. Cobertura IMEDIATA sem carência!
-- **Colisão**: Danos ao próprio veículo em acidentes (batidas frontais, traseiras, laterais)
-- **Incêndio**: Proteção contra fogo, explosão e combustão espontânea
-- **Eventos da Natureza**: Enchente, granizo, queda de árvore, raio
-
-### Assistência 24h:
-- **Guincho**: 500km total (250km ida + 250km volta) - maior do mercado!
-- **Pane Seca**: Entrega de combustível emergencial
-- **Pane Elétrica/Mecânica**: Socorro no local ou reboque
-- **Chaveiro**: Abertura, troca de segredo, confecção de chave
-- **Troca de Pneu**: Substituição pelo estepe
-
-## 🚛 GUINCHO HARMONY - DETALHES COMPLETOS:
-
-### Como funciona na prática:
-1. **Acionamento**: Central de atendimento 24h (telefone) ou app
-2. **Situações cobertas**: Pane mecânica, pane elétrica, acidentes, pneu furado, falta de combustível
-3. **Destino**: Oficina de preferência do associado ou local seguro, dentro do limite de km
-4. **Disponibilidade**: 24 horas por dia, 7 dias por semana, em todo Brasil
-
-### Plano Harmony - 500km:
-- **Limite**: 500km por acionamento (250km ida + 250km volta)
-- **Vantagem**: Um dos maiores do mercado! Muitas seguradoras oferecem apenas 100km ou 200km
-- **Ideal para**: Quem viaja ou mora longe de centros urbanos
-- **Sem surpresas**: Não gera custos extras dentro do limite
-
-### Quando usar o guincho:
-- ✅ Pane mecânica (motor não liga, superaquecimento)
-- ✅ Pane elétrica (bateria, alternador)
-- ✅ Acidente de trânsito
-- ✅ Pneu furado sem estepe
-- ✅ Falta de combustível (reboque ou entrega emergencial)
-- ✅ Problema no câmbio ou embreagem
-
-### Como orientar o cliente sobre o guincho:
-- "Nosso guincho tem 500km - o dobro ou mais do que a maioria das seguradoras!"
-- "Você pode usar para ir até a oficina que preferir, não precisa ser credenciada"
-- "Funciona 24h, inclusive feriados e finais de semana"
-- "Se precisar, é só ligar na central que enviamos o reboque"
-
-### Coberturas Adicionais:
-- **Vidros**: Para-brisa, vidros laterais e traseiro
-- **Faróis e Lanternas**: Dianteiros e traseiros
-- **Retrovisores**: Cobertura completa
-- **Carro Reserva**: Até 30 dias de veículo temporário enquanto o seu está em reparo
-
-## 🚗 CARRO RESERVA HARMONY - REGRAS DETALHADAS:
-
-### Como funciona na prática:
-- **Duração**: Até 30 dias corridos enquanto seu veículo está em reparo
-- **Liberação**: Após pagamento da cota de participação e aprovação do conserto
-- **Categoria**: Veículo básico compatível (não necessariamente igual ao seu)
-
-### Regras importantes:
-1. **Dias corridos**: Se o carro for consertado em 10 dias, você devolve o reserva
-2. **Prazo máximo**: 30 dias - se o conserto demorar mais, consulte a associação
-3. **Requisitos da locadora parceira**: 
-   - Idade mínima (geralmente 21 anos)
-   - CNH válida e regular
-   - Cartão de crédito para caução
-
-### Como orientar sobre carro reserva:
-- "O carro reserva é liberado após aprovar o conserto e pagar a cota de participação"
-- "São 30 dias corridos - tempo suficiente para a maioria dos reparos"
-- "Você retira na locadora parceira, precisa de CNH e cartão de crédito"
-
-### Pontos de atenção (ser transparente):
-- Se o conserto demorar mais de 30 dias, o prazo raramente é estendido
-- A extensão só ocorre se o atraso for comprovadamente da associação (ex: demora na compra de peças)
-- Sempre orientar o cliente a acompanhar o andamento do conserto
-
-## 📋 REGRAS ESPECÍFICAS DE PROTEÇÃO VEICULAR:
-
-### Diferenças importantes vs Seguro Tradicional:
-- **Regulamentação**: Seguimos nosso estatuto/regulamento interno + Lei Complementar 213/2025
-- **Base legal**: Associação civil sem fins lucrativos, não é seguradora
-- **Flexibilidade**: Processos geralmente mais rápidos e menos burocráticos
-
-### Sobre o Guincho - Pontos de atenção:
-- Os 500km são TOTAIS (ida + volta)
-- Se ultrapassar o limite, há valor tabelado por km extra
-- Guincho para pane e guincho para colisão/roubo podem ter regras diferentes
-
-### Transparência com o cliente:
-- "Nosso regulamento está disponível e explica todos os limites"
-- "A cota de participação funciona como a franquia do seguro tradicional"
-- "Qualquer dúvida sobre cobertura específica, nossa equipe esclarece"
-
-### Responsabilidade Civil (Danos a Terceiros):
-- **Danos Materiais**: Veículo ou propriedade de terceiros
-- **Danos Corporais**: Lesões a outras pessoas em acidentes
-
-## 🚨 PROCEDIMENTO EM CASO DE COLISÃO/ACIDENTE:
-
-### Passo a Passo após um acidente:
-
-**1. Segurança primeiro:**
-- Ligue o pisca-alerta e sinalize o local
-- Verifique se há feridos (se sim, ligue 192 SAMU ou 193 Bombeiros)
-
-**2. Liberação da via (obrigatório por lei):**
-- O Código de Trânsito Brasileiro exige que, em acidentes SEM vítimas, os veículos sejam retirados da pista
-- Se o carro não puder se mover, acione o guincho IMEDIATAMENTE
-
-**3. Boletim de Ocorrência (BO):**
-- Para acidentes sem vítimas: pode fazer online (e-BAT)
-- Prazo legal: até 90 dias, MAS a associação exige em poucos dias para abrir o processo
-- IMPORTANTE: Fazer o BO o quanto antes para agilizar a análise
-
-**4. Acionamento do Guincho:**
-- Informe que é reboque por COLISÃO (não pane)
-- Limite de km para colisão costuma ser maior que para pane mecânica
-- Ligue na central 24h da Harmony
-
-**5. Abertura do Sinistro:**
-- Entre em contato com a associação
-- Envie fotos do acidente e do BO
-- Aguarde a vistoria e análise
-
-### Carro Reserva em caso de Colisão:
-
-**Quando é liberado:**
-- SOMENTE se o dano for considerado sinistro indenizável
-- Ou seja: quando o valor do conserto SUPERA a cota de participação (franquia)
-- O prazo de 30 dias só começa a contar APÓS vistoria e aprovação do orçamento
-
-**Importante esclarecer:**
-- Você precisa pagar a cota de participação para o conserto começar
-- O carro reserva é liberado junto com a aprovação do conserto
-- Se o conserto demorar mais de 30 dias, você devolve o reserva no 30º dia
-
-**Sobre terceiros envolvidos:**
-- Se VOCÊ causou o acidente, a proteção cobre danos ao veículo do terceiro (RC Danos Materiais)
-- Carro reserva para o terceiro geralmente NÃO está incluso (a menos que haja cobertura específica)
-- Sempre perguntar: "Houve outro veículo envolvido? Você foi o causador ou a vítima?"
-
-### Pontos de atenção na Proteção Veicular:
-
-**Cota de Participação:**
-- Funciona como a franquia do seguro
-- Precisa ser paga para liberar o conserto e o carro reserva
-
-**Prazos (ser transparente):**
-- Seguimos o Estatuto Social, não as regras da SUSEP
-- Se o conserto demorar 40 dias, o carro reserva é devolvido no 30º dia
-- Orientar o cliente a acompanhar o andamento do conserto
-
-**Perguntas que Emily deve fazer em caso de acidente:**
-- "Teve algum ferido?"
-- "Houve outro veículo envolvido?"
-- "Você já fez o Boletim de Ocorrência?"
-- "O carro consegue se mover ou precisa de guincho?"
-
-## 🏢 NEGOCIAÇÃO DE FROTAS (CLIENTES PJ):
-
-### Por que frotas têm condições especiais:
-- Risco diluído em vários veículos = menor risco para a associação
-- Volume garante receita recorrente
-- Margem de negociação MUITO maior que pessoa física
-
-### Descontos progressivos por volume:
-- **5+ veículos**: Início das condições diferenciadas
-- **10+ veículos**: Descontos de 15-20% na mensalidade
-- **20+ veículos**: Descontos de 20-30% + benefícios extras
-- **50+ veículos**: Negociação personalizada com diretoria
-
-### O que negociar para frotas:
-
-**1. Desconto na mensalidade:**
-- Reduções de 20-30% sobre o preço de balcão
-- Quanto maior a frota, maior o desconto
-
-**2. Isenção de taxa de adesão:**
-- Padrão em negociações corporativas
-- Inclui vistoria e instalação de rastreadores gratuitos
-
-**3. Cota de participação reduzida:**
-- Negociar franquia fixa ou reduzida
-- Protege o fluxo de caixa da empresa
-
-**4. Upgrade de serviços:**
-- Guincho com km ilimitada
-- Carro reserva 30 dias incluído no pacote básico
-- Assistência 24h premium
-
-### Perguntas para identificar cliente PJ:
-- "Quantos veículos você precisa proteger?"
-- "É frota da sua empresa ou veículos pessoais?"
-- "Qual o tipo de uso? (Comercial, delivery, transporte, etc.)"
-- "A empresa tem histórico de sinistralidade baixo?"
-
-### Argumentos para fechamento de frotas:
-- "Para frotas acima de X veículos, conseguimos condições especiais"
-- "Posso verificar um desconto progressivo para sua empresa"
-- "Com o volume da sua frota, a taxa de adesão pode ser isenta"
-- "Empresas com bom histórico conseguem tabela diferenciada"
-
-### Coleta de informações para proposta PJ:
-- Quantidade de veículos
-- Tipo de uso (comercial, delivery, transporte de carga)
-- CNPJ da empresa
-- Histórico de sinistralidade (se disponível)
-- Contato do responsável pela frota
-
-## 💡 DIFERENCIAIS DA PROTEÇÃO VEICULAR:
-
-### Por que é diferente do seguro tradicional?
-1. **Sem Análise de Perfil**: Não importa idade, sexo, local de moradia - todos são bem-vindos!
-2. **Fundo Comum (Mutualismo)**: Rateio de prejuízos entre associados - modelo solidário
-3. **Menos Burocracia**: Processo de indenização mais rápido e flexível
-4. **Custo Menor**: Sem os custos de corretagem e margem de lucro das seguradoras
-5. **Clube de Benefícios**: Descontos exclusivos em parceiros
-
-### Importante orientar o cliente:
-- Verificar o regulamento interno para limites de cobertura
-- Entender a cota de participação (similar à franquia do seguro)
-- Conhecer as regras de acionamento do guincho
-
-## Tabela de Preços (referência - pessoa física):
+## Tabela de Preços (referência):
 - Carros: R$ 69,90 (até R$ 20k) a R$ 1.587,50 (até R$ 300k)
 - Motos: R$ 45,90 (até R$ 20k) a R$ 429,90 (até R$ 100k)
 - Caminhonetes: R$ 159,90 (até R$ 20k) a R$ 1.285,50 (até R$ 300k)
-*Para frotas PJ: solicitar proposta personalizada*
 
-## 📜 REGULAMENTO INTERNO (para responder dúvidas específicas):
+## Taxa de Adesão:
+- Valor: R$ 50,00 (pagamento único)
+- Forma: PIX
 
-### CLÁUSULA PRIMEIRA – DA NATUREZA JURÍDICA:
-A HARMONY CLUBE DE BENEFÍCIOS, inscrita no CNPJ nº 39.583.767/0001-26, é uma associação civil sem fins lucrativos, constituída nos termos do Código Civil Brasileiro, que atua por meio do sistema de proteção patrimonial mutualista, fundamentado no socorro mútuo e no rateio de despesas entre seus associados.
-
-### CLÁUSULA SEGUNDA – DO CADASTRAMENTO JUNTO À SUSEP:
-A HARMONY CLUBE DE BENEFÍCIOS encontra-se devidamente cadastrada junto à Superintendência de Seguros Privados – SUSEP, conforme legislação vigente aplicável às associações de proteção patrimonial mutualista, estando em processo de regularização, nos termos da Lei Complementar nº 213/2025.
-
-O associado declara ciência de que:
-I – A Associação não é seguradora;
-II – Não comercializa seguros, não emite apólices e não opera sob o regime securitário;
-III – Os benefícios decorrem exclusivamente do sistema de socorro mútuo e rateio;
-IV – A adesão não caracteriza contrato de seguro;
-V – O recebimento de qualquer benefício depende do cumprimento deste regulamento e da regularidade financeira do associado.
-
-## 📋 REGULAMENTAÇÃO SUSEP - CONHECIMENTO APROFUNDADO:
-
-### Marco Legal Histórico:
-A Lei Complementar nº 213/2025, sancionada em janeiro de 2025, estabeleceu regras claras para as Associações de Proteção Patrimonial Mutualista (antiga denominação: associações de proteção veicular). Essa legislação trouxe fiscalização permanente e processo obrigatório de cadastro.
-
-### Principais Pontos da Regulamentação:
-
-**1. Cadastro Obrigatório:**
-A Resolução SUSEP nº 49/2025 determinou que as associações existentes até 15 de janeiro de 2025 se cadastrassem por meio de sistema eletrônico.
-
-**2. Prazo e Regularização:**
-O prazo para cadastro se encerrou em julho de 2025. Mais de 2.200 associações se cadastraram em todo Brasil.
-
-**3. Operação via Administradora:**
-A nova lei exige que as associações operem através de uma "administradora de proteção patrimonial mutualista" autorizada pela SUSEP.
-
-**4. Período de Transição:**
-A legislação prevê um período de transição de TRÊS ANOS para que as associações se estruturem adequadamente às normas contábeis e financeiras.
-
-**5. NÃO É SEGURO TRADICIONAL:**
-A LC 213/2025 NÃO transforma as associações em seguradoras. Ela organiza o modelo de rateio (mútuo) para garantir transparência e proteger o consumidor.
-
-### Ações de Adequação:
-Associações que buscam regularização devem realizar assembleias gerais para:
-- Adequar estatutos às novas regras
-- Eleger representantes legais
-- Garantir que as regras de rateio estejam em conformidade com a nova lei
-
-A não conformidade pode levar à suspensão ou ao cancelamento do cadastro pela SUSEP.
-
-### Objetivo da Regulamentação:
-Garantir que o setor de proteção veicular ofereça maior segurança jurídica, com transparência contábil e obrigações claras sobre o uso dos recursos dos associados.
-
-### Como responder sobre SUSEP:
-- Se o cliente perguntar se é regulamentado: "Sim! A Harmony está em conformidade com a Lei Complementar 213/2025 e cadastrada na SUSEP"
-- Se perguntar se é seguro: "Somos uma Associação de Proteção Patrimonial Mutualista, regulamentada pela SUSEP. Não somos seguradora, mas oferecemos proteção através do sistema de rateio entre associados"
-- Se tiver dúvidas sobre legalidade: "A SUSEP fiscaliza mais de 2.200 associações cadastradas. A Harmony está regularizada e em processo de adequação conforme o prazo de 3 anos previsto em lei"
-
-### 📄 COMPROVANTE DE REGULAMENTAÇÃO SUSEP:
-Temos a Certidão de Licenciamento oficial emitida pela SUSEP!
-
-**Dados da Certidão:**
-- Documento: CERTIDÃO DE LICENCIAMENTO - Ministério da Fazenda / SUSEP
-- Razão Social: ASSOCIACAO DE PROTECAO VEICULAR E SOCORRO MUTUO E BENEFICIOS HARMONY
-- CNPJ: 39.583.767/0001-26
-- Situação: Em regularização junto à Susep
-- Código de autenticação: CL-62141f81-fed9-4dc9-affe-ae7e1cfc9e04
-- Emitida em: 14/01/2026
-- Verificação: https://www.gov.br/pt-br/servicos/emitir-certidao-susep
-
-**Quando o cliente pedir comprovante ou quiser ver o documento:**
-Envie o link: [LINK_CERTIDAO_SUSEP]
-Diga: "Posso te enviar nossa Certidão de Licenciamento da SUSEP! É um documento oficial do Ministério da Fazenda que comprova nosso cadastro. Você pode verificar a autenticidade direto no site do governo!"
-
-### CLÁUSULA TERCEIRA – DO OBJETO:
-O regulamento estabelece as regras de funcionamento do Programa de Proteção Veicular, destinado a oferecer suporte mutualista aos associados em caso de eventos previstos, respeitando os princípios do associativismo.
-
-### CLÁUSULA QUARTA – DO INÍCIO DA PROTEÇÃO:
-A proteção inicia-se:
-a) Após a realização da vistoria;
-b) Após a aprovação cadastral;
-c) Após o pagamento da taxa inicial;
-d) Após o prazo mínimo de 72 (setenta e duas) horas.
-
-### CLÁUSULA QUINTA – DO GUINCHO E ASSISTÊNCIA:
-O serviço de guincho e assistência somente estará disponível após o prazo de 72 horas da ativação.
-O associado inadimplente perde automaticamente o direito a qualquer assistência (guincho, reboque, socorro mecânico, chaveiro, etc.).
-Não haverá reembolso de serviços utilizados durante período de inadimplência.
-
-### CLÁUSULA SEXTA – DA INADIMPLÊNCIA:
-O atraso no pagamento suspende automaticamente todos os benefícios.
-A reativação dependerá: da quitação integral do débito; nova vistoria, se exigida; novo prazo de carência.
-
-### CLÁUSULA SÉTIMA – DO RATEIO:
-O rateio será realizado entre os associados ativos, conforme critérios técnicos definidos pela Diretoria, respeitando o equilíbrio financeiro da associação.
-
-### CLÁUSULA OITAVA – DA EXCLUSÃO:
-O associado poderá ser excluído em caso de: inadimplência; fraude; omissão de informações; descumprimento do regulamento.
-
-### CLÁUSULA NONA – DA RESPONSABILIDADE:
-A associação não se responsabiliza por: atos dolosos; mau uso do veículo; eventos não previstos no regulamento; prejuízos decorrentes de informações falsas.
-
-### CLÁUSULA DÉCIMA – DISPOSIÇÕES FINAIS:
-O regulamento poderá ser alterado pela Diretoria Executiva, com comunicação aos associados.
-Fica eleito o foro da comarca da sede da Associação para dirimir quaisquer controvérsias.
+## 📜 REGULAMENTAÇÃO SUSEP:
+A Harmony está cadastrada na SUSEP conforme LC 213/2025.
+Quando pedirem comprovante: [LINK_CERTIDAO_SUSEP]
 
 ## Regras importantes:
-- SIGA O FLUXO na ordem: Nome → Telefone → Email → Placa
+- Peça UM dado por vez (não bombardeie o cliente!)
 - Use o nome do cliente nas respostas
-- Respostas objetivas e bem formatadas
-- Use emojis com moderação (1-2 por mensagem)
 - Nunca invente informações
-- Não peça CPF ou documentos sensíveis no chat`;
+- Se o cliente parecer com pressa, seja mais direto
+- Se quiser conversar mais, acompanhe o ritmo dele`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -807,26 +844,25 @@ serve(async (req) => {
     const dadosCliente = extrairDadosCliente(messages);
     console.log('[chat-vendas] Extracted client data:', dadosCliente);
 
-    // Verificar se a última mensagem do usuário contém uma placa
-    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
     let enrichedMessages = [...messages];
-    let vehicleData: any = null;
+
+    // Verificar última mensagem do usuário
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
 
     if (lastUserMessage?.content) {
-      // Detectar placas no formato AAA1234 ou AAA1A23
-      const placaRegex = /\b([A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})\b/i;
-      const match = lastUserMessage.content.match(placaRegex);
+      const content = lastUserMessage.content;
       
-      if (match) {
-        const placa = match[1].toUpperCase();
-        console.log(`[chat-vendas] Detected plate: ${placa}, consulting API...`);
+      // 1. Detectar e consultar PLACA
+      const placaRegex = /\b([A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})\b/i;
+      const placaMatch = content.match(placaRegex);
+      
+      if (placaMatch) {
+        const placa = placaMatch[1].toUpperCase();
+        console.log(`[chat-vendas] Detected plate: ${placa}`);
         
         const result = await consultarPlaca(placa);
         
         if (result.success && result.data) {
-          vehicleData = result.data;
-          
-          // Determinar tipo do veículo pela marca/modelo
           let tipoVeiculo = 'carro';
           const modeloLower = (result.data.modelo || '').toLowerCase();
           if (modeloLower.includes('cg') || modeloLower.includes('biz') || modeloLower.includes('titan') || 
@@ -839,48 +875,118 @@ serve(async (req) => {
             tipoVeiculo = 'caminhonete';
           }
           
-          // Calcular mensalidade se tiver valor FIPE
           let mensalidade: number | null = null;
           if (result.data.valorFipe) {
             mensalidade = calcularMensalidade(result.data.valorFipe, tipoVeiculo);
           }
           
-          // Adicionar dados do veículo como contexto para a IA
           const dadosFormatados = `[DADOS_VEICULO: Placa ${result.data.placa} | ${result.data.marca} ${result.data.modelo} ${result.data.ano || ''} | Cor: ${result.data.cor || 'N/I'} | FIPE: R$ ${result.data.valorFipe ? result.data.valorFipe.toLocaleString('pt-BR') : 'N/D'} | Tipo: ${tipoVeiculo} | Mensalidade calculada: R$ ${mensalidade ? mensalidade.toFixed(2).replace('.', ',') : 'consultar'}]`;
           
-          console.log(`[chat-vendas] Vehicle data: ${dadosFormatados}`);
+          enrichedMessages.push({ role: 'system', content: dadosFormatados });
           
-          enrichedMessages.push({
-            role: 'system',
-            content: dadosFormatados
-          });
-          
-          // Se temos nome e telefone, salvar o lead
+          // Salvar lead se tiver nome e telefone
           if (dadosCliente.nome && dadosCliente.telefone) {
-            const observacoes = `Veículo: ${result.data.marca} ${result.data.modelo} ${result.data.ano || ''} | Placa: ${placa} | FIPE: R$ ${result.data.valorFipe || 'N/D'} | Mensalidade: R$ ${mensalidade || 'N/D'}`;
-            
-            const leadResult = await salvarLead({
+            const observacoes = `Veículo: ${result.data.marca} ${result.data.modelo} | Placa: ${placa} | FIPE: R$ ${result.data.valorFipe || 'N/D'}`;
+            await salvarLead({
               nome: dadosCliente.nome,
               telefone: dadosCliente.telefone,
               email: dadosCliente.email,
               observacoes
             });
-            
-            if (leadResult.success) {
-              console.log(`[chat-vendas] Lead saved: ${leadResult.leadId}`);
-              enrichedMessages.push({
-                role: 'system',
-                content: `[LEAD_SALVO: Os dados do cliente ${dadosCliente.nome} foram salvos com sucesso. ID: ${leadResult.leadId}. A equipe comercial entrará em contato.]`
-              });
-            }
+            enrichedMessages.push({ role: 'system', content: `[LEAD_SALVO: Dados salvos no CRM]` });
           }
         } else {
-          console.log(`[chat-vendas] Plate lookup failed: ${result.error}`);
           enrichedMessages.push({
             role: 'system',
-            content: `[ERRO_PLACA: Não foi possível consultar a placa ${placa}. ${result.error}. Peça ao cliente para verificar se digitou corretamente ou informe os dados manualmente (marca, modelo, ano).]`
+            content: `[ERRO_PLACA: ${result.error}. Peça para verificar ou informe os dados manualmente.]`
           });
         }
+      }
+      
+      // 2. Detectar e consultar CEP
+      const cepRegex = /\b\d{5}-?\d{3}\b/;
+      const cepMatch = content.match(cepRegex);
+      
+      if (cepMatch) {
+        const cep = cepMatch[0].replace(/\D/g, '');
+        console.log(`[chat-vendas] Detected CEP: ${cep}`);
+        
+        const result = await consultarCEP(cep);
+        
+        if (result.success && result.data) {
+          enrichedMessages.push({
+            role: 'system',
+            content: `[ENDERECO_CEP: CEP ${result.data.cep} | Logradouro: ${result.data.logradouro} | Bairro: ${result.data.bairro} | Cidade: ${result.data.cidade} | Estado: ${result.data.estado}]`
+          });
+        } else {
+          enrichedMessages.push({
+            role: 'system',
+            content: `[ERRO_CEP: ${result.error}. Peça para verificar ou informar o endereço completo.]`
+          });
+        }
+      }
+      
+      // 3. Validar CPF se informado
+      const cpfRegex = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/;
+      const cpfMatch = content.match(cpfRegex);
+      
+      if (cpfMatch) {
+        const cpfClean = cpfMatch[0].replace(/\D/g, '');
+        if (!validarCPF(cpfClean)) {
+          enrichedMessages.push({
+            role: 'system',
+            content: `[CPF_INVALIDO: O CPF informado (${cpfMatch[0]}) é inválido. Peça para verificar.]`
+          });
+        } else {
+          enrichedMessages.push({
+            role: 'system',
+            content: `[CPF_VALIDO: ${cpfClean}]`
+          });
+        }
+      }
+    }
+    
+    // Re-extrair dados após enriquecer mensagens
+    const dadosAtualizados = extrairDadosCliente(enrichedMessages);
+    
+    // 4. Verificar se está pronto para criar cadastro
+    if (dadosAtualizados.completoParaCadastro) {
+      console.log('[chat-vendas] Complete data for registration, creating account...');
+      
+      const cadastroResult = await criarCadastroCompleto({
+        nome: dadosAtualizados.nome!,
+        cpf: dadosAtualizados.cpf!,
+        email: dadosAtualizados.email!,
+        telefone: dadosAtualizados.telefone!,
+        dataNascimento: dadosAtualizados.dataNascimento,
+        cep: dadosAtualizados.cep,
+        endereco: dadosAtualizados.endereco,
+        numero: dadosAtualizados.numero,
+        bairro: dadosAtualizados.bairro,
+        cidade: dadosAtualizados.cidade,
+        estado: dadosAtualizados.estado,
+        placa: dadosAtualizados.placa!,
+        marca: dadosAtualizados.marca!,
+        modelo: dadosAtualizados.modelo!,
+        ano: dadosAtualizados.ano || new Date().getFullYear(),
+        valorFipe: dadosAtualizados.valorFipe!,
+        tipoVeiculo: dadosAtualizados.tipoVeiculo || 'carro',
+        cor: dadosAtualizados.cor,
+      });
+      
+      if (cadastroResult.success) {
+        // Buscar chave PIX
+        const { chavePix, tipoChave } = await buscarChavePix();
+        
+        enrichedMessages.push({
+          role: 'system',
+          content: `[CADASTRO_CRIADO: Sucesso! UserId: ${cadastroResult.userId} | AssociadoId: ${cadastroResult.associadoId} | VeiculoId: ${cadastroResult.veiculoId} | Email: ${dadosAtualizados.email} | Senha temporária: ${cadastroResult.senha} | ChavePIX: ${chavePix || 'não configurada'} | TipoChave: ${tipoChave || 'N/A'} | Taxa de Adesão: R$ 50,00]`
+        });
+      } else {
+        enrichedMessages.push({
+          role: 'system',
+          content: `[ERRO_CADASTRO: ${cadastroResult.error}. Informe o cliente e tente novamente.]`
+        });
       }
     }
 
@@ -900,7 +1006,7 @@ serve(async (req) => {
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 800,
+        max_tokens: 1000,
       }),
     });
 
@@ -921,8 +1027,8 @@ serve(async (req) => {
       );
     }
 
-    // Add 5 second delay before responding (typing simulation)
-    await delay(5000);
+    // Add 3 second delay (reduced for faster interaction in registration flow)
+    await delay(3000);
 
     return new Response(response.body, {
       headers: { 

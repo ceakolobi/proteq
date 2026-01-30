@@ -1,6 +1,7 @@
-import { Download, Play, FileText, Image as ImageIcon, ExternalLink, ArrowRight } from 'lucide-react';
+import { Download, Play, FileText, Image as ImageIcon, ExternalLink, ArrowRight, QrCode, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export interface MediaItem {
   type: 'image' | 'video' | 'pdf';
@@ -8,6 +9,12 @@ export interface MediaItem {
   title: string;
   description?: string;
   thumbnail?: string;
+}
+
+export interface PixInfo {
+  chavePix: string;
+  tipoChave: string;
+  valor: number;
 }
 
 // Componente de botão CTA para cotação
@@ -126,7 +133,14 @@ export function ChatMediaMessage({ media, className }: ChatMediaMessageProps) {
 }
 
 // Parse media tags from message content
-export function parseMediaFromContent(content: string): { text: string; media: MediaItem[]; hasQuotationLink: boolean; hasCertidaoLink: boolean } {
+export function parseMediaFromContent(content: string): { 
+  text: string; 
+  media: MediaItem[]; 
+  hasQuotationLink: boolean; 
+  hasCertidaoLink: boolean;
+  pixInfo?: PixInfo;
+  cadastroInfo?: { email: string; senha: string };
+} {
   const mediaRegex = /\[MEDIA:(\w+)\|(.*?)\|(.*?)(?:\|(.*?))?\]/g;
   const media: MediaItem[] = [];
   
@@ -149,14 +163,55 @@ export function parseMediaFromContent(content: string): { text: string; media: M
   // Check for certidao SUSEP link
   const hasCertidaoLink = content.includes('[LINK_CERTIDAO_SUSEP]');
   
+  // Check for PIX link and extract info
+  let pixInfo: PixInfo | undefined;
+  const pixMatch = content.match(/\[LINK_PIX_ADESAO\]/);
+  if (pixMatch) {
+    // Try to extract PIX details from CADASTRO_CRIADO message in conversation
+    const cadastroMatch = content.match(/ChavePIX:\s*([^|]+)\s*\|\s*TipoChave:\s*([^|]+)\s*\|\s*Taxa de Adesão:\s*R\$\s*([\d,.]+)/);
+    if (cadastroMatch) {
+      pixInfo = {
+        chavePix: cadastroMatch[1].trim(),
+        tipoChave: cadastroMatch[2].trim(),
+        valor: parseFloat(cadastroMatch[3].replace(',', '.'))
+      };
+    } else {
+      // Default PIX info
+      pixInfo = {
+        chavePix: '',
+        tipoChave: 'CPF',
+        valor: 50
+      };
+    }
+  }
+  
+  // Check for cadastro info
+  let cadastroInfo: { email: string; senha: string } | undefined;
+  const emailMatch = content.match(/Email:\s*([^\s\n]+)/);
+  const senhaMatch = content.match(/Senha:\s*([^\s\n]+)/);
+  if (emailMatch && senhaMatch) {
+    cadastroInfo = {
+      email: emailMatch[1],
+      senha: senhaMatch[1]
+    };
+  }
+  
   // Remove media tags and special links from text
   let text = content
     .replace(mediaRegex, '')
     .replace(/\[LINK_COTACAO\]/g, '')
     .replace(/\[LINK_CERTIDAO_SUSEP\]/g, '')
+    .replace(/\[LINK_PIX_ADESAO\]/g, '')
+    .replace(/\[CADASTRO_CRIADO:[^\]]+\]/g, '')
+    .replace(/\[LEAD_SALVO:[^\]]+\]/g, '')
+    .replace(/\[DADOS_VEICULO:[^\]]+\]/g, '')
+    .replace(/\[ENDERECO_CEP:[^\]]+\]/g, '')
+    .replace(/\[CPF_VALIDO:[^\]]+\]/g, '')
+    .replace(/\[CPF_INVALIDO:[^\]]+\]/g, '')
+    .replace(/\[ERRO_[^\]]+\]/g, '')
     .trim();
   
-  return { text, media, hasQuotationLink, hasCertidaoLink };
+  return { text, media, hasQuotationLink, hasCertidaoLink, pixInfo, cadastroInfo };
 }
 
 // Componente de botão para baixar Certidão SUSEP
@@ -174,5 +229,125 @@ export function CertidaoSUSEPButton({ className }: { className?: string }) {
       <FileText className="mr-2 h-4 w-4" />
       Ver Certidão SUSEP
     </Button>
+  );
+}
+
+// Componente de botão PIX para adesão
+export function PixAdesaoButton({ pixInfo, className }: { pixInfo?: PixInfo; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    if (pixInfo?.chavePix) {
+      await navigator.clipboard.writeText(pixInfo.chavePix);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className={cn("rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2", className)}>
+      <div className="flex items-center gap-2 text-primary">
+        <QrCode className="h-5 w-5" />
+        <span className="font-semibold text-sm">Pagamento via PIX</span>
+      </div>
+      
+      <div className="text-2xl font-bold text-primary">
+        R$ {pixInfo?.valor?.toFixed(2).replace('.', ',') || '50,00'}
+      </div>
+      
+      {pixInfo?.chavePix && pixInfo.chavePix !== 'não configurada' ? (
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">
+            Chave PIX ({pixInfo.tipoChave}):
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-background rounded px-2 py-1.5 truncate border">
+              {pixInfo.chavePix}
+            </code>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-2"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-primary" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Entre em contato para receber a chave PIX
+        </p>
+      )}
+      
+      <p className="text-[10px] text-muted-foreground mt-2">
+        ⚡ Após pagamento, sua proteção é ativada em até 24h
+      </p>
+    </div>
+  );
+}
+
+// Componente para mostrar dados de acesso
+export function AccessDataCard({ email, senha, className }: { email: string; senha: string; className?: string }) {
+  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedSenha, setCopiedSenha] = useState(false);
+  
+  const handleCopy = async (text: string, type: 'email' | 'senha') => {
+    await navigator.clipboard.writeText(text);
+    if (type === 'email') {
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    } else {
+      setCopiedSenha(true);
+      setTimeout(() => setCopiedSenha(false), 2000);
+    }
+  };
+
+  return (
+    <div className={cn("rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2", className)}>
+      <div className="flex items-center gap-2 text-primary">
+        <Check className="h-5 w-5" />
+        <span className="font-semibold text-sm">Seus dados de acesso</span>
+      </div>
+      
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground w-12">Email:</span>
+          <code className="flex-1 text-xs bg-background rounded px-2 py-1 truncate border">
+            {email}
+          </code>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={() => handleCopy(email, 'email')}
+          >
+            {copiedEmail ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground w-12">Senha:</span>
+          <code className="flex-1 text-xs bg-background rounded px-2 py-1 truncate border font-mono">
+            {senha}
+          </code>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            onClick={() => handleCopy(senha, 'senha')}
+          >
+            {copiedSenha ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
+          </Button>
+        </div>
+      </div>
+      
+      <p className="text-[10px] text-muted-foreground">
+        📧 Guarde esses dados! Você pode alterar a senha depois.
+      </p>
+    </div>
   );
 }
