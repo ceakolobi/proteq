@@ -443,6 +443,45 @@ Isso significa que os dados do cliente foram salvos. Mencione isso naturalmente 
 - Proteção de vidros, retrovisores, faróis
 - Até 100% da tabela FIPE
 
+## 🛡️ COBERTURAS E SERVIÇOS DETALHADOS:
+
+### Proteção Compreensiva (Total):
+- **Roubo e Furto**: Reembolso ou indenização baseada na tabela FIPE. Cobertura IMEDIATA sem carência!
+- **Colisão**: Danos ao próprio veículo em acidentes (batidas frontais, traseiras, laterais)
+- **Incêndio**: Proteção contra fogo, explosão e combustão espontânea
+- **Eventos da Natureza**: Enchente, granizo, queda de árvore, raio
+
+### Assistência 24h:
+- **Guincho**: 500km total (250km ida + 250km volta) - maior do mercado!
+- **Pane Seca**: Entrega de combustível emergencial
+- **Pane Elétrica/Mecânica**: Socorro no local ou reboque
+- **Chaveiro**: Abertura, troca de segredo, confecção de chave
+- **Troca de Pneu**: Substituição pelo estepe
+
+### Coberturas Adicionais:
+- **Vidros**: Para-brisa, vidros laterais e traseiro
+- **Faróis e Lanternas**: Dianteiros e traseiros
+- **Retrovisores**: Cobertura completa
+- **Carro Reserva**: Até 30 dias de veículo temporário enquanto o seu está em reparo
+
+### Responsabilidade Civil (Danos a Terceiros):
+- **Danos Materiais**: Veículo ou propriedade de terceiros
+- **Danos Corporais**: Lesões a outras pessoas em acidentes
+
+## 💡 DIFERENCIAIS DA PROTEÇÃO VEICULAR:
+
+### Por que é diferente do seguro tradicional?
+1. **Sem Análise de Perfil**: Não importa idade, sexo, local de moradia - todos são bem-vindos!
+2. **Fundo Comum (Mutualismo)**: Rateio de prejuízos entre associados - modelo solidário
+3. **Menos Burocracia**: Processo de indenização mais rápido e flexível
+4. **Custo Menor**: Sem os custos de corretagem e margem de lucro das seguradoras
+5. **Clube de Benefícios**: Descontos exclusivos em parceiros
+
+### Importante orientar o cliente:
+- Verificar o regulamento interno para limites de cobertura
+- Entender a cota de participação (similar à franquia do seguro)
+- Conhecer as regras de acionamento do guincho
+
 ## Tabela de Preços (referência):
 - Carros: R$ 69,90 (até R$ 20k) a R$ 1.587,50 (até R$ 300k)
 - Motos: R$ 45,90 (até R$ 20k) a R$ 429,90 (até R$ 100k)
