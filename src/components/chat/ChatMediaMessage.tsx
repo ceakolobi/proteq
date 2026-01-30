@@ -2,6 +2,7 @@ import { Download, Play, FileText, Image as ImageIcon, ExternalLink, ArrowRight,
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export interface MediaItem {
   type: 'image' | 'video' | 'pdf';
@@ -246,9 +247,66 @@ export function CertidaoSUSEPButton({ className }: { className?: string }) {
   );
 }
 
-// Componente de botão PIX para adesão
+// Gerar payload PIX Copia e Cola (padrão EMV)
+function generatePixPayload(chavePix: string, valor: number, nomeRecebedor: string = 'Harmony Agro'): string {
+  // Formato simplificado do PIX Copia e Cola
+  // Para um PIX real, seria necessário usar a API do banco
+  // Este gera um payload básico para demonstração
+  const formatValue = (id: string, value: string) => {
+    const len = value.length.toString().padStart(2, '0');
+    return `${id}${len}${value}`;
+  };
+  
+  // Payload básico - para produção usar biblioteca pix-payload
+  const pixKey = chavePix;
+  const amount = valor.toFixed(2);
+  
+  // Merchant Account Information (ID 26)
+  const gui = formatValue('00', 'br.gov.bcb.pix');
+  const key = formatValue('01', pixKey);
+  const merchantAccountInfo = formatValue('26', gui + key);
+  
+  // Outros campos obrigatórios
+  const payloadFormat = formatValue('00', '01');
+  const merchantCategoryCode = formatValue('52', '0000');
+  const transactionCurrency = formatValue('53', '986');
+  const transactionAmount = formatValue('54', amount);
+  const countryCode = formatValue('58', 'BR');
+  const merchantName = formatValue('59', nomeRecebedor.substring(0, 25));
+  const merchantCity = formatValue('60', 'SAO PAULO');
+  
+  // CRC placeholder
+  let payload = payloadFormat + merchantAccountInfo + merchantCategoryCode + 
+                transactionCurrency + transactionAmount + countryCode + 
+                merchantName + merchantCity + '6304';
+  
+  // Calcular CRC16 (simplificado - em produção usar cálculo real)
+  const crc = crc16CCITT(payload);
+  
+  return payload + crc;
+}
+
+// CRC16-CCITT para PIX
+function crc16CCITT(str: string): string {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if (crc & 0x8000) {
+        crc = (crc << 1) ^ 0x1021;
+      } else {
+        crc <<= 1;
+      }
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+// Componente de botão PIX para adesão com QR Code
 export function PixAdesaoButton({ pixInfo, className }: { pixInfo?: PixInfo; className?: string }) {
   const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(true);
   
   const handleCopy = async () => {
     if (pixInfo?.chavePix) {
@@ -258,30 +316,74 @@ export function PixAdesaoButton({ pixInfo, className }: { pixInfo?: PixInfo; cla
     }
   };
 
+  const pixPayload = pixInfo?.chavePix && pixInfo.chavePix !== 'não configurada'
+    ? generatePixPayload(pixInfo.chavePix, pixInfo?.valor || 50)
+    : null;
+
   return (
-    <div className={cn("rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2", className)}>
-      <div className="flex items-center gap-2 text-primary">
-        <QrCode className="h-5 w-5" />
-        <span className="font-semibold text-sm">Pagamento via PIX</span>
+    <div className={cn("rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3", className)}>
+      <div className="text-center">
+        <p className="text-sm font-medium text-muted-foreground mb-1">
+          Mostre esse código QR para quem vai te pagar
+        </p>
       </div>
       
-      <div className="text-2xl font-bold text-primary">
-        R$ {pixInfo?.valor?.toFixed(2).replace('.', ',') || '50,00'}
-      </div>
-      
-      {pixInfo?.chavePix && pixInfo.chavePix !== 'não configurada' ? (
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">
-            Chave PIX ({pixInfo.tipoChave}):
+      {/* QR Code */}
+      {pixPayload && showQR ? (
+        <div className="flex justify-center p-4 bg-background rounded-lg">
+          <QRCodeSVG 
+            value={pixPayload}
+            size={180}
+            level="M"
+            includeMargin={false}
+            bgColor="transparent"
+            fgColor="currentColor"
+            className="text-foreground"
+          />
+        </div>
+      ) : pixInfo?.chavePix && pixInfo.chavePix !== 'não configurada' ? (
+        <div className="flex justify-center p-4 bg-background rounded-lg">
+          <QRCodeSVG 
+            value={pixInfo.chavePix}
+            size={180}
+            level="M"
+            includeMargin={false}
+            bgColor="transparent"
+            fgColor="currentColor"
+            className="text-foreground"
+          />
+        </div>
+      ) : (
+        <div className="flex justify-center p-8 bg-muted rounded-lg">
+          <div className="text-center text-muted-foreground">
+            <QrCode className="h-16 w-16 mx-auto mb-2 opacity-30" />
+            <p className="text-xs">Chave PIX não configurada</p>
           </div>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs bg-background rounded px-2 py-1.5 truncate border">
+        </div>
+      )}
+      
+      {/* Valor */}
+      <div className="text-center">
+        <div className="text-3xl font-bold text-foreground">
+          R$ {pixInfo?.valor?.toFixed(2).replace('.', ',') || '50,00'}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">Taxa de Adesão</p>
+      </div>
+      
+      {/* Chave PIX */}
+      {pixInfo?.chavePix && pixInfo.chavePix !== 'não configurada' && (
+        <div className="space-y-2 pt-2 border-t border-border/50">
+          <div className="text-xs text-muted-foreground text-center">
+            Chave PIX ({pixInfo.tipoChave})
+          </div>
+          <div className="flex items-center gap-2 bg-background rounded-lg p-2">
+            <code className="flex-1 text-xs truncate text-center">
               {pixInfo.chavePix}
             </code>
             <Button
               size="sm"
-              variant="outline"
-              className="h-8 px-2"
+              variant="ghost"
+              className="h-7 w-7 p-0 shrink-0"
               onClick={handleCopy}
             >
               {copied ? (
@@ -292,13 +394,9 @@ export function PixAdesaoButton({ pixInfo, className }: { pixInfo?: PixInfo; cla
             </Button>
           </div>
         </div>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          Entre em contato para receber a chave PIX
-        </p>
       )}
       
-      <p className="text-[10px] text-muted-foreground mt-2">
+      <p className="text-[10px] text-muted-foreground text-center pt-2">
         ⚡ Após pagamento, sua proteção é ativada em até 24h
       </p>
     </div>
