@@ -17,7 +17,6 @@ import {
   CadastroContaForm,
   DocumentosUploadForm,
   LandingNavbar,
-  QuemSomosSection,
   ServicosSection,
   ArtigosSection,
   ContatoSection,
@@ -62,7 +61,6 @@ export default function Index() {
           <>
             <HeroSection onStart={quotation.avancarParaDadosPessoais} />
             <PromoBanner onStart={quotation.avancarParaDadosPessoais} />
-            <QuemSomosSection />
             <ServicosSection onStart={quotation.avancarParaDadosPessoais} />
             <DigitalNativeSection onStart={quotation.avancarParaDadosPessoais} />
             <ComoFuncionaSection />
