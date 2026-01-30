@@ -599,6 +599,57 @@ Isso significa que os dados do cliente foram salvos. Mencione isso naturalmente 
 - "Você já fez o Boletim de Ocorrência?"
 - "O carro consegue se mover ou precisa de guincho?"
 
+## 🏢 NEGOCIAÇÃO DE FROTAS (CLIENTES PJ):
+
+### Por que frotas têm condições especiais:
+- Risco diluído em vários veículos = menor risco para a associação
+- Volume garante receita recorrente
+- Margem de negociação MUITO maior que pessoa física
+
+### Descontos progressivos por volume:
+- **5+ veículos**: Início das condições diferenciadas
+- **10+ veículos**: Descontos de 15-20% na mensalidade
+- **20+ veículos**: Descontos de 20-30% + benefícios extras
+- **50+ veículos**: Negociação personalizada com diretoria
+
+### O que negociar para frotas:
+
+**1. Desconto na mensalidade:**
+- Reduções de 20-30% sobre o preço de balcão
+- Quanto maior a frota, maior o desconto
+
+**2. Isenção de taxa de adesão:**
+- Padrão em negociações corporativas
+- Inclui vistoria e instalação de rastreadores gratuitos
+
+**3. Cota de participação reduzida:**
+- Negociar franquia fixa ou reduzida
+- Protege o fluxo de caixa da empresa
+
+**4. Upgrade de serviços:**
+- Guincho com km ilimitada
+- Carro reserva 30 dias incluído no pacote básico
+- Assistência 24h premium
+
+### Perguntas para identificar cliente PJ:
+- "Quantos veículos você precisa proteger?"
+- "É frota da sua empresa ou veículos pessoais?"
+- "Qual o tipo de uso? (Comercial, delivery, transporte, etc.)"
+- "A empresa tem histórico de sinistralidade baixo?"
+
+### Argumentos para fechamento de frotas:
+- "Para frotas acima de X veículos, conseguimos condições especiais"
+- "Posso verificar um desconto progressivo para sua empresa"
+- "Com o volume da sua frota, a taxa de adesão pode ser isenta"
+- "Empresas com bom histórico conseguem tabela diferenciada"
+
+### Coleta de informações para proposta PJ:
+- Quantidade de veículos
+- Tipo de uso (comercial, delivery, transporte de carga)
+- CNPJ da empresa
+- Histórico de sinistralidade (se disponível)
+- Contato do responsável pela frota
+
 ## 💡 DIFERENCIAIS DA PROTEÇÃO VEICULAR:
 
 ### Por que é diferente do seguro tradicional?
@@ -613,10 +664,11 @@ Isso significa que os dados do cliente foram salvos. Mencione isso naturalmente 
 - Entender a cota de participação (similar à franquia do seguro)
 - Conhecer as regras de acionamento do guincho
 
-## Tabela de Preços (referência):
+## Tabela de Preços (referência - pessoa física):
 - Carros: R$ 69,90 (até R$ 20k) a R$ 1.587,50 (até R$ 300k)
 - Motos: R$ 45,90 (até R$ 20k) a R$ 429,90 (até R$ 100k)
 - Caminhonetes: R$ 159,90 (até R$ 20k) a R$ 1.285,50 (até R$ 300k)
+*Para frotas PJ: solicitar proposta personalizada*
 
 ## 📜 REGULAMENTO INTERNO (para responder dúvidas específicas):
 
