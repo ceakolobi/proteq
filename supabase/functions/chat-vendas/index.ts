@@ -215,6 +215,59 @@ function gerarSenhaTemporaria(): string {
   return senha;
 }
 
+// Criar vistoria com token de acesso público
+async function criarVistoriaComToken(dados: {
+  veiculoId: string;
+  companyId: string;
+}): Promise<{ success: boolean; vistoriaId?: string; token?: string; error?: string }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Gerar token único e definir expiração (7 dias)
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    
+    // Criar vistoria
+    const { data: vistoria, error } = await supabase
+      .from('vistorias')
+      .insert({
+        veiculo_id: dados.veiculoId,
+        status: 'pendente',
+        tipo_vistoria: 'pre_adesao',
+        token_acesso: token,
+        token_expires_at: expiresAt.toISOString(),
+        company_id: dados.companyId,
+      })
+      .select('id, token_acesso')
+      .single();
+    
+    if (error || !vistoria) {
+      console.error('[criarVistoria] Error:', error);
+      return { success: false, error: 'Erro ao criar vistoria' };
+    }
+    
+    console.log(`[criarVistoria] Success - VistoriaId: ${vistoria.id}, Token: ${token}`);
+    
+    return { 
+      success: true, 
+      vistoriaId: vistoria.id, 
+      token: vistoria.token_acesso 
+    };
+    
+  } catch (err) {
+    console.error('[criarVistoria] Error:', err);
+    return { success: false, error: 'Erro interno ao criar vistoria' };
+  }
+}
+
 // Criar conta do usuário, associado e veículo
 async function criarCadastroCompleto(dados: {
   nome: string;
@@ -235,7 +288,16 @@ async function criarCadastroCompleto(dados: {
   valorFipe: number;
   tipoVeiculo: string;
   cor?: string;
-}): Promise<{ success: boolean; userId?: string; associadoId?: string; veiculoId?: string; senha?: string; error?: string }> {
+}): Promise<{ 
+  success: boolean; 
+  userId?: string; 
+  associadoId?: string; 
+  veiculoId?: string; 
+  vistoriaId?: string;
+  vistoriaToken?: string;
+  senha?: string; 
+  error?: string 
+}> {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -355,15 +417,14 @@ async function criarCadastroCompleto(dados: {
         associado_id: associado.id,
         marca: dados.marca,
         modelo: dados.modelo,
-        ano_fabricacao: dados.ano,
-        ano_modelo: dados.ano,
+        ano: dados.ano,
         placa: dados.placa,
         cor: dados.cor || 'N/I',
         valor_fipe: dados.valorFipe,
-        tipo_bem: tipoBem,
+        tipo: tipoBem,
         mensalidade: mensalidade,
         cota_id: cotaId,
-        veiculo_status: 'rascunho',
+        veiculo_status: 'aguardando_vistoria',
         company_id: companyId,
       })
       .select('id')
@@ -373,13 +434,31 @@ async function criarCadastroCompleto(dados: {
       console.error('[criarCadastro] Veiculo error:', veiculoError);
     }
     
-    console.log(`[criarCadastro] Success - User: ${userId}, Associado: ${associado.id}, Veiculo: ${veiculo?.id}`);
+    // Criar vistoria com token de acesso
+    let vistoriaId: string | undefined;
+    let vistoriaToken: string | undefined;
+    
+    if (veiculo?.id) {
+      const vistoriaResult = await criarVistoriaComToken({
+        veiculoId: veiculo.id,
+        companyId,
+      });
+      
+      if (vistoriaResult.success) {
+        vistoriaId = vistoriaResult.vistoriaId;
+        vistoriaToken = vistoriaResult.token;
+      }
+    }
+    
+    console.log(`[criarCadastro] Success - User: ${userId}, Associado: ${associado.id}, Veiculo: ${veiculo?.id}, Vistoria: ${vistoriaId}`);
     
     return { 
       success: true, 
       userId, 
       associadoId: associado.id, 
       veiculoId: veiculo?.id,
+      vistoriaId,
+      vistoriaToken,
       senha: senhaTemporaria 
     };
     
@@ -760,16 +839,21 @@ Quando receber [CADASTRO_CRIADO]:
 Email: {email}
 Senha: {senha}
 
+📸 **Próximo passo: Vistoria do veículo**
+Acesse o link abaixo e tire as fotos do seu veículo:
+
+[LINK_VISTORIA]
+
 💰 **Taxa de Adesão: R$ 50,00 (única)**
 
 [LINK_PIX_ADESAO]
 
-⚡ Após o pagamento:
+⚡ Após o pagamento + vistoria aprovada:
 - Sua proteção é ativada em até 24h úteis
 - Furto/roubo: cobertura IMEDIATA
 - Demais benefícios: após 72h
 
-Fiz seu PIX! Quando pagar, me avisa que confirmo sua ativação! 🚀"
+Fiz seu PIX e o link da vistoria! Quando completar, me avisa que confirmo sua ativação! 🚀"
 
 ## 🏢 NEGOCIAÇÃO DE FROTAS (CLIENTES PJ):
 
@@ -978,9 +1062,15 @@ serve(async (req) => {
         // Buscar chave PIX
         const { chavePix, tipoChave } = await buscarChavePix();
         
+        // Montar URL da vistoria
+        const baseUrl = Deno.env.get('SITE_URL') || 'https://painelharmonyagrocombr.lovable.app';
+        const vistoriaUrl = cadastroResult.vistoriaToken 
+          ? `${baseUrl}/vistoria/${cadastroResult.vistoriaToken}`
+          : null;
+        
         enrichedMessages.push({
           role: 'system',
-          content: `[CADASTRO_CRIADO: Sucesso! UserId: ${cadastroResult.userId} | AssociadoId: ${cadastroResult.associadoId} | VeiculoId: ${cadastroResult.veiculoId} | Email: ${dadosAtualizados.email} | Senha temporária: ${cadastroResult.senha} | ChavePIX: ${chavePix || 'não configurada'} | TipoChave: ${tipoChave || 'N/A'} | Taxa de Adesão: R$ 50,00]`
+          content: `[CADASTRO_CRIADO: Sucesso! UserId: ${cadastroResult.userId} | AssociadoId: ${cadastroResult.associadoId} | VeiculoId: ${cadastroResult.veiculoId} | VistoriaId: ${cadastroResult.vistoriaId || 'N/A'} | Email: ${dadosAtualizados.email} | Senha temporária: ${cadastroResult.senha} | ChavePIX: ${chavePix || 'não configurada'} | TipoChave: ${tipoChave || 'N/A'} | Taxa de Adesão: R$ 50,00 | VistoriaURL: ${vistoriaUrl || 'N/A'}]`
         });
       } else {
         enrichedMessages.push({
