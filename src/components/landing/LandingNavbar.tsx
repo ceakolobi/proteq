@@ -6,11 +6,11 @@ import { useBrand } from '@/hooks/useBrand';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { label: 'Home', href: '#home' },
-  { label: 'Quem Somos', href: '#quem-somos' },
-  { label: 'Serviços', href: '#servicos' },
-  { label: 'Artigos', href: '#artigos' },
-  { label: 'Contato', href: '#contato' },
+  { label: 'Home', href: '#home', isExternal: false },
+  { label: 'Quem Somos', href: '/quem-somos', isExternal: true },
+  { label: 'Serviços', href: '#servicos', isExternal: false },
+  { label: 'Artigos', href: '#artigos', isExternal: false },
+  { label: 'Contato', href: '#contato', isExternal: false },
 ];
 
 export function LandingNavbar() {
@@ -27,10 +27,14 @@ export function LandingNavbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToSection = (href: string) => {
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+  const handleNavClick = (link: typeof navLinks[0]) => {
+    if (link.isExternal) {
+      navigate(link.href);
+    } else {
+      const element = document.querySelector(link.href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
     setIsOpen(false);
   };
@@ -60,7 +64,7 @@ export function LandingNavbar() {
             {navLinks.map((link) => (
               <button
                 key={link.href}
-                onClick={() => scrollToSection(link.href)}
+                onClick={() => handleNavClick(link)}
                 className="px-4 py-2 text-sm font-medium text-foreground/80 hover:text-primary transition-colors rounded-lg hover:bg-primary/5"
               >
                 {link.label}
@@ -110,7 +114,7 @@ export function LandingNavbar() {
             {navLinks.map((link) => (
               <button
                 key={link.href}
-                onClick={() => scrollToSection(link.href)}
+                onClick={() => handleNavClick(link)}
                 className="px-4 py-3 text-left text-sm font-medium text-foreground/80 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
               >
                 {link.label}
