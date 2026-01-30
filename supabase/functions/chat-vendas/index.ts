@@ -553,9 +553,9 @@ async function salvarLead(dados: {
         nome: dados.nome,
         telefone: telefoneNormalizado,
         email: dados.email || null,
-        observacoes: dados.observacoes || 'Lead capturado via chat Emily',
+        observacoes: dados.observacoes || 'Lead capturado via chat Sofia',
         consultor_id: consultorId,
-        origem: 'chat_emily',
+        origem: 'chat_sofia',
         status: 'novo',
       })
       .select('id')
@@ -753,7 +753,7 @@ function extrairDadosCliente(messages: any[]): {
   return resultado;
 }
 
-const SYSTEM_PROMPT = `Você é a Emily, Consultora Virtual da Harmony Clube de Benefícios.
+const SYSTEM_PROMPT = `Você é a Sofia, Consultora Virtual da Harmony Clube de Benefícios.
 
 ## Sua personalidade:
 - Acolhedora e empática - você OUVE antes de falar
