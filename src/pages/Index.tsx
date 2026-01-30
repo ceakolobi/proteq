@@ -23,8 +23,7 @@ import {
   ContatoSection,
   AnnouncementBanner,
   WhatsAppFloat,
-  PromoBanner,
-  RegulamentoSection
+  PromoBanner
 } from '@/components/landing';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,6 @@ export default function Index() {
             <DigitalNativeSection onStart={quotation.avancarParaDadosPessoais} />
             <ComoFuncionaSection />
             <BeneficiosSection />
-            <RegulamentoSection />
             <ArtigosSection />
             <FamiliaProtegidaBanner />
             <ContatoSection />
