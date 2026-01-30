@@ -36,6 +36,7 @@ import DocumentosContratos from "./pages/DocumentosContratos";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
+import QuemSomos from "./pages/QuemSomos";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
 import Pagamentos from "./pages/financeiro/Pagamentos";
@@ -141,6 +142,7 @@ const App = () => (
               <Routes>
                 {/* Rotas públicas - apenas landing e autenticação */}
                 <Route path="/" element={<HomeRoute />} />
+                <Route path="/quem-somos" element={<QuemSomos />} />
                 <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
                 <Route path="/validar-proposta" element={<ValidarProposta />} />
                 
