@@ -43,7 +43,7 @@ import Pagamentos from "./pages/financeiro/Pagamentos";
 import Inadimplencia from "./pages/financeiro/Inadimplencia";
 import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
-
+import SetupDemo from "./pages/SetupDemo";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -160,6 +160,7 @@ const App = () => (
                 <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
                 <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
                 <Route path="/configuracoes/documentos-contratos" element={<ProtectedRoute><DocumentosContratos /></ProtectedRoute>} />
+                <Route path="/setup-demo" element={<ProtectedRoute><SetupDemo /></ProtectedRoute>} />
                 
                 {/* Admin Regional or above */}
                 <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
