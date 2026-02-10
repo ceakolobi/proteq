@@ -306,12 +306,51 @@ export default function Associados() {
     };
 
     try {
-      const { error } = await supabase
-        .from('associados')
-        .update({ status: statusMap[action] })
-        .eq('id', associado.id);
+      if (action === 'excluir') {
+        // Cascade manual: deletar registros dependentes antes do associado
+        // 1. Buscar veículos do associado
+        const { data: veiculos } = await supabase
+          .from('veiculos')
+          .select('id')
+          .eq('associado_id', associado.id);
 
-      if (error) throw error;
+        const veiculoIds = (veiculos || []).map(v => v.id);
+
+        if (veiculoIds.length > 0) {
+          // Deletar ativações vinculadas aos veículos
+          await supabase.from('ativacoes').delete().in('veiculo_id', veiculoIds);
+          // Deletar documentos de veículos
+          await supabase.from('documentos_veiculo').delete().in('veiculo_id', veiculoIds);
+          // Deletar acionamentos de guincho
+          await supabase.from('acionamentos_guincho').delete().eq('associado_id', associado.id);
+          // Deletar veículos
+          await supabase.from('veiculos').delete().eq('associado_id', associado.id);
+        }
+
+        // Deletar documentos do associado
+        await supabase.from('documentos_associado').delete().eq('associado_id', associado.id);
+        // Deletar cobranças
+        await supabase.from('cobrancas').delete().eq('associado_id', associado.id);
+        // Deletar contratos gerados
+        await supabase.from('generated_contracts').delete().eq('associado_id', associado.id);
+        // Deletar cotações vinculadas
+        await supabase.from('cotacoes').update({ associado_id: null }).eq('associado_id', associado.id);
+
+        // Finalmente deletar o associado
+        const { error } = await supabase
+          .from('associados')
+          .delete()
+          .eq('id', associado.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('associados')
+          .update({ status: statusMap[action] })
+          .eq('id', associado.id);
+
+        if (error) throw error;
+      }
 
       const messages: Record<string, string> = {
         arquivar: 'Associado arquivado com sucesso',
@@ -324,7 +363,7 @@ export default function Associados() {
       fetchAssociados();
     } catch (error: any) {
       console.error('Error updating associado:', error);
-      toast.error(error.message || 'Erro ao atualizar associado');
+      toast.error(error.message || 'Erro ao processar ação');
     }
   };
 
