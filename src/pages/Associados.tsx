@@ -55,8 +55,31 @@ import {
   Plus,
   ChevronRight,
   Check,
-  AlertCircle
+  AlertCircle,
+  MoreVertical,
+  Archive,
+  Lock,
+  AlertTriangle,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { Associado, Regiao, AssociateStatus, VehicleType, Cota, Profile } from '@/types/database';
 import { associateStatusLabels, vehicleTypeLabels } from '@/types/database';
 import { FipeRangeDetector, useFipeRange } from '@/components/FipeRangeDetector';
@@ -113,6 +136,11 @@ export default function Associados() {
   // Estado do novo wizard moderno
   const [isNewWizardOpen, setIsNewWizardOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    action: 'arquivar' | 'bloquear' | 'quarentena' | 'excluir' | null;
+    associado: AssociadoWithDetails | null;
+  }>({ open: false, action: null, associado: null });
   
   // Wizard state for new associado flow (legado - para edição)
   const [wizardStep, setWizardStep] = useState<WizardStep>('associado');
@@ -266,7 +294,63 @@ export default function Associados() {
     setIsNewWizardOpen(true);
   };
 
-  const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
+  const handleAssociadoAction = async () => {
+    const { action, associado } = confirmDialog;
+    if (!action || !associado) return;
+
+    const statusMap: Record<string, AssociateStatus> = {
+      arquivar: 'cancelado',
+      bloquear: 'suspenso',
+      quarentena: 'suspenso',
+      excluir: 'cancelado',
+    };
+
+    try {
+      const { error } = await supabase
+        .from('associados')
+        .update({ status: statusMap[action] })
+        .eq('id', associado.id);
+
+      if (error) throw error;
+
+      const messages: Record<string, string> = {
+        arquivar: 'Associado arquivado com sucesso',
+        bloquear: 'Associado bloqueado com sucesso',
+        quarentena: 'Associado movido para quarentena',
+        excluir: 'Associado excluído com sucesso',
+      };
+      toast.success(messages[action]);
+      setConfirmDialog({ open: false, action: null, associado: null });
+      fetchAssociados();
+    } catch (error: any) {
+      console.error('Error updating associado:', error);
+      toast.error(error.message || 'Erro ao atualizar associado');
+    }
+  };
+
+  const getConfirmDialogContent = () => {
+    const contents: Record<string, { title: string; description: string }> = {
+      arquivar: {
+        title: 'Arquivar Associado',
+        description: 'Tem certeza que deseja arquivar este associado? Ele será marcado como cancelado.',
+      },
+      bloquear: {
+        title: 'Bloquear Associado',
+        description: 'Tem certeza que deseja bloquear este associado? Ele será suspenso e não poderá utilizar os serviços.',
+      },
+      quarentena: {
+        title: 'Mover para Quarentena',
+        description: 'Tem certeza que deseja mover este associado para quarentena? Ele ficará suspenso até análise.',
+      },
+      excluir: {
+        title: 'Excluir Associado',
+        description: 'Tem certeza que deseja excluir este associado? Esta ação não pode ser desfeita.',
+      },
+    };
+    return contents[confirmDialog.action || 'arquivar'];
+  };
+
+
     setSelectedAssociado(associado);
     setIsEditModalOpen(true);
   };
@@ -607,15 +691,53 @@ export default function Associados() {
           </Badge>
         </TableCell>
         <TableCell className="text-right">
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-1">
             {canEditThisAssociado && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleOpenEditDialog(associado)}
+                title="Editar"
               >
                 <Edit className="h-4 w-4" />
               </Button>
+            )}
+            {(canDelete || isAdminPrincipal) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => setConfirmDialog({ open: true, action: 'arquivar', associado })}
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    Arquivar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setConfirmDialog({ open: true, action: 'bloquear', associado })}
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    Bloquear
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setConfirmDialog({ open: true, action: 'quarentena', associado })}
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Quarentena
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setConfirmDialog({ open: true, action: 'excluir', associado })}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </TableCell>
@@ -1270,6 +1392,22 @@ export default function Associados() {
           onSuccess={fetchAssociados}
           canEditStatus={canEditAll && !isConsultor}
         />
+
+        {/* Confirm Action Dialog */}
+        <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ open: false, action: null, associado: null })}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{getConfirmDialogContent()?.title}</AlertDialogTitle>
+              <AlertDialogDescription>{getConfirmDialogContent()?.description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleAssociadoAction}>
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
