@@ -125,6 +125,7 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
         </CardHeader>
         <CardContent>
           <ScrollArea
+            ref={scrollAreaRef}
             className="h-[250px] w-full rounded-md border p-4"
             onScrollCapture={handleScroll}
           >
