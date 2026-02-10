@@ -350,7 +350,7 @@ export default function Associados() {
     return contents[confirmDialog.action || 'arquivar'];
   };
 
-
+  const handleEditAssociado = (associado: AssociadoWithDetails) => {
     setSelectedAssociado(associado);
     setIsEditModalOpen(true);
   };
@@ -696,7 +696,7 @@ export default function Associados() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleOpenEditDialog(associado)}
+                onClick={() => handleEditAssociado(associado)}
                 title="Editar"
               >
                 <Edit className="h-4 w-4" />
@@ -1041,7 +1041,7 @@ export default function Associados() {
                                             variant="ghost"
                                             size="icon"
                                             className="h-7 w-7"
-                                            onClick={() => handleOpenEditDialog(associado)}
+                                            onClick={() => handleEditAssociado(associado)}
                                           >
                                             <Edit className="h-3 w-3" />
                                           </Button>
