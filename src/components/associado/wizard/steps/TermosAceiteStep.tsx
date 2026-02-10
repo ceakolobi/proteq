@@ -25,36 +25,23 @@ interface TermosAceiteStepProps {
 
 export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiaoChange, showRegiaoSelector }: TermosAceiteStepProps) {
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
-  const [regioes, setRegioes] = useState<Regiao[]>([]);
-  const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Check if content fits without scrolling (no scroll needed = already at end)
   useEffect(() => {
-    if (!showRegiaoSelector) return;
-
-    const fetchRegioes = async () => {
-      setIsLoadingRegioes(true);
-      const { data, error } = await supabase
-        .from('regioes')
-        .select('id, nome, sede_id')
-        .eq('ativo', true)
-        .order('nome');
-
-      if (!error && data) {
-        setRegioes(data);
+    const checkIfScrollable = () => {
+      const el = scrollAreaRef.current;
+      if (!el) return;
+      // Find the actual scrollable viewport inside ScrollArea
+      const viewport = el.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (viewport && viewport.scrollHeight <= viewport.clientHeight + 50) {
+        setScrolledToEnd(true);
       }
-      setIsLoadingRegioes(false);
     };
-
-    fetchRegioes();
-  }, [showRegiaoSelector]);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
-    if (isAtBottom && !scrolledToEnd) {
-      setScrolledToEnd(true);
-    }
-  };
+    // Small delay to let content render
+    const timer = setTimeout(checkIfScrollable, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="space-y-6">
