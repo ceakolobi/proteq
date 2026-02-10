@@ -891,7 +891,7 @@ export default function Leads() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              {canEdit && (
+                              {isAdminPrincipal && (
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(lead)} title="Editar">
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -930,7 +930,7 @@ export default function Leads() {
                                       </DropdownMenuItem>
                                     </>
                                   )}
-                                  {canDelete && (
+                                  {isAdminPrincipal && (
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem

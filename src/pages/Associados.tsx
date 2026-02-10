@@ -692,7 +692,7 @@ export default function Associados() {
         </TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-1">
-            {canEditThisAssociado && (
+            {isAdminPrincipal && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -702,7 +702,7 @@ export default function Associados() {
                 <Edit className="h-4 w-4" />
               </Button>
             )}
-            {(canDelete || isAdminPrincipal) && (
+            {isAdminPrincipal && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -1036,7 +1036,7 @@ export default function Associados() {
                                         <Badge variant={getStatusVariant(associado.status)} className="text-xs">
                                           {associateStatusLabels[associado.status]}
                                         </Badge>
-                                        {(canEditAll || (isConsultor && associado.consultor_id === user?.id)) && (
+                                        {isAdminPrincipal && (
                                           <Button
                                             variant="ghost"
                                             size="icon"
