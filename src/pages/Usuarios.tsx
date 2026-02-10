@@ -46,7 +46,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
-import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface UserWithRole extends Profile {
   roles: AppRole[];
@@ -72,6 +82,7 @@ export default function Usuarios() {
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   // Permission management
@@ -474,6 +485,128 @@ export default function Usuarios() {
     }
   };
 
+  const handleDeleteUser = async (targetUser: Profile) => {
+    if (!isAdminPrincipal || isProtectedAdmin(targetUser)) return;
+
+    setIsSubmitting(true);
+    try {
+      // Buscar a sede principal (tipo matriz) da empresa do admin
+      const adminCompanyId = profile?.company_id;
+      let sedePrincipalId: string | null = null;
+
+      if (adminCompanyId) {
+        const { data: sedeData } = await supabase
+          .from('sedes')
+          .select('id')
+          .eq('company_id', adminCompanyId)
+          .eq('tipo', 'matriz')
+          .limit(1)
+          .single();
+        
+        sedePrincipalId = sedeData?.id || null;
+      }
+
+      // Buscar regiões da sede principal para associar
+      let regiaoPrincipalId: string | null = null;
+      if (sedePrincipalId) {
+        const { data: regiaoData } = await supabase
+          .from('regioes')
+          .select('id')
+          .eq('sede_id', sedePrincipalId)
+          .limit(1)
+          .single();
+        regiaoPrincipalId = regiaoData?.id || null;
+      }
+
+      // Mover associados do usuário para a sede principal
+      const { data: associadosDoUsuario } = await supabase
+        .from('associados')
+        .select('id')
+        .eq('consultor_id', targetUser.id);
+
+      if (associadosDoUsuario && associadosDoUsuario.length > 0) {
+        const associadoIds = associadosDoUsuario.map(a => a.id);
+        
+        // Atualizar associados: remover consultor e mover para sede/região principal
+        await supabase
+          .from('associados')
+          .update({
+            consultor_id: null,
+            regiao_id: regiaoPrincipalId,
+          })
+          .in('id', associadoIds);
+
+        // Mover veículos dos associados para sede principal
+        await supabase
+          .from('veiculos')
+          .update({
+            consultor_id: null,
+            sede_id: sedePrincipalId,
+          })
+          .in('associado_id', associadoIds);
+      }
+
+      // Mover veículos criados pelo usuário
+      await supabase
+        .from('veiculos')
+        .update({
+          consultor_id: null,
+          sede_id: sedePrincipalId,
+        })
+        .eq('consultor_id', targetUser.id);
+
+      // Mover leads do usuário
+      await supabase
+        .from('leads')
+        .update({
+          consultor_id: null,
+          sede_id: sedePrincipalId,
+        })
+        .eq('consultor_id', targetUser.id);
+
+      // Atualizar cotações do usuário (desvincular consultor)
+      await supabase
+        .from('cotacoes')
+        .update({ consultor_id: targetUser.id }) // manter referência mas poderia limpar
+        .eq('consultor_id', targetUser.id);
+
+      // Remover permissões granulares
+      await supabase
+        .from('user_permissions')
+        .delete()
+        .eq('user_id', targetUser.id);
+
+      // Remover roles
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', targetUser.id);
+
+      // Desativar o profile (não podemos deletar por causa do auth.users FK)
+      await supabase
+        .from('profiles')
+        .update({ ativo: false })
+        .eq('id', targetUser.id);
+
+      toast({
+        title: 'Usuário excluído',
+        description: `${targetUser.nome_completo} foi removido. Seus clientes foram transferidos para a sede principal.`,
+      });
+
+      setDeleteConfirmUser(null);
+      fetchData();
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir',
+        description: error.message || 'Não foi possível excluir o usuário.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.nome_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -577,15 +710,29 @@ export default function Usuarios() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {canManage && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenDialog({ ...user, roles: userRoles })}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              {canManage && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenDialog({ ...user, roles: userRoles })}
+                                  title="Editar"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {isAdminPrincipal && canManage && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteConfirmUser(user)}
+                                  title="Excluir"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -596,6 +743,31 @@ export default function Usuarios() {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deleteConfirmUser} onOpenChange={(open) => !open && setDeleteConfirmUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir <strong>{deleteConfirmUser?.nome_completo}</strong>?
+                <br /><br />
+                Todos os clientes (associados), veículos e leads vinculados a este usuário serão 
+                automaticamente transferidos para a <strong>sede principal</strong>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteConfirmUser && handleDeleteUser(deleteConfirmUser)}
+                disabled={isSubmitting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isSubmitting ? 'Excluindo...' : 'Confirmar Exclusão'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Create User Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
