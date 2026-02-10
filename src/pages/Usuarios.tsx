@@ -527,7 +527,6 @@ export default function Usuarios() {
       if (associadosDoUsuario && associadosDoUsuario.length > 0) {
         const associadoIds = associadosDoUsuario.map(a => a.id);
         
-        // Atualizar associados: remover consultor e mover para sede/região principal
         await supabase
           .from('associados')
           .update({
@@ -536,7 +535,6 @@ export default function Usuarios() {
           })
           .in('id', associadoIds);
 
-        // Mover veículos dos associados para sede principal
         await supabase
           .from('veiculos')
           .update({
@@ -546,7 +544,6 @@ export default function Usuarios() {
           .in('associado_id', associadoIds);
       }
 
-      // Mover veículos criados pelo usuário
       await supabase
         .from('veiculos')
         .update({
@@ -555,7 +552,6 @@ export default function Usuarios() {
         })
         .eq('consultor_id', targetUser.id);
 
-      // Mover leads do usuário
       await supabase
         .from('leads')
         .update({
@@ -564,33 +560,21 @@ export default function Usuarios() {
         })
         .eq('consultor_id', targetUser.id);
 
-      // Atualizar cotações do usuário (desvincular consultor)
-      await supabase
-        .from('cotacoes')
-        .update({ consultor_id: targetUser.id }) // manter referência mas poderia limpar
-        .eq('consultor_id', targetUser.id);
+      // Chamar edge function para excluir o usuário permanentemente do auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
 
-      // Remover permissões granulares
-      await supabase
-        .from('user_permissions')
-        .delete()
-        .eq('user_id', targetUser.id);
+      const response = await supabase.functions.invoke('delete-user', {
+        body: { user_id: targetUser.id },
+      });
 
-      // Remover roles
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', targetUser.id);
-
-      // Desativar o profile (não podemos deletar por causa do auth.users FK)
-      await supabase
-        .from('profiles')
-        .update({ ativo: false })
-        .eq('id', targetUser.id);
+      if (response.error || !response.data?.success) {
+        throw new Error(response.data?.error || response.error?.message || 'Erro ao excluir usuário');
+      }
 
       toast({
         title: 'Usuário excluído',
-        description: `${targetUser.nome_completo} foi removido. Seus clientes foram transferidos para a sede principal.`,
+        description: `${targetUser.nome_completo} foi removido permanentemente. Seus clientes foram transferidos para a sede principal.`,
       });
 
       setDeleteConfirmUser(null);
