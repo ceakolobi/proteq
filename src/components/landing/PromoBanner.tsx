@@ -39,7 +39,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             </h2>
             
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
-              Cadastre-se até <strong>30 de abril</strong> e ganhe sua primeira mensalidade. 
+              Cadastre-se até <strong>28 de fevereiro</strong> e ganhe sua primeira mensalidade. 
               Só pague a partir de <strong>10 de abril</strong>!
             </p>
             
