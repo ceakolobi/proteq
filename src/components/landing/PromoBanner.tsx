@@ -36,6 +36,10 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
               1ª Mensalidade{' '}
               <span className="text-secondary">GRÁTIS!</span>
+              <br />
+              <span className="text-xl md:text-2xl lg:text-3xl font-extrabold mt-2 inline-block">
+                Só pague em <span className="text-secondary underline decoration-4">ABRIL</span>!
+              </span>
             </h2>
             
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
