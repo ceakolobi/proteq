@@ -94,9 +94,13 @@ function HomeRoute() {
     );
   }
   
-  // Usuário logado vai para dashboard, não logado vê a landing
+  // Se o usuário está logado mas veio do funil de cotação (criou conta agora), mantém na landing
+  // Caso contrário, redireciona para o dashboard
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    const isInFunnel = sessionStorage.getItem('in_quotation_funnel');
+    if (!isInFunnel) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
   
   return <Index />;

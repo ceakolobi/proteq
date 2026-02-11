@@ -90,6 +90,7 @@ export function usePublicQuotation() {
   };
 
   const avancarParaDadosPessoais = () => {
+    sessionStorage.setItem('in_quotation_funnel', 'true');
     setEtapa('dados_pessoais');
   };
 
@@ -342,6 +343,7 @@ export function usePublicQuotation() {
       // TODO: Registrar pagamento da adesão
 
       toast.success('Cadastro finalizado! Sua proteção será ativada em até 72h.');
+      sessionStorage.removeItem('in_quotation_funnel');
       setEtapa('sucesso');
     } catch (error) {
       console.error('Erro ao finalizar:', error);
@@ -352,6 +354,7 @@ export function usePublicQuotation() {
   };
 
   const reiniciar = () => {
+    sessionStorage.removeItem('in_quotation_funnel');
     setEtapa('hero');
     setDadosPessoais({ nome: '', telefone: '', email: '' });
     setDadosVeiculo(null);
