@@ -39,8 +39,8 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             </h2>
             
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
-              Cadastre-se até <strong>30 de março</strong> e ganhe sua primeira mensalidade. 
-              Só pague a partir de <strong>10 de março</strong>!
+              Cadastre-se até <strong>30 de abril</strong> e ganhe sua primeira mensalidade. 
+              Só pague a partir de <strong>10 de abril</strong>!
             </p>
             
 
@@ -57,7 +57,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
                 <Clock className="h-5 w-5 text-secondary" />
                 <span className="text-primary-foreground font-medium">
-                  Vencimento: <strong>10/03</strong>
+                  Vencimento: <strong>10/04</strong>
                 </span>
               </div>
             </div>
