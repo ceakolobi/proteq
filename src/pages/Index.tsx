@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
 import { useBrand } from '@/hooks/useBrand';
 import { usePublicQuotation } from '@/hooks/usePublicQuotation';
 import { 
@@ -26,11 +26,66 @@ import {
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
+import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from '@/components/landing/types';
+
+// Decode shared quotation from URL param
+function decodeSharedQuotation(encoded: string): {
+  dadosPessoais: DadosPessoais;
+  dadosVeiculo: DadosVeiculo;
+  cotacao: ResultadoCotacaoPublica;
+} | null {
+  try {
+    const json = decodeURIComponent(atob(encoded));
+    const p = JSON.parse(json);
+    return {
+      dadosPessoais: { nome: p.n || '', telefone: p.t || '', email: p.e || '' },
+      dadosVeiculo: {
+        tipo_bem: p.tb || 'carro',
+        marca: p.m || '',
+        modelo: p.mo || '',
+        ano: p.a || 0,
+        valor_fipe: p.vf || 0,
+        codigo_fipe: p.cf || '',
+      },
+      cotacao: {
+        mensalidade: p.me || 0,
+        participacao: p.pa || 0,
+        valorFipe: p.vf || 0,
+        cotaNome: p.cn || 'Padrão',
+        beneficios: [
+          'Proteção contra roubo e furto',
+          'Assistência 24h',
+          'Rastreamento veicular',
+          'Até 100% da FIPE',
+          'Guincho 500km',
+          '30 dias de carro reserva',
+        ],
+      },
+    };
+  } catch (e) {
+    console.error('[Index] Erro ao decodificar cotação compartilhada:', e);
+    return null;
+  }
+}
 
 export default function Index() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { brand } = useBrand();
   const quotation = usePublicQuotation();
+
+  // Detect shared quotation link
+  const sharedData = useMemo(() => {
+    const cotacaoParam = searchParams.get('cotacao');
+    if (cotacaoParam) return decodeSharedQuotation(cotacaoParam);
+    return null;
+  }, [searchParams]);
+
+  const [showShared, setShowShared] = useState(!!sharedData);
+
+  useEffect(() => {
+    if (sharedData) setShowShared(true);
+  }, [sharedData]);
 
   useEffect(() => {
     document.title = `${brand.name} - Proteção Veicular | Cotação Online`;
@@ -54,6 +109,27 @@ export default function Index() {
 
   // Renderizar etapa atual do funil
   const renderEtapa = () => {
+    // If viewing a shared quotation link
+    if (showShared && sharedData) {
+      return (
+        <ResultadoCotacao
+          dadosPessoais={sharedData.dadosPessoais}
+          dadosVeiculo={sharedData.dadosVeiculo}
+          cotacao={sharedData.cotacao}
+          onBack={() => {
+            setShowShared(false);
+            setSearchParams({});
+          }}
+          onContinue={() => {
+            setShowShared(false);
+            setSearchParams({});
+            quotation.avancarParaDadosPessoais();
+          }}
+          onWhatsApp={() => {}}
+        />
+      );
+    }
+
     switch (quotation.etapa) {
       case 'hero':
         return (
@@ -193,7 +269,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Navbar - só mostra na home */}
-      {quotation.etapa === 'hero' && <LandingNavbar />}
+      {quotation.etapa === 'hero' && !showShared && <LandingNavbar />}
 
       {/* Conteúdo principal */}
       <main className="flex-1">
@@ -201,7 +277,7 @@ export default function Index() {
       </main>
 
       {/* Footer apenas na home */}
-      {quotation.etapa === 'hero' && <LandingFooter />}
+      {quotation.etapa === 'hero' && !showShared && <LandingFooter />}
       
       {/* Chat Emily - Consultora Virtual de vendas com IA */}
       <ChatWidget />
