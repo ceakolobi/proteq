@@ -35,6 +35,7 @@ import Configuracoes from "./pages/Configuracoes";
 import DocumentosContratos from "./pages/DocumentosContratos";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
+import AdesaoPublica from "./pages/AdesaoPublica";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
 import QuemSomos from "./pages/QuemSomos";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
@@ -194,6 +195,7 @@ const App = () => (
                 {/* Rotas Públicas (sem autenticação) */}
                 <Route path="/segunda-via-boleto" element={<SegundaViaBoleto />} />
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
+                <Route path="/adesao/:cotacaoId/:token" element={<AdesaoPublica />} />
                 <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
 
                 {/* 404 - Rota não encontrada */}
