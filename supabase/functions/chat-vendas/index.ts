@@ -495,6 +495,106 @@ async function buscarChavePix(): Promise<{ chavePix: string | null; tipoChave: s
   }
 }
 
+// Criar cotação e gerar link de adesão para enviar ao cliente
+async function criarCotacaoELinkAdesao(dados: {
+  placa: string;
+  marca: string;
+  modelo: string;
+  ano: number;
+  valorFipe: number;
+  tipoVeiculo: string;
+  mensalidade: number;
+  clienteNome?: string;
+  clienteEmail?: string;
+  clienteWhatsapp?: string;
+}): Promise<{ success: boolean; cotacaoId?: string; adesaoLink?: string; error?: string }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Buscar empresa e consultor padrão
+    const { data: companies } = await supabase.from('companies').select('id').limit(1);
+    const companyId = companies?.[0]?.id || 'a0000000-0000-0000-0000-000000000001';
+    
+    const { data: consultores } = await supabase
+      .from('profiles')
+      .select('id')
+      .or('perfil.eq.consultor_vendas,perfil.eq.admin_principal')
+      .limit(1);
+    const consultorId = consultores?.[0]?.id;
+    
+    if (!consultorId) {
+      return { success: false, error: 'Nenhum consultor encontrado' };
+    }
+
+    // Mapear tipo de veículo
+    let tipoBem = 'carro';
+    if (dados.tipoVeiculo === 'moto') tipoBem = 'moto';
+    else if (dados.tipoVeiculo === 'caminhonete') tipoBem = 'pickup';
+
+    // Criar cotação
+    const { data: cotacao, error: cotacaoError } = await supabase
+      .from('cotacoes')
+      .insert({
+        consultor_id: consultorId,
+        marca: dados.marca,
+        modelo: dados.modelo,
+        ano_fabricacao: dados.ano || new Date().getFullYear(),
+        tipo_bem: tipoBem,
+        valor_bem: dados.valorFipe,
+        valor_fipe: dados.valorFipe,
+        mensalidade: dados.mensalidade,
+        metodo_valoracao: 'fipe',
+        placa: dados.placa,
+        status: 'pendente',
+        cliente_nome: dados.clienteNome || null,
+        cliente_email: dados.clienteEmail || null,
+        cliente_whatsapp: dados.clienteWhatsapp || null,
+        company_id: companyId,
+      })
+      .select('id')
+      .single();
+
+    if (cotacaoError || !cotacao) {
+      console.error('[criarCotacaoELink] Cotacao error:', cotacaoError);
+      return { success: false, error: 'Erro ao criar cotação' };
+    }
+
+    // Criar link de adesão
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: adesao, error: adesaoError } = await supabase
+      .from('adesao_links')
+      .insert({
+        cotacao_id: cotacao.id,
+        status: 'pendente',
+        expires_at: expiresAt,
+        company_id: companyId,
+      })
+      .select('id, token')
+      .single();
+
+    if (adesaoError || !adesao) {
+      console.error('[criarCotacaoELink] Adesao link error:', adesaoError);
+      return { success: true, cotacaoId: cotacao.id };
+    }
+
+    const baseUrl = Deno.env.get('SITE_URL') || 'https://painelharmonyagrocombr.lovable.app';
+    const link = `${baseUrl}/adesao/${cotacao.id}/${adesao.token}`;
+
+    console.log(`[criarCotacaoELink] Success - CotacaoId: ${cotacao.id}, Link: ${link}`);
+    return { success: true, cotacaoId: cotacao.id, adesaoLink: link };
+  } catch (err) {
+    console.error('[criarCotacaoELink] Error:', err);
+    return { success: false, error: 'Erro interno' };
+  }
+}
+
 // Função para salvar lead no banco de dados
 async function salvarLead(dados: { 
   nome: string; 
@@ -824,7 +924,13 @@ Só colete dados adicionais DEPOIS que o cliente aceitar a cotação. Colete um 
 
 ### Quando o cliente informar a PLACA:
 O sistema consulta automaticamente e você recebe [DADOS_VEICULO: ...]
-Apresente direto: "Encontrei! **[Marca Modelo Ano]** — FIPE R$ XX.XXX. Mensalidade: **R$ XX,XX/mês**. Sem taxa de adesão. Quer contratar? 😊"
+Apresente direto: "Encontrei! **[Marca Modelo Ano]** — FIPE R$ XX.XXX. Mensalidade: **R$ XX,XX/mês**. Sem taxa de adesão! Quer contratar? 😊"
+
+### Quando o cliente ACEITAR/QUISER CONTRATAR:
+O sistema gera automaticamente o link e você recebe [LINK_ADESAO: url]
+Envie: "Ótimo! Acesse o link abaixo para finalizar sua adesão: [cole o link]. É rápido e fácil! 😊"
+
+IMPORTANTE: Sempre envie o link completo quando receber [LINK_ADESAO]. O cliente precisa do link para contratar.
 
 ### Quando o cliente informar o CEP:
 O sistema consulta e você recebe [ENDERECO_CEP: ...]
@@ -940,6 +1046,29 @@ serve(async (req) => {
           
           enrichedMessages.push({ role: 'system', content: dadosFormatados });
           
+          // Criar cotação + link de adesão automaticamente
+          if (mensalidade && result.data.valorFipe) {
+            const linkResult = await criarCotacaoELinkAdesao({
+              placa,
+              marca: result.data.marca,
+              modelo: result.data.modelo,
+              ano: result.data.ano || new Date().getFullYear(),
+              valorFipe: result.data.valorFipe,
+              tipoVeiculo,
+              mensalidade,
+              clienteNome: dadosCliente.nome,
+              clienteEmail: dadosCliente.email,
+              clienteWhatsapp: dadosCliente.telefone,
+            });
+            
+            if (linkResult.success && linkResult.adesaoLink) {
+              enrichedMessages.push({ 
+                role: 'system', 
+                content: `[LINK_ADESAO: ${linkResult.adesaoLink}]` 
+              });
+            }
+          }
+
           // Salvar lead se tiver nome e telefone
           if (dadosCliente.nome && dadosCliente.telefone) {
             const observacoes = `Veículo: ${result.data.marca} ${result.data.modelo} | Placa: ${placa} | FIPE: R$ ${result.data.valorFipe || 'N/D'}`;
@@ -1042,7 +1171,7 @@ serve(async (req) => {
         
         enrichedMessages.push({
           role: 'system',
-          content: `[CADASTRO_CRIADO: Sucesso! UserId: ${cadastroResult.userId} | AssociadoId: ${cadastroResult.associadoId} | VeiculoId: ${cadastroResult.veiculoId} | VistoriaId: ${cadastroResult.vistoriaId || 'N/A'} | Email: ${dadosAtualizados.email} | Senha temporária: ${cadastroResult.senha} | ChavePIX: ${chavePix || 'não configurada'} | TipoChave: ${tipoChave || 'N/A'} | Taxa de Adesão: R$ 50,00 | VistoriaURL: ${vistoriaUrl || 'N/A'}]`
+          content: `[CADASTRO_CRIADO: Sucesso! UserId: ${cadastroResult.userId} | AssociadoId: ${cadastroResult.associadoId} | VeiculoId: ${cadastroResult.veiculoId} | VistoriaId: ${cadastroResult.vistoriaId || 'N/A'} | Email: ${dadosAtualizados.email} | Senha temporária: ${cadastroResult.senha} | VistoriaURL: ${vistoriaUrl || 'N/A'}]`
         });
       } else {
         enrichedMessages.push({
