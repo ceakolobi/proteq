@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatStream } from './useChatStream';
-import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton, CertidaoSUSEPButton, PixAdesaoButton, AccessDataCard, VistoriaButton } from './ChatMediaMessage';
+import { ChatMediaMessage, parseMediaFromContent, QuotationCTAButton, CertidaoSUSEPButton, AccessDataCard, VistoriaButton } from './ChatMediaMessage';
 import { cn } from '@/lib/utils';
 import sofiaAvatar from '@/assets/sofia-avatar.png';
 import ReactMarkdown from 'react-markdown';
@@ -200,10 +200,7 @@ export function ChatWidget() {
                         <VistoriaButton url={parsed.vistoriaUrl} className="mt-2" />
                       )}
                       
-                      {/* PIX payment button */}
-                      {parsed.pixInfo && (
-                        <PixAdesaoButton pixInfo={parsed.pixInfo} className="mt-2" />
-                      )}
+                      {/* PIX removed - no more adhesion fee */}
                     </div>
                     {msg.role === 'user' && (
                       <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">

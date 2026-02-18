@@ -3212,6 +3212,10 @@ export type Database = {
         | "arquivado"
         | "bloqueado"
         | "quarentena"
+        | "aceita"
+        | "aguardando_docs"
+        | "adesao_concluida"
+        | "enviada"
       inspection_status:
         | "pendente"
         | "agendada"
@@ -3440,6 +3444,10 @@ export const Constants = {
         "arquivado",
         "bloqueado",
         "quarentena",
+        "aceita",
+        "aguardando_docs",
+        "adesao_concluida",
+        "enviada",
       ],
       inspection_status: [
         "pendente",
