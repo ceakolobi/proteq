@@ -1,4 +1,4 @@
-import { Gift, Clock, ArrowRight } from 'lucide-react';
+import { Gift, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import promoBannerBg from '@/assets/promo-banner-bg.jpg';
 
@@ -58,12 +58,6 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
-                <Clock className="h-5 w-5 text-secondary" />
-                <span className="text-primary-foreground font-medium">
-                  Vencimento: <strong>10/04</strong>
-                </span>
-              </div>
             </div>
           </div>
 
@@ -88,7 +82,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                     ✅ Carros, motos e caminhonetes
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Sujeito à análise e vistoria
+                    Sem análise de condutor • Sem consulta SPC/Serasa
                   </p>
                 </div>
               </div>
