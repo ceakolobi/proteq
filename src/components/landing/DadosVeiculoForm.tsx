@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { TIPOS_VEICULO_LANDING, type DadosVeiculo } from './types';
 import { cn } from '@/lib/utils';
 import { StepIndicator } from './StepIndicator';
+import logoColorida from '@/assets/logo-harmony-colorida.png';
+import logoBranca from '@/assets/logo-harmony-branca.png';
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -296,7 +298,7 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
         setPlacaMessage(`${vehicleData.marca} ${vehicleData.modelo} - FIPE: R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`);
         
         // Preencher automaticamente com os dados da placa
-        setValorEncontrado({
+        const resultado: FipeValorResult = {
           tipoVeiculo: tipoVeiculo,
           valor: vehicleData.valor_fipe,
           valorFormatado: `R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`,
@@ -306,9 +308,15 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
           combustivel: vehicleData.combustivel || '',
           codigoFipe: vehicleData.codigo_fipe || '',
           mesReferencia: vehicleData.mes_referencia || '',
-        });
+        };
+        setValorEncontrado(resultado);
         
-        toast.success('Veículo encontrado com valor FIPE!');
+        // Limpar os selects FIPE manuais já que os dados vieram da placa
+        setSelectedMarcaId('');
+        setSelectedModeloId('');
+        setSelectedAnoId('');
+        
+        toast.success('Veículo encontrado com valor FIPE! Dados preenchidos automaticamente.');
       } else {
         setPlacaStatus('found_no_fipe');
         setPlacaMessage(`${vehicleData.marca} ${vehicleData.modelo} encontrado. Use a tabela FIPE para o valor.`);
@@ -403,6 +411,8 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
         <StepIndicator currentStep={2} steps={QUOTATION_STEPS} />
 
         <div className="text-center mb-6">
+          <img src={logoColorida} alt="Harmony" className="h-10 mx-auto mb-4 dark:hidden" />
+          <img src={logoBranca} alt="Harmony" className="h-10 mx-auto mb-4 hidden dark:block" />
           <h1 className="text-2xl font-bold">Dados do Veículo</h1>
           <p className="text-muted-foreground">Informe os dados do seu veículo</p>
         </div>
@@ -511,7 +521,10 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
                 3. Dados do Veículo
               </CardTitle>
               <CardDescription>
-                Preencha manualmente ou busque na tabela FIPE
+                {placaStatus === 'found_fipe' && valorEncontrado 
+                  ? 'Dados preenchidos automaticamente pela placa ✅' 
+                  : 'Preencha manualmente ou busque na tabela FIPE'
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
