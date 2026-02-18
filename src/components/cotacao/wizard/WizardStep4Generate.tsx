@@ -262,7 +262,7 @@ _${empresaNome}_`;
         </Card>
       )}
 
-      {/* Hidden PDF Content for html2pdf */}
+      {/* Hidden PDF Content for html2pdf - TABLE LAYOUT ONLY (no flex/grid for html2canvas compatibility) */}
       <div ref={pdfContentRef} className="fixed -left-[9999px] top-0" style={{ width: '210mm' }}>
         {resultado && (
           <div style={{ backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif', color: '#333' }}>
@@ -281,42 +281,48 @@ _${empresaNome}_`;
               </p>
             </div>
 
-            {/* Vehicle + Values */}
-            <div style={{ padding: '30px', display: 'flex', gap: '20px' }}>
-              <div style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #F97316', paddingBottom: '8px', marginBottom: '16px' }}>
-                  Dados do Veículo
-                </h2>
-                <table style={{ width: '100%', fontSize: '13px' }}>
-                  <tbody>
-                    <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Tipo:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.tipo_bem ? tipoBemLabels[formData.tipo_bem as TipoBem] : '—'}</td></tr>
-                    <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Marca:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.marca}</td></tr>
-                    <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Modelo:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.modelo}</td></tr>
-                    <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Ano:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.ano_fabricacao}{formData.ano_modelo ? `/${formData.ano_modelo}` : ''}</td></tr>
-                    {formData.placa && <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Placa:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.placa}</td></tr>}
-                    {formData.chassi && <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Chassi:</td><td style={{ fontWeight: 600, textAlign: 'right', fontSize: '11px', fontFamily: 'monospace' }}>{formData.chassi}</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #22C55E', paddingBottom: '8px', marginBottom: '16px' }}>
-                  Valores
-                </h2>
-                <div style={{ background: 'linear-gradient(135deg, #F97316, #ea580c)', color: 'white', borderRadius: '12px', padding: '20px', textAlign: 'center', marginBottom: '16px' }}>
-                  <p style={{ fontSize: '12px', textTransform: 'uppercase', opacity: 0.9, margin: '0 0 4px 0' }}>Mensalidade</p>
-                  <p style={{ fontSize: '32px', fontWeight: 'bold', margin: 0 }}>{formatCurrency(resultado.valorFinal)}</p>
-                </div>
-                <table style={{ width: '100%', fontSize: '13px' }}>
-                  <tbody>
-                    <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Cota:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{resultado.cotaNome}</td></tr>
-                    <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Participação (7%):</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formatCurrency(resultado.participacao)}</td></tr>
-                    <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Carro Reserva:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>
-                      {formData.carro_reserva_extra === 'nenhum' ? '30 dias' : formData.carro_reserva_extra === '30dias' ? '60 dias' : '120 dias'}
-                    </td></tr>
-                    <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Validade:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>7 dias</td></tr>
-                  </tbody>
-                </table>
-              </div>
+            {/* Vehicle + Values - TABLE layout */}
+            <div style={{ padding: '30px' }}>
+              <table style={{ width: '100%', borderSpacing: '20px 0', borderCollapse: 'separate' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ width: '50%', verticalAlign: 'top', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
+                      <h2 style={{ fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #F97316', paddingBottom: '8px', marginBottom: '16px' }}>
+                        Dados do Veículo
+                      </h2>
+                      <table style={{ width: '100%', fontSize: '13px' }}>
+                        <tbody>
+                          <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Tipo:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.tipo_bem ? tipoBemLabels[formData.tipo_bem as TipoBem] : '—'}</td></tr>
+                          <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Marca:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.marca}</td></tr>
+                          <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Modelo:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.modelo}</td></tr>
+                          <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Ano:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.ano_fabricacao}{formData.ano_modelo ? `/${formData.ano_modelo}` : ''}</td></tr>
+                          {formData.placa && <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Placa:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formData.placa}</td></tr>}
+                          {formData.chassi && <tr><td style={{ padding: '6px 0', color: '#6b7280' }}>Chassi:</td><td style={{ fontWeight: 600, textAlign: 'right', fontSize: '11px', fontFamily: 'monospace' }}>{formData.chassi}</td></tr>}
+                        </tbody>
+                      </table>
+                    </td>
+                    <td style={{ width: '50%', verticalAlign: 'top', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
+                      <h2 style={{ fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #22C55E', paddingBottom: '8px', marginBottom: '16px' }}>
+                        Valores
+                      </h2>
+                      <div style={{ background: 'linear-gradient(135deg, #F97316, #ea580c)', color: 'white', borderRadius: '12px', padding: '20px', textAlign: 'center', marginBottom: '16px' }}>
+                        <p style={{ fontSize: '12px', textTransform: 'uppercase', opacity: 0.9, margin: '0 0 4px 0' }}>Mensalidade</p>
+                        <p style={{ fontSize: '32px', fontWeight: 'bold', margin: 0 }}>{formatCurrency(resultado.valorFinal)}</p>
+                      </div>
+                      <table style={{ width: '100%', fontSize: '13px' }}>
+                        <tbody>
+                          <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Cota:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{resultado.cotaNome}</td></tr>
+                          <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Participação (7%):</td><td style={{ fontWeight: 600, textAlign: 'right' }}>{formatCurrency(resultado.participacao)}</td></tr>
+                          <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Carro Reserva:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>
+                            {formData.carro_reserva_extra === 'nenhum' ? '30 dias' : formData.carro_reserva_extra === '30dias' ? '60 dias' : '120 dias'}
+                          </td></tr>
+                          <tr><td style={{ padding: '4px 0', color: '#6b7280' }}>Validade:</td><td style={{ fontWeight: 600, textAlign: 'right' }}>7 dias</td></tr>
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             {/* Client Data */}
@@ -339,20 +345,32 @@ _${empresaNome}_`;
               </div>
             )}
 
-            {/* Benefits */}
+            {/* Benefits - TABLE layout */}
             <div style={{ padding: '0 30px 20px' }}>
               <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
                 <h2 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px' }}>
                   ✅ Benefícios Inclusos
                 </h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px' }}>
-                  {beneficios.map((b) => (
-                    <div key={b.titulo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>✔️</span>
-                      <span><strong>{b.titulo}</strong> – {b.sub}</span>
-                    </div>
-                  ))}
-                </div>
+                <table style={{ width: '100%', fontSize: '13px' }}>
+                  <tbody>
+                    <tr>
+                      {beneficios.slice(0, 4).map((b) => (
+                        <td key={b.titulo} style={{ padding: '6px', verticalAlign: 'top', width: '25%' }}>
+                          <span>✔️ <strong>{b.titulo}</strong></span><br />
+                          <span style={{ color: '#6b7280', fontSize: '11px' }}>{b.sub}</span>
+                        </td>
+                      ))}
+                    </tr>
+                    <tr>
+                      {beneficios.slice(4).map((b) => (
+                        <td key={b.titulo} style={{ padding: '6px', verticalAlign: 'top', width: '25%' }}>
+                          <span>✔️ <strong>{b.titulo}</strong></span><br />
+                          <span style={{ color: '#6b7280', fontSize: '11px' }}>{b.sub}</span>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -370,24 +388,28 @@ _${empresaNome}_`;
               </div>
             </div>
 
-            {/* Signature area */}
+            {/* Signature area - TABLE layout */}
             <div style={{ padding: '0 30px 20px' }}>
-              <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', paddingTop: '20px' }}>
-                <div style={{ textAlign: 'center' }}>
-                  {formData.assinatura_cliente ? (
-                    <img src={formData.assinatura_cliente} alt="Assinatura" style={{ height: '60px', objectFit: 'contain' }} />
-                  ) : (
-                    <div style={{ width: '200px', height: '60px', borderBottom: '2px solid #999' }} />
-                  )}
-                  <p style={{ fontSize: '11px', marginTop: '4px', fontWeight: 600 }}>{formData.cliente_nome || 'Associado'}</p>
-                  <p style={{ fontSize: '10px', color: '#999' }}>Associado</p>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ width: '200px', height: '60px', borderBottom: '2px solid #999' }} />
-                  <p style={{ fontSize: '11px', marginTop: '4px', fontWeight: 600 }}>{empresaNome}</p>
-                  <p style={{ fontSize: '10px', color: '#999' }}>Representante</p>
-                </div>
-              </div>
+              <table style={{ width: '100%', borderSpacing: '40px 0', borderCollapse: 'separate' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ textAlign: 'center', paddingTop: '20px' }}>
+                      {formData.assinatura_cliente ? (
+                        <img src={formData.assinatura_cliente} alt="Assinatura" style={{ height: '60px', objectFit: 'contain' }} />
+                      ) : (
+                        <div style={{ width: '200px', height: '60px', borderBottom: '2px solid #999', margin: '0 auto' }} />
+                      )}
+                      <p style={{ fontSize: '11px', marginTop: '4px', fontWeight: 600 }}>{formData.cliente_nome || 'Associado'}</p>
+                      <p style={{ fontSize: '10px', color: '#999' }}>Associado</p>
+                    </td>
+                    <td style={{ textAlign: 'center', paddingTop: '20px' }}>
+                      <div style={{ width: '200px', height: '60px', borderBottom: '2px solid #999', margin: '0 auto' }} />
+                      <p style={{ fontSize: '11px', marginTop: '4px', fontWeight: 600 }}>{empresaNome}</p>
+                      <p style={{ fontSize: '10px', color: '#999' }}>Representante</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             {/* Footer */}
