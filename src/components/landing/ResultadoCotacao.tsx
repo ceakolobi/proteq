@@ -17,7 +17,9 @@ import {
   Key,
   Zap,
   Sparkles,
-  Loader2
+  Loader2,
+  Link2,
+  Copy
 } from 'lucide-react';
 import { StepIndicator } from './StepIndicator';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
@@ -488,6 +490,71 @@ export function ResultadoCotacao({
     }
   };
 
+  // Copy adesão link to clipboard
+  const handleCopyLink = async () => {
+    let adesaoUrl = sessionStorage.getItem('adesao_link') || '';
+    
+    if (!adesaoUrl && dadosVeiculo && cotacao) {
+      // Create cotação + link if not yet created
+      try {
+        const { data: consultores } = await supabase
+          .from('profiles')
+          .select('id, company_id')
+          .limit(1) as { data: { id: string; company_id: string | null }[] | null };
+
+        const consultorId = consultores?.[0]?.id;
+        const companyId = consultores?.[0]?.company_id;
+
+        if (consultorId) {
+          const { data: novaCotacao } = await supabase
+            .from('cotacoes')
+            .insert({
+              tipo_bem: dadosVeiculo.tipo_bem as any,
+              marca: dadosVeiculo.marca || '',
+              modelo: dadosVeiculo.modelo || '',
+              ano_fabricacao: dadosVeiculo.ano || new Date().getFullYear(),
+              valor_bem: dadosVeiculo.valor_fipe || 0,
+              valor_fipe: dadosVeiculo.valor_fipe || null,
+              codigo_fipe: dadosVeiculo.codigo_fipe || null,
+              consultor_id: consultorId,
+              company_id: companyId,
+              cliente_nome: dadosPessoais.nome,
+              cliente_email: dadosPessoais.email,
+              cliente_whatsapp: dadosPessoais.telefone,
+              mensalidade: cotacao.mensalidade,
+              participacao: cotacao.participacao,
+              status: 'enviada' as any,
+              metodo_valoracao: 'fipe' as any,
+            })
+            .select('id')
+            .single();
+
+          if (novaCotacao) {
+            const { data: adesaoLink } = await supabase
+              .from('adesao_links')
+              .insert({ cotacao_id: novaCotacao.id, company_id: companyId })
+              .select('token')
+              .single();
+
+            if (adesaoLink) {
+              adesaoUrl = `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`;
+              sessionStorage.setItem('adesao_link', adesaoUrl);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao criar link:', error);
+      }
+    }
+
+    if (adesaoUrl) {
+      await navigator.clipboard.writeText(adesaoUrl);
+      toast.success('Link de adesão copiado!');
+    } else {
+      toast.error('Não foi possível gerar o link. Tente novamente.');
+    }
+  };
+
   if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
@@ -628,7 +695,7 @@ export function ResultadoCotacao({
               Receba sua proposta detalhada {loadingCompany ? '(carregando dados...)' : '(com capas e contrato)'}
             </p>
             
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-4 gap-3 mb-6">
               <Button 
                 variant="outline" 
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
@@ -664,6 +731,15 @@ export function ResultadoCotacao({
                   <FileText className="h-5 w-5 text-primary" />
                 )}
                 <span className="text-xs">{loadingPdf ? 'Gerando...' : 'Baixar PDF'}</span>
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
+                onClick={handleCopyLink}
+              >
+                <Link2 className="h-5 w-5 text-primary" />
+                <span className="text-xs">Copiar Link</span>
               </Button>
             </div>
 
