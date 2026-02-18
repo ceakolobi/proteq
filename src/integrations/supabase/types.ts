@@ -145,6 +145,72 @@ export type Database = {
           },
         ]
       }
+      adesao_links: {
+        Row: {
+          assinado_em: string | null
+          assinado_ip: string | null
+          assinatura_url: string | null
+          company_id: string | null
+          cotacao_id: string
+          created_at: string
+          dados_complementares: Json | null
+          documentos_enviados: Json | null
+          expires_at: string
+          fotos_veiculo: Json | null
+          id: string
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinado_ip?: string | null
+          assinatura_url?: string | null
+          company_id?: string | null
+          cotacao_id: string
+          created_at?: string
+          dados_complementares?: Json | null
+          documentos_enviados?: Json | null
+          expires_at?: string
+          fotos_veiculo?: Json | null
+          id?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          assinado_em?: string | null
+          assinado_ip?: string | null
+          assinatura_url?: string | null
+          company_id?: string | null
+          cotacao_id?: string
+          created_at?: string
+          dados_complementares?: Json | null
+          documentos_enviados?: Json | null
+          expires_at?: string
+          fotos_veiculo?: Json | null
+          id?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adesao_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adesao_links_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_tokens: {
         Row: {
           company_id: string | null
