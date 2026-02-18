@@ -885,72 +885,78 @@ _Proteção Veicular_`;
                 Enviar pelo WhatsApp
                 {!clienteWhatsapp && <span className="ml-auto text-xs opacity-80">(informe o WhatsApp)</span>}
               </Button>
+            </div>
 
-              <Separator />
+            <Separator />
 
-              {/* Enviar Link de Adesão */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium flex items-center gap-2">
+            {/* Link de Adesão - Seção destacada */}
+            <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <ExternalLink className="w-4 h-4 text-primary" />
-                  Link de Adesão
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Envie o link para o cliente completar o cadastro, enviar documentos e realizar a vistoria.
-                </p>
-
-                {adesaoLink ? (
-                  <div className="p-3 rounded-lg bg-muted border text-sm space-y-2">
-                    <p className="font-mono text-xs break-all text-primary">{adesaoLink}</p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(adesaoLink);
-                          toast.success('Link copiado!');
-                        }}
-                      >
-                        <Copy className="w-3 h-3 mr-1" />
-                        Copiar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!clienteWhatsapp}
-                        onClick={() => {
-                          const numero = formatWhatsappNumber(clienteWhatsapp);
-                          const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : 'Olá 👋';
-                          const msg = `${saudacao}\n\nSua proposta para o ${cotacao.marca} ${cotacao.modelo} está pronta! 🎉\n\nPara finalizar sua adesão, acesse o link abaixo e envie seus documentos:\n${adesaoLink}\n\nO link é válido por *7 dias*.\n\nQualquer dúvida, estou à disposição! 🙏`;
-                          const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
-                          window.open(url, '_blank', 'noopener,noreferrer');
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <MessageCircle className="w-3 h-3 mr-1" />
-                        WhatsApp
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={handleGerarLinkAdesao}
-                    disabled={isGeneratingAdesaoLink}
-                    variant="outline"
-                    className="w-full justify-start border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    {isGeneratingAdesaoLink ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Link className="w-4 h-4 mr-2" />
-                    )}
-                    Gerar Link de Adesão
-                  </Button>
-                )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Link de Adesão</p>
+                  <p className="text-xs text-muted-foreground">
+                    Link para o cliente completar cadastro, documentos e vistoria
+                  </p>
+                </div>
               </div>
+
+              {adesaoLink ? (
+                <div className="space-y-3">
+                  <div className="p-2.5 rounded-lg bg-background border text-sm">
+                    <p className="font-mono text-xs break-all text-primary select-all">{adesaoLink}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(adesaoLink);
+                        toast.success('Link copiado!');
+                      }}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiar Link
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!clienteWhatsapp}
+                      onClick={() => {
+                        const numero = formatWhatsappNumber(clienteWhatsapp);
+                        const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : 'Olá 👋';
+                        const msg = `${saudacao}\n\nSua proposta para o ${cotacao.marca} ${cotacao.modelo} está pronta! 🎉\n\nPara finalizar sua adesão, acesse o link abaixo e envie seus documentos:\n${adesaoLink}\n\nO link é válido por *7 dias*.\n\nQualquer dúvida, estou à disposição! 🙏`;
+                        const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      Enviar WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleGerarLinkAdesao}
+                  disabled={isGeneratingAdesaoLink}
+                  className="w-full border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isGeneratingAdesaoLink ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Link className="w-4 h-4 mr-2" />
+                  )}
+                  Gerar Link de Adesão
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
+
 
       {/* Seção Iniciar Vistoria - Apenas para cotações aprovadas */}
       {isAprovado && (
