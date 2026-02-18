@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
@@ -25,6 +25,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logoColorida from '@/assets/logo-harmony-colorida.png';
 import logoBranca from '@/assets/logo-harmony-branca.png';
+import harmonyAgroLogoColorida from '@/assets/harmony-agro-logo-colorida.png';
+import harmonyAgroLogoBranca from '@/assets/harmony-agro-logo-branca.png';
+import html2pdf from 'html2pdf.js';
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -41,6 +44,25 @@ interface ResultadoCotacaoProps {
   onWhatsApp: () => void;
 }
 
+interface CompanyData {
+  settings: {
+    empresa_nome?: string;
+    empresa_logo?: string;
+    empresa_logo_branca?: string;
+    cor_primaria?: string;
+    cor_secundaria?: string;
+    texto_institucional?: string;
+    telefone?: string;
+    email?: string;
+    site?: string;
+    cover_mode?: string;
+    cover_fixed_index?: number;
+    pdf_contracapa?: string;
+  };
+  covers: { id: string; public_url: string }[];
+  contractTemplate: string | null;
+}
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -48,124 +70,21 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Gera HTML para o PDF da cotação pública
-const generatePdfHtml = (
-  dadosPessoais: DadosPessoais,
-  dadosVeiculo: DadosVeiculo,
-  cotacao: ResultadoCotacaoPublica
-) => {
-  const dataAtual = new Date().toLocaleDateString('pt-BR');
-  
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Proposta de Cotação</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-        .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #f97316; }
-        .header h1 { color: #f97316; font-size: 28px; margin-bottom: 5px; }
-        .header p { color: #666; }
-        .section { margin-bottom: 25px; }
-        .section-title { font-size: 16px; font-weight: bold; color: #f97316; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .info-item { padding: 8px 0; }
-        .info-label { font-size: 12px; color: #666; }
-        .info-value { font-size: 14px; font-weight: bold; }
-        .highlight-box { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; }
-        .highlight-box .amount { font-size: 36px; font-weight: bold; }
-        .highlight-box .label { font-size: 14px; opacity: 0.9; }
-        .benefits { background: #f9fafb; padding: 20px; border-radius: 10px; }
-        .benefit-item { padding: 8px 0; display: flex; align-items: center; }
-        .benefit-item::before { content: "✓"; color: #22c55e; font-weight: bold; margin-right: 10px; }
-        .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; padding-top: 20px; border-top: 1px solid #eee; }
-        .validity { background: #fef3c7; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; }
-        @media print { body { padding: 20px; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>🛡️ Proteção Veicular</h1>
-        <p>Proposta de Cotação</p>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">👤 Dados do Cliente</div>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Nome</div>
-            <div class="info-value">${dadosPessoais.nome}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Telefone</div>
-            <div class="info-value">${dadosPessoais.telefone}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">E-mail</div>
-            <div class="info-value">${dadosPessoais.email}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Data</div>
-            <div class="info-value">${dataAtual}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">🚗 Dados do Veículo</div>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Marca/Modelo</div>
-            <div class="info-value">${dadosVeiculo.marca} ${dadosVeiculo.modelo}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Ano</div>
-            <div class="info-value">${dadosVeiculo.ano}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Valor FIPE</div>
-            <div class="info-value">${formatCurrency(cotacao.valorFipe)}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Participação</div>
-            <div class="info-value">${formatCurrency(cotacao.participacao)}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="highlight-box">
-        <div class="label">Mensalidade</div>
-        <div class="amount">${formatCurrency(cotacao.mensalidade)}</div>
-        <div class="label">por mês</div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">✅ Benefícios Inclusos</div>
-        <div class="benefits">
-          <div class="benefit-item">Proteção Total - Roubo e Furto (100% FIPE)</div>
-          <div class="benefit-item">Assistência 24h - Suporte Integral</div>
-          <div class="benefit-item">Rastreamento - Tempo Real</div>
-          <div class="benefit-item">Guincho 500km - 250km ida/volta</div>
-          <div class="benefit-item">Carro Reserva - 30 dias inclusos</div>
-          <div class="benefit-item">Chaveiro 24h - Gratuito</div>
-          <div class="benefit-item">Pane Elétrica/Mecânica - Assistência Inclusa</div>
-          <div class="benefit-item">Eventos da Natureza - Proteção Completa</div>
-        </div>
-      </div>
-      
-      <div class="validity">
-        ⏳ <strong>Validade da proposta:</strong> 7 dias
-      </div>
-      
-      <div class="footer">
-        <p>Proposta gerada em ${dataAtual}</p>
-        <p>Proteção Veicular - Protegendo o que é seu com transparência e confiança.</p>
-      </div>
-    </body>
-    </html>
-  `;
+// Convert markdown to simple HTML
+const markdownToHtml = (md: string, vars: Record<string, string>): string => {
+  let html = md;
+  // Replace variables
+  Object.entries(vars).forEach(([key, value]) => {
+    html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+  });
+  // Convert markdown to HTML
+  html = html.replace(/^## (.+)$/gm, '<h2 style="font-size:14px;font-weight:bold;color:#1e3a5f;margin:18px 0 8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 style="font-size:18px;font-weight:bold;color:#1e3a5f;margin:0 0 6px;text-align:center;">$1</h1>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/^- (.+)$/gm, '<li style="margin-left:20px;font-size:11px;line-height:1.6;">$1</li>');
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">');
+  html = html.replace(/\n\n/g, '<br>');
+  return html;
 };
 
 export function ResultadoCotacao({ 
@@ -178,28 +97,298 @@ export function ResultadoCotacao({
 }: ResultadoCotacaoProps) {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [loadingCompany, setLoadingCompany] = useState(true);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
-  // Gerar e baixar PDF
+  // Fetch company data (covers, contract, settings)
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-company-data`;
+        const response = await fetch(url, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+        if (result.success) {
+          setCompanyData(result.data);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da empresa:', error);
+      } finally {
+        setLoadingCompany(false);
+      }
+    };
+    fetchCompanyData();
+  }, []);
+
+  // Get cover URL
+  const getCoverUrl = (): string | null => {
+    if (!companyData) return null;
+    const { covers, settings } = companyData;
+    if (covers.length === 0) return null;
+    const mode = settings.cover_mode || 'fixed';
+    if (mode === 'random') {
+      return covers[Math.floor(Math.random() * covers.length)]?.public_url || null;
+    }
+    const idx = Math.max(0, (settings.cover_fixed_index || 1) - 1);
+    return covers[idx]?.public_url || covers[0]?.public_url || null;
+  };
+
+  const empresaNome = companyData?.settings?.empresa_nome || 'HARMONY AGRO';
+  const siteEmpresa = companyData?.settings?.site || 'www.harmonyagro.com.br';
+
+  // Generate professional PDF with covers + proposal + contract
+  const generateProfessionalPdf = async (): Promise<Blob | null> => {
+    if (!dadosVeiculo || !cotacao) return null;
+
+    const coverUrl = getCoverUrl();
+    const contracapaUrl = companyData?.settings?.pdf_contracapa || null;
+    const textoInstitucional = companyData?.settings?.texto_institucional || 
+      'Esta proposta tem validade de 7 dias.';
+    const contractMd = companyData?.contractTemplate || '';
+    
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    const dataValidade = new Date();
+    dataValidade.setDate(dataValidade.getDate() + 7);
+    const validadeStr = dataValidade.toLocaleDateString('pt-BR');
+
+    // Contract variables
+    const contractVars: Record<string, string> = {
+      nome: dadosPessoais.nome,
+      cpf: '(a definir)',
+      plano: cotacao.cotaNome || 'Padrão',
+      modelo: `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`,
+      ano: String(dadosVeiculo.ano),
+      placa: dadosVeiculo.placa || '(a definir)',
+      mensalidade: formatCurrency(cotacao.mensalidade),
+      data: dataAtual,
+    };
+
+    const contractHtml = contractMd ? markdownToHtml(contractMd, contractVars) : '';
+
+    const beneficios = [
+      { titulo: 'Carro Reserva', sub: '30 dias inclusos' },
+      { titulo: 'Guincho', sub: '500 km (250km ida/volta)' },
+      { titulo: 'Vidros', sub: 'Cobertura de para-brisa' },
+      { titulo: 'Chaveiro', sub: '24 horas' },
+      { titulo: 'Pane Elétrica', sub: 'Assistência inclusa' },
+      { titulo: 'Pane Mecânica', sub: 'Assistência inclusa' },
+      { titulo: 'Pane Seca', sub: 'Combustível incluso' },
+      { titulo: 'Eventos da Natureza', sub: 'Proteção completa' },
+    ];
+
+    // Build full HTML
+    const html = `
+      <div style="font-family:Arial,sans-serif;color:#333;">
+        ${coverUrl ? `
+          <div style="width:210mm;min-height:297mm;display:flex;flex-direction:column;background:#fff;padding:24px;page-break-after:always;">
+            <div style="border-radius:16px;overflow:hidden;flex:1;">
+              <img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous" />
+            </div>
+          </div>
+        ` : ''}
+        
+        <!-- PROPOSTA -->
+        <div style="width:210mm;min-height:297mm;background:#fff;padding:0;page-break-after:always;">
+          <!-- Header -->
+          <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:24px 32px;border-radius:0 0 16px 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <img src="${harmonyAgroLogoBranca}" style="height:48px;" crossorigin="anonymous" />
+              <span style="background:rgba(255,255,255,0.2);color:#fff;font-size:10px;font-weight:600;padding:6px 16px;border-radius:20px;">
+                Atendimento em todo território nacional
+              </span>
+            </div>
+            <div style="text-align:center;color:#fff;padding:8px 0 12px;">
+              <h1 style="font-size:22px;font-weight:bold;margin:0;letter-spacing:1px;">PROPOSTA DE COTAÇÃO</h1>
+              <p style="font-size:12px;opacity:0.9;margin:4px 0 0;">Proteção Veicular • Carros • Motos • Camionetes</p>
+            </div>
+          </div>
+
+          <!-- Dados do Cliente -->
+          <div style="padding:20px 32px;">
+            <div style="display:flex;gap:24px;margin-bottom:16px;">
+              <div style="flex:1;">
+                <p style="font-size:10px;color:#888;text-transform:uppercase;">Cliente</p>
+                <p style="font-size:14px;font-weight:bold;">${dadosPessoais.nome}</p>
+              </div>
+              <div>
+                <p style="font-size:10px;color:#888;text-transform:uppercase;">Telefone</p>
+                <p style="font-size:14px;font-weight:bold;">${dadosPessoais.telefone}</p>
+              </div>
+              <div>
+                <p style="font-size:10px;color:#888;text-transform:uppercase;">Data</p>
+                <p style="font-size:14px;font-weight:bold;">${dataAtual}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Veículo + Valores -->
+          <div style="padding:0 32px;display:flex;gap:16px;">
+            <!-- Veículo -->
+            <div style="flex:1;border:1px solid #fed7aa;border-radius:16px;overflow:hidden;">
+              <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:12px 16px;">
+                <p style="color:#fff;font-weight:bold;font-size:14px;margin:0;">Dados do Veículo</p>
+              </div>
+              <div style="padding:16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
+                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Marca</p>
+                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.marca}</p>
+                  </div>
+                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
+                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Modelo</p>
+                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.modelo}</p>
+                  </div>
+                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
+                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Ano</p>
+                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.ano}</p>
+                  </div>
+                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
+                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Tipo</p>
+                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.tipo_bem}</p>
+                  </div>
+                </div>
+                <div style="background:#f0fdf4;border-radius:8px;padding:12px;text-align:center;margin-top:8px;">
+                  <p style="font-size:9px;color:#166534;text-transform:uppercase;">Valor FIPE</p>
+                  <p style="font-size:20px;font-weight:bold;color:#15803d;">${formatCurrency(cotacao.valorFipe)}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Valores -->
+            <div style="flex:1;border:1px solid #bbf7d0;border-radius:16px;overflow:hidden;">
+              <div style="background:linear-gradient(135deg,#22c55e,#16a34a);padding:12px 16px;">
+                <p style="color:#fff;font-weight:bold;font-size:14px;margin:0;">Valores da Proposta</p>
+              </div>
+              <div style="padding:16px;">
+                <div style="background:linear-gradient(135deg,#F97316,#ea580c);border-radius:12px;padding:16px;text-align:center;color:#fff;margin-bottom:12px;">
+                  <p style="font-size:11px;opacity:0.9;margin:0;">Mensalidade</p>
+                  <p style="font-size:32px;font-weight:bold;margin:4px 0;">${formatCurrency(cotacao.mensalidade)}</p>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                  <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;">
+                    <p style="font-size:9px;color:#166534;">COTA</p>
+                    <p style="font-weight:600;font-size:11px;">${cotacao.cotaNome || 'Padrão'}</p>
+                  </div>
+                  <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;">
+                    <p style="font-size:9px;color:#166534;">PARTICIPAÇÃO</p>
+                    <p style="font-weight:600;font-size:11px;">${formatCurrency(cotacao.participacao)}</p>
+                  </div>
+                </div>
+                <div style="background:#fff7ed;border-radius:8px;padding:8px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-size:11px;color:#9a3412;">Taxa de adesão:</span>
+                    <span style="font-weight:600;color:#15803d;font-size:11px;">GRÁTIS ✅</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span style="font-size:11px;color:#9a3412;">Validade:</span>
+                    <span style="font-weight:600;font-size:11px;">${validadeStr}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Benefícios -->
+          <div style="padding:20px 32px;">
+            <div style="border:1px solid #fed7aa;border-radius:16px;padding:20px;">
+              <h2 style="font-size:16px;font-weight:bold;margin:0 0 12px;color:#1e3a5f;">Benefícios Inclusos</h2>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                ${beneficios.map(b => `
+                  <div style="display:flex;align-items:center;gap:8px;padding:6px;">
+                    <div style="width:24px;height:24px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;">
+                      <span style="color:#F97316;font-size:12px;">✓</span>
+                    </div>
+                    <div>
+                      <p style="font-weight:600;font-size:11px;margin:0;">${b.titulo}</p>
+                      <p style="font-size:9px;color:#888;margin:0;">${b.sub}</p>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Condições -->
+          <div style="padding:0 32px 16px;">
+            <div style="background:#fff7ed;border-radius:12px;padding:12px;border:1px solid #fed7aa;">
+              <p style="font-size:11px;font-weight:bold;color:#9a3412;margin:0 0 6px;">Condições Importantes</p>
+              <p style="font-size:10px;color:#78350f;line-height:1.5;margin:0;">${textoInstitucional}</p>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background:#F97316;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+            <img src="${harmonyAgroLogoBranca}" style="height:32px;" crossorigin="anonymous" />
+            <span style="color:#fff;font-size:12px;font-weight:500;">${siteEmpresa}</span>
+          </div>
+        </div>
+
+        ${contractHtml ? `
+          <!-- CONTRATO -->
+          <div style="width:210mm;min-height:297mm;background:#fff;padding:32px 40px;page-break-before:always;font-size:11px;line-height:1.7;">
+            <div style="text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #F97316;">
+              <img src="${harmonyAgroLogoColorida}" style="height:40px;margin-bottom:8px;" crossorigin="anonymous" />
+            </div>
+            ${contractHtml}
+          </div>
+        ` : ''}
+
+        ${contracapaUrl ? `
+          <div style="width:210mm;height:297mm;page-break-before:always;display:flex;align-items:center;justify-content:center;background:#fff;">
+            <img src="${contracapaUrl}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous" />
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    // Create hidden container
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    document.body.appendChild(container);
+
+    try {
+      const opt = {
+        margin: 0,
+        filename: `Proposta_HarmonyAgro_${dadosVeiculo.marca}_${dadosVeiculo.modelo}.pdf`,
+        image: { type: 'jpeg', quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: false, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      };
+
+      const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      return blob;
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
+  // Download PDF
   const handleDownloadPdf = async () => {
     if (!dadosVeiculo || !cotacao) return;
     
     setLoadingPdf(true);
     try {
-      const htmlContent = generatePdfHtml(dadosPessoais, dadosVeiculo, cotacao);
-      
-      // Abrir em nova janela para impressão/download
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        // Auto print
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-        toast.success('PDF aberto para download!');
-      } else {
-        toast.error('Bloqueador de pop-up ativo. Permita pop-ups para baixar o PDF.');
+      const blob = await generateProfessionalPdf();
+      if (!blob) {
+        toast.error('Erro ao gerar PDF');
+        return;
       }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Proposta_HarmonyAgro_${dadosVeiculo.marca}_${dadosVeiculo.modelo}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('PDF baixado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       toast.error('Erro ao gerar PDF');
@@ -208,10 +397,9 @@ export function ResultadoCotacao({
     }
   };
 
-  // Enviar por email
+  // Send email with PDF
   const handleSendEmail = async () => {
     if (!dadosVeiculo || !cotacao) return;
-    
     if (!dadosPessoais.email) {
       toast.error('E-mail não informado');
       return;
@@ -219,6 +407,22 @@ export function ResultadoCotacao({
     
     setLoadingEmail(true);
     try {
+      const blob = await generateProfessionalPdf();
+      if (!blob) {
+        toast.error('Erro ao gerar PDF para envio');
+        return;
+      }
+
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const filename = `Proposta_HarmonyAgro_${dadosVeiculo.marca}_${dadosVeiculo.modelo}.pdf`;
+
       const { data, error } = await supabase.functions.invoke('send-proposta-email', {
         body: {
           to: dadosPessoais.email,
@@ -227,10 +431,10 @@ export function ResultadoCotacao({
           mensalidade: formatCurrency(cotacao.mensalidade),
           validadeDias: 7,
           pdfUrl: null,
-          pdfBase64: null, // HTML email já contém as informações
-          filename: `Proposta-${dadosVeiculo.marca}-${dadosVeiculo.modelo}.pdf`,
-          empresaNome: 'Proteção Veicular'
-        }
+          pdfBase64: base64,
+          filename,
+          empresaNome: companyData?.settings?.empresa_nome || 'Proteção Veicular',
+        },
       });
 
       if (error) {
@@ -251,6 +455,7 @@ export function ResultadoCotacao({
       setLoadingEmail(false);
     }
   };
+
   if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
@@ -345,7 +550,6 @@ export function ResultadoCotacao({
                 <p className="text-xs text-muted-foreground mt-1">por mês</p>
               </div>
 
-              {/* Sem taxa de adesão */}
               <div className="mt-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
                 <div className="flex items-center justify-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -389,7 +593,7 @@ export function ResultadoCotacao({
         <Card className="mt-6 shadow-xl">
           <CardContent className="pt-6">
             <p className="text-center text-sm text-muted-foreground mb-4">
-              Receba sua proposta detalhada
+              Receba sua proposta detalhada {loadingCompany ? '(carregando dados...)' : '(com capas e contrato)'}
             </p>
             
             <div className="grid grid-cols-3 gap-3 mb-6">
@@ -406,7 +610,7 @@ export function ResultadoCotacao({
                 variant="outline" 
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
                 onClick={handleSendEmail}
-                disabled={loadingEmail}
+                disabled={loadingEmail || loadingCompany}
               >
                 {loadingEmail ? (
                   <Loader2 className="h-5 w-5 text-primary animate-spin" />
@@ -420,7 +624,7 @@ export function ResultadoCotacao({
                 variant="outline" 
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
                 onClick={handleDownloadPdf}
-                disabled={loadingPdf}
+                disabled={loadingPdf || loadingCompany}
               >
                 {loadingPdf ? (
                   <Loader2 className="h-5 w-5 text-primary animate-spin" />
@@ -437,7 +641,6 @@ export function ResultadoCotacao({
                 Voltar
               </Button>
               <Button onClick={() => {
-                // Auto-download PDF when accepting
                 handleDownloadPdf();
                 onContinue();
               }} className="flex-1 py-6 text-lg">
