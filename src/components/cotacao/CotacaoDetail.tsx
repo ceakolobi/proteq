@@ -343,12 +343,15 @@ Qualquer dúvida estou à disposição 🙏
 🤝 Conte com a gente!
 _Proteção Veicular_`;
 
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
-      // Fallback quando o navegador bloqueia pop-ups
-      window.location.assign(whatsappUrl);
+      navigator.clipboard?.writeText(whatsappUrl).then(() => {
+        toast.info('Pop-up bloqueado. Link do WhatsApp copiado — cole no navegador.');
+      }).catch(() => {
+        toast.error('Permita pop-ups ou copie o link manualmente.');
+      });
       return;
     }
 
@@ -467,11 +470,15 @@ Qualquer dúvida, estou à disposição! 🙏
 
 _Proteção Veicular_`;
 
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
-      window.location.assign(whatsappUrl);
+      navigator.clipboard?.writeText(whatsappUrl).then(() => {
+        toast.info('Pop-up bloqueado. Link do WhatsApp copiado — cole no navegador.');
+      }).catch(() => {
+        toast.error('Permita pop-ups ou copie o link manualmente.');
+      });
       return;
     }
 
