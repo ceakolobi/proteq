@@ -142,7 +142,7 @@ export default function Cotacoes() {
         )}
 
         {viewMode === 'new' && (
-          <CotacaoForm
+          <CotacaoWizard
             leadId={leadData?.id}
             leadNome={leadData?.nome}
             onSuccess={handleFormSuccess}
