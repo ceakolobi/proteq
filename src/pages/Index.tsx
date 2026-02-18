@@ -136,10 +136,16 @@ export default function Index() {
               </div>
               
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Parabéns! Seu veículo já está protegido! 🎉
+                Cadastro concluído com sucesso! 🎉
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Sua adesão foi concluída com sucesso! Conclua sua adesão enviando os dados e fotos pelo link que enviamos no seu WhatsApp.
+              <p className="text-lg text-muted-foreground mb-2">
+                Sua proteção já está ativa.
+              </p>
+              <p className="text-base text-muted-foreground mb-2">
+                Você <strong>não paga taxa de adesão</strong>.
+              </p>
+              <p className="text-base text-muted-foreground mb-8">
+                O primeiro pagamento será apenas no próximo vencimento escolhido.
               </p>
               
               {/* Info cards */}

@@ -18,12 +18,12 @@ export function AnnouncementBanner() {
           <Gift className="h-5 w-5 text-primary animate-pulse flex-shrink-0" />
           
           <p className="font-medium text-center">
-            <span className="hidden sm:inline">🎉 </span>
-            <strong>PROMOÇÃO:</strong> 1ª mensalidade <strong>GRÁTIS</strong> 
-            <span className="hidden sm:inline">para cadastros até 28/02</span>
+            <span className="hidden sm:inline">🎁 </span>
+            <strong>1ª mensalidade GRÁTIS</strong> — Sem taxa de adesão!
+            <span className="hidden sm:inline"> Cadastre-se agora.</span>
             <span className="inline-flex items-center gap-1 mx-1 px-2 py-0.5 bg-primary/20 rounded-full font-bold">
               <Clock className="h-3.5 w-3.5" />
-              Vence 10/04
+              Oferta limitada
             </span>
           </p>
           
