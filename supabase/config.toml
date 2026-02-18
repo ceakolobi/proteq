@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.chat-vendas]
 verify_jwt = false
+
+[functions.get-public-company-data]
+verify_jwt = false
