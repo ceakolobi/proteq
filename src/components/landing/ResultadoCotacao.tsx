@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
@@ -28,6 +28,28 @@ import logoBranca from '@/assets/logo-harmony-branca.png';
 import harmonyAgroLogoColorida from '@/assets/harmony-agro-logo-colorida.png';
 import harmonyAgroLogoBranca from '@/assets/harmony-agro-logo-branca.png';
 import html2pdf from 'html2pdf.js';
+
+// Helper: convert any image URL to base64 data URI
+const imageToBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('No canvas context')); return; }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => {
+      console.warn('[PDF] Failed to load image:', url);
+      resolve(''); // return empty string on failure instead of rejecting
+    };
+    img.src = url;
+  });
+};
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -153,6 +175,16 @@ export function ResultadoCotacao({
     dataValidade.setDate(dataValidade.getDate() + 7);
     const validadeStr = dataValidade.toLocaleDateString('pt-BR');
 
+    // Pre-convert ALL images to base64 to avoid CORS/cross-origin issues
+    console.log('[PDF] Pre-converting images to base64...');
+    const [logoColoridaB64, logoBrancaB64, coverB64, contracapaB64] = await Promise.all([
+      imageToBase64(harmonyAgroLogoColorida),
+      imageToBase64(harmonyAgroLogoBranca),
+      coverUrl ? imageToBase64(coverUrl) : Promise.resolve(''),
+      contracapaUrl ? imageToBase64(contracapaUrl) : Promise.resolve(''),
+    ]);
+    console.log('[PDF] Images converted. Cover:', !!coverB64, 'Logo:', !!logoBrancaB64);
+
     // Contract variables
     const contractVars: Record<string, string> = {
       nome: dadosPessoais.nome,
@@ -178,13 +210,13 @@ export function ResultadoCotacao({
       { titulo: 'Eventos da Natureza', sub: 'Proteção completa' },
     ];
 
-    // Build full HTML
+    // Build full HTML - using base64 data URIs for all images
     const html = `
       <div style="font-family:Arial,sans-serif;color:#333;">
-        ${coverUrl ? `
+        ${coverB64 ? `
           <div style="width:210mm;min-height:297mm;display:flex;flex-direction:column;background:#fff;padding:24px;page-break-after:always;">
             <div style="border-radius:16px;overflow:hidden;flex:1;">
-              <img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous" />
+              <img src="${coverB64}" style="width:100%;height:100%;object-fit:cover;" />
             </div>
           </div>
         ` : ''}
@@ -194,7 +226,7 @@ export function ResultadoCotacao({
           <!-- Header -->
           <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:24px 32px;border-radius:0 0 16px 16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-              <img src="${harmonyAgroLogoBranca}" style="height:48px;" crossorigin="anonymous" />
+              ${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:48px;" />` : ''}
               <span style="background:rgba(255,255,255,0.2);color:#fff;font-size:10px;font-weight:600;padding:6px 16px;border-radius:20px;">
                 Atendimento em todo território nacional
               </span>
@@ -320,7 +352,7 @@ export function ResultadoCotacao({
 
           <!-- Footer -->
           <div style="background:#F97316;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
-            <img src="${harmonyAgroLogoBranca}" style="height:32px;" crossorigin="anonymous" />
+            ${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:32px;" />` : ''}
             <span style="color:#fff;font-size:12px;font-weight:500;">${siteEmpresa}</span>
           </div>
         </div>
@@ -329,15 +361,15 @@ export function ResultadoCotacao({
           <!-- CONTRATO -->
           <div style="width:210mm;min-height:297mm;background:#fff;padding:32px 40px;page-break-before:always;font-size:11px;line-height:1.7;">
             <div style="text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #F97316;">
-              <img src="${harmonyAgroLogoColorida}" style="height:40px;margin-bottom:8px;" crossorigin="anonymous" />
+              ${logoColoridaB64 ? `<img src="${logoColoridaB64}" style="height:40px;margin-bottom:8px;" />` : ''}
             </div>
             ${contractHtml}
           </div>
         ` : ''}
 
-        ${contracapaUrl ? `
+        ${contracapaB64 ? `
           <div style="width:210mm;height:297mm;page-break-before:always;display:flex;align-items:center;justify-content:center;background:#fff;">
-            <img src="${contracapaUrl}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous" />
+            <img src="${contracapaB64}" style="width:100%;height:100%;object-fit:cover;" />
           </div>
         ` : ''}
       </div>

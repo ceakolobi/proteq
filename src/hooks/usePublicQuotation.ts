@@ -419,13 +419,69 @@ export function usePublicQuotation() {
     setDocumentos([]);
   };
 
-  const enviarPropostaWhatsApp = () => {
+  const enviarPropostaWhatsApp = async () => {
     if (!dadosPessoais.telefone || !cotacao) return;
+
+    // Se ainda não criou cotação/adesão, cria agora
+    let adesaoUrl = sessionStorage.getItem('adesao_link') || '';
+    if (!adesaoUrl && dadosVeiculo && cotacao) {
+      try {
+        const { data: consultores } = await supabase
+          .from('profiles')
+          .select('id, company_id')
+          .limit(1) as { data: { id: string; company_id: string | null }[] | null };
+
+        const consultorId = consultores?.[0]?.id;
+        const companyId = consultores?.[0]?.company_id;
+
+        if (consultorId) {
+          const { data: novaCotacao } = await supabase
+            .from('cotacoes')
+            .insert({
+              tipo_bem: dadosVeiculo.tipo_bem as any,
+              marca: dadosVeiculo.marca || '',
+              modelo: dadosVeiculo.modelo || '',
+              ano_fabricacao: dadosVeiculo.ano || new Date().getFullYear(),
+              valor_bem: dadosVeiculo.valor_fipe || 0,
+              valor_fipe: dadosVeiculo.valor_fipe || null,
+              codigo_fipe: dadosVeiculo.codigo_fipe || null,
+              consultor_id: consultorId,
+              company_id: companyId,
+              lead_id: leadId,
+              cliente_nome: dadosPessoais.nome,
+              cliente_email: dadosPessoais.email,
+              cliente_whatsapp: dadosPessoais.telefone,
+              mensalidade: cotacao.mensalidade,
+              participacao: cotacao.participacao,
+              status: 'enviada' as any,
+              metodo_valoracao: 'fipe' as any,
+            })
+            .select('id')
+            .single();
+
+          if (novaCotacao) {
+            const { data: adesaoLink } = await supabase
+              .from('adesao_links')
+              .insert({
+                cotacao_id: novaCotacao.id,
+                company_id: companyId,
+              })
+              .select('token')
+              .single();
+
+            if (adesaoLink) {
+              adesaoUrl = `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`;
+              sessionStorage.setItem('adesao_link', adesaoUrl);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[usePublicQuotation] Erro ao criar cotação para WhatsApp:', error);
+      }
+    }
     
     const telefone = dadosPessoais.telefone.replace(/\D/g, '');
     const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`;
-    
-    const adesaoUrl = sessionStorage.getItem('adesao_link') || '';
     
     const mensagem = encodeURIComponent(
       `Olá ${dadosPessoais.nome}! 🚗\n\n` +
