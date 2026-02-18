@@ -12,7 +12,6 @@ import {
   BeneficiosSection,
   FamiliaProtegidaBanner,
   CTAFinalSection,
-  PagamentoSection,
   LandingFooter,
   CadastroContaForm,
   DocumentosUploadForm,
@@ -121,15 +120,6 @@ export default function Index() {
           />
         );
       
-      case 'pagamento':
-        return (
-          <PagamentoSection
-            chavePix={quotation.configFinanceira?.chave_pix || null}
-            tipoChavePix={quotation.configFinanceira?.tipo_chave_pix || null}
-            onBack={quotation.voltarEtapa}
-            onConfirm={quotation.confirmarPagamento}
-          />
-        );
       
       case 'sucesso':
         return (
@@ -146,11 +136,11 @@ export default function Index() {
               </div>
               
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Parabéns! 🎉
+                Parabéns! Seu veículo já está protegido! 🎉
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Seu cadastro foi finalizado com sucesso!
-                Sua proteção será ativada após análise dos documentos.
+                Sua adesão foi concluída com sucesso!
+                Conclua o envio de documentos e vistoria para ativação completa.
               </p>
               
               {/* Info cards */}

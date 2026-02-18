@@ -6,10 +6,6 @@ import type { Cota } from '@/lib/cotacaoUtils';
 import type { VehicleType } from '@/types/database';
 import { toast } from 'sonner';
 
-interface ConfiguracaoFinanceira {
-  chave_pix: string | null;
-  tipo_chave_pix: string | null;
-}
 
 export function usePublicQuotation() {
   const [etapa, setEtapa] = useState<EtapaFunil>('hero');
@@ -19,7 +15,6 @@ export function usePublicQuotation() {
   const [dadosCadastro, setDadosCadastro] = useState<DadosCadastro | null>(null);
   const [documentos, setDocumentos] = useState<DocumentoUploadLanding[]>([]);
   const [cotas, setCotas] = useState<Cota[]>([]);
-  const [configFinanceira, setConfigFinanceira] = useState<ConfiguracaoFinanceira | null>(null);
   const [loading, setLoading] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
 
@@ -42,20 +37,8 @@ export function usePublicQuotation() {
       }
     };
 
-    const fetchConfig = async () => {
-      const { data } = await supabase
-        .from('configuracoes_financeiras')
-        .select('chave_pix, tipo_chave_pix')
-        .limit(1)
-        .maybeSingle();
-      
-      if (data) {
-        setConfigFinanceira(data);
-      }
-    };
 
     fetchCotas();
-    fetchConfig();
   }, []);
 
   const calcularCotacao = (veiculo: DadosVeiculo): ResultadoCotacaoPublica | null => {
@@ -215,9 +198,6 @@ export function usePublicQuotation() {
       case 'documentos':
         setEtapa('cadastro');
         break;
-      case 'pagamento':
-        setEtapa('documentos');
-        break;
       default:
         setEtapa('hero');
     }
@@ -271,20 +251,17 @@ export function usePublicQuotation() {
     }
   };
 
-  // Salvar documentos
+  // Salvar documentos e finalizar adesão (sem taxa de adesão)
   const salvarDocumentos = async (docs: DocumentoUploadLanding[]) => {
     setDocumentos(docs);
-    // Por enquanto, documentos são salvos após pagamento
-    // Avança para pagamento
-    setEtapa('pagamento');
+    await finalizarAdesao();
   };
 
-  // Confirmar pagamento e finalizar
-  const confirmarPagamento = async () => {
+  // Finalizar adesão (sem cobrança de taxa)
+  const finalizarAdesao = async () => {
     setLoading(true);
 
     try {
-      // Criar associado no sistema
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user || !dadosCadastro || !dadosVeiculo || !cotacao) {
@@ -339,10 +316,7 @@ export function usePublicQuotation() {
         console.error('Erro ao criar veículo:', veiculoError);
       }
 
-      // TODO: Upload de documentos para storage
-      // TODO: Registrar pagamento da adesão
-
-      toast.success('Cadastro finalizado! Sua proteção será ativada em até 72h.');
+      toast.success('Adesão finalizada! Sua proteção está ativa.');
       sessionStorage.removeItem('in_quotation_funnel');
       setEtapa('sucesso');
     } catch (error) {
@@ -392,7 +366,6 @@ export function usePublicQuotation() {
     cotacao,
     dadosCadastro,
     documentos,
-    configFinanceira,
     loading,
     
     // Actions
@@ -403,7 +376,6 @@ export function usePublicQuotation() {
     aceitarProposta,
     criarConta,
     salvarDocumentos,
-    confirmarPagamento,
     reiniciar,
     enviarPropostaWhatsApp,
   };
