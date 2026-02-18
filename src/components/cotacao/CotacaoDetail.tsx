@@ -121,6 +121,10 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const [vistoriaLink, setVistoriaLink] = useState<string | null>(null);
   const [vistoriaId, setVistoriaId] = useState<string | null>(null);
 
+  // Estados para link de adesão
+  const [adesaoLink, setAdesaoLink] = useState<string | null>(null);
+  const [isGeneratingAdesaoLink, setIsGeneratingAdesaoLink] = useState(false);
+
   const canManage = isAdminPrincipal || hasRole('admin_regional') || cotacao.consultor_id === user?.id;
   const isAprovado = cotacao.status === 'aprovado';
   const canApprove = cotacao.status !== 'aprovado' && cotacao.status !== 'perdido' && canManage;
@@ -506,6 +510,68 @@ _Proteção Veicular_`;
     }
   };
 
+  // Gerar link de adesão
+  const handleGerarLinkAdesao = async () => {
+    setIsGeneratingAdesaoLink(true);
+    try {
+      // Verificar se já existe um link de adesão para esta cotação
+      const { data: existing } = await supabase
+        .from('adesao_links')
+        .select('id, token')
+        .eq('cotacao_id', cotacao.id)
+        .neq('status', 'expirado')
+        .maybeSingle();
+
+      if (existing) {
+        const link = `${window.location.origin}/adesao/${cotacao.id}/${existing.token}`;
+        setAdesaoLink(link);
+        await navigator.clipboard.writeText(link);
+        toast.success('Link de adesão copiado!');
+        return;
+      }
+
+      // Criar novo link de adesão
+      const { data: newLink, error } = await supabase
+        .from('adesao_links')
+        .insert({
+          cotacao_id: cotacao.id,
+          status: 'pendente',
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select('id, token')
+        .single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/adesao/${cotacao.id}/${newLink.token}`;
+      setAdesaoLink(link);
+      await navigator.clipboard.writeText(link);
+      toast.success('Link de adesão gerado e copiado!');
+    } catch (err: any) {
+      console.error('Erro ao gerar link de adesão:', err);
+      toast.error(err.message || 'Erro ao gerar link de adesão');
+    } finally {
+      setIsGeneratingAdesaoLink(false);
+    }
+  };
+
+  // Carregar link de adesão existente ao montar
+  useEffect(() => {
+    const loadAdesaoLink = async () => {
+      const { data } = await supabase
+        .from('adesao_links')
+        .select('token')
+        .eq('cotacao_id', cotacao.id)
+        .neq('status', 'expirado')
+        .maybeSingle();
+      
+      if (data) {
+        setAdesaoLink(`${window.location.origin}/adesao/${cotacao.id}/${data.token}`);
+      }
+    };
+    loadAdesaoLink();
+  }, [cotacao.id]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -819,6 +885,68 @@ _Proteção Veicular_`;
                 Enviar pelo WhatsApp
                 {!clienteWhatsapp && <span className="ml-auto text-xs opacity-80">(informe o WhatsApp)</span>}
               </Button>
+
+              <Separator />
+
+              {/* Enviar Link de Adesão */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4 text-primary" />
+                  Link de Adesão
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Envie o link para o cliente completar o cadastro, enviar documentos e realizar a vistoria.
+                </p>
+
+                {adesaoLink ? (
+                  <div className="p-3 rounded-lg bg-muted border text-sm space-y-2">
+                    <p className="font-mono text-xs break-all text-primary">{adesaoLink}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(adesaoLink);
+                          toast.success('Link copiado!');
+                        }}
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copiar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!clienteWhatsapp}
+                        onClick={() => {
+                          const numero = formatWhatsappNumber(clienteWhatsapp);
+                          const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : 'Olá 👋';
+                          const msg = `${saudacao}\n\nSua proposta para o ${cotacao.marca} ${cotacao.modelo} está pronta! 🎉\n\nPara finalizar sua adesão, acesse o link abaixo e envie seus documentos:\n${adesaoLink}\n\nO link é válido por *7 dias*.\n\nQualquer dúvida, estou à disposição! 🙏`;
+                          const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <MessageCircle className="w-3 h-3 mr-1" />
+                        WhatsApp
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleGerarLinkAdesao}
+                    disabled={isGeneratingAdesaoLink}
+                    variant="outline"
+                    className="w-full justify-start border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    {isGeneratingAdesaoLink ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Link className="w-4 h-4 mr-2" />
+                    )}
+                    Gerar Link de Adesão
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
