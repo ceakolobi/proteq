@@ -10,6 +10,8 @@ import {
   Upload, Camera, FileText, CheckCircle2, Shield, 
   Loader2, AlertCircle, PenTool, ArrowRight, ArrowLeft
 } from 'lucide-react';
+import logoColorida from '@/assets/logo-harmony-colorida.png';
+import logoBranca from '@/assets/logo-harmony-branca.png';
 
 type AdesaoStep = 'loading' | 'documentos' | 'fotos' | 'assinatura' | 'concluido' | 'erro' | 'expirado';
 
@@ -354,6 +356,16 @@ export default function AdesaoPublica() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
+          <img 
+            src={logoBranca} 
+            alt="Harmony" 
+            className="h-10 mx-auto mb-4 hidden dark:block" 
+          />
+          <img 
+            src={logoColorida} 
+            alt="Harmony" 
+            className="h-10 mx-auto mb-4 dark:hidden" 
+          />
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-2xl mb-3">
             <Shield className="h-7 w-7 text-primary" />
           </div>
