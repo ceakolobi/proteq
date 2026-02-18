@@ -212,12 +212,12 @@ export function ResultadoCotacao({
       { titulo: 'Eventos da Natureza', sub: 'Proteção completa' },
     ];
 
-    // Build full HTML - using base64 data URIs for all images
+    // Build full HTML - using TABLE layout for html2canvas compatibility (no flexbox/grid)
     const html = `
       <div style="font-family:Arial,sans-serif;color:#333;">
         ${coverB64 ? `
-          <div style="width:210mm;min-height:297mm;display:flex;flex-direction:column;background:#fff;padding:24px;page-break-after:always;">
-            <div style="border-radius:16px;overflow:hidden;flex:1;">
+          <div style="width:210mm;height:297mm;padding:24px;page-break-after:always;">
+            <div style="border-radius:16px;overflow:hidden;width:100%;height:100%;">
               <img src="${coverB64}" style="width:100%;height:100%;object-fit:cover;" />
             </div>
           </div>
@@ -227,12 +227,10 @@ export function ResultadoCotacao({
         <div style="width:210mm;min-height:297mm;background:#fff;padding:0;page-break-after:always;">
           <!-- Header -->
           <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:24px 32px;border-radius:0 0 16px 16px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-              ${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:48px;" />` : ''}
-              <span style="background:rgba(255,255,255,0.2);color:#fff;font-size:10px;font-weight:600;padding:6px 16px;border-radius:20px;">
-                Atendimento em todo território nacional
-              </span>
-            </div>
+            <table style="width:100%;margin-bottom:12px;"><tr>
+              <td style="text-align:left;">${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:48px;" />` : ''}</td>
+              <td style="text-align:right;"><span style="background:rgba(255,255,255,0.2);color:#fff;font-size:10px;font-weight:600;padding:6px 16px;border-radius:20px;">Atendimento em todo território nacional</span></td>
+            </tr></table>
             <div style="text-align:center;color:#fff;padding:8px 0 12px;">
               <h1 style="font-size:22px;font-weight:bold;margin:0;letter-spacing:1px;">PROPOSTA DE COTAÇÃO</h1>
               <p style="font-size:12px;opacity:0.9;margin:4px 0 0;">Proteção Veicular • Carros • Motos • Camionetes</p>
@@ -241,106 +239,127 @@ export function ResultadoCotacao({
 
           <!-- Dados do Cliente -->
           <div style="padding:20px 32px;">
-            <div style="display:flex;gap:24px;margin-bottom:16px;">
-              <div style="flex:1;">
-                <p style="font-size:10px;color:#888;text-transform:uppercase;">Cliente</p>
-                <p style="font-size:14px;font-weight:bold;">${dadosPessoais.nome}</p>
-              </div>
-              <div>
-                <p style="font-size:10px;color:#888;text-transform:uppercase;">Telefone</p>
-                <p style="font-size:14px;font-weight:bold;">${dadosPessoais.telefone}</p>
-              </div>
-              <div>
-                <p style="font-size:10px;color:#888;text-transform:uppercase;">Data</p>
-                <p style="font-size:14px;font-weight:bold;">${dataAtual}</p>
-              </div>
-            </div>
+            <table style="width:100%;"><tr>
+              <td style="vertical-align:top;">
+                <p style="font-size:10px;color:#888;text-transform:uppercase;margin:0;">Cliente</p>
+                <p style="font-size:14px;font-weight:bold;margin:2px 0;">${dadosPessoais.nome}</p>
+              </td>
+              <td style="vertical-align:top;text-align:center;">
+                <p style="font-size:10px;color:#888;text-transform:uppercase;margin:0;">Telefone</p>
+                <p style="font-size:14px;font-weight:bold;margin:2px 0;">${dadosPessoais.telefone}</p>
+              </td>
+              <td style="vertical-align:top;text-align:right;">
+                <p style="font-size:10px;color:#888;text-transform:uppercase;margin:0;">Data</p>
+                <p style="font-size:14px;font-weight:bold;margin:2px 0;">${dataAtual}</p>
+              </td>
+            </tr></table>
           </div>
 
           <!-- Veículo + Valores -->
-          <div style="padding:0 32px;display:flex;gap:16px;">
-            <!-- Veículo -->
-            <div style="flex:1;border:1px solid #fed7aa;border-radius:16px;overflow:hidden;">
-              <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:12px 16px;">
-                <p style="color:#fff;font-weight:bold;font-size:14px;margin:0;">Dados do Veículo</p>
-              </div>
-              <div style="padding:16px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
-                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Marca</p>
-                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.marca}</p>
-                  </div>
-                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
-                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Modelo</p>
-                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.modelo}</p>
-                  </div>
-                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
-                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Ano</p>
-                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.ano}</p>
-                  </div>
-                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
-                    <p style="font-size:9px;color:#9a3412;text-transform:uppercase;">Tipo</p>
-                    <p style="font-weight:600;font-size:12px;">${dadosVeiculo.tipo_bem}</p>
+          <div style="padding:0 32px;">
+            <table style="width:100%;border-spacing:16px 0;"><tr>
+              <!-- Veículo -->
+              <td style="width:50%;vertical-align:top;border:1px solid #fed7aa;border-radius:16px;overflow:hidden;padding:0;">
+                <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:12px 16px;">
+                  <p style="color:#fff;font-weight:bold;font-size:14px;margin:0;">Dados do Veículo</p>
+                </div>
+                <div style="padding:16px;">
+                  <table style="width:100%;border-spacing:4px;"><tr>
+                    <td style="background:#fff7ed;border-radius:8px;padding:8px;width:50%;">
+                      <p style="font-size:9px;color:#9a3412;text-transform:uppercase;margin:0;">Marca</p>
+                      <p style="font-weight:600;font-size:12px;margin:2px 0;">${dadosVeiculo.marca}</p>
+                    </td>
+                    <td style="background:#fff7ed;border-radius:8px;padding:8px;width:50%;">
+                      <p style="font-size:9px;color:#9a3412;text-transform:uppercase;margin:0;">Modelo</p>
+                      <p style="font-weight:600;font-size:12px;margin:2px 0;">${dadosVeiculo.modelo}</p>
+                    </td>
+                  </tr><tr>
+                    <td style="background:#fff7ed;border-radius:8px;padding:8px;">
+                      <p style="font-size:9px;color:#9a3412;text-transform:uppercase;margin:0;">Ano</p>
+                      <p style="font-weight:600;font-size:12px;margin:2px 0;">${dadosVeiculo.ano}</p>
+                    </td>
+                    <td style="background:#fff7ed;border-radius:8px;padding:8px;">
+                      <p style="font-size:9px;color:#9a3412;text-transform:uppercase;margin:0;">Tipo</p>
+                      <p style="font-weight:600;font-size:12px;margin:2px 0;">${dadosVeiculo.tipo_bem}</p>
+                    </td>
+                  </tr></table>
+                  <div style="background:#f0fdf4;border-radius:8px;padding:12px;text-align:center;margin-top:8px;">
+                    <p style="font-size:9px;color:#166534;text-transform:uppercase;margin:0;">Valor FIPE</p>
+                    <p style="font-size:20px;font-weight:bold;color:#15803d;margin:4px 0;">${formatCurrency(cotacao.valorFipe)}</p>
                   </div>
                 </div>
-                <div style="background:#f0fdf4;border-radius:8px;padding:12px;text-align:center;margin-top:8px;">
-                  <p style="font-size:9px;color:#166534;text-transform:uppercase;">Valor FIPE</p>
-                  <p style="font-size:20px;font-weight:bold;color:#15803d;">${formatCurrency(cotacao.valorFipe)}</p>
-                </div>
-              </div>
-            </div>
+              </td>
 
-            <!-- Valores -->
-            <div style="flex:1;border:1px solid #bbf7d0;border-radius:16px;overflow:hidden;">
-              <div style="background:linear-gradient(135deg,#22c55e,#16a34a);padding:12px 16px;">
-                <p style="color:#fff;font-weight:bold;font-size:14px;margin:0;">Valores da Proposta</p>
-              </div>
-              <div style="padding:16px;">
-                <div style="background:linear-gradient(135deg,#F97316,#ea580c);border-radius:12px;padding:16px;text-align:center;color:#fff;margin-bottom:12px;">
-                  <p style="font-size:11px;opacity:0.9;margin:0;">Mensalidade</p>
-                  <p style="font-size:32px;font-weight:bold;margin:4px 0;">${formatCurrency(cotacao.mensalidade)}</p>
+              <!-- Valores -->
+              <td style="width:50%;vertical-align:top;border:1px solid #bbf7d0;border-radius:16px;overflow:hidden;padding:0;">
+                <div style="background:linear-gradient(135deg,#22c55e,#16a34a);padding:12px 16px;">
+                  <p style="color:#fff;font-weight:bold;font-size:14px;margin:0;">Valores da Proposta</p>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                  <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;">
-                    <p style="font-size:9px;color:#166534;">COTA</p>
-                    <p style="font-weight:600;font-size:11px;">${cotacao.cotaNome || 'Padrão'}</p>
+                <div style="padding:16px;">
+                  <div style="background:linear-gradient(135deg,#F97316,#ea580c);border-radius:12px;padding:16px;text-align:center;color:#fff;margin-bottom:12px;">
+                    <p style="font-size:11px;opacity:0.9;margin:0;">Mensalidade</p>
+                    <p style="font-size:32px;font-weight:bold;margin:4px 0;">${formatCurrency(cotacao.mensalidade)}</p>
                   </div>
-                  <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;">
-                    <p style="font-size:9px;color:#166534;">PARTICIPAÇÃO</p>
-                    <p style="font-weight:600;font-size:11px;">${formatCurrency(cotacao.participacao)}</p>
+                  <table style="width:100%;border-spacing:4px;margin-bottom:8px;"><tr>
+                    <td style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;width:50%;">
+                      <p style="font-size:9px;color:#166534;margin:0;">COTA</p>
+                      <p style="font-weight:600;font-size:11px;margin:2px 0;">${cotacao.cotaNome || 'Padrão'}</p>
+                    </td>
+                    <td style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;width:50%;">
+                      <p style="font-size:9px;color:#166534;margin:0;">PARTICIPAÇÃO</p>
+                      <p style="font-weight:600;font-size:11px;margin:2px 0;">${formatCurrency(cotacao.participacao)}</p>
+                    </td>
+                  </tr></table>
+                  <div style="background:#fff7ed;border-radius:8px;padding:8px;">
+                    <table style="width:100%;"><tr>
+                      <td style="font-size:11px;color:#9a3412;">Taxa de adesão:</td>
+                      <td style="font-weight:600;color:#15803d;font-size:11px;text-align:right;">GRÁTIS ✅</td>
+                    </tr><tr>
+                      <td style="font-size:11px;color:#9a3412;">Validade:</td>
+                      <td style="font-weight:600;font-size:11px;text-align:right;">${validadeStr}</td>
+                    </tr></table>
                   </div>
                 </div>
-                <div style="background:#fff7ed;border-radius:8px;padding:8px;">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                    <span style="font-size:11px;color:#9a3412;">Taxa de adesão:</span>
-                    <span style="font-weight:600;color:#15803d;font-size:11px;">GRÁTIS ✅</span>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;">
-                    <span style="font-size:11px;color:#9a3412;">Validade:</span>
-                    <span style="font-weight:600;font-size:11px;">${validadeStr}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              </td>
+            </tr></table>
           </div>
 
           <!-- Benefícios -->
           <div style="padding:20px 32px;">
             <div style="border:1px solid #fed7aa;border-radius:16px;padding:20px;">
               <h2 style="font-size:16px;font-weight:bold;margin:0 0 12px;color:#1e3a5f;">Benefícios Inclusos</h2>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                ${beneficios.map(b => `
-                  <div style="display:flex;align-items:center;gap:8px;padding:6px;">
-                    <div style="width:24px;height:24px;border-radius:50%;background:#fff7ed;display:flex;align-items:center;justify-content:center;">
-                      <span style="color:#F97316;font-size:12px;">✓</span>
-                    </div>
-                    <div>
-                      <p style="font-weight:600;font-size:11px;margin:0;">${b.titulo}</p>
-                      <p style="font-size:9px;color:#888;margin:0;">${b.sub}</p>
-                    </div>
-                  </div>
+              <table style="width:100%;border-spacing:4px;">
+                <tr>
+                ${beneficios.slice(0, 4).map(b => `
+                  <td style="padding:6px;vertical-align:top;width:25%;">
+                    <table><tr>
+                      <td style="width:24px;height:24px;border-radius:50%;background:#fff7ed;text-align:center;vertical-align:middle;">
+                        <span style="color:#F97316;font-size:12px;">✓</span>
+                      </td>
+                      <td style="padding-left:8px;">
+                        <p style="font-weight:600;font-size:11px;margin:0;">${b.titulo}</p>
+                        <p style="font-size:9px;color:#888;margin:0;">${b.sub}</p>
+                      </td>
+                    </tr></table>
+                  </td>
                 `).join('')}
-              </div>
+                </tr>
+                <tr>
+                ${beneficios.slice(4).map(b => `
+                  <td style="padding:6px;vertical-align:top;width:25%;">
+                    <table><tr>
+                      <td style="width:24px;height:24px;border-radius:50%;background:#fff7ed;text-align:center;vertical-align:middle;">
+                        <span style="color:#F97316;font-size:12px;">✓</span>
+                      </td>
+                      <td style="padding-left:8px;">
+                        <p style="font-weight:600;font-size:11px;margin:0;">${b.titulo}</p>
+                        <p style="font-size:9px;color:#888;margin:0;">${b.sub}</p>
+                      </td>
+                    </tr></table>
+                  </td>
+                `).join('')}
+                </tr>
+              </table>
             </div>
           </div>
 
@@ -353,9 +372,11 @@ export function ResultadoCotacao({
           </div>
 
           <!-- Footer -->
-          <div style="background:#F97316;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
-            ${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:32px;" />` : ''}
-            <span style="color:#fff;font-size:12px;font-weight:500;">${siteEmpresa}</span>
+          <div style="background:#F97316;padding:16px 32px;">
+            <table style="width:100%;"><tr>
+              <td>${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:32px;" />` : ''}</td>
+              <td style="text-align:right;"><span style="color:#fff;font-size:12px;font-weight:500;">${siteEmpresa}</span></td>
+            </tr></table>
           </div>
         </div>
 
@@ -370,7 +391,7 @@ export function ResultadoCotacao({
         ` : ''}
 
         ${contracapaB64 ? `
-          <div style="width:210mm;height:297mm;page-break-before:always;display:flex;align-items:center;justify-content:center;background:#fff;">
+          <div style="width:210mm;height:297mm;page-break-before:always;text-align:center;">
             <img src="${contracapaB64}" style="width:100%;height:100%;object-fit:cover;" />
           </div>
         ` : ''}
@@ -385,17 +406,29 @@ export function ResultadoCotacao({
     container.style.top = '0';
     document.body.appendChild(container);
 
+    // Wait for images inside the container to fully load
+    const imgs = container.querySelectorAll('img');
+    await Promise.all(Array.from(imgs).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+    }));
+
     try {
       const opt = {
         margin: 0,
         filename: `Proposta_HarmonyAgro_${dadosVeiculo.marca}_${dadosVeiculo.modelo}.pdf`,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: false, backgroundColor: '#ffffff' },
+        html2canvas: { scale: 2, useCORS: true, logging: true, allowTaint: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        pagebreak: { mode: ['css', 'legacy'] },
       };
 
-      const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      const pdfWorker = html2pdf().set(opt).from(container);
+      const blob: Blob = await pdfWorker.toPdf().output('blob');
+      console.log('[PDF] Generated blob size:', blob.size);
       return blob;
     } finally {
       document.body.removeChild(container);
@@ -490,68 +523,49 @@ export function ResultadoCotacao({
     }
   };
 
-  // Copy adesão link to clipboard
+  // Copy quotation link to clipboard (no DB needed - encodes data in URL)
   const handleCopyLink = async () => {
-    let adesaoUrl = sessionStorage.getItem('adesao_link') || '';
-    
-    if (!adesaoUrl && dadosVeiculo && cotacao) {
-      // Create cotação + link if not yet created
-      try {
-        const { data: consultores } = await supabase
-          .from('profiles')
-          .select('id, company_id')
-          .limit(1) as { data: { id: string; company_id: string | null }[] | null };
-
-        const consultorId = consultores?.[0]?.id;
-        const companyId = consultores?.[0]?.company_id;
-
-        if (consultorId) {
-          const { data: novaCotacao } = await supabase
-            .from('cotacoes')
-            .insert({
-              tipo_bem: dadosVeiculo.tipo_bem as any,
-              marca: dadosVeiculo.marca || '',
-              modelo: dadosVeiculo.modelo || '',
-              ano_fabricacao: dadosVeiculo.ano || new Date().getFullYear(),
-              valor_bem: dadosVeiculo.valor_fipe || 0,
-              valor_fipe: dadosVeiculo.valor_fipe || null,
-              codigo_fipe: dadosVeiculo.codigo_fipe || null,
-              consultor_id: consultorId,
-              company_id: companyId,
-              cliente_nome: dadosPessoais.nome,
-              cliente_email: dadosPessoais.email,
-              cliente_whatsapp: dadosPessoais.telefone,
-              mensalidade: cotacao.mensalidade,
-              participacao: cotacao.participacao,
-              status: 'enviada' as any,
-              metodo_valoracao: 'fipe' as any,
-            })
-            .select('id')
-            .single();
-
-          if (novaCotacao) {
-            const { data: adesaoLink } = await supabase
-              .from('adesao_links')
-              .insert({ cotacao_id: novaCotacao.id, company_id: companyId })
-              .select('token')
-              .single();
-
-            if (adesaoLink) {
-              adesaoUrl = `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`;
-              sessionStorage.setItem('adesao_link', adesaoUrl);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao criar link:', error);
+    try {
+      // Check if we already have a stored link
+      let adesaoUrl = sessionStorage.getItem('adesao_link') || '';
+      
+      if (!adesaoUrl && dadosVeiculo && cotacao) {
+        // Build a self-contained shareable link with quotation data encoded
+        const payload = {
+          n: dadosPessoais.nome,
+          t: dadosPessoais.telefone,
+          e: dadosPessoais.email,
+          m: dadosVeiculo.marca,
+          mo: dadosVeiculo.modelo,
+          a: dadosVeiculo.ano,
+          tb: dadosVeiculo.tipo_bem,
+          vf: dadosVeiculo.valor_fipe,
+          cf: dadosVeiculo.codigo_fipe,
+          me: cotacao.mensalidade,
+          pa: cotacao.participacao,
+          cn: cotacao.cotaNome,
+        };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+        adesaoUrl = `${window.location.origin}/?cotacao=${encoded}`;
+        sessionStorage.setItem('adesao_link', adesaoUrl);
       }
-    }
 
-    if (adesaoUrl) {
-      await navigator.clipboard.writeText(adesaoUrl);
-      toast.success('Link de adesão copiado!');
-    } else {
-      toast.error('Não foi possível gerar o link. Tente novamente.');
+      if (adesaoUrl) {
+        await navigator.clipboard.writeText(adesaoUrl);
+        toast.success('Link da cotação copiado!');
+      } else {
+        toast.error('Dados insuficientes para gerar o link.');
+      }
+    } catch (error) {
+      console.error('Erro ao copiar link:', error);
+      // Fallback: copy a text summary instead
+      const summary = `Cotação ${dadosVeiculo?.marca} ${dadosVeiculo?.modelo} - Mensalidade: ${cotacao ? formatCurrency(cotacao.mensalidade) : 'N/A'}`;
+      try {
+        await navigator.clipboard.writeText(summary);
+        toast.success('Resumo da cotação copiado!');
+      } catch {
+        toast.error('Não foi possível copiar. Verifique as permissões do navegador.');
+      }
     }
   };
 
