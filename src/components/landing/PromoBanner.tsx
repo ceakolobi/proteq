@@ -36,15 +36,15 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
               1ª Mensalidade{' '}
               <span className="text-secondary">GRÁTIS!</span>
-              <br />
-              <span className="text-xl md:text-2xl lg:text-3xl font-extrabold mt-2 inline-block">
-                Só pague em <span className="text-secondary underline decoration-4">ABRIL</span>!
-              </span>
             </h2>
             
+            <p className="text-xl md:text-2xl text-primary-foreground/90 font-semibold mb-2">
+              Sem taxa de adesão. Sem pegadinhas.
+            </p>
+            
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
-              Cadastre-se até <strong>28 de fevereiro</strong> e ganhe sua primeira mensalidade. 
-              Só pague a partir de <strong>10 de abril</strong>!
+              Cadastre-se agora e ganhe sua primeira mensalidade.
+              Você só começa a pagar no próximo vencimento que escolher: <strong>05, 10, 15, 20, 25 ou 30</strong>.
             </p>
             
 
@@ -72,18 +72,23 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             <div className="bg-white rounded-3xl p-8 shadow-2xl border-4 border-secondary">
               <div className="text-center">
                 <div className="w-20 h-20 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <span className="text-4xl">💰</span>
+                  <span className="text-4xl">🎁</span>
                 </div>
                 
-                <p className="text-muted-foreground text-sm mb-2 uppercase tracking-wide font-semibold">Adesão única</p>
-                <p className="text-5xl md:text-6xl font-bold text-primary mb-2">
-                  R$ <span className="text-secondary">50</span>
-                </p>
-                <p className="text-lg text-foreground font-medium">para qualquer veículo</p>
+                <p className="text-primary text-xl font-bold mb-2 uppercase tracking-wide">Sem taxa de adesão</p>
+                <p className="text-lg text-foreground font-medium mb-4">Comece sem pagar nada hoje</p>
+                
+                <div className="bg-muted/50 rounded-xl p-4">
+                  <p className="text-sm text-muted-foreground font-medium mb-1">Escolha seu vencimento:</p>
+                  <p className="text-lg font-bold text-primary">05 | 10 | 15 | 20 | 25 | 30</p>
+                </div>
                 
                 <div className="mt-6 pt-6 border-t border-border">
                   <p className="text-sm text-muted-foreground">
-                    ✅ Carros, motos, caminhonetes
+                    ✅ Carros, motos e caminhonetes
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sujeito à análise e vistoria
                   </p>
                 </div>
               </div>
