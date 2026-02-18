@@ -7,7 +7,7 @@ import { useCotacoes } from '@/hooks/useCotacoes';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import CotacaoForm from '@/components/cotacao/CotacaoForm';
+import CotacaoWizard from '@/components/cotacao/wizard/CotacaoWizard';
 import CotacaoList from '@/components/cotacao/CotacaoList';
 import CotacaoDetail from '@/components/cotacao/CotacaoDetail';
 import type { Cotacao } from '@/types/cotacao';
