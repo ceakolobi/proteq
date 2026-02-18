@@ -204,7 +204,71 @@ export function usePublicQuotation() {
   };
 
   // Novo fluxo: resultado -> cadastro
-  const aceitarProposta = () => {
+  // Ao aceitar, persiste a cotação no banco e envia WhatsApp automaticamente
+  const aceitarProposta = async () => {
+    if (!dadosVeiculo || !cotacao) {
+      setEtapa('cadastro');
+      return;
+    }
+
+    try {
+      // Buscar consultor padrão para vincular a cotação
+      const { data: consultores } = await supabase
+        .from('profiles')
+        .select('id, company_id')
+        .limit(1) as { data: { id: string; company_id: string | null }[] | null };
+
+      const consultorId = consultores?.[0]?.id;
+      const companyId = consultores?.[0]?.company_id;
+
+      if (consultorId) {
+        // Criar cotação no banco com status 'aceita'
+        const { data: novaCotacao, error: cotacaoError } = await supabase
+          .from('cotacoes')
+          .insert({
+            tipo_bem: dadosVeiculo.tipo_bem as any,
+            marca: dadosVeiculo.marca || '',
+            modelo: dadosVeiculo.modelo || '',
+            ano_fabricacao: dadosVeiculo.ano || new Date().getFullYear(),
+            valor_bem: dadosVeiculo.valor_fipe || 0,
+            valor_fipe: dadosVeiculo.valor_fipe || null,
+            codigo_fipe: dadosVeiculo.codigo_fipe || null,
+            consultor_id: consultorId,
+            company_id: companyId,
+            lead_id: leadId,
+            cliente_nome: dadosPessoais.nome,
+            cliente_email: dadosPessoais.email,
+            cliente_whatsapp: dadosPessoais.telefone,
+            mensalidade: cotacao.mensalidade,
+            participacao: cotacao.participacao,
+            status: 'aceita' as any,
+            metodo_valoracao: 'fipe' as any,
+          })
+          .select('id')
+          .single();
+
+        if (cotacaoError) {
+          console.error('[usePublicQuotation] Erro ao criar cotação:', cotacaoError);
+        } else if (novaCotacao) {
+          console.log('[usePublicQuotation] Cotação criada e aceita:', novaCotacao.id);
+          
+          // Atualizar lead com status convertido
+          if (leadId) {
+            await supabase
+              .from('leads')
+              .update({ status: 'convertido' as const })
+              .eq('id', leadId);
+          }
+        }
+      }
+
+      // Enviar automaticamente via WhatsApp
+      enviarPropostaWhatsApp();
+
+    } catch (error) {
+      console.error('[usePublicQuotation] Erro ao aceitar proposta:', error);
+    }
+
     setEtapa('cadastro');
   };
 

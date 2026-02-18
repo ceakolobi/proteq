@@ -35,6 +35,19 @@ interface AssociadoData {
   created_at: string;
 }
 
+interface CotacaoAssociado {
+  id: string;
+  marca: string;
+  modelo: string;
+  ano_fabricacao: number;
+  valor_bem: number;
+  mensalidade: number | null;
+  participacao: number | null;
+  status: string;
+  created_at: string;
+  cota_nome?: string;
+}
+
 interface VeiculoData {
   id: string;
   marca: string;
@@ -70,6 +83,7 @@ export default function AssociadoDashboard() {
   const [veiculo, setVeiculo] = useState<VeiculoData | null>(null);
   const [proximaMensalidade, setProximaMensalidade] = useState<MensalidadeData | null>(null);
   const [vistoria, setVistoria] = useState<VistoriaData | null>(null);
+  const [cotacoes, setCotacoes] = useState<CotacaoAssociado[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -133,6 +147,20 @@ export default function AssociadoDashboard() {
               data_vencimento: mensalidadeData.data_vencimento,
               status: mensalidadeData.status ?? ''
             });
+          }
+        }
+
+        // Buscar cotações vinculadas ao email do associado
+        if (user?.email) {
+          const { data: cotacoesData } = await supabase
+            .from('cotacoes')
+            .select('id, marca, modelo, ano_fabricacao, valor_bem, mensalidade, participacao, status, created_at')
+            .eq('cliente_email', user.email)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          if (cotacoesData) {
+            setCotacoes(cotacoesData as CotacaoAssociado[]);
           }
         }
       } catch (error) {
@@ -300,7 +328,7 @@ export default function AssociadoDashboard() {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm">
-                      Adesão: <span className="text-green-600 font-medium">Paga</span>
+                      Adesão: <span className="text-green-600 font-medium">Gratuita ✓</span>
                     </p>
                     <p className="text-sm">
                       Mensalidade: <span className={proximaMensalidade?.status?.includes('ATRASADO') || proximaMensalidade?.status === 'atrasada' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
@@ -383,6 +411,66 @@ export default function AssociadoDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Cotações / Minha Proteção */}
+          {cotacoes.length > 0 && (
+            <Card className="rounded-2xl shadow-sm">
+              <CardContent className="p-5">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  Minhas Cotações
+                </h3>
+                <div className="space-y-3">
+                  {cotacoes.map((cot) => {
+                    const statusLabel = {
+                      'aceita': 'Aceita',
+                      'novo': 'Em análise',
+                      'aprovado': 'Aprovada',
+                      'aguardando_docs': 'Aguardando documentos',
+                      'adesao_concluida': 'Adesão concluída',
+                      'enviada': 'Enviada',
+                    }[cot.status] || cot.status;
+
+                    const statusColor = {
+                      'aceita': 'text-green-600 bg-green-100',
+                      'aprovado': 'text-green-600 bg-green-100',
+                      'adesao_concluida': 'text-green-600 bg-green-100',
+                      'aguardando_docs': 'text-yellow-600 bg-yellow-100',
+                      'enviada': 'text-blue-600 bg-blue-100',
+                      'novo': 'text-blue-600 bg-blue-100',
+                    }[cot.status] || 'text-muted-foreground bg-muted';
+
+                    return (
+                      <div key={cot.id} className="border border-border/50 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-medium">{cot.marca} {cot.modelo} ({cot.ano_fabricacao})</p>
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusColor}`}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                          <p>Valor FIPE: <span className="text-foreground font-medium">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cot.valor_bem)}
+                          </span></p>
+                          {cot.mensalidade && (
+                            <p>Mensalidade: <span className="text-primary font-bold">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cot.mensalidade)}
+                            </span></p>
+                          )}
+                        </div>
+                        {(cot.status === 'aceita' || cot.status === 'aguardando_docs') && (
+                          <Button size="sm" className="mt-3 w-full">
+                            <Camera className="h-4 w-4 mr-2" />
+                            Concluir Adesão / Enviar Documentos
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Actions */}
           <Card className="rounded-2xl shadow-sm">

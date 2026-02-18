@@ -435,7 +435,11 @@ export function ResultadoCotacao({
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
               </Button>
-              <Button onClick={onContinue} className="flex-1 py-6 text-lg">
+              <Button onClick={() => {
+                // Auto-download PDF when accepting
+                handleDownloadPdf();
+                onContinue();
+              }} className="flex-1 py-6 text-lg">
                 Aceitar proposta
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

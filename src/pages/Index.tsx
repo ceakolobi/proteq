@@ -139,8 +139,7 @@ export default function Index() {
                 Parabéns! Seu veículo já está protegido! 🎉
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Sua adesão foi concluída com sucesso!
-                Conclua o envio de documentos e vistoria para ativação completa.
+                Sua adesão foi concluída com sucesso! Conclua sua adesão enviando os dados e fotos pelo link que enviamos no seu WhatsApp.
               </p>
               
               {/* Info cards */}
