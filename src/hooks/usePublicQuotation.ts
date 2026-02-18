@@ -252,6 +252,24 @@ export function usePublicQuotation() {
         } else if (novaCotacao) {
           console.log('[usePublicQuotation] Cotação criada e aceita:', novaCotacao.id);
           
+          // Criar link único de adesão/vistoria
+          const { data: adesaoLink, error: adesaoError } = await supabase
+            .from('adesao_links')
+            .insert({
+              cotacao_id: novaCotacao.id,
+              company_id: companyId,
+            })
+            .select('token')
+            .single();
+
+          if (adesaoError) {
+            console.error('[usePublicQuotation] Erro ao criar link de adesão:', adesaoError);
+          } else if (adesaoLink) {
+            console.log('[usePublicQuotation] Link de adesão criado:', adesaoLink.token);
+            // Armazenar para uso no WhatsApp
+            sessionStorage.setItem('adesao_link', `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`);
+          }
+
           // Atualizar lead com status convertido
           if (leadId) {
             await supabase
@@ -407,15 +425,19 @@ export function usePublicQuotation() {
     const telefone = dadosPessoais.telefone.replace(/\D/g, '');
     const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`;
     
+    const adesaoUrl = sessionStorage.getItem('adesao_link') || '';
+    
     const mensagem = encodeURIComponent(
       `Olá ${dadosPessoais.nome}! 🚗\n\n` +
       `Sua cotação de proteção veicular:\n\n` +
       `🔹 Veículo: ${dadosVeiculo?.marca} ${dadosVeiculo?.modelo}\n` +
       `🔹 Valor FIPE: R$ ${cotacao.valorFipe.toLocaleString('pt-BR')}\n` +
       `🔹 Mensalidade: R$ ${cotacao.mensalidade.toFixed(2)}\n` +
-      `🔹 Participação: R$ ${cotacao.participacao.toFixed(2)}\n\n` +
+      `🔹 Participação: R$ ${cotacao.participacao.toFixed(2)}\n` +
+      `🔹 Adesão: GRÁTIS ✅\n\n` +
       `✅ Benefícios inclusos:\n` +
       cotacao.beneficios.map(b => `• ${b}`).join('\n') +
+      (adesaoUrl ? `\n\n📋 Conclua sua adesão pelo link:\n${adesaoUrl}` : '') +
       `\n\nPara contratar, continue pelo site ou responda esta mensagem!`
     );
     
