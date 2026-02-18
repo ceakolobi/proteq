@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ArrowRight, ArrowLeft, User, Phone, Mail } from 'lucide-react';
 import { StepIndicator } from './StepIndicator';
 import type { DadosPessoais } from './types';
+import logoColorida from '@/assets/logo-harmony-colorida.png';
+import logoBranca from '@/assets/logo-harmony-branca.png';
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -70,6 +72,8 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
 
         {/* Header */}
         <div className="text-center mb-8">
+          <img src={logoColorida} alt="Harmony" className="h-10 mx-auto mb-4 dark:hidden" />
+          <img src={logoBranca} alt="Harmony" className="h-10 mx-auto mb-4 hidden dark:block" />
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Seus Dados</h1>
           <p className="text-muted-foreground">Preencha suas informações para continuar</p>
         </div>

@@ -441,8 +441,8 @@ export function usePublicQuotation() {
       `\n\nPara contratar, continue pelo site ou responda esta mensagem!`
     );
     
-    const url = `https://api.whatsapp.com/send?phone=${telefoneFormatado}&text=${mensagem}`;
-    window.open(url, '_blank');
+    const url = `https://wa.me/${telefoneFormatado}?text=${mensagem}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return {

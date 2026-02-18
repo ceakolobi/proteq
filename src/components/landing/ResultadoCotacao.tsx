@@ -23,6 +23,8 @@ import { StepIndicator } from './StepIndicator';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import logoColorida from '@/assets/logo-harmony-colorida.png';
+import logoBranca from '@/assets/logo-harmony-branca.png';
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -304,9 +306,8 @@ export function ResultadoCotacao({
 
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
-            <Sparkles className="h-8 w-8 text-primary" />
-          </div>
+          <img src={logoColorida} alt="Harmony" className="h-12 mx-auto mb-4 dark:hidden" />
+          <img src={logoBranca} alt="Harmony" className="h-12 mx-auto mb-4 hidden dark:block" />
           <h2 className="text-3xl md:text-4xl font-bold mb-2">Sua cotação está pronta!</h2>
           <p className="text-lg text-muted-foreground">
             Olá <span className="font-semibold text-foreground">{dadosPessoais.nome.split(' ')[0]}</span>, 
