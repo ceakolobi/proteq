@@ -38,10 +38,11 @@ interface Props {
   cotasLoading: boolean;
   perfilEditor: PerfilEditor;
   errors: Record<string, string>;
+  origem?: string;
 }
 
 export function WizardStep1Vehicle({
-  formData, updateFormData, resultado, onCalcular, cotasAtivas, cotasLoading, perfilEditor, errors,
+  formData, updateFormData, resultado, onCalcular, cotasAtivas, cotasLoading, perfilEditor, errors, origem = 'cotacao',
 }: Props) {
   const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
   const [fipeBloqueado, setFipeBloqueado] = useState(false);
@@ -146,6 +147,7 @@ export function WizardStep1Vehicle({
                   if (['not_found', 'invalid', 'found_no_fipe'].includes(s)) setFipeBloqueado(false);
                 }}
                 tipoTemFipe={tipoTemFipe}
+                origem={origem}
               />
             </CardContent>
           </Card>
@@ -166,6 +168,7 @@ export function WizardStep1Vehicle({
                   tipoBem={formData.tipo_bem as TipoBem}
                   onValorFound={handleFipeValorFound}
                   disabled={fipeBloqueado}
+                  origem={origem}
                 />
               )}
               <div className="grid grid-cols-2 gap-4">

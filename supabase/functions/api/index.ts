@@ -214,9 +214,11 @@ serve(async (req) => {
   const placaIndexCheck = pathParts.indexOf('placa');
   const isPlacaEndpoint = placaIndexCheck >= 0 || (req.method === 'POST');
   
-  // Permitir acesso público para FIPE e PLACA quando vem da landing page
-  const isPublicFipeRequest = isFipeEndpoint && origem === 'landing';
-  const isPublicPlacaRequest = origem === 'landing'; // Permitir placa da landing também
+  // Permitir acesso público para FIPE e PLACA quando vem da landing page ou cotação pública
+  const publicOrigins = ['landing', 'cotacao-publica'];
+  const isPublicOrigin = publicOrigins.includes(origem);
+  const isPublicFipeRequest = isFipeEndpoint && isPublicOrigin;
+  const isPublicPlacaRequest = isPublicOrigin;
   
   // Exigir autenticação para endpoints protegidos (exceto FIPE/Placa da landing)
   if (!userId && !isPublicFipeRequest && !isPublicPlacaRequest) {
