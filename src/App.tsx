@@ -45,6 +45,7 @@ import Inadimplencia from "./pages/financeiro/Inadimplencia";
 import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
 import SetupDemo from "./pages/SetupDemo";
+import CotacaoPublica from "./pages/CotacaoPublica";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -131,6 +132,7 @@ const App = () => (
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/quem-somos" element={<QuemSomos />} />
                 <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+                <Route path="/cotacao-publica" element={<CotacaoPublica />} />
                 <Route path="/validar-proposta" element={<ValidarProposta />} />
                 
                 {/* Rotas protegidas - requerem autenticação */}
