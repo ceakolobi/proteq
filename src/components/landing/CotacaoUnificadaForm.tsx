@@ -262,94 +262,82 @@ export function CotacaoUnificadaForm({
   const generatePdfBlob = async (): Promise<Blob | null> => {
     if (!valorEncontrado || !cotacao) return null;
     const dataAtual = new Date().toLocaleDateString('pt-BR');
-    const [logoBrancaB64] = await Promise.all([imageToBase64(harmonyAgroLogoBranca)]);
+    const empresaNome = 'Harmony Agro';
 
+    // Same pattern as CRM wizard — pure inline HTML, no images
     const html = `
-      <div style="font-family:Arial,sans-serif;color:#333;background:#fff;padding:0;">
-        <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:24px 32px;border-radius:0 0 16px 16px;">
-          <table style="width:100%;"><tr>
-            <td>${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:48px;" />` : ''}</td>
-            <td style="text-align:right;color:#fff;font-size:12px;">Atendimento Nacional</td>
-          </tr></table>
-          <div style="text-align:center;color:#fff;padding:8px 0;">
-            <h1 style="font-size:22px;font-weight:bold;margin:0;">PROPOSTA DE COTAÇÃO</h1>
+      <div style="background:#fff;font-family:Arial,sans-serif;color:#333;">
+        <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:40px 30px;text-align:center;color:#fff;">
+          <h1 style="font-size:28px;font-weight:bold;margin:0 0 8px;">🛡️ Proposta de Cotação</h1>
+          <p style="font-size:14px;opacity:0.9;margin:0;">${empresaNome} • Proteção Veicular</p>
+        </div>
+        <div style="padding:30px;">
+          <table style="width:100%;border-spacing:20px 0;border-collapse:separate;">
+            <tr>
+              <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+                <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Veículo</h2>
+                <table style="width:100%;font-size:13px;">
+                  <tr><td style="padding:6px 0;color:#6b7280;">Marca:</td><td style="font-weight:600;text-align:right;">${valorEncontrado.marca}</td></tr>
+                  <tr><td style="padding:6px 0;color:#6b7280;">Modelo:</td><td style="font-weight:600;text-align:right;">${valorEncontrado.modelo}</td></tr>
+                  <tr><td style="padding:6px 0;color:#6b7280;">Ano:</td><td style="font-weight:600;text-align:right;">${valorEncontrado.anoModelo}</td></tr>
+                  <tr><td style="padding:6px 0;color:#6b7280;">Valor FIPE:</td><td style="font-weight:600;text-align:right;">${formatCurrency(cotacao.valorFipe)}</td></tr>
+                </table>
+              </td>
+              <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+                <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #22C55E;padding-bottom:8px;margin-bottom:16px;">Valores</h2>
+                <div style="background:linear-gradient(135deg,#F97316,#ea580c);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
+                  <p style="font-size:12px;text-transform:uppercase;opacity:0.9;margin:0 0 4px;">Mensalidade</p>
+                  <p style="font-size:32px;font-weight:bold;margin:0;">${formatCurrency(cotacao.mensalidade)}</p>
+                </div>
+                <table style="width:100%;font-size:13px;">
+                  <tr><td style="padding:4px 0;color:#6b7280;">Cota:</td><td style="font-weight:600;text-align:right;">${cotacao.cotaNome || 'Padrão'}</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;">Participação:</td><td style="font-weight:600;text-align:right;">${formatCurrency(cotacao.participacao)}</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;">Adesão:</td><td style="font-weight:600;text-align:right;color:#15803d;">GRÁTIS ✅</td></tr>
+                  <tr><td style="padding:4px 0;color:#6b7280;">Validade:</td><td style="font-weight:600;text-align:right;">7 dias</td></tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+        ${dados.nome ? `
+        <div style="padding:0 30px 20px;">
+          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+            <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Cliente</h2>
+            <table style="width:100%;font-size:13px;">
+              <tr><td style="padding:4px 0;color:#6b7280;">Nome:</td><td style="font-weight:600;">${dados.nome}</td></tr>
+              ${dados.telefone ? `<tr><td style="padding:4px 0;color:#6b7280;">Telefone:</td><td style="font-weight:600;">${dados.telefone}</td></tr>` : ''}
+              ${dados.email ? `<tr><td style="padding:4px 0;color:#6b7280;">E-mail:</td><td style="font-weight:600;">${dados.email}</td></tr>` : ''}
+            </table>
           </div>
-        </div>
-        <div style="padding:20px 32px;">
-          <table style="width:100%;"><tr>
-            <td><p style="font-size:10px;color:#888;margin:0;">Cliente</p><p style="font-size:14px;font-weight:bold;margin:2px 0;">${dados.nome}</p></td>
-            <td style="text-align:center;"><p style="font-size:10px;color:#888;margin:0;">Telefone</p><p style="font-size:14px;font-weight:bold;margin:2px 0;">${dados.telefone}</p></td>
-            <td style="text-align:right;"><p style="font-size:10px;color:#888;margin:0;">Data</p><p style="font-size:14px;font-weight:bold;margin:2px 0;">${dataAtual}</p></td>
-          </tr></table>
-        </div>
-        <div style="padding:0 32px;">
-          <table style="width:100%;border-spacing:16px 0;"><tr>
-            <td style="width:50%;vertical-align:top;border:1px solid #fed7aa;border-radius:16px;padding:16px;">
-              <p style="font-weight:bold;font-size:14px;margin:0 0 8px;">Dados do Veículo</p>
-              <p style="font-size:12px;margin:2px 0;"><strong>Marca:</strong> ${valorEncontrado.marca}</p>
-              <p style="font-size:12px;margin:2px 0;"><strong>Modelo:</strong> ${valorEncontrado.modelo}</p>
-              <p style="font-size:12px;margin:2px 0;"><strong>Ano:</strong> ${valorEncontrado.anoModelo}</p>
-              <p style="font-size:12px;margin:2px 0;"><strong>FIPE:</strong> ${formatCurrency(cotacao.valorFipe)}</p>
-            </td>
-            <td style="width:50%;vertical-align:top;border:1px solid #bbf7d0;border-radius:16px;padding:16px;">
-              <p style="font-weight:bold;font-size:14px;margin:0 0 8px;">Valores</p>
-              <div style="background:linear-gradient(135deg,#F97316,#ea580c);border-radius:12px;padding:16px;text-align:center;color:#fff;margin-bottom:8px;">
-                <p style="font-size:11px;opacity:0.9;margin:0;">Mensalidade</p>
-                <p style="font-size:28px;font-weight:bold;margin:4px 0;">${formatCurrency(cotacao.mensalidade)}</p>
-              </div>
-              <p style="font-size:12px;margin:2px 0;"><strong>Participação:</strong> ${formatCurrency(cotacao.participacao)}</p>
-              <p style="font-size:12px;margin:2px 0;color:#15803d;font-weight:bold;">Adesão: GRÁTIS ✅</p>
-            </td>
-          </tr></table>
-        </div>
-        <div style="padding:20px 32px;background:#F97316;margin-top:20px;">
-          <table style="width:100%;"><tr>
-            <td>${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:32px;" />` : ''}</td>
-            <td style="text-align:right;color:#fff;font-size:12px;">www.harmonyagro.com.br</td>
-          </tr></table>
+        </div>` : ''}
+        <div style="padding:0 30px 20px;"><div style="background:#f9fafb;border-radius:12px;padding:20px;">
+          <h3 style="font-size:14px;font-weight:bold;margin-bottom:10px;">Condições Importantes</h3>
+          <p style="font-size:11px;color:#6b7280;line-height:1.6;">Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.</p>
+        </div></div>
+        <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:15px 30px;text-align:center;color:#fff;font-size:11px;">
+          <p style="margin:0;font-weight:600;">${empresaNome}</p>
+          <p style="margin:4px 0 0;opacity:0.9;">Emitido em ${dataAtual}</p>
         </div>
       </div>
     `;
 
     const container = document.createElement('div');
     container.innerHTML = html;
-    container.style.position = 'fixed';
-    container.style.left = '0';
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
     container.style.top = '0';
-    container.style.width = '800px';
-    container.style.zIndex = '-9999';
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
     document.body.appendChild(container);
-
-    // Wait for images
-    const imgs = container.querySelectorAll('img');
-    await Promise.all(Array.from(imgs).map(img =>
-      img.complete ? Promise.resolve() : new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); })
-    ));
-
-    // Small delay to ensure rendering
-    await new Promise(r => setTimeout(r, 300));
 
     try {
       const opt = {
         margin: 0,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          logging: true, 
-          allowTaint: true, 
-          backgroundColor: '#ffffff',
-          width: 800,
-          windowWidth: 800,
-        },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'] },
       };
-      const pdfInstance = html2pdf().set(opt).from(container);
-      const blob: Blob = await pdfInstance.outputPdf('blob');
-      console.log('[PDF Landing] blob size:', blob.size);
+
+      const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
       return blob;
     } finally {
       document.body.removeChild(container);
