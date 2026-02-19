@@ -265,7 +265,7 @@ export function CotacaoUnificadaForm({
     const [logoBrancaB64] = await Promise.all([imageToBase64(harmonyAgroLogoBranca)]);
 
     const html = `
-      <div style="font-family:Arial,sans-serif;color:#333;width:210mm;min-height:297mm;background:#fff;padding:0;">
+      <div style="font-family:Arial,sans-serif;color:#333;background:#fff;padding:0;">
         <div style="background:linear-gradient(135deg,#F97316,#ea580c);padding:24px 32px;border-radius:0 0 16px 16px;">
           <table style="width:100%;"><tr>
             <td>${logoBrancaB64 ? `<img src="${logoBrancaB64}" style="height:48px;" />` : ''}</td>
@@ -315,6 +315,7 @@ export function CotacaoUnificadaForm({
     container.innerHTML = html;
     container.style.position = 'absolute';
     container.style.left = '-9999px';
+    container.style.top = '0';
     document.body.appendChild(container);
 
     const imgs = container.querySelectorAll('img');
@@ -324,12 +325,13 @@ export function CotacaoUnificadaForm({
 
     try {
       const opt = {
-        margin: 0, image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+        margin: 0,
+        image: { type: 'jpeg', quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'] },
       };
-      const blob: Blob = await html2pdf().set(opt).from(container).toPdf().output('blob');
+      const blob: Blob = await html2pdf().set(opt).from(container).outputPdf('blob');
       return blob;
     } finally {
       document.body.removeChild(container);
