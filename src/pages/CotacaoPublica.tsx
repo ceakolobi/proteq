@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Check, MessageCircle, Shield } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Shield } from 'lucide-react';
 import type { TipoBem } from '@/types/cotacao';
 import {
   calcularCotacaoCompleta,
@@ -20,12 +20,44 @@ import {
 } from '@/components/cotacao/wizard/CotacaoWizardTypes';
 import { WizardStep1Vehicle } from '@/components/cotacao/wizard/WizardStep1Vehicle';
 import { WizardStep2Client } from '@/components/cotacao/wizard/WizardStep2Client';
+import { WizardStep3Terms } from '@/components/cotacao/wizard/WizardStep3Terms';
+import { WizardStep4Generate } from '@/components/cotacao/wizard/WizardStep4Generate';
 import { useBrand } from '@/hooks/useBrand';
+import type { SystemSettings } from '@/hooks/useCompanySettings';
 
 const PUBLIC_STEPS = [
   { number: 1, title: 'Veículo & Plano', description: 'Dados e valoração' },
   { number: 2, title: 'Seus Dados', description: 'Informações de contato' },
+  { number: 3, title: 'Contrato & Termos', description: 'Aceite e assinatura' },
+  { number: 4, title: 'Gerar & Enviar', description: 'PDF e compartilhamento' },
 ] as const;
+
+const defaultPublicSettings: SystemSettings = {
+  id: '',
+  empresa_nome: 'Harmony Agro',
+  cnpj: null,
+  empresa_logo: null,
+  empresa_logo_branca: null,
+  empresa_logo_escura: null,
+  cor_primaria: '#F97316',
+  cor_secundaria: '#22C55E',
+  cor_destaque: '#F59E0B',
+  texto_institucional: null,
+  pdf_contracapa: null,
+  telefone: null,
+  email: null,
+  site: null,
+  modo_white_label: false,
+  esconder_marca_harmony: false,
+  cover_1: null,
+  cover_2: null,
+  cover_3: null,
+  cover_4: null,
+  cover_mode: null,
+  cover_fixed_index: null,
+  created_at: '',
+  updated_at: '',
+};
 
 export default function CotacaoPublica() {
   const navigate = useNavigate();
@@ -38,9 +70,13 @@ export default function CotacaoPublica() {
   const [resultado, setResultado] = useState<ResultadoCotacao | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [savedResult, setSavedResult] = useState(false);
+  const [cotacaoId, setCotacaoId] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [publicSettings, setPublicSettings] = useState<SystemSettings>(defaultPublicSettings);
 
-  // Load public cotas (anon has SELECT on active cotas)
+  // Load public cotas
   useEffect(() => {
     const fetchCotas = async () => {
       const { data, error } = await supabase
@@ -53,10 +89,53 @@ export default function CotacaoPublica() {
       if (error) console.error('Erro ao buscar cotas:', error);
       setCotasLoading(false);
     };
+
+    // Load company settings publicly
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from('companies')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setPublicSettings({
+          ...defaultPublicSettings,
+          id: data.id,
+          empresa_nome: data.nome || 'Harmony Agro',
+          cnpj: data.cnpj,
+          empresa_logo: data.logo,
+          empresa_logo_branca: data.logo_branca,
+          empresa_logo_escura: data.logo_escura,
+          cor_primaria: data.cor_primaria || '#F97316',
+          cor_secundaria: data.cor_secundaria || '#22C55E',
+          cor_destaque: data.cor_destaque || '#F59E0B',
+          texto_institucional: data.texto_institucional,
+          pdf_contracapa: data.pdf_contracapa,
+          telefone: data.telefone,
+          email: data.email,
+          site: data.site,
+          modo_white_label: data.modo_white_label || false,
+          esconder_marca_harmony: data.esconder_marca_harmony || false,
+          cover_1: data.cover_1,
+          cover_2: data.cover_2,
+          cover_3: data.cover_3,
+          cover_4: data.cover_4,
+          cover_mode: data.cover_mode,
+          cover_fixed_index: data.cover_fixed_index,
+        });
+      }
+    };
+
     fetchCotas();
+    fetchSettings();
   }, []);
 
   const cotasAtivas = useMemo(() => cotas.filter(c => c.ativo), [cotas]);
+
+  const empresaNome = publicSettings.modo_white_label && publicSettings.empresa_nome
+    ? publicSettings.empresa_nome
+    : 'Proteção Veicular';
 
   const updateFormData = useCallback((updates: Partial<WizardFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
@@ -98,13 +177,18 @@ export default function CotacaoPublica() {
       if (!formData.cliente_whatsapp || formData.cliente_whatsapp.replace(/\D/g, '').length < 10) newErrors.cliente_whatsapp = 'WhatsApp inválido';
     }
 
+    if (step === 3) {
+      if (!formData.termos_aceitos) newErrors.termos_aceitos = 'Aceite os termos';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData, resultado, handleCalcular]);
 
-  // Save lead + send WhatsApp
-  const handleFinalize = useCallback(async () => {
-    if (!validateStep(2) || !resultado) return;
+  // Save lead + cotação to DB (public, no auth required)
+  const handleSaveCotacao = useCallback(async (): Promise<string | null> => {
+    if (!resultado) return null;
+    if (cotacaoId) return cotacaoId;
 
     setIsSaving(true);
     try {
@@ -117,90 +201,266 @@ export default function CotacaoPublica() {
       const consultorId = consultores?.[0]?.id;
       const companyId = consultores?.[0]?.company_id;
 
-      if (consultorId) {
-        const telefoneNormalizado = formData.cliente_whatsapp.replace(/\D/g, '');
-
-        // Check for existing lead
-        const { data: existingLead } = await supabase
-          .from('leads')
-          .select('id')
-          .eq('telefone', telefoneNormalizado)
-          .limit(1)
-          .maybeSingle() as { data: { id: string } | null };
-
-        let leadId = existingLead?.id;
-
-        if (!leadId) {
-          const { data: novoLead } = await supabase
-            .from('leads')
-            .insert({
-              nome: formData.cliente_nome.trim(),
-              telefone: telefoneNormalizado,
-              email: formData.cliente_email.trim().toLowerCase(),
-              consultor_id: consultorId,
-              company_id: companyId,
-              origem: 'site' as const,
-              status: 'cotado' as const,
-              tipo_veiculo: formData.tipo_bem as any,
-            })
-            .select('id')
-            .single();
-          leadId = novoLead?.id;
-        }
+      if (!consultorId) {
+        toast.error('Erro de configuração do sistema');
+        return null;
       }
 
-      setSavedResult(true);
-      toast.success('Cotação registrada com sucesso!');
+      const telefoneNormalizado = formData.cliente_whatsapp.replace(/\D/g, '');
+      const valorBem = parseValorBrasileiro(formData.valor_bem);
+
+      // Create/find lead
+      let leadId: string | null = null;
+      const { data: existingLead } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('telefone', telefoneNormalizado)
+        .limit(1)
+        .maybeSingle() as { data: { id: string } | null };
+
+      if (existingLead) {
+        leadId = existingLead.id;
+      } else {
+        const { data: novoLead } = await supabase
+          .from('leads')
+          .insert({
+            nome: formData.cliente_nome.trim(),
+            telefone: telefoneNormalizado,
+            email: formData.cliente_email.trim().toLowerCase(),
+            consultor_id: consultorId,
+            company_id: companyId,
+            origem: 'site' as const,
+            status: 'cotado' as const,
+            tipo_veiculo: formData.tipo_bem as any,
+          })
+          .select('id')
+          .single();
+        leadId = novoLead?.id || null;
+      }
+
+      // Create cotação
+      const { data: novaCotacao, error } = await supabase
+        .from('cotacoes')
+        .insert({
+          tipo_bem: formData.tipo_bem as TipoBem,
+          marca: formData.marca,
+          modelo: formData.modelo,
+          ano_fabricacao: parseInt(formData.ano_fabricacao),
+          valor_bem: valorBem,
+          metodo_valoracao: formData.metodo_valoracao,
+          consultor_id: consultorId,
+          company_id: companyId,
+          lead_id: leadId,
+          placa: formData.placa || null,
+          chassi: formData.chassi || null,
+          ano_modelo: formData.ano_modelo ? parseInt(formData.ano_modelo) : null,
+          categoria: resultado.categoria,
+          cor: formData.cor || null,
+          renavam: formData.renavam || null,
+          valor_fipe: formData.metodo_valoracao === 'fipe' ? valorBem : null,
+          codigo_fipe: formData.codigo_fipe || null,
+          cota_id: resultado.cotaId,
+          valor_base: resultado.valorBase,
+          ajuste_geral_valor: resultado.ajusteGeralValor,
+          ajuste_individual_valor: resultado.ajusteIndividualValor,
+          valor_final: resultado.valorFinal,
+          mensalidade: resultado.valorFinal,
+          participacao: resultado.participacao,
+          cliente_nome: formData.cliente_nome || null,
+          cliente_email: formData.cliente_email || null,
+          cliente_whatsapp: formData.cliente_whatsapp || null,
+          status: 'aceita' as any,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      setCotacaoId(novaCotacao.id);
+
+      // Create adesão link
+      const { data: adesaoLink } = await supabase
+        .from('adesao_links')
+        .insert({
+          cotacao_id: novaCotacao.id,
+          company_id: companyId,
+        })
+        .select('token')
+        .single();
+
+      if (adesaoLink) {
+        sessionStorage.setItem('adesao_link', `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`);
+      }
+
+      // Update lead status
+      if (leadId) {
+        await supabase
+          .from('leads')
+          .update({ status: 'convertido' as const })
+          .eq('id', leadId);
+      }
+
+      toast.success('Cotação salva com sucesso!');
+      return novaCotacao.id;
     } catch (err: any) {
-      console.error('Erro ao salvar lead:', err);
-      toast.error('Erro ao registrar. Tente novamente.');
+      console.error('Erro ao salvar cotação:', err);
+      toast.error(err.message || 'Erro ao salvar cotação');
+      return null;
     } finally {
       setIsSaving(false);
     }
-  }, [validateStep, resultado, formData]);
+  }, [resultado, formData, cotacaoId]);
 
-  const handleWhatsApp = useCallback(() => {
-    if (!resultado) return;
-    const valorBem = parseValorBrasileiro(formData.valor_bem);
-    const msg = [
-      `🛡️ *Cotação de Proteção Veicular*`,
-      ``,
-      `*Veículo:* ${formData.marca} ${formData.modelo} ${formData.ano_fabricacao}`,
-      `*Valor FIPE:* ${formatCurrency(valorBem)}`,
-      `*Mensalidade:* ${formatCurrency(resultado.valorFinal)}`,
-      `*Participação:* ${formatCurrency(resultado.participacao)}`,
-      `*Cota:* ${resultado.cotaNome}`,
-      ``,
-      `✅ Coberturas incluídas:`,
-      `• Proteção contra roubo e furto`,
-      `• Assistência 24h`,
-      `• Guincho 500km`,
-      `• 30 dias de carro reserva`,
-      `• Vidros cobertos`,
-      ``,
-      `*Cliente:* ${formData.cliente_nome}`,
-      `📱 ${formData.cliente_whatsapp}`,
-    ].join('\n');
+  // Generate PDF (same logic as CRM)
+  const handleGeneratePdf = useCallback(async () => {
+    if (!resultado) {
+      toast.error('Calcule a cotação primeiro');
+      return;
+    }
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-  }, [resultado, formData]);
+    setIsGeneratingPdf(true);
+    try {
+      // Save cotação first if not saved
+      const savedId = await handleSaveCotacao();
+      if (!savedId) {
+        setIsGeneratingPdf(false);
+        return;
+      }
 
-  const handleNext = useCallback(() => {
+      const html2pdf = (await import('html2pdf.js')).default;
+
+      const dataAtual = new Date().toLocaleDateString('pt-BR');
+      const html = `
+        <div style="background:#fff;font-family:Arial,sans-serif;color:#333;">
+          <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:40px 30px;text-align:center;color:#fff;">
+            <h1 style="font-size:28px;font-weight:bold;margin:0 0 8px;">🛡️ Proposta de Cotação</h1>
+            <p style="font-size:14px;opacity:0.9;margin:0;">${empresaNome} • Proteção Veicular</p>
+          </div>
+          <div style="padding:30px;">
+            <table style="width:100%;border-spacing:20px 0;border-collapse:separate;">
+              <tr>
+                <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+                  <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Veículo</h2>
+                  <table style="width:100%;font-size:13px;">
+                    <tr><td style="padding:6px 0;color:#6b7280;">Marca:</td><td style="font-weight:600;text-align:right;">${formData.marca}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Modelo:</td><td style="font-weight:600;text-align:right;">${formData.modelo}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Ano:</td><td style="font-weight:600;text-align:right;">${formData.ano_fabricacao}${formData.ano_modelo ? '/' + formData.ano_modelo : ''}</td></tr>
+                    ${formData.placa ? `<tr><td style="padding:6px 0;color:#6b7280;">Placa:</td><td style="font-weight:600;text-align:right;">${formData.placa}</td></tr>` : ''}
+                  </table>
+                </td>
+                <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+                  <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #22C55E;padding-bottom:8px;margin-bottom:16px;">Valores</h2>
+                  <div style="background:linear-gradient(135deg,#F97316,#ea580c);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
+                    <p style="font-size:12px;text-transform:uppercase;opacity:0.9;margin:0 0 4px;">Mensalidade</p>
+                    <p style="font-size:32px;font-weight:bold;margin:0;">${formatCurrency(resultado.valorFinal)}</p>
+                  </div>
+                  <table style="width:100%;font-size:13px;">
+                    <tr><td style="padding:4px 0;color:#6b7280;">Cota:</td><td style="font-weight:600;text-align:right;">${resultado.cotaNome}</td></tr>
+                    <tr><td style="padding:4px 0;color:#6b7280;">Participação:</td><td style="font-weight:600;text-align:right;">${formatCurrency(resultado.participacao)}</td></tr>
+                    <tr><td style="padding:4px 0;color:#6b7280;">Validade:</td><td style="font-weight:600;text-align:right;">7 dias</td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </div>
+          ${formData.cliente_nome ? `
+          <div style="padding:0 30px 20px;">
+            <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+              <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Cliente</h2>
+              <table style="width:100%;font-size:13px;">
+                <tr><td style="padding:4px 0;color:#6b7280;">Nome:</td><td style="font-weight:600;">${formData.cliente_nome}</td></tr>
+                ${formData.cliente_email ? `<tr><td style="padding:4px 0;color:#6b7280;">E-mail:</td><td style="font-weight:600;">${formData.cliente_email}</td></tr>` : ''}
+                ${formData.cliente_whatsapp ? `<tr><td style="padding:4px 0;color:#6b7280;">WhatsApp:</td><td style="font-weight:600;">${formData.cliente_whatsapp}</td></tr>` : ''}
+              </table>
+            </div>
+          </div>` : ''}
+          <div style="padding:0 30px 20px;"><div style="background:#f9fafb;border-radius:12px;padding:20px;">
+            <h3 style="font-size:14px;font-weight:bold;margin-bottom:10px;">Condições Importantes</h3>
+            <p style="font-size:11px;color:#6b7280;line-height:1.6;">Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.</p>
+          </div></div>
+          <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:15px 30px;text-align:center;color:#fff;font-size:11px;">
+            <p style="margin:0;font-weight:600;">${empresaNome}</p>
+            <p style="margin:4px 0 0;opacity:0.9;">Emitido em ${dataAtual}</p>
+          </div>
+        </div>
+      `;
+
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      document.body.appendChild(container);
+
+      try {
+        const opt = {
+          margin: 0,
+          filename: `Proposta_${formData.modelo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          image: { type: 'jpeg', quality: 0.92 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+          pagebreak: { mode: ['css', 'legacy'] },
+        };
+
+        const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+        setPdfBlob(blob);
+
+        // Upload to storage
+        const filePath = `propostas/${savedId}/Proposta_${formData.modelo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        const { error: uploadError } = await supabase.storage
+          .from('vistoria-fotos')
+          .upload(filePath, blob, { contentType: 'application/pdf', upsert: true });
+
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('vistoria-fotos')
+            .getPublicUrl(filePath);
+          if (urlData?.publicUrl) {
+            setPdfUrl(urlData.publicUrl);
+          }
+        }
+
+        toast.success('PDF gerado com sucesso!');
+      } finally {
+        document.body.removeChild(container);
+      }
+    } catch (err: any) {
+      console.error('Erro ao gerar PDF:', err);
+      toast.error('Erro ao gerar PDF. Tente novamente.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  }, [resultado, handleSaveCotacao, formData, empresaNome]);
+
+  // Next step
+  const handleNext = useCallback(async () => {
     if (!validateStep(currentStep)) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+
     if (currentStep === 1 && !resultado) {
       const calc = handleCalcular();
       if (!calc) {
-        toast.error('Calcule a cotação primeiro');
+        toast.error('Não foi possível calcular a cotação');
         return;
       }
     }
-    setCurrentStep(2);
-  }, [currentStep, validateStep, resultado, handleCalcular]);
 
-  const progressPercent = (currentStep / 2) * 100;
+    // Save on step 3 → 4 transition
+    if (currentStep === 3) {
+      const saved = await handleSaveCotacao();
+      if (!saved) return;
+    }
+
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  }, [currentStep, validateStep, resultado, handleCalcular, handleSaveCotacao]);
+
+  const handlePrev = useCallback(() => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  }, []);
+
+  const progressPercent = (currentStep / 4) * 100;
 
   return (
     <div className="min-h-screen bg-background">
@@ -219,7 +479,7 @@ export default function CotacaoPublica() {
               <Shield className="w-3 h-3 mr-1" /> Cotação Online
             </Badge>
             <Badge variant="secondary">
-              Etapa {currentStep} de 2
+              Etapa {currentStep} de 4
             </Badge>
           </div>
         </div>
@@ -235,7 +495,7 @@ export default function CotacaoPublica() {
         {/* Progress */}
         <div className="space-y-3">
           <Progress value={progressPercent} className="h-2" />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {PUBLIC_STEPS.map((step) => (
               <button
                 key={step.number}
@@ -280,84 +540,65 @@ export default function CotacaoPublica() {
               errors={errors}
             />
           )}
-          {currentStep === 2 && !savedResult && (
+          {currentStep === 2 && (
             <WizardStep2Client
               formData={formData}
               updateFormData={updateFormData}
               errors={errors}
             />
           )}
-          {currentStep === 2 && savedResult && resultado && (
-            <div className="max-w-2xl mx-auto space-y-6">
-              <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <Check className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold">Cotação Registrada!</h2>
-                <p className="text-muted-foreground">
-                  Sua cotação para <strong>{formData.marca} {formData.modelo}</strong> foi registrada.
-                  Em breve um consultor entrará em contato.
-                </p>
-                <div className="bg-card border rounded-xl p-6 space-y-3">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Mensalidade</p>
-                    <p className="text-4xl font-bold text-primary">{formatCurrency(resultado.valorFinal)}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t">
-                    <div>
-                      <p className="text-muted-foreground">Cota</p>
-                      <p className="font-semibold">{resultado.cotaNome}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Participação</p>
-                      <p className="font-semibold">{formatCurrency(resultado.participacao)}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                  <Button onClick={handleWhatsApp} size="lg" className="gap-2">
-                    <MessageCircle className="w-5 h-5" />
-                    Compartilhar via WhatsApp
-                  </Button>
-                  <Button variant="outline" size="lg" onClick={() => navigate('/')}>
-                    Voltar ao site
-                  </Button>
-                </div>
-              </div>
-            </div>
+          {currentStep === 3 && (
+            <WizardStep3Terms
+              formData={formData}
+              updateFormData={updateFormData}
+              resultado={resultado}
+              errors={errors}
+              empresaNome={empresaNome}
+            />
+          )}
+          {currentStep === 4 && (
+            <WizardStep4Generate
+              formData={formData}
+              resultado={resultado}
+              cotacaoId={cotacaoId}
+              pdfBlob={pdfBlob}
+              pdfUrl={pdfUrl}
+              isGeneratingPdf={isGeneratingPdf}
+              onGeneratePdf={handleGeneratePdf}
+              empresaNome={empresaNome}
+              settings={publicSettings}
+            />
           )}
         </div>
 
         {/* Navigation */}
-        {!savedResult && (
-          <div className="flex items-center justify-between pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={currentStep === 1 ? () => navigate('/') : () => setCurrentStep(1)}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {currentStep === 1 ? 'Voltar ao site' : 'Voltar'}
-            </Button>
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={currentStep === 1 ? () => navigate('/') : handlePrev}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {currentStep === 1 ? 'Voltar ao site' : 'Voltar'}
+          </Button>
 
-            {currentStep === 1 && (
-              <Button onClick={handleNext}>
+          {currentStep < 4 && (
+            <Button onClick={handleNext} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
                 <ArrowRight className="w-4 h-4 mr-2" />
-                Próximo
-              </Button>
-            )}
+              )}
+              {currentStep === 3 ? 'Salvar e Continuar' : 'Próximo'}
+            </Button>
+          )}
 
-            {currentStep === 2 && (
-              <Button onClick={handleFinalize} disabled={isSaving}>
-                {isSaving ? (
-                  <span className="animate-spin mr-2">⏳</span>
-                ) : (
-                  <Check className="w-4 h-4 mr-2" />
-                )}
-                Finalizar Cotação
-              </Button>
-            )}
-          </div>
-        )}
+          {currentStep === 4 && (
+            <Button onClick={() => navigate('/')}>
+              <Check className="w-4 h-4 mr-2" />
+              Concluir
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
