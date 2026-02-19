@@ -72,9 +72,77 @@ export function usePublicQuotation() {
     };
   };
 
-  const avancarParaDadosPessoais = () => {
+  const avancarParaCotacao = () => {
     sessionStorage.setItem('in_quotation_funnel', 'true');
     setEtapa('dados_pessoais');
+  };
+
+  // Alias for backward compat
+  const avancarParaDadosPessoais = avancarParaCotacao;
+
+  // Unified submit: saves personal data + vehicle + calculates quotation in one go
+  const submeterCotacaoUnificada = async (pessoais: DadosPessoais, veiculo: DadosVeiculo): Promise<ResultadoCotacaoPublica | null> => {
+    setDadosPessoais(pessoais);
+    setDadosVeiculo(veiculo);
+    setLoading(true);
+
+    try {
+      // Create/update lead
+      const { data: consultores } = await supabase
+        .from('profiles')
+        .select('id, company_id')
+        .limit(1) as { data: { id: string; company_id: string | null }[] | null };
+
+      const consultorId = consultores?.[0]?.id;
+      const companyId = consultores?.[0]?.company_id;
+
+      if (consultorId) {
+        const telefoneNormalizado = pessoais.telefone.replace(/\D/g, '');
+        const { data: existingLead } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('telefone', telefoneNormalizado)
+          .limit(1)
+          .maybeSingle() as { data: { id: string } | null };
+
+        if (existingLead) {
+          setLeadId(existingLead.id);
+        } else {
+          const { data: novoLead } = await supabase
+            .from('leads')
+            .insert({
+              nome: pessoais.nome.trim(),
+              telefone: telefoneNormalizado,
+              email: pessoais.email.trim().toLowerCase(),
+              consultor_id: consultorId,
+              company_id: companyId,
+              origem: 'site' as const,
+              status: 'cotado' as const,
+            })
+            .select('id')
+            .single();
+          if (novoLead) setLeadId(novoLead.id);
+        }
+      }
+
+      // Calculate quotation
+      const resultado = calcularCotacao(veiculo);
+      setCotacao(resultado);
+
+      if (resultado) {
+        localStorage.setItem('cotacao_publica', JSON.stringify({
+          pessoais, veiculo, cotacao: resultado, timestamp: new Date().toISOString(),
+        }));
+      }
+
+      return resultado;
+    } catch (error) {
+      console.error('Erro ao processar cotação unificada:', error);
+      setCotacao(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const salvarDadosPessoais = async (dados: DadosPessoais) => {
@@ -184,16 +252,12 @@ export function usePublicQuotation() {
   const voltarEtapa = () => {
     switch (etapa) {
       case 'dados_pessoais':
+      case 'dados_veiculo':
+      case 'resultado':
         setEtapa('hero');
         break;
-      case 'dados_veiculo':
-        setEtapa('dados_pessoais');
-        break;
-      case 'resultado':
-        setEtapa('dados_veiculo');
-        break;
       case 'cadastro':
-        setEtapa('resultado');
+        setEtapa('dados_pessoais'); // goes back to unified form
         break;
       case 'documentos':
         setEtapa('cadastro');
@@ -503,7 +567,9 @@ export function usePublicQuotation() {
 
   return {
     etapa,
+    setEtapa,
     dadosPessoais,
+    setDadosPessoais,
     dadosVeiculo,
     cotacao,
     dadosCadastro,
@@ -512,8 +578,10 @@ export function usePublicQuotation() {
     
     // Actions
     avancarParaDadosPessoais,
+    avancarParaCotacao,
     salvarDadosPessoais,
     salvarDadosVeiculo,
+    submeterCotacaoUnificada,
     voltarEtapa,
     aceitarProposta,
     criarConta,

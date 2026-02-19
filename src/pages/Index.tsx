@@ -6,8 +6,6 @@ import {
   HeroSection, 
   ComoFuncionaSection,
   DigitalNativeSection,
-  DadosPessoaisForm, 
-  DadosVeiculoForm, 
   ResultadoCotacao,
   BeneficiosSection,
   FamiliaProtegidaBanner,
@@ -21,7 +19,8 @@ import {
   ContatoSection,
   AnnouncementBanner,
   WhatsAppFloat,
-  PromoBanner
+  PromoBanner,
+  CotacaoUnificadaForm
 } from '@/components/landing';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
@@ -89,20 +88,17 @@ export default function Index() {
 
   useEffect(() => {
     document.title = `${brand.name} - Proteção Veicular | Cotação Online`;
-    
-    // Meta description dinâmica
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', `${brand.name} - Proteção veicular 100% digital. Faça sua cotação online em 2 minutos, contratação sem burocracia e ativação imediata. Sem ligações de vendedores!`);
+      metaDesc.setAttribute('content', `${brand.name} - Proteção veicular 100% digital. Faça sua cotação online em 2 minutos, contratação sem burocracia e ativação imediata.`);
     }
   }, [brand.name]);
 
   // Listener para iniciar cotação via chat
   useEffect(() => {
     const handleStartQuotation = () => {
-      quotation.avancarParaDadosPessoais();
+      quotation.avancarParaCotacao();
     };
-    
     window.addEventListener('start-quotation', handleStartQuotation);
     return () => window.removeEventListener('start-quotation', handleStartQuotation);
   }, [quotation]);
@@ -123,7 +119,7 @@ export default function Index() {
           onContinue={() => {
             setShowShared(false);
             setSearchParams({});
-            quotation.avancarParaDadosPessoais();
+            quotation.avancarParaCotacao();
           }}
           onWhatsApp={() => {}}
         />
@@ -134,46 +130,33 @@ export default function Index() {
       case 'hero':
         return (
           <>
-            <HeroSection onStart={quotation.avancarParaDadosPessoais} />
-            <PromoBanner onStart={quotation.avancarParaDadosPessoais} />
-            <ServicosSection onStart={quotation.avancarParaDadosPessoais} />
-            <DigitalNativeSection onStart={quotation.avancarParaDadosPessoais} />
+            <HeroSection onStart={quotation.avancarParaCotacao} />
+            <PromoBanner onStart={quotation.avancarParaCotacao} />
+            <ServicosSection onStart={quotation.avancarParaCotacao} />
+            <DigitalNativeSection onStart={quotation.avancarParaCotacao} />
             <ComoFuncionaSection />
             <BeneficiosSection />
             <ArtigosSection />
             <FamiliaProtegidaBanner />
             <ContatoSection />
-            <CTAFinalSection onStart={quotation.avancarParaDadosPessoais} />
+            <CTAFinalSection onStart={quotation.avancarParaCotacao} />
           </>
         );
       
+      // Unified form: dados_pessoais, dados_veiculo, resultado all in one
       case 'dados_pessoais':
-        return (
-          <DadosPessoaisForm
-            initialData={quotation.dadosPessoais}
-            onSubmit={quotation.salvarDadosPessoais}
-            onBack={quotation.voltarEtapa}
-          />
-        );
-      
       case 'dados_veiculo':
-        return (
-          <DadosVeiculoForm
-            onSubmit={quotation.salvarDadosVeiculo}
-            onBack={quotation.voltarEtapa}
-            loading={quotation.loading}
-          />
-        );
-      
       case 'resultado':
         return (
-          <ResultadoCotacao
+          <CotacaoUnificadaForm
             dadosPessoais={quotation.dadosPessoais}
-            dadosVeiculo={quotation.dadosVeiculo}
+            setDadosPessoais={quotation.setDadosPessoais}
             cotacao={quotation.cotacao}
-            onBack={quotation.voltarEtapa}
-            onContinue={quotation.aceitarProposta}
+            onSubmitAll={quotation.submeterCotacaoUnificada}
+            onBack={() => quotation.setEtapa('hero')}
+            onAccept={quotation.aceitarProposta}
             onWhatsApp={quotation.enviarPropostaWhatsApp}
+            loading={quotation.loading}
           />
         );
       
@@ -196,12 +179,10 @@ export default function Index() {
           />
         );
       
-      
       case 'sucesso':
         return (
           <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background py-16 px-4">
             <div className="text-center max-w-lg">
-              {/* Success Icon */}
               <div className="relative mb-8">
                 <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto">
                   <PartyPopper className="h-12 w-12 text-primary" />
@@ -214,17 +195,10 @@ export default function Index() {
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Cadastro concluído com sucesso! 🎉
               </h2>
-              <p className="text-lg text-muted-foreground mb-2">
-                Sua proteção já está ativa.
-              </p>
-              <p className="text-base text-muted-foreground mb-2">
-                Você <strong>não paga taxa de adesão</strong>.
-              </p>
-              <p className="text-base text-muted-foreground mb-8">
-                O primeiro pagamento será apenas no próximo vencimento escolhido.
-              </p>
+              <p className="text-lg text-muted-foreground mb-2">Sua proteção já está ativa.</p>
+              <p className="text-base text-muted-foreground mb-2">Você <strong>não paga taxa de adesão</strong>.</p>
+              <p className="text-base text-muted-foreground mb-8">O primeiro pagamento será apenas no próximo vencimento escolhido.</p>
               
-              {/* Info cards */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-card border border-border/50 rounded-xl p-4 text-left">
                   <Clock className="h-6 w-6 text-primary mb-2" />
@@ -239,9 +213,7 @@ export default function Index() {
               </div>
 
               <div className="bg-accent/50 border border-accent-foreground/20 rounded-xl p-4 mb-8 text-left">
-                <p className="text-sm font-medium text-accent-foreground">
-                  📋 Importante sobre a carência
-                </p>
+                <p className="text-sm font-medium text-accent-foreground">📋 Importante sobre a carência</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   A proteção contra furto e roubo é <strong>imediata</strong>. 
                   Os demais benefícios entram em vigor após 72 horas da ativação.
@@ -250,36 +222,24 @@ export default function Index() {
               
               <div className="space-y-3">
                 <Button onClick={() => navigate('/auth')} size="lg" className="w-full">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Acessar minha conta
+                  <LogIn className="mr-2 h-4 w-4" /> Acessar minha conta
                 </Button>
-                <Button variant="outline" onClick={quotation.reiniciar} className="w-full">
-                  Nova cotação
-                </Button>
+                <Button variant="outline" onClick={quotation.reiniciar} className="w-full">Nova cotação</Button>
               </div>
             </div>
           </section>
         );
       
       default:
-        return <HeroSection onStart={quotation.avancarParaDadosPessoais} />;
+        return <HeroSection onStart={quotation.avancarParaCotacao} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Navbar - só mostra na home */}
       {quotation.etapa === 'hero' && !showShared && <LandingNavbar />}
-
-      {/* Conteúdo principal */}
-      <main className="flex-1">
-        {renderEtapa()}
-      </main>
-
-      {/* Footer apenas na home */}
+      <main className="flex-1">{renderEtapa()}</main>
       {quotation.etapa === 'hero' && !showShared && <LandingFooter />}
-      
-      {/* Chat Emily - Consultora Virtual de vendas com IA */}
       <ChatWidget />
     </div>
   );

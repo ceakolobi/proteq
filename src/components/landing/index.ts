@@ -5,6 +5,7 @@ export { DigitalNativeSection } from './DigitalNativeSection';
 export { DadosPessoaisForm } from './DadosPessoaisForm';
 export { DadosVeiculoForm } from './DadosVeiculoForm';
 export { ResultadoCotacao } from './ResultadoCotacao';
+export { CotacaoUnificadaForm } from './CotacaoUnificadaForm';
 export { BeneficiosSection } from './BeneficiosSection';
 export { ConfiancaSection } from './ConfiancaSection';
 export { FamiliaProtegidaBanner } from './FamiliaProtegidaBanner';
