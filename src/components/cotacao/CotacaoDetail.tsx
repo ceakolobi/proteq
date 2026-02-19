@@ -392,7 +392,7 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
           pagebreak: { mode: ['css', 'legacy'] },
         };
 
-        const blob: Blob = await html2pdf().set(opt).from(container).toPdf().output('blob');
+        const blob: Blob = await html2pdf().set(opt).from(container).outputPdf('blob');
         
         // Upload to storage
         const filePath = `propostas/${cotacao.id}/Proposta_${cotacao.marca}_${cotacao.modelo}.pdf`;

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useSettings } from '@/hooks/useSettings';
@@ -43,6 +43,10 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
   const perfilEditor = useMemo(() => getPerfilEditor(roles || [], isAdminPrincipal), [roles, isAdminPrincipal]);
   const cotasAtivas = useMemo(() => (cotas as Cota[]).filter(c => c.ativo), [cotas]);
 
+  const empresaNome = settings.modo_white_label && settings.empresa_nome
+    ? settings.empresa_nome
+    : 'Proteção Veicular';
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<WizardFormData>(INITIAL_FORM_DATA);
   const [resultado, setResultado] = useState<ResultadoCotacao | null>(null);
@@ -54,7 +58,7 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const pdfContentRef = useRef<HTMLDivElement>(null);
+  
 
   const updateFormData = useCallback((updates: Partial<WizardFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
@@ -189,58 +193,111 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
         return;
       }
 
-      // Wait for ref to be available
-      await new Promise(r => setTimeout(r, 200));
-
-      if (!pdfContentRef.current) {
-        toast.error('Erro ao preparar PDF. Tente novamente.');
-        setIsGeneratingPdf(false);
-        return;
-      }
-
       const html2pdf = (await import('html2pdf.js')).default;
 
-      const opt = {
-        margin: 0,
-        filename: `Proposta_${formData.modelo.replace(/[^a-zA-Z0-9]/g, '_')}_${cotacao.id.substring(0, 8).toUpperCase()}.pdf`,
-        image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      };
+      // Build HTML inline instead of relying on ref (more reliable)
+      const dataAtual = new Date().toLocaleDateString('pt-BR');
+      const html = `
+        <div style="background:#fff;font-family:Arial,sans-serif;color:#333;">
+          <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:40px 30px;text-align:center;color:#fff;">
+            <h1 style="font-size:28px;font-weight:bold;margin:0 0 8px;">🛡️ Proposta de Cotação</h1>
+            <p style="font-size:14px;opacity:0.9;margin:0;">${empresaNome} • Proteção Veicular</p>
+          </div>
+          <div style="padding:30px;">
+            <table style="width:100%;border-spacing:20px 0;border-collapse:separate;">
+              <tr>
+                <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+                  <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Veículo</h2>
+                  <table style="width:100%;font-size:13px;">
+                    <tr><td style="padding:6px 0;color:#6b7280;">Marca:</td><td style="font-weight:600;text-align:right;">${formData.marca}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Modelo:</td><td style="font-weight:600;text-align:right;">${formData.modelo}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Ano:</td><td style="font-weight:600;text-align:right;">${formData.ano_fabricacao}${formData.ano_modelo ? '/' + formData.ano_modelo : ''}</td></tr>
+                    ${formData.placa ? `<tr><td style="padding:6px 0;color:#6b7280;">Placa:</td><td style="font-weight:600;text-align:right;">${formData.placa}</td></tr>` : ''}
+                  </table>
+                </td>
+                <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+                  <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #22C55E;padding-bottom:8px;margin-bottom:16px;">Valores</h2>
+                  <div style="background:linear-gradient(135deg,#F97316,#ea580c);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
+                    <p style="font-size:12px;text-transform:uppercase;opacity:0.9;margin:0 0 4px;">Mensalidade</p>
+                    <p style="font-size:32px;font-weight:bold;margin:0;">${formatCurrency(resultado.valorFinal)}</p>
+                  </div>
+                  <table style="width:100%;font-size:13px;">
+                    <tr><td style="padding:4px 0;color:#6b7280;">Cota:</td><td style="font-weight:600;text-align:right;">${resultado.cotaNome}</td></tr>
+                    <tr><td style="padding:4px 0;color:#6b7280;">Participação:</td><td style="font-weight:600;text-align:right;">${formatCurrency(resultado.participacao)}</td></tr>
+                    <tr><td style="padding:4px 0;color:#6b7280;">Validade:</td><td style="font-weight:600;text-align:right;">7 dias</td></tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </div>
+          ${formData.cliente_nome ? `
+          <div style="padding:0 30px 20px;">
+            <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+              <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Cliente</h2>
+              <table style="width:100%;font-size:13px;">
+                <tr><td style="padding:4px 0;color:#6b7280;">Nome:</td><td style="font-weight:600;">${formData.cliente_nome}</td></tr>
+                ${formData.cliente_email ? `<tr><td style="padding:4px 0;color:#6b7280;">E-mail:</td><td style="font-weight:600;">${formData.cliente_email}</td></tr>` : ''}
+                ${formData.cliente_whatsapp ? `<tr><td style="padding:4px 0;color:#6b7280;">WhatsApp:</td><td style="font-weight:600;">${formData.cliente_whatsapp}</td></tr>` : ''}
+              </table>
+            </div>
+          </div>` : ''}
+          <div style="padding:0 30px 20px;"><div style="background:#f9fafb;border-radius:12px;padding:20px;">
+            <h3 style="font-size:14px;font-weight:bold;margin-bottom:10px;">Condições Importantes</h3>
+            <p style="font-size:11px;color:#6b7280;line-height:1.6;">Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.</p>
+          </div></div>
+          <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:15px 30px;text-align:center;color:#fff;font-size:11px;">
+            <p style="margin:0;font-weight:600;">${empresaNome}</p>
+            <p style="margin:4px 0 0;opacity:0.9;">Emitido em ${dataAtual}</p>
+          </div>
+        </div>
+      `;
 
-      const blob = await html2pdf().set(opt).from(pdfContentRef.current).outputPdf('blob');
-      setPdfBlob(blob);
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      document.body.appendChild(container);
 
-      // Upload to storage
-      const filePath = `propostas/${cotacao.id}/Proposta_${formData.modelo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      const { error: uploadError } = await supabase.storage
-        .from('vistoria-fotos')
-        .upload(filePath, blob, { contentType: 'application/pdf', upsert: true });
+      try {
+        const opt = {
+          margin: 0,
+          filename: `Proposta_${formData.modelo.replace(/[^a-zA-Z0-9]/g, '_')}_${cotacao.id.substring(0, 8).toUpperCase()}.pdf`,
+          image: { type: 'jpeg', quality: 0.92 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+          pagebreak: { mode: ['css', 'legacy'] },
+        };
 
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
+        const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+        setPdfBlob(blob);
+
+        // Upload to storage
+        const filePath = `propostas/${cotacao.id}/Proposta_${formData.modelo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        const { error: uploadError } = await supabase.storage
           .from('vistoria-fotos')
-          .getPublicUrl(filePath);
-        if (urlData?.publicUrl) {
-          setPdfUrl(urlData.publicUrl);
-        }
-      }
+          .upload(filePath, blob, { contentType: 'application/pdf', upsert: true });
 
-      toast.success('PDF gerado com sucesso!');
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from('vistoria-fotos')
+            .getPublicUrl(filePath);
+          if (urlData?.publicUrl) {
+            setPdfUrl(urlData.publicUrl);
+          }
+        }
+
+        toast.success('PDF gerado com sucesso!');
+      } finally {
+        document.body.removeChild(container);
+      }
     } catch (err: any) {
       console.error('Erro ao gerar PDF:', err);
       toast.error('Erro ao gerar PDF. Tente novamente.');
     } finally {
       setIsGeneratingPdf(false);
     }
-  }, [resultado, handleSaveCotacao, formData.modelo]);
+  }, [resultado, handleSaveCotacao, formData, empresaNome]);
 
   // Next step
   const handleNext = useCallback(async () => {
@@ -272,9 +329,7 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
 
   const progressPercent = (currentStep / 4) * 100;
 
-  const empresaNome = settings.modo_white_label && settings.empresa_nome
-    ? settings.empresa_nome
-    : 'Proteção Veicular';
+  // empresaNome already declared above
 
   return (
     <div className="space-y-6">
@@ -365,7 +420,7 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
             isGeneratingPdf={isGeneratingPdf}
             onGeneratePdf={handleGeneratePdf}
             empresaNome={empresaNome}
-            pdfContentRef={pdfContentRef}
+            
             settings={settings}
           />
         )}
