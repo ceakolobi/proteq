@@ -313,25 +313,43 @@ export function CotacaoUnificadaForm({
 
     const container = document.createElement('div');
     container.innerHTML = html;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
+    container.style.position = 'fixed';
+    container.style.left = '0';
     container.style.top = '0';
+    container.style.width = '800px';
+    container.style.zIndex = '-9999';
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
     document.body.appendChild(container);
 
+    // Wait for images
     const imgs = container.querySelectorAll('img');
     await Promise.all(Array.from(imgs).map(img =>
       img.complete ? Promise.resolve() : new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); })
     ));
 
+    // Small delay to ensure rendering
+    await new Promise(r => setTimeout(r, 300));
+
     try {
       const opt = {
         margin: 0,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          logging: true, 
+          allowTaint: true, 
+          backgroundColor: '#ffffff',
+          width: 800,
+          windowWidth: 800,
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'] },
       };
-      const blob: Blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      const pdfInstance = html2pdf().set(opt).from(container);
+      const blob: Blob = await pdfInstance.outputPdf('blob');
+      console.log('[PDF Landing] blob size:', blob.size);
       return blob;
     } finally {
       document.body.removeChild(container);
