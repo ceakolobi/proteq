@@ -7,16 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowRight, ArrowLeft, User, Phone, Mail, Car, Loader2, Search,
-  CheckCircle2, Settings2, Shield, Headphones, MapPin, Percent, Truck, Key, Zap,
-  MessageCircle, FileText, Link2, Sparkles
+  CheckCircle2, Shield, Headphones, MapPin, Percent, Truck, Key, Zap,
+  MessageCircle, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useBrand } from '@/hooks/useBrand';
-import { supabase } from '@/integrations/supabase/client';
-// html2pdf imported dynamically below (same as CRM wizard)
-import harmonyAgroLogoBranca from '@/assets/harmony-agro-logo-branca.png';
-import harmonyAgroLogoColorida from '@/assets/harmony-agro-logo-colorida.png';
 import { TIPOS_VEICULO_LANDING, type DadosPessoais, type DadosVeiculo, type ResultadoCotacaoPublica } from './types';
 
 // ─── Types ───────────────────────────────────────────
@@ -32,7 +28,7 @@ interface CotacaoUnificadaFormProps {
   onSubmitAll: (pessoais: DadosPessoais, veiculo: DadosVeiculo) => Promise<ResultadoCotacaoPublica | null>;
   onBack: () => void;
   onAccept: () => void;
-  onWhatsApp: () => void;
+  onWhatsApp?: () => void; // kept for backwards compat but handled internally now
   cotacao: ResultadoCotacaoPublica | null;
   dadosPessoais: DadosPessoais;
   setDadosPessoais: (d: DadosPessoais) => void;
@@ -41,20 +37,6 @@ interface CotacaoUnificadaFormProps {
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-
-const imageToBase64 = (url: string): Promise<string> =>
-  new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth; c.height = img.naturalHeight;
-      c.getContext('2d')?.drawImage(img, 0, 0);
-      resolve(c.toDataURL('image/png'));
-    };
-    img.onerror = () => resolve('');
-    img.src = url;
-  });
 
 const validatePlaca = (p: string) => {
   const c = p.replace(/[^A-Z0-9]/gi, '').toUpperCase();
@@ -94,8 +76,8 @@ export function CotacaoUnificadaForm({
   const [loadingAnos, setLoadingAnos] = useState(false);
   const [loadingValor, setLoadingValor] = useState(false);
   const [calculando, setCalculando] = useState(false);
-  const [loadingPdf, setLoadingPdf] = useState(false);
-  const [loadingEmail, setLoadingEmail] = useState(false);
+
+  // ─── FIPE API ──────────────────────────────
 
   // ─── FIPE API ──────────────────────────────
   const fetchFipe = async (endpoint: string, params: Record<string, string>) => {
@@ -259,160 +241,36 @@ export function CotacaoUnificadaForm({
   ];
 
   // ─── PDF Generation ────────────────────────
-  const generatePdfBlob = async (): Promise<Blob | null> => {
-    if (!valorEncontrado || !cotacao) return null;
-    const dataAtual = new Date().toLocaleDateString('pt-BR');
-    const empresaNome = 'Harmony Agro';
-
-    // Same pattern as CRM wizard — pure inline HTML, no images
-    const html = `
-      <div style="background:#fff;font-family:Arial,sans-serif;color:#333;">
-        <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:40px 30px;text-align:center;color:#fff;">
-          <h1 style="font-size:28px;font-weight:bold;margin:0 0 8px;">🛡️ Proposta de Cotação</h1>
-          <p style="font-size:14px;opacity:0.9;margin:0;">${empresaNome} • Proteção Veicular</p>
-        </div>
-        <div style="padding:30px;">
-          <table style="width:100%;border-spacing:20px 0;border-collapse:separate;">
-            <tr>
-              <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
-                <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Veículo</h2>
-                <table style="width:100%;font-size:13px;">
-                  <tr><td style="padding:6px 0;color:#6b7280;">Marca:</td><td style="font-weight:600;text-align:right;">${valorEncontrado.marca}</td></tr>
-                  <tr><td style="padding:6px 0;color:#6b7280;">Modelo:</td><td style="font-weight:600;text-align:right;">${valorEncontrado.modelo}</td></tr>
-                  <tr><td style="padding:6px 0;color:#6b7280;">Ano:</td><td style="font-weight:600;text-align:right;">${valorEncontrado.anoModelo}</td></tr>
-                  <tr><td style="padding:6px 0;color:#6b7280;">Valor FIPE:</td><td style="font-weight:600;text-align:right;">${formatCurrency(cotacao.valorFipe)}</td></tr>
-                </table>
-              </td>
-              <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
-                <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #22C55E;padding-bottom:8px;margin-bottom:16px;">Valores</h2>
-                <div style="background:linear-gradient(135deg,#F97316,#ea580c);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
-                  <p style="font-size:12px;text-transform:uppercase;opacity:0.9;margin:0 0 4px;">Mensalidade</p>
-                  <p style="font-size:32px;font-weight:bold;margin:0;">${formatCurrency(cotacao.mensalidade)}</p>
-                </div>
-                <table style="width:100%;font-size:13px;">
-                  <tr><td style="padding:4px 0;color:#6b7280;">Cota:</td><td style="font-weight:600;text-align:right;">${cotacao.cotaNome || 'Padrão'}</td></tr>
-                  <tr><td style="padding:4px 0;color:#6b7280;">Participação:</td><td style="font-weight:600;text-align:right;">${formatCurrency(cotacao.participacao)}</td></tr>
-                  <tr><td style="padding:4px 0;color:#6b7280;">Adesão:</td><td style="font-weight:600;text-align:right;color:#15803d;">GRÁTIS ✅</td></tr>
-                  <tr><td style="padding:4px 0;color:#6b7280;">Validade:</td><td style="font-weight:600;text-align:right;">7 dias</td></tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </div>
-        ${dados.nome ? `
-        <div style="padding:0 30px 20px;">
-          <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
-            <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Cliente</h2>
-            <table style="width:100%;font-size:13px;">
-              <tr><td style="padding:4px 0;color:#6b7280;">Nome:</td><td style="font-weight:600;">${dados.nome}</td></tr>
-              ${dados.telefone ? `<tr><td style="padding:4px 0;color:#6b7280;">Telefone:</td><td style="font-weight:600;">${dados.telefone}</td></tr>` : ''}
-              ${dados.email ? `<tr><td style="padding:4px 0;color:#6b7280;">E-mail:</td><td style="font-weight:600;">${dados.email}</td></tr>` : ''}
-            </table>
-          </div>
-        </div>` : ''}
-        <div style="padding:0 30px 20px;"><div style="background:#f9fafb;border-radius:12px;padding:20px;">
-          <h3 style="font-size:14px;font-weight:bold;margin-bottom:10px;">Condições Importantes</h3>
-          <p style="font-size:11px;color:#6b7280;line-height:1.6;">Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente. A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.</p>
-        </div></div>
-        <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:15px 30px;text-align:center;color:#fff;font-size:11px;">
-          <p style="margin:0;font-weight:600;">${empresaNome}</p>
-          <p style="margin:4px 0 0;opacity:0.9;">Emitido em ${dataAtual}</p>
-        </div>
-      </div>
-    `;
-
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    document.body.appendChild(container);
-
-    try {
-      // Dynamic import — EXACT same pattern as CRM CotacaoWizard.tsx
-      const html2pdf = (await import('html2pdf.js')).default;
-
-      const opt = {
-        margin: 0,
-        image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
-        pagebreak: { mode: ['css', 'legacy'] },
-      };
-
-      const pdfBlob: Blob = await html2pdf().set(opt).from(container).outputPdf('blob');
-      console.log('[PDF UnificadaForm] blob size:', pdfBlob.size);
-      if (pdfBlob.size < 500) {
-        console.error('[PDF UnificadaForm] Blob too small, likely blank');
-        return null;
-      }
-      return pdfBlob;
-    } finally {
-      document.body.removeChild(container);
-    }
-  };
-
-  const handleDownloadPdf = async () => {
+  // ─── WhatsApp Text Share ────────────────────
+  const handleWhatsAppText = useCallback(() => {
     if (!valorEncontrado || !cotacao) return;
-    setLoadingPdf(true);
-    try {
-      const blob = await generatePdfBlob();
-      if (!blob) { toast.error('Erro ao gerar PDF'); return; }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Proposta_${valorEncontrado.marca}_${valorEncontrado.modelo}.pdf`;
-      document.body.appendChild(link); link.click(); document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('PDF baixado!');
-    } catch { toast.error('Erro ao gerar PDF'); }
-    finally { setLoadingPdf(false); }
-  };
+    const texto = [
+      `🛡️ *Proposta de Proteção Veicular*`,
+      ``,
+      `🚗 *Veículo:* ${valorEncontrado.marca} ${valorEncontrado.modelo}`,
+      `📅 *Ano:* ${valorEncontrado.anoModelo}`,
+      `💰 *Valor FIPE:* ${formatCurrency(cotacao.valorFipe)}`,
+      ``,
+      `📋 *Mensalidade:* ${formatCurrency(cotacao.mensalidade)}/mês`,
+      `🤝 *Participação:* ${formatCurrency(cotacao.participacao)}`,
+      `🎁 *Adesão:* GRÁTIS`,
+      `⏰ *Validade:* 7 dias`,
+      ``,
+      `✅ *Coberturas incluídas:*`,
+      `• Proteção contra Roubo/Furto`,
+      `• Colisão e Incêndio`,
+      `• Assistência 24h + Guincho 500km`,
+      `• Carro Reserva (30 dias)`,
+      `• Chaveiro e Pane Elétrica`,
+      ``,
+      dados.nome ? `👤 *Cliente:* ${dados.nome}` : '',
+      ``,
+      `_Harmony Agro — Proteção Veicular_`,
+    ].filter(Boolean).join('\n');
 
-  const handleSendEmail = async () => {
-    if (!valorEncontrado || !cotacao || !dados.email) { toast.error('E-mail não informado'); return; }
-    setLoadingEmail(true);
-    try {
-      const blob = await generatePdfBlob();
-      if (!blob) { toast.error('Erro ao gerar PDF'); return; }
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      const { data, error } = await supabase.functions.invoke('send-proposta-email', {
-        body: {
-          to: dados.email, clienteNome: dados.nome,
-          modelo: `${valorEncontrado.marca} ${valorEncontrado.modelo}`,
-          mensalidade: formatCurrency(cotacao.mensalidade), validadeDias: 7,
-          pdfBase64: base64, filename: `Proposta_${valorEncontrado.marca}_${valorEncontrado.modelo}.pdf`,
-          empresaNome: 'Harmony Agro',
-        },
-      });
-      if (error) { toast.error('Erro ao enviar e-mail'); return; }
-      if (data?.success) toast.success(`Proposta enviada para ${dados.email}!`);
-      else toast.error(data?.error || 'Erro ao enviar');
-    } catch { toast.error('Erro ao enviar e-mail'); }
-    finally { setLoadingEmail(false); }
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      if (!valorEncontrado || !cotacao) { toast.error('Calcule a cotação primeiro'); return; }
-      const payload = {
-        n: dados.nome, t: dados.telefone, e: dados.email,
-        m: valorEncontrado.marca, mo: valorEncontrado.modelo,
-        a: valorEncontrado.anoModelo, tb: tipoVeiculo,
-        vf: valorEncontrado.valor, cf: valorEncontrado.codigoFipe,
-        me: cotacao.mensalidade, pa: cotacao.participacao, cn: cotacao.cotaNome,
-      };
-      const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
-      const url = `${window.location.origin}/?cotacao=${encoded}`;
-      await navigator.clipboard.writeText(url);
-      toast.success('Link da cotação copiado!');
-    } catch { toast.error('Erro ao copiar link'); }
-  };
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(url, '_blank');
+  }, [valorEncontrado, cotacao, dados.nome]);
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -646,31 +504,14 @@ export function CotacaoUnificadaForm({
                   </div>
 
                   {/* Ações */}
-                  <div className="grid grid-cols-4 gap-3 mb-6">
-                    <Button variant="outline" className="flex-col h-auto py-3 gap-1 border-2 hover:border-primary/50" onClick={onWhatsApp}>
-                      <MessageCircle className="h-5 w-5 text-primary" /><span className="text-xs">WhatsApp</span>
-                    </Button>
-                    <Button variant="outline" className="flex-col h-auto py-3 gap-1 border-2 hover:border-primary/50"
-                      onClick={handleSendEmail} disabled={loadingEmail}>
-                      {loadingEmail ? <Loader2 className="h-5 w-5 text-primary animate-spin" /> : <Mail className="h-5 w-5 text-primary" />}
-                      <span className="text-xs">{loadingEmail ? 'Enviando...' : 'E-mail'}</span>
-                    </Button>
-                    <Button variant="outline" className="flex-col h-auto py-3 gap-1 border-2 hover:border-primary/50"
-                      onClick={handleDownloadPdf} disabled={loadingPdf}>
-                      {loadingPdf ? <Loader2 className="h-5 w-5 text-primary animate-spin" /> : <FileText className="h-5 w-5 text-primary" />}
-                      <span className="text-xs">{loadingPdf ? 'Gerando...' : 'PDF'}</span>
-                    </Button>
-                    <Button variant="outline" className="flex-col h-auto py-3 gap-1 border-2 hover:border-primary/50" onClick={handleCopyLink}>
-                      <Link2 className="h-5 w-5 text-primary" /><span className="text-xs">Link</span>
-                    </Button>
-                  </div>
-
-                  {/* Aceitar */}
                   <div className="flex gap-3">
                     <Button variant="ghost" onClick={onBack} className="px-6">
                       <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
                     </Button>
-                    <Button onClick={() => { handleDownloadPdf(); onAccept(); }} className="flex-1 py-6 text-lg">
+                    <Button variant="outline" onClick={handleWhatsAppText} className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" /> Enviar via WhatsApp
+                    </Button>
+                    <Button onClick={onAccept} className="flex-1 py-6 text-lg">
                       Aceitar proposta <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
