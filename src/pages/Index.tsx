@@ -237,12 +237,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {quotation.etapa === 'hero' && !showShared && (
-        <>
-          <AnnouncementBanner />
-          <LandingNavbar />
-        </>
-      )}
+      {quotation.etapa === 'hero' && !showShared && <LandingNavbar />}
       <main className="flex-1">{renderEtapa()}</main>
       {quotation.etapa === 'hero' && !showShared && <LandingFooter />}
       <ChatWidget />
