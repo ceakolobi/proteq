@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, CheckCircle2, Play, Star } from 'lucide-react';
 import { useBrand } from '@/hooks/useBrand';
@@ -9,6 +10,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ onStart }: HeroSectionProps) {
   const { brand, getLogoForContext } = useBrand();
+  const navigate = useNavigate();
 
   return (
     <section id="home" className="relative min-h-[90vh] flex items-center overflow-hidden pt-20">
@@ -58,7 +60,7 @@ export function HeroSection({ onStart }: HeroSectionProps) {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button 
                 size="lg" 
-                onClick={onStart}
+                onClick={() => navigate('/cotacao-publica')}
                 className="text-lg px-8 py-7 rounded-xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 group"
               >
                 Fazer cotação agora
