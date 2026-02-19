@@ -10,8 +10,6 @@ import { toast } from 'sonner';
 import { TIPOS_VEICULO_LANDING, type DadosVeiculo } from './types';
 import { cn } from '@/lib/utils';
 import { StepIndicator } from './StepIndicator';
-import logoColorida from '@/assets/logo-harmony-colorida.png';
-import logoBranca from '@/assets/logo-harmony-branca.png';
 
 const QUOTATION_STEPS = [
   { number: 1, label: 'Seus Dados' },
@@ -411,8 +409,6 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
         <StepIndicator currentStep={2} steps={QUOTATION_STEPS} />
 
         <div className="text-center mb-6">
-          <img src={logoColorida} alt="Harmony" className="h-10 mx-auto mb-4 dark:hidden" />
-          <img src={logoBranca} alt="Harmony" className="h-10 mx-auto mb-4 hidden dark:block" />
           <h1 className="text-2xl font-bold">Dados do Veículo</h1>
           <p className="text-muted-foreground">Informe os dados do seu veículo</p>
         </div>
