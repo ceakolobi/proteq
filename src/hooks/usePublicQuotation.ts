@@ -87,14 +87,19 @@ export function usePublicQuotation() {
     setLoading(true);
 
     try {
+      // Check if user is authenticated (RLS requires consultor_id = auth.uid() for authenticated users)
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
       // Create/update lead
       const { data: consultores } = await supabase
         .from('profiles')
         .select('id, company_id')
         .limit(1) as { data: { id: string; company_id: string | null }[] | null };
 
-      const consultorId = consultores?.[0]?.id;
+      const defaultConsultorId = consultores?.[0]?.id;
       const companyId = consultores?.[0]?.company_id;
+      const consultorId = currentUserId || defaultConsultorId;
 
       if (consultorId) {
         const telefoneNormalizado = pessoais.telefone.replace(/\D/g, '');
@@ -276,14 +281,18 @@ export function usePublicQuotation() {
     }
 
     try {
-      // Buscar consultor padrão para vincular a cotação
+      // Check auth for RLS compliance
+      const { data: { session: aceitarSession } } = await supabase.auth.getSession();
+      const aceitarUserId = aceitarSession?.user?.id;
+
       const { data: consultores } = await supabase
         .from('profiles')
         .select('id, company_id')
         .limit(1) as { data: { id: string; company_id: string | null }[] | null };
 
-      const consultorId = consultores?.[0]?.id;
+      const defaultConsultorId2 = consultores?.[0]?.id;
       const companyId = consultores?.[0]?.company_id;
+      const consultorId = aceitarUserId || defaultConsultorId2;
 
       if (consultorId) {
         // Criar cotação no banco com status 'aceita'
@@ -490,13 +499,17 @@ export function usePublicQuotation() {
     let adesaoUrl = sessionStorage.getItem('adesao_link') || '';
     if (!adesaoUrl && dadosVeiculo && cotacao) {
       try {
+        const { data: { session: whatsSession } } = await supabase.auth.getSession();
+        const whatsUserId = whatsSession?.user?.id;
+
         const { data: consultores } = await supabase
           .from('profiles')
           .select('id, company_id')
           .limit(1) as { data: { id: string; company_id: string | null }[] | null };
 
-        const consultorId = consultores?.[0]?.id;
+        const defaultConsultorId3 = consultores?.[0]?.id;
         const companyId = consultores?.[0]?.company_id;
+        const consultorId = whatsUserId || defaultConsultorId3;
 
         if (consultorId) {
           const { data: novaCotacao } = await supabase
