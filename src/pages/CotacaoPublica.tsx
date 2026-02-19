@@ -394,11 +394,13 @@ export default function CotacaoPublica() {
 
       const container = document.createElement('div');
       container.innerHTML = html;
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
+      container.style.position = 'fixed';
+      container.style.left = '0';
       container.style.top = '0';
       container.style.width = '800px';
       container.style.zIndex = '-9999';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
       document.body.appendChild(container);
 
       // Force layout recalculation
