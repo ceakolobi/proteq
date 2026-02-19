@@ -83,27 +83,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Rota que redireciona baseado no estado de autenticação
+// Rota da landing page — sempre acessível, mesmo para usuários logados.
+// O redirect pós-login é tratado na página /auth.
 function HomeRoute() {
-  const { user, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Carregando...</div>
-      </div>
-    );
-  }
-  
-  // Se o usuário está logado mas veio do funil de cotação (criou conta agora), mantém na landing
-  // Caso contrário, redireciona para o dashboard
-  if (user) {
-    const isInFunnel = sessionStorage.getItem('in_quotation_funnel');
-    if (!isInFunnel) {
-      return <Navigate to="/dashboard" replace />;
-    }
-  }
-  
   return <Index />;
 }
 
