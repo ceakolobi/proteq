@@ -254,10 +254,17 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
 
       const container = document.createElement('div');
       container.innerHTML = html;
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
+      container.style.position = 'fixed';
+      container.style.left = '0';
       container.style.top = '0';
+      container.style.width = '800px';
+      container.style.zIndex = '-9999';
+      container.style.overflow = 'hidden';
+      container.style.height = '0';
       document.body.appendChild(container);
+
+      // Force layout recalculation
+      container.offsetHeight;
 
       try {
         const opt = {
