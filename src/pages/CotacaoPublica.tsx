@@ -276,6 +276,7 @@ export default function CotacaoPublica() {
               cotasAtivas={cotasAtivas}
               cotasLoading={cotasLoading}
               perfilEditor="CONSULTOR"
+              origem="cotacao-publica"
               errors={errors}
             />
           )}
