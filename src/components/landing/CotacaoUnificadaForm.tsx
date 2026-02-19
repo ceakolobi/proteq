@@ -323,22 +323,36 @@ export function CotacaoUnificadaForm({
 
     const container = document.createElement('div');
     container.innerHTML = html;
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
+    container.style.position = 'fixed';
+    container.style.left = '0';
     container.style.top = '0';
+    container.style.width = '800px';
+    container.style.zIndex = '-9999';
+    container.style.pointerEvents = 'none';
+    container.style.overflow = 'hidden';
+    container.style.height = '0';
     document.body.appendChild(container);
+
+    // Force layout recalculation
+    void container.offsetHeight;
+    await new Promise(r => setTimeout(r, 100));
 
     try {
       const opt = {
         margin: 0,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff', width: 800, windowWidth: 800 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'] },
       };
 
-      const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
-      return blob;
+      const pdfBlob: Blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      console.log('[PDF UnificadaForm] blob size:', pdfBlob.size);
+      if (pdfBlob.size < 500) {
+        console.error('[PDF UnificadaForm] Blob too small, likely blank');
+        return null;
+      }
+      return pdfBlob;
     } finally {
       document.body.removeChild(container);
     }
