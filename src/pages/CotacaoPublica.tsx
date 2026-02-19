@@ -192,14 +192,21 @@ export default function CotacaoPublica() {
 
     setIsSaving(true);
     try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
       // Get default consultant
       const { data: consultores } = await supabase
         .from('profiles')
         .select('id, company_id')
         .limit(1) as { data: { id: string; company_id: string | null }[] | null };
 
-      const consultorId = consultores?.[0]?.id;
+      const defaultConsultorId = consultores?.[0]?.id;
       const companyId = consultores?.[0]?.company_id;
+
+      // If authenticated, use own ID as consultor_id (RLS requires consultor_id = auth.uid())
+      const consultorId = currentUserId || defaultConsultorId;
 
       if (!consultorId) {
         toast.error('Erro de configuração do sistema');
