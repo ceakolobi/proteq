@@ -29,7 +29,7 @@ import logoColorida from '@/assets/logo-harmony-colorida.png';
 import logoBranca from '@/assets/logo-harmony-branca.png';
 import harmonyAgroLogoColorida from '@/assets/harmony-agro-logo-colorida.png';
 import harmonyAgroLogoBranca from '@/assets/harmony-agro-logo-branca.png';
-import html2pdf from 'html2pdf.js';
+// html2pdf imported dynamically below (same as CRM wizard)
 
 // Helper: convert any image URL to base64 data URI
 const imageToBase64 = (url: string): Promise<string> => {
@@ -425,11 +425,14 @@ export function ResultadoCotacao({
     await new Promise(r => setTimeout(r, 100));
 
     try {
+      // Dynamic import — EXACT same pattern as CRM CotacaoWizard.tsx
+      const html2pdf = (await import('html2pdf.js')).default;
+
       const opt = {
         margin: 0,
         filename: `Proposta_HarmonyAgro_${dadosVeiculo.marca}_${dadosVeiculo.modelo}.pdf`,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff', width: 800, windowWidth: 800 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'] },
       };

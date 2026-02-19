@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useBrand } from '@/hooks/useBrand';
 import { supabase } from '@/integrations/supabase/client';
-import html2pdf from 'html2pdf.js';
+// html2pdf imported dynamically below (same as CRM wizard)
 import harmonyAgroLogoBranca from '@/assets/harmony-agro-logo-branca.png';
 import harmonyAgroLogoColorida from '@/assets/harmony-agro-logo-colorida.png';
 import { TIPOS_VEICULO_LANDING, type DadosPessoais, type DadosVeiculo, type ResultadoCotacaoPublica } from './types';
@@ -323,25 +323,19 @@ export function CotacaoUnificadaForm({
 
     const container = document.createElement('div');
     container.innerHTML = html;
-    container.style.position = 'fixed';
-    container.style.left = '0';
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
     container.style.top = '0';
-    container.style.width = '800px';
-    container.style.zIndex = '-9999';
-    container.style.pointerEvents = 'none';
-    container.style.overflow = 'hidden';
-    container.style.height = '0';
     document.body.appendChild(container);
 
-    // Force layout recalculation
-    void container.offsetHeight;
-    await new Promise(r => setTimeout(r, 100));
-
     try {
+      // Dynamic import — EXACT same pattern as CRM CotacaoWizard.tsx
+      const html2pdf = (await import('html2pdf.js')).default;
+
       const opt = {
         margin: 0,
         image: { type: 'jpeg', quality: 0.92 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff', width: 800, windowWidth: 800 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'] },
       };
