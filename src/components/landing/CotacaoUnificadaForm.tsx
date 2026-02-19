@@ -399,18 +399,39 @@ export function CotacaoUnificadaForm({
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 px-4">
-      <div className="container mx-auto max-w-3xl">
-        {/* Logo */}
-        <div className="flex justify-center py-6">
-          <img src={logo} alt="Logo" className="h-12 md:h-14 object-contain" />
+    <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* ═══ BANNER INSTITUCIONAL ═══ */}
+      <div className="relative bg-gradient-to-r from-primary via-primary to-secondary overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,white_1px,transparent_1px)] bg-[length:24px_24px]" />
         </div>
+        <div className="container mx-auto max-w-3xl px-4 py-8 md:py-10 relative z-10">
+          <div className="flex flex-col items-center text-center gap-4">
+            <img src={logo} alt="Logo" className="h-12 md:h-14 object-contain brightness-0 invert" />
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-1">
+                Faça sua Cotação
+              </h1>
+              <p className="text-primary-foreground/80 text-sm md:text-base">
+                Preencha seus dados e do veículo para receber a cotação na hora
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 mt-1">
+              <span className="inline-flex items-center gap-1.5 bg-primary-foreground/15 backdrop-blur-sm text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-full">
+                <Shield className="h-3.5 w-3.5" /> Proteção completa
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-primary-foreground/15 backdrop-blur-sm text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-full">
+                <Zap className="h-3.5 w-3.5" /> Sem burocracia
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-primary-foreground/15 backdrop-blur-sm text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-full">
+                <Headphones className="h-3.5 w-3.5" /> Assistência 24h
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Faça sua Cotação</h1>
-          <p className="text-muted-foreground">Preencha seus dados e do veículo para receber a cotação na hora</p>
-        </div>
+      <div className="container mx-auto max-w-3xl px-4 py-8">
 
         <div className="space-y-6">
           {/* ═══ SEÇÃO 1: DADOS PESSOAIS ═══ */}
