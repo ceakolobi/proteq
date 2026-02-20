@@ -76,59 +76,71 @@ export default function CotacaoPublica() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [publicSettings, setPublicSettings] = useState<SystemSettings>(defaultPublicSettings);
 
-  // Load public cotas
+  // Load company settings first, then cotas filtered by company
   useEffect(() => {
-    const fetchCotas = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      // 1. Load company settings publicly
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('ativo', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      let companyId: string | null = null;
+
+      if (companyData) {
+        companyId = companyData.id;
+        setPublicSettings({
+          ...defaultPublicSettings,
+          id: companyData.id,
+          empresa_nome: companyData.nome || 'Harmony Agro',
+          cnpj: companyData.cnpj,
+          empresa_logo: companyData.logo,
+          empresa_logo_branca: companyData.logo_branca,
+          empresa_logo_escura: companyData.logo_escura,
+          cor_primaria: companyData.cor_primaria || '#F97316',
+          cor_secundaria: companyData.cor_secundaria || '#22C55E',
+          cor_destaque: companyData.cor_destaque || '#F59E0B',
+          texto_institucional: companyData.texto_institucional,
+          pdf_contracapa: companyData.pdf_contracapa,
+          telefone: companyData.telefone,
+          email: companyData.email,
+          site: companyData.site,
+          modo_white_label: companyData.modo_white_label || false,
+          esconder_marca_harmony: companyData.esconder_marca_harmony || false,
+          cover_1: companyData.cover_1,
+          cover_2: companyData.cover_2,
+          cover_3: companyData.cover_3,
+          cover_4: companyData.cover_4,
+          cover_mode: companyData.cover_mode,
+          cover_fixed_index: companyData.cover_fixed_index,
+        });
+      }
+
+      // 2. Load cotas filtered by company_id
+      let cotasQuery = supabase
         .from('cotas')
         .select('*')
         .eq('ativo', true)
         .order('fipe_min', { ascending: true });
 
-      if (data) setCotas(data as unknown as Cota[]);
-      if (error) console.error('Erro ao buscar cotas:', error);
+      if (companyId) {
+        cotasQuery = cotasQuery.eq('company_id', companyId);
+      }
+
+      const { data: cotasData, error: cotasError } = await cotasQuery;
+
+      if (cotasData) {
+        console.log('[CotacaoPublica] Cotas carregadas para empresa:', cotasData.length);
+        setCotas(cotasData as unknown as Cota[]);
+      }
+      if (cotasError) console.error('Erro ao buscar cotas:', cotasError);
       setCotasLoading(false);
     };
 
-    // Load company settings publicly
-    const fetchSettings = async () => {
-      const { data } = await supabase
-        .from('companies')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
-
-      if (data) {
-        setPublicSettings({
-          ...defaultPublicSettings,
-          id: data.id,
-          empresa_nome: data.nome || 'Harmony Agro',
-          cnpj: data.cnpj,
-          empresa_logo: data.logo,
-          empresa_logo_branca: data.logo_branca,
-          empresa_logo_escura: data.logo_escura,
-          cor_primaria: data.cor_primaria || '#F97316',
-          cor_secundaria: data.cor_secundaria || '#22C55E',
-          cor_destaque: data.cor_destaque || '#F59E0B',
-          texto_institucional: data.texto_institucional,
-          pdf_contracapa: data.pdf_contracapa,
-          telefone: data.telefone,
-          email: data.email,
-          site: data.site,
-          modo_white_label: data.modo_white_label || false,
-          esconder_marca_harmony: data.esconder_marca_harmony || false,
-          cover_1: data.cover_1,
-          cover_2: data.cover_2,
-          cover_3: data.cover_3,
-          cover_4: data.cover_4,
-          cover_mode: data.cover_mode,
-          cover_fixed_index: data.cover_fixed_index,
-        });
-      }
-    };
-
-    fetchCotas();
-    fetchSettings();
+    fetchData();
   }, []);
 
   const cotasAtivas = useMemo(() => cotas.filter(c => c.ativo), [cotas]);

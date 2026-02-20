@@ -18,25 +18,39 @@ export function usePublicQuotation() {
   const [loading, setLoading] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
 
-  // Carregar cotas públicas (ativas)
+  // Carregar cotas públicas (ativas) filtradas pela empresa principal
   useEffect(() => {
     const fetchCotas = async () => {
-      const { data, error } = await supabase
+      // Buscar empresa principal para filtrar cotas
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('ativo', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      let cotasQuery = supabase
         .from('cotas')
         .select('*')
         .eq('ativo', true)
         .order('fipe_min', { ascending: true });
+
+      if (companyData?.id) {
+        cotasQuery = cotasQuery.eq('company_id', companyData.id);
+      }
+
+      const { data, error } = await cotasQuery;
       
       if (error) {
         console.error('[usePublicQuotation] Erro ao buscar cotas:', error);
       }
       
       if (data) {
-        console.log('[usePublicQuotation] Cotas carregadas:', data.length);
+        console.log('[usePublicQuotation] Cotas carregadas para empresa:', data.length);
         setCotas(data as unknown as Cota[]);
       }
     };
-
 
     fetchCotas();
   }, []);
