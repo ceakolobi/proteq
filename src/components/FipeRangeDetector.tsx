@@ -2,6 +2,12 @@ import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Check, AlertTriangle, DollarSign } from 'lucide-react';
 import type { Cota, VehicleType } from '@/types/database';
+import {
+  calcularCotacaoCompleta,
+  getCategoriaByTipoVeiculo,
+  formatCurrency,
+  type Cota as CotaUtils,
+} from '@/lib/cotacaoUtils';
 
 interface FipeRangeDetectorProps {
   valorFipe: number;
@@ -16,50 +22,14 @@ export function FipeRangeDetector({
   cotas,
   showMensalidade = true 
 }: FipeRangeDetectorProps) {
-  const detectedCota = useMemo(() => {
+  const resultado = useMemo(() => {
     if (valorFipe <= 0 || cotas.length === 0) return null;
-    
-    return cotas.find(
-      c => valorFipe >= c.fipe_min && valorFipe <= c.fipe_max && c.ativo
+    return calcularCotacaoCompleta(
+      valorFipe,
+      tipoVeiculo,
+      cotas as unknown as CotaUtils[]
     );
-  }, [valorFipe, cotas]);
-
-  const mensalidadeInfo = useMemo(() => {
-    if (!detectedCota) return { valorBase: 0, ajusteGeralValor: 0, valorFinal: 0 };
-    
-    // Usar novo campo ajuste_geral_valor, com fallback para acrescimo_global (legado)
-    const ajusteGeralValor = Number((detectedCota as any).ajuste_geral_valor) || Number((detectedCota as any).acrescimo_global) || 0;
-    let valorBase = 0;
-    
-    switch (tipoVeiculo) {
-      case 'carro':
-        valorBase = detectedCota.valor_carro || 0;
-        break;
-      case 'moto':
-        valorBase = detectedCota.valor_moto || 0;
-        break;
-      case 'pickup':
-        valorBase = detectedCota.valor_camionete || 0;
-        break;
-      default:
-        valorBase = 0;
-    }
-    
-    // Fórmula única: valorFinal = valorBase + ajusteGeralValor
-    // O ajuste individual é aplicado no momento da cotação, não na cota
-    const valorFinal = valorBase + ajusteGeralValor;
-    
-    return { valorBase, ajusteGeralValor, valorFinal };
-  }, [detectedCota, tipoVeiculo]);
-
-  const mensalidade = mensalidadeInfo.valorFinal;
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  }, [valorFipe, tipoVeiculo, cotas]);
 
   if (valorFipe <= 0) {
     return (
@@ -71,7 +41,7 @@ export function FipeRangeDetector({
     );
   }
 
-  if (!detectedCota) {
+  if (!resultado) {
     return (
       <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
@@ -93,27 +63,27 @@ export function FipeRangeDetector({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium">Faixa detectada:</span>
           <Badge variant="default" className="font-semibold">
-            {detectedCota.cota_nome}
+            {resultado.cotaNome}
           </Badge>
         </div>
       </div>
       
       <div className="text-xs text-muted-foreground pl-6">
-        Faixa: {formatCurrency(detectedCota.fipe_min)} - {formatCurrency(detectedCota.fipe_max)}
+        Faixa: {formatCurrency(resultado.cota.fipe_min)} - {formatCurrency(resultado.cota.fipe_max)}
       </div>
       
-      {showMensalidade && mensalidade > 0 && (
+      {showMensalidade && resultado.valorFinal > 0 && (
         <div className="pl-6 pt-1 space-y-1">
           <div className="text-xs text-muted-foreground">
-            Base: {formatCurrency(mensalidadeInfo.valorBase)}
-            {mensalidadeInfo.ajusteGeralValor !== 0 && (
-              <span className="text-primary"> {mensalidadeInfo.ajusteGeralValor > 0 ? '+' : ''} Ajuste Geral: {formatCurrency(mensalidadeInfo.ajusteGeralValor)}</span>
+            Base: {formatCurrency(resultado.valorBase)}
+            {resultado.ajusteGeralValor !== 0 && (
+              <span className="text-primary"> {resultado.ajusteGeralValor > 0 ? '+' : ''} Ajuste Geral: {formatCurrency(resultado.ajusteGeralValor)}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <DollarSign className="h-3.5 w-3.5 text-primary" />
             <span className="text-sm">
-              Mensalidade: <span className="font-semibold text-primary">{formatCurrency(mensalidade)}</span>
+              Mensalidade: <span className="font-semibold text-primary">{formatCurrency(resultado.valorFinal)}</span>
             </span>
           </div>
         </div>
@@ -123,43 +93,19 @@ export function FipeRangeDetector({
 }
 
 export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas: Cota[]) {
-  const detectedCota = useMemo(() => {
+  const resultado = useMemo(() => {
     if (valorFipe <= 0 || cotas.length === 0) return null;
-    
-    return cotas.find(
-      c => valorFipe >= c.fipe_min && valorFipe <= c.fipe_max && c.ativo
+    return calcularCotacaoCompleta(
+      valorFipe,
+      tipoVeiculo,
+      cotas as unknown as CotaUtils[]
     );
-  }, [valorFipe, cotas]);
-
-  const mensalidade = useMemo(() => {
-    if (!detectedCota) return 0;
-    
-    // Usar novo campo ajuste_geral_valor, com fallback para acrescimo_global (legado)
-    const ajusteGeralValor = Number((detectedCota as any).ajuste_geral_valor) || Number((detectedCota as any).acrescimo_global) || 0;
-    let valorBase = 0;
-    
-    switch (tipoVeiculo) {
-      case 'carro':
-        valorBase = detectedCota.valor_carro || 0;
-        break;
-      case 'moto':
-        valorBase = detectedCota.valor_moto || 0;
-        break;
-      case 'pickup':
-        valorBase = detectedCota.valor_camionete || 0;
-        break;
-      default:
-        valorBase = 0;
-    }
-    
-    // Fórmula única: valorFinal = valorBase + ajusteGeralValor
-    return valorBase + ajusteGeralValor;
-  }, [detectedCota, tipoVeiculo]);
+  }, [valorFipe, tipoVeiculo, cotas]);
 
   return {
-    detectedCota,
-    mensalidade,
-    isValid: !!detectedCota,
-    cotaId: detectedCota?.id || null,
+    detectedCota: resultado?.cota || null,
+    mensalidade: resultado?.valorFinal || 0,
+    isValid: !!resultado,
+    cotaId: resultado?.cotaId || null,
   };
 }
