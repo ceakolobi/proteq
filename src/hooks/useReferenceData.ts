@@ -86,9 +86,17 @@ export function useReferenceData(options: ReferenceDataOptions = {}): ReferenceD
 
   const fetchCotas = useCallback(async () => {
     try {
+      // Sempre isolar por empresa para evitar mistura de tabelas entre tenants
+      if (!profile?.company_id) {
+        setCotas([]);
+        return;
+      }
+
       const { data, error: err } = await supabase
         .from('cotas')
         .select('*')
+        .eq('ativo', true)
+        .eq('company_id', profile.company_id)
         .order('fipe_min');
 
       if (err) throw err;
@@ -107,7 +115,7 @@ export function useReferenceData(options: ReferenceDataOptions = {}): ReferenceD
       console.error('Error fetching cotas:', err);
       throw err;
     }
-  }, []);
+  }, [profile?.company_id]);
 
   const fetchConsultores = useCallback(async () => {
     try {

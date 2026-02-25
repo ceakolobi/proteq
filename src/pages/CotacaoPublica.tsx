@@ -23,6 +23,7 @@ import { WizardStep2Client } from '@/components/cotacao/wizard/WizardStep2Client
 import { WizardStep3Terms } from '@/components/cotacao/wizard/WizardStep3Terms';
 import { WizardStep4Generate } from '@/components/cotacao/wizard/WizardStep4Generate';
 import { useBrand } from '@/hooks/useBrand';
+import { resolvePublicCompanyId } from '@/lib/publicCompany';
 import type { SystemSettings } from '@/hooks/useCompanySettings';
 
 const PUBLIC_STEPS = [
@@ -79,19 +80,23 @@ export default function CotacaoPublica() {
   // Load company settings first, then cotas filtered by company
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Load company settings publicly
+      const companyId = await resolvePublicCompanyId();
+
+      if (!companyId) {
+        console.error('[CotacaoPublica] Empresa pública não resolvida. Cotas não carregadas.');
+        setCotas([]);
+        setCotasLoading(false);
+        return;
+      }
+
+      // 1. Load company settings
       const { data: companyData } = await supabase
         .from('companies')
         .select('*')
-        .eq('ativo', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
+        .eq('id', companyId)
         .maybeSingle();
 
-      let companyId: string | null = null;
-
       if (companyData) {
-        companyId = companyData.id;
         setPublicSettings({
           ...defaultPublicSettings,
           id: companyData.id,
@@ -119,18 +124,13 @@ export default function CotacaoPublica() {
         });
       }
 
-      // 2. Load cotas filtered by company_id
-      let cotasQuery = supabase
+      // 2. Load cotas strictly by company_id
+      const { data: cotasData, error: cotasError } = await supabase
         .from('cotas')
         .select('*')
         .eq('ativo', true)
+        .eq('company_id', companyId)
         .order('fipe_min', { ascending: true });
-
-      if (companyId) {
-        cotasQuery = cotasQuery.eq('company_id', companyId);
-      }
-
-      const { data: cotasData, error: cotasError } = await cotasQuery;
 
       if (cotasData) {
         console.log('[CotacaoPublica] Cotas carregadas para empresa:', cotasData.length);
@@ -149,24 +149,33 @@ export default function CotacaoPublica() {
     ? publicSettings.empresa_nome
     : 'Proteção Veicular';
 
-  const updateFormData = useCallback((updates: Partial<WizardFormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
-  }, []);
-
-  const handleCalcular = useCallback(() => {
+  const computeCotacao = useCallback((): ResultadoCotacao | null => {
     if (!formData.tipo_bem || !formData.valor_bem) return null;
     const valorBem = parseValorBrasileiro(formData.valor_bem);
-    if (valorBem < 1000) return null;
-    const result = calcularCotacaoCompleta(
+    if (!Number.isFinite(valorBem) || valorBem < 1000) return null;
+
+    return calcularCotacaoCompleta(
       valorBem,
       formData.tipo_bem as TipoBem,
       cotasAtivas,
       formData.ajuste_individual_valor,
       formData.carro_reserva_extra
     );
+  }, [formData.tipo_bem, formData.valor_bem, formData.ajuste_individual_valor, formData.carro_reserva_extra, cotasAtivas]);
+
+  const updateFormData = useCallback((updates: Partial<WizardFormData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const handleCalcular = useCallback(() => {
+    const result = computeCotacao();
     setResultado(result);
     return result;
-  }, [formData.tipo_bem, formData.valor_bem, formData.ajuste_individual_valor, formData.carro_reserva_extra, cotasAtivas]);
+  }, [computeCotacao]);
+
+  useEffect(() => {
+    setResultado(computeCotacao());
+  }, [computeCotacao]);
 
   const validateStep = useCallback((step: number): boolean => {
     const newErrors: Record<string, string> = {};

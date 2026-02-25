@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
 import { useSettings } from '@/hooks/useSettings';
@@ -64,21 +64,31 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
     setFormData(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Calculate quotation
-  const handleCalcular = useCallback(() => {
+  const computeCotacao = useCallback((): ResultadoCotacao | null => {
     if (!formData.tipo_bem || !formData.valor_bem) return null;
     const valorBem = parseValorBrasileiro(formData.valor_bem);
-    if (valorBem < 1000) return null;
-    const result = calcularCotacaoCompleta(
+    if (!Number.isFinite(valorBem) || valorBem < 1000) return null;
+
+    return calcularCotacaoCompleta(
       valorBem,
       formData.tipo_bem as TipoBem,
       cotasAtivas,
       formData.ajuste_individual_valor,
       formData.carro_reserva_extra
     );
+  }, [formData.tipo_bem, formData.valor_bem, formData.ajuste_individual_valor, formData.carro_reserva_extra, cotasAtivas]);
+
+  // Calculate quotation
+  const handleCalcular = useCallback(() => {
+    const result = computeCotacao();
     setResultado(result);
     return result;
-  }, [formData.tipo_bem, formData.valor_bem, formData.ajuste_individual_valor, formData.carro_reserva_extra, cotasAtivas]);
+  }, [computeCotacao]);
+
+  // Recalcular automaticamente sempre que FIPE/tipo/ajustes mudarem
+  useEffect(() => {
+    setResultado(computeCotacao());
+  }, [computeCotacao]);
 
   // Validate step
   const validateStep = useCallback((step: number): boolean => {
