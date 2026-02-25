@@ -4,8 +4,8 @@ import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica, EtapaFunil, 
 import { calcularCotacaoCompleta } from '@/lib/cotacaoUtils';
 import type { Cota } from '@/lib/cotacaoUtils';
 import type { VehicleType } from '@/types/database';
+import { resolvePublicCompanyId } from '@/lib/publicCompany';
 import { toast } from 'sonner';
-
 
 export function usePublicQuotation() {
   const [etapa, setEtapa] = useState<EtapaFunil>('hero');
@@ -18,34 +18,28 @@ export function usePublicQuotation() {
   const [loading, setLoading] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
 
-  // Carregar cotas públicas (ativas) filtradas pela empresa principal
+  // Carregar cotas públicas (ativas) filtradas estritamente pela empresa pública
   useEffect(() => {
     const fetchCotas = async () => {
-      // Buscar empresa principal para filtrar cotas
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('ativo', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      const companyId = await resolvePublicCompanyId();
 
-      let cotasQuery = supabase
+      if (!companyId) {
+        console.error('[usePublicQuotation] Empresa pública não resolvida. Cotas não carregadas.');
+        setCotas([]);
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('cotas')
         .select('*')
         .eq('ativo', true)
+        .eq('company_id', companyId)
         .order('fipe_min', { ascending: true });
 
-      if (companyData?.id) {
-        cotasQuery = cotasQuery.eq('company_id', companyData.id);
-      }
-
-      const { data, error } = await cotasQuery;
-      
       if (error) {
         console.error('[usePublicQuotation] Erro ao buscar cotas:', error);
       }
-      
+
       if (data) {
         console.log('[usePublicQuotation] Cotas carregadas para empresa:', data.length);
         setCotas(data as unknown as Cota[]);
