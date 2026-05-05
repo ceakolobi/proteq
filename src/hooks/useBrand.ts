@@ -104,6 +104,9 @@ export function useBrand() {
         return brand.logos.dark;
       
       case 'sidebar':
+        // Sidebar é SEMPRE dark navy → logo clara (branca) sempre, independente do tema
+        return brand.logos.light;
+      
       case 'header':
       case 'auto':
       default:
