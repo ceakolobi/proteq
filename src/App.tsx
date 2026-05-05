@@ -33,6 +33,7 @@ import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
 import Configuracoes from "./pages/Configuracoes";
 import DocumentosContratos from "./pages/DocumentosContratos";
+import BeneficiosExtras from "./pages/BeneficiosExtras";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
@@ -158,6 +159,7 @@ const App = () => (
                 <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
                 <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
                 <Route path="/configuracoes/documentos-contratos" element={<ProtectedRoute><DocumentosContratos /></ProtectedRoute>} />
+                <Route path="/configuracoes/beneficios-extras" element={<ProtectedRoute><BeneficiosExtras /></ProtectedRoute>} />
                 
                 {/* Admin Regional or above */}
                 <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />

@@ -260,6 +260,13 @@ const navSections: NavSection[] = [
         module: 'configuracoes',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
       },
+      {
+        title: 'Benefícios Extras',
+        href: '/configuracoes/beneficios-extras',
+        icon: <Wrench className="h-4 w-4" />,
+        module: 'configuracoes',
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
+      },
     ],
   },
 ];
