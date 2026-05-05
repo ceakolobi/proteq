@@ -198,9 +198,6 @@ export default function Index() {
       {/* Footer apenas na home */}
       {quotation.etapa === 'hero' && <LandingFooter />}
       
-      {/* WhatsApp flutuante - sempre visível */}
-      <WhatsAppFloat phoneNumber="5500000000000" />
-
       {/* Emily - Consultora Virtual IA (botão flutuante azul) */}
       <EmilyFloat onStartCotacao={quotation.avancarParaDadosPessoais} />
     </div>
