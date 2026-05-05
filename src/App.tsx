@@ -35,17 +35,14 @@ import Configuracoes from "./pages/Configuracoes";
 import DocumentosContratos from "./pages/DocumentosContratos";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
-import AdesaoPublica from "./pages/AdesaoPublica";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
-import QuemSomos from "./pages/QuemSomos";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
 import Pagamentos from "./pages/financeiro/Pagamentos";
 import Inadimplencia from "./pages/financeiro/Inadimplencia";
 import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
-import SetupDemo from "./pages/SetupDemo";
-import CotacaoPublica from "./pages/CotacaoPublica";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -84,9 +81,23 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Rota da landing page — sempre acessível, mesmo para usuários logados.
-// O redirect pós-login é tratado na página /auth.
+// Rota que redireciona baseado no estado de autenticação
 function HomeRoute() {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
+  
+  // Usuário logado vai para dashboard, não logado vê a landing
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
   return <Index />;
 }
 
@@ -130,9 +141,7 @@ const App = () => (
               <Routes>
                 {/* Rotas públicas - apenas landing e autenticação */}
                 <Route path="/" element={<HomeRoute />} />
-                <Route path="/quem-somos" element={<QuemSomos />} />
                 <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-                <Route path="/cotacao-publica" element={<CotacaoPublica />} />
                 <Route path="/validar-proposta" element={<ValidarProposta />} />
                 
                 {/* Rotas protegidas - requerem autenticação */}
@@ -149,7 +158,6 @@ const App = () => (
                 <Route path="/sedes" element={<ProtectedRoute><Sedes /></ProtectedRoute>} />
                 <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
                 <Route path="/configuracoes/documentos-contratos" element={<ProtectedRoute><DocumentosContratos /></ProtectedRoute>} />
-                <Route path="/setup-demo" element={<ProtectedRoute><SetupDemo /></ProtectedRoute>} />
                 
                 {/* Admin Regional or above */}
                 <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
@@ -179,7 +187,6 @@ const App = () => (
                 {/* Rotas Públicas (sem autenticação) */}
                 <Route path="/segunda-via-boleto" element={<SegundaViaBoleto />} />
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
-                <Route path="/adesao/:cotacaoId/:token" element={<AdesaoPublica />} />
                 <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
 
                 {/* 404 - Rota não encontrada */}

@@ -1,6 +1,5 @@
-import { Gift, ArrowRight } from 'lucide-react';
+import { Gift, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import promoBannerBg from '@/assets/promo-banner-bg.jpg';
 
 interface PromoBannerProps {
   onStart: () => void;
@@ -9,19 +8,14 @@ interface PromoBannerProps {
 export function PromoBanner({ onStart }: PromoBannerProps) {
   return (
     <section className="relative py-16 md:py-20 overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <img 
-          src={promoBannerBg} 
-          alt="Família protegida" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/85 to-secondary/80" />
-      </div>
+      {/* Background with gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/95 to-secondary" />
       
       {/* Decorative patterns */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,white_2px,transparent_2px)] bg-[length:40px_40px]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/30 rounded-full blur-2xl" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
@@ -38,15 +32,14 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
               <span className="text-secondary">GRÁTIS!</span>
             </h2>
             
-            <p className="text-xl md:text-2xl text-primary-foreground/90 font-semibold mb-2">
-              Sem taxa de adesão. Sem pegadinhas.
-            </p>
-            
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
-              Cadastre-se agora e ganhe sua primeira mensalidade.
-              Você só começa a pagar no próximo vencimento que escolher: <strong>05, 10, 15, 20, 25 ou 30</strong>.
+              Cadastre-se até <strong>30 de março</strong> e ganhe sua primeira mensalidade. 
+              Só pague a partir de <strong>10 de março</strong>!
             </p>
             
+            <p className="text-base md:text-lg text-primary-foreground/80 mb-6 bg-white/10 backdrop-blur-sm inline-block px-4 py-2 rounded-lg">
+              💰 <strong>Adesão de apenas R$ 50</strong> para qualquer veículo
+            </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
               <Button 
@@ -58,31 +51,32 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
+                <Clock className="h-5 w-5 text-secondary" />
+                <span className="text-primary-foreground font-medium">
+                  Vencimento: <strong>10/03</strong>
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Right content - Promo card */}
           <div className="flex-shrink-0">
-            <div className="bg-white rounded-3xl p-8 shadow-2xl border-4 border-secondary">
+            <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
               <div className="text-center">
                 <div className="w-20 h-20 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <span className="text-4xl">🎁</span>
+                  <Gift className="h-10 w-10 text-secondary-foreground" />
                 </div>
                 
-                <p className="text-primary text-xl font-bold mb-2 uppercase tracking-wide">Sem taxa de adesão</p>
-                <p className="text-lg text-foreground font-medium mb-4">Comece sem pagar nada hoje</p>
+                <p className="text-primary-foreground/80 text-sm mb-2">Você economiza</p>
+                <p className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
+                  R$ <span className="text-secondary">150</span>
+                </p>
+                <p className="text-primary-foreground/80 text-sm">valor médio da 1ª mensalidade</p>
                 
-                <div className="bg-muted/50 rounded-xl p-4">
-                  <p className="text-sm text-muted-foreground font-medium mb-1">Escolha seu vencimento:</p>
-                  <p className="text-lg font-bold text-primary">05 | 10 | 15 | 20 | 25 | 30</p>
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-border">
-                  <p className="text-sm text-muted-foreground">
-                    ✅ Carros, motos e caminhonetes
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Sem análise de condutor • Sem consulta SPC/Serasa
+                <div className="mt-6 pt-6 border-t border-white/20">
+                  <p className="text-xs text-primary-foreground/70">
+                    *Válido para cadastros até 30/03/2025
                   </p>
                 </div>
               </div>

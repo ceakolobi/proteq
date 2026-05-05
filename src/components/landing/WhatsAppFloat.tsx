@@ -13,9 +13,12 @@ export function WhatsAppFloat({
   const handleClick = () => {
     const formattedPhone = phoneNumber.replace(/\D/g, '');
     const encodedMessage = encodeURIComponent(message);
-    // wa.me é mais confiável que api.whatsapp.com
-    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
+    
+    const newWindow = window.open(whatsappUrl, '_blank');
+    if (!newWindow) {
+      window.location.assign(whatsappUrl);
+    }
   };
 
   return (

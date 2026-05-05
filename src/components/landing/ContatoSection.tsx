@@ -1,12 +1,9 @@
 import { useState } from 'react';
-import { Mail, MapPin, Clock, Send } from 'lucide-react';
-import callcenterBg from '@/assets/contact-callcenter-bg.jpg';
+import { Phone, Mail, MapPin, Clock, Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const contactInfo = [
   {
@@ -23,69 +20,30 @@ const contactInfo = [
   },
 ];
 
-const assuntoOptions = [
-  { value: 'Financeiro', label: 'Financeiro' },
-  { value: 'Eventos', label: 'Eventos' },
-  { value: 'Cadastro', label: 'Cadastro' },
-  { value: 'RH', label: 'RH' },
-  { value: 'Serviços', label: 'Serviços' },
-  { value: 'Outros', label: 'Outros' },
-];
-
 export function ContatoSection() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
     telefone: '',
-    assunto: '',
     mensagem: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.assunto) {
-      toast.error('Por favor, selecione um assunto.');
-      return;
-    }
-    
     setLoading(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke('send-contact-email', {
-        body: formData,
-      });
+    // Simular envio
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      if (error) throw error;
-
-      if (data?.success) {
-        toast.success('Mensagem enviada com sucesso! Entraremos em contato em breve.');
-        setFormData({ nome: '', email: '', telefone: '', assunto: '', mensagem: '' });
-      } else {
-        throw new Error(data?.error || 'Erro ao enviar mensagem');
-      }
-    } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error);
-      toast.error(error.message || 'Erro ao enviar mensagem. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
+    toast.success('Mensagem enviada com sucesso! Entraremos em contato em breve.');
+    setFormData({ nome: '', email: '', telefone: '', mensagem: '' });
+    setLoading(false);
   };
 
   return (
-    <section id="contato" className="relative py-20 md:py-28 overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0">
-        <img 
-          src={callcenterBg} 
-          alt="Central de atendimento" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/80 to-background/70" />
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10">
+    <section id="contato" className="py-20 md:py-28 bg-background">
+      <div className="container mx-auto px-4">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
           <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full mb-4">
@@ -103,19 +61,19 @@ export function ContatoSection() {
           {/* Contact Info */}
           <div>
             <h3 className="text-2xl font-semibold mb-6">Informações de Contato</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div className="grid sm:grid-cols-2 gap-4 mb-8">
               {contactInfo.map((info, index) => (
                 <div
                   key={index}
-                  className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-5 hover:border-primary/30 transition-colors min-w-0 shadow-md"
+                  className="bg-muted/50 border border-border/50 rounded-xl p-5 hover:border-primary/30 transition-colors"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                       <info.icon className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div>
                       <p className="text-sm text-muted-foreground">{info.title}</p>
-                      <p className="font-semibold text-sm break-all">{info.content}</p>
+                      <p className="font-semibold">{info.content}</p>
                       <p className="text-xs text-muted-foreground mt-1">{info.description}</p>
                     </div>
                   </div>
@@ -124,7 +82,7 @@ export function ContatoSection() {
             </div>
 
             {/* Map placeholder */}
-            <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-6 shadow-md">
+            <div className="bg-muted/50 border border-border/50 rounded-xl p-6">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <MapPin className="h-5 w-5 text-primary" />
@@ -171,26 +129,9 @@ export function ContatoSection() {
                     placeholder="(00) 00000-0000"
                     value={formData.telefone}
                     onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    required
                   />
                 </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Assunto</label>
-                <Select
-                  value={formData.assunto}
-                  onValueChange={(value) => setFormData({ ...formData, assunto: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um assunto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assuntoOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Mensagem</label>

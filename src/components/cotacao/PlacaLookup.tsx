@@ -43,7 +43,6 @@ interface PlacaLookupProps {
   onStatusChange: (status: PlacaStatus) => void;
   disabled?: boolean;
   tipoTemFipe?: boolean;
-  origem?: string;
 }
 
 // Validação de placa brasileira (padrão antigo ABC-1234 ou Mercosul ABC1D23)
@@ -71,7 +70,6 @@ export default function PlacaLookup({
   onStatusChange,
   disabled = false,
   tipoTemFipe = true,
-  origem = 'cotacao',
 }: PlacaLookupProps) {
   const [status, setStatus] = useState<PlacaStatus>('idle');
   const [message, setMessage] = useState('');
@@ -101,7 +99,7 @@ export default function PlacaLookup({
       const { data: result, error } = await supabase.functions.invoke('api', {
         body: { route: 'placa', placa: cleanPlaca },
         headers: { 
-          'x-origem': origem,
+          'x-origem': 'cotacao',
           ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
         },
       });

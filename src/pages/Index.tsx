@@ -1,162 +1,93 @@
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useBrand } from '@/hooks/useBrand';
 import { usePublicQuotation } from '@/hooks/usePublicQuotation';
 import { 
   HeroSection, 
   ComoFuncionaSection,
-  DigitalNativeSection,
+  DadosPessoaisForm, 
+  DadosVeiculoForm, 
   ResultadoCotacao,
   BeneficiosSection,
-  FamiliaProtegidaBanner,
+  ConfiancaSection,
   CTAFinalSection,
+  PagamentoSection,
   LandingFooter,
   CadastroContaForm,
   DocumentosUploadForm,
   LandingNavbar,
+  QuemSomosSection,
   ServicosSection,
   ArtigosSection,
   ContatoSection,
   AnnouncementBanner,
   WhatsAppFloat,
-  PromoBanner,
-  CotacaoUnificadaForm
+  PromoBanner
 } from '@/components/landing';
-import { ChatWidget } from '@/components/chat/ChatWidget';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
-import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from '@/components/landing/types';
-
-// Decode shared quotation from URL param
-function decodeSharedQuotation(encoded: string): {
-  dadosPessoais: DadosPessoais;
-  dadosVeiculo: DadosVeiculo;
-  cotacao: ResultadoCotacaoPublica;
-} | null {
-  try {
-    const json = decodeURIComponent(atob(encoded));
-    const p = JSON.parse(json);
-    return {
-      dadosPessoais: { nome: p.n || '', telefone: p.t || '', email: p.e || '' },
-      dadosVeiculo: {
-        tipo_bem: p.tb || 'carro',
-        marca: p.m || '',
-        modelo: p.mo || '',
-        ano: p.a || 0,
-        valor_fipe: p.vf || 0,
-        codigo_fipe: p.cf || '',
-      },
-      cotacao: {
-        mensalidade: p.me || 0,
-        participacao: p.pa || 0,
-        valorFipe: p.vf || 0,
-        cotaNome: p.cn || 'Padrão',
-        beneficios: [
-          'Proteção contra roubo e furto',
-          'Assistência 24h',
-          'Rastreamento veicular',
-          'Até 100% da FIPE',
-          'Guincho 500km',
-          '30 dias de carro reserva',
-        ],
-      },
-    };
-  } catch (e) {
-    console.error('[Index] Erro ao decodificar cotação compartilhada:', e);
-    return null;
-  }
-}
 
 export default function Index() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { brand } = useBrand();
   const quotation = usePublicQuotation();
 
-  // Detect shared quotation link
-  const sharedData = useMemo(() => {
-    const cotacaoParam = searchParams.get('cotacao');
-    if (cotacaoParam) return decodeSharedQuotation(cotacaoParam);
-    return null;
-  }, [searchParams]);
-
-  const [showShared, setShowShared] = useState(!!sharedData);
-
-  useEffect(() => {
-    if (sharedData) setShowShared(true);
-  }, [sharedData]);
-
   useEffect(() => {
     document.title = `${brand.name} - Proteção Veicular | Cotação Online`;
+    
+    // Meta description dinâmica
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', `${brand.name} - Proteção veicular 100% digital. Faça sua cotação online em 2 minutos, contratação sem burocracia e ativação imediata.`);
+      metaDesc.setAttribute('content', `${brand.name} - Proteção veicular 100% digital. Faça sua cotação online em 2 minutos, contratação sem burocracia e ativação imediata. Sem ligações de vendedores!`);
     }
   }, [brand.name]);
 
-  // Listener para iniciar cotação via chat
-  useEffect(() => {
-    const handleStartQuotation = () => {
-      quotation.avancarParaCotacao();
-    };
-    window.addEventListener('start-quotation', handleStartQuotation);
-    return () => window.removeEventListener('start-quotation', handleStartQuotation);
-  }, [quotation]);
-
   // Renderizar etapa atual do funil
   const renderEtapa = () => {
-    // If viewing a shared quotation link
-    if (showShared && sharedData) {
-      return (
-        <ResultadoCotacao
-          dadosPessoais={sharedData.dadosPessoais}
-          dadosVeiculo={sharedData.dadosVeiculo}
-          cotacao={sharedData.cotacao}
-          onBack={() => {
-            setShowShared(false);
-            setSearchParams({});
-          }}
-          onContinue={() => {
-            setShowShared(false);
-            setSearchParams({});
-            quotation.avancarParaCotacao();
-          }}
-          onWhatsApp={() => {}}
-        />
-      );
-    }
-
     switch (quotation.etapa) {
       case 'hero':
         return (
           <>
-            <HeroSection onStart={quotation.avancarParaCotacao} />
-            <PromoBanner onStart={quotation.avancarParaCotacao} />
-            <ServicosSection onStart={quotation.avancarParaCotacao} />
-            <DigitalNativeSection onStart={quotation.avancarParaCotacao} />
+            <HeroSection onStart={quotation.avancarParaDadosPessoais} />
+            <PromoBanner onStart={quotation.avancarParaDadosPessoais} />
+            <QuemSomosSection />
+            <ServicosSection onStart={quotation.avancarParaDadosPessoais} />
             <ComoFuncionaSection />
             <BeneficiosSection />
             <ArtigosSection />
-            <FamiliaProtegidaBanner />
+            <ConfiancaSection />
             <ContatoSection />
-            <CTAFinalSection onStart={quotation.avancarParaCotacao} />
+            <CTAFinalSection onStart={quotation.avancarParaDadosPessoais} />
           </>
         );
       
-      // Unified form: dados_pessoais, dados_veiculo, resultado all in one
       case 'dados_pessoais':
+        return (
+          <DadosPessoaisForm
+            initialData={quotation.dadosPessoais}
+            onSubmit={quotation.salvarDadosPessoais}
+            onBack={quotation.voltarEtapa}
+          />
+        );
+      
       case 'dados_veiculo':
+        return (
+          <DadosVeiculoForm
+            onSubmit={quotation.salvarDadosVeiculo}
+            onBack={quotation.voltarEtapa}
+            loading={quotation.loading}
+          />
+        );
+      
       case 'resultado':
         return (
-          <CotacaoUnificadaForm
+          <ResultadoCotacao
             dadosPessoais={quotation.dadosPessoais}
-            setDadosPessoais={quotation.setDadosPessoais}
+            dadosVeiculo={quotation.dadosVeiculo}
             cotacao={quotation.cotacao}
-            onSubmitAll={quotation.submeterCotacaoUnificada}
-            onBack={() => quotation.setEtapa('hero')}
-            onAccept={quotation.aceitarProposta}
+            onBack={quotation.voltarEtapa}
+            onContinue={quotation.aceitarProposta}
             onWhatsApp={quotation.enviarPropostaWhatsApp}
-            loading={quotation.loading}
           />
         );
       
@@ -179,10 +110,21 @@ export default function Index() {
           />
         );
       
+      case 'pagamento':
+        return (
+          <PagamentoSection
+            chavePix={quotation.configFinanceira?.chave_pix || null}
+            tipoChavePix={quotation.configFinanceira?.tipo_chave_pix || null}
+            onBack={quotation.voltarEtapa}
+            onConfirm={quotation.confirmarPagamento}
+          />
+        );
+      
       case 'sucesso':
         return (
           <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-background py-16 px-4">
             <div className="text-center max-w-lg">
+              {/* Success Icon */}
               <div className="relative mb-8">
                 <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto">
                   <PartyPopper className="h-12 w-12 text-primary" />
@@ -193,12 +135,14 @@ export default function Index() {
               </div>
               
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Cadastro concluído com sucesso! 🎉
+                Parabéns! 🎉
               </h2>
-              <p className="text-lg text-muted-foreground mb-2">Sua proteção já está ativa.</p>
-              <p className="text-base text-muted-foreground mb-2">Você <strong>não paga taxa de adesão</strong>.</p>
-              <p className="text-base text-muted-foreground mb-8">O primeiro pagamento será apenas no próximo vencimento escolhido.</p>
+              <p className="text-lg text-muted-foreground mb-8">
+                Seu cadastro foi finalizado com sucesso!
+                Sua proteção será ativada após análise dos documentos.
+              </p>
               
+              {/* Info cards */}
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-card border border-border/50 rounded-xl p-4 text-left">
                   <Clock className="h-6 w-6 text-primary mb-2" />
@@ -213,7 +157,9 @@ export default function Index() {
               </div>
 
               <div className="bg-accent/50 border border-accent-foreground/20 rounded-xl p-4 mb-8 text-left">
-                <p className="text-sm font-medium text-accent-foreground">📋 Importante sobre a carência</p>
+                <p className="text-sm font-medium text-accent-foreground">
+                  📋 Importante sobre a carência
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   A proteção contra furto e roubo é <strong>imediata</strong>. 
                   Os demais benefícios entram em vigor após 72 horas da ativação.
@@ -222,25 +168,37 @@ export default function Index() {
               
               <div className="space-y-3">
                 <Button onClick={() => navigate('/auth')} size="lg" className="w-full">
-                  <LogIn className="mr-2 h-4 w-4" /> Acessar minha conta
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Acessar minha conta
                 </Button>
-                <Button variant="outline" onClick={quotation.reiniciar} className="w-full">Nova cotação</Button>
+                <Button variant="outline" onClick={quotation.reiniciar} className="w-full">
+                  Nova cotação
+                </Button>
               </div>
             </div>
           </section>
         );
       
       default:
-        return <HeroSection onStart={quotation.avancarParaCotacao} />;
+        return <HeroSection onStart={quotation.avancarParaDadosPessoais} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {quotation.etapa === 'hero' && !showShared && <LandingNavbar />}
-      <main className="flex-1">{renderEtapa()}</main>
-      {quotation.etapa === 'hero' && !showShared && <LandingFooter />}
-      <ChatWidget />
+      {/* Navbar - só mostra na home */}
+      {quotation.etapa === 'hero' && <LandingNavbar />}
+
+      {/* Conteúdo principal */}
+      <main className="flex-1">
+        {renderEtapa()}
+      </main>
+
+      {/* Footer apenas na home */}
+      {quotation.etapa === 'hero' && <LandingFooter />}
+      
+      {/* WhatsApp flutuante - sempre visível */}
+      <WhatsAppFloat phoneNumber="5500000000000" />
     </div>
   );
 }

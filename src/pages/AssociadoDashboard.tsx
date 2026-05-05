@@ -14,12 +14,12 @@ import {
   BookOpen,
   MapPin,
   MessageCircle,
-  Phone,
+  Download,
+  Eye,
   ChevronRight,
   AlertCircle,
   Clock,
-  CheckCircle2,
-  Eye
+  CheckCircle2
 } from 'lucide-react';
 import { AssociateStatus, VehicleStatus } from '@/types/database';
 import { format } from 'date-fns';
@@ -32,18 +32,6 @@ interface AssociadoData {
   status: AssociateStatus;
   termos_aceitos: boolean;
   termos_aceitos_em: string | null;
-  created_at: string;
-}
-
-interface CotacaoAssociado {
-  id: string;
-  marca: string;
-  modelo: string;
-  ano_fabricacao: number;
-  valor_bem: number;
-  mensalidade: number | null;
-  participacao: number | null;
-  status: string;
   created_at: string;
 }
 
@@ -66,6 +54,11 @@ interface MensalidadeData {
   status: string;
 }
 
+interface VistoriaData {
+  id: string;
+  status: string;
+}
+
 type ProtectionStatus = 'ativa' | 'aguardando_pagamento' | 'suspensa';
 
 export default function AssociadoDashboard() {
@@ -76,7 +69,7 @@ export default function AssociadoDashboard() {
   const [associado, setAssociado] = useState<AssociadoData | null>(null);
   const [veiculo, setVeiculo] = useState<VeiculoData | null>(null);
   const [proximaMensalidade, setProximaMensalidade] = useState<MensalidadeData | null>(null);
-  const [cotacoes, setCotacoes] = useState<CotacaoAssociado[]>([]);
+  const [vistoria, setVistoria] = useState<VistoriaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -98,18 +91,33 @@ export default function AssociadoDashboard() {
         if (associadoData) {
           setAssociado(associadoData as AssociadoData);
 
-          const { data: veiculosData } = await supabase
+          // Busca primeiro veículo do associado
+          const { data: veiculosData, error: veiculosError } = await supabase
             .from('veiculos')
             .select('id, marca, modelo, ano, placa, veiculo_status, protecao_ativa, protecao_ativada_em, mensalidade')
             .eq('associado_id', associadoData.id)
             .limit(1)
             .maybeSingle();
 
-          if (veiculosData) {
+          if (!veiculosError && veiculosData) {
             setVeiculo(veiculosData as VeiculoData);
+
+            // Busca vistoria do veículo
+            const { data: vistoriaData } = await supabase
+              .from('vistorias')
+              .select('id, status')
+              .eq('veiculo_id', veiculosData.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (vistoriaData) {
+              setVistoria(vistoriaData as VistoriaData);
+            }
           }
 
-          const { data: mensalidadeData } = await supabase
+          // Busca próxima mensalidade
+          const { data: mensalidadeData, error: mensalidadeError } = await supabase
             .from('mensalidades')
             .select('id, valor_final, data_vencimento, status')
             .eq('associado_id', associadoData.id)
@@ -118,26 +126,13 @@ export default function AssociadoDashboard() {
             .limit(1)
             .maybeSingle();
 
-          if (mensalidadeData) {
+          if (!mensalidadeError && mensalidadeData) {
             setProximaMensalidade({
               id: mensalidadeData.id,
               valor: mensalidadeData.valor_final ?? 0,
               data_vencimento: mensalidadeData.data_vencimento,
               status: mensalidadeData.status ?? ''
             });
-          }
-        }
-
-        if (user?.email) {
-          const { data: cotacoesData } = await supabase
-            .from('cotacoes')
-            .select('id, marca, modelo, ano_fabricacao, valor_bem, mensalidade, participacao, status, created_at')
-            .eq('cliente_email', user.email)
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          if (cotacoesData) {
-            setCotacoes(cotacoesData as CotacaoAssociado[]);
           }
         }
       } catch (error) {
@@ -158,8 +153,11 @@ export default function AssociadoDashboard() {
     );
   }
 
-  if (!isAllowed) return null;
+  if (!isAllowed) {
+    return null;
+  }
 
+  // Determina status da proteção
   const getProtectionStatus = (): ProtectionStatus => {
     if (associado?.status === 'suspenso' || associado?.status === 'cancelado') return 'suspensa';
     if (associado?.status === 'inadimplente') return 'aguardando_pagamento';
@@ -168,174 +166,257 @@ export default function AssociadoDashboard() {
   };
 
   const protectionStatus = getProtectionStatus();
+
+  const getStatusConfig = (status: ProtectionStatus) => {
+    switch (status) {
+      case 'ativa':
+        return { 
+          label: 'Ativa', 
+          color: 'text-green-600', 
+          bgColor: 'bg-green-100',
+          icon: CheckCircle2 
+        };
+      case 'aguardando_pagamento':
+        return { 
+          label: 'Aguardando Pagamento', 
+          color: 'text-yellow-600', 
+          bgColor: 'bg-yellow-100',
+          icon: Clock 
+        };
+      case 'suspensa':
+        return { 
+          label: 'Suspensa', 
+          color: 'text-red-600', 
+          bgColor: 'bg-red-100',
+          icon: AlertCircle 
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig(protectionStatus);
+  const StatusIcon = statusConfig.icon;
   const firstName = profile?.nome_completo?.split(' ')[0] || associado?.nome_completo?.split(' ')[0] || 'Associado';
 
-  const isMensalidadeAtrasada = proximaMensalidade?.status?.includes('ATRASADO') || proximaMensalidade?.status === 'atrasada';
+  const getVistoriaStatus = () => {
+    if (!vistoria) return { label: 'Pendente', color: 'text-yellow-600' };
+    switch (vistoria.status) {
+      case 'aprovada': return { label: 'Aprovada', color: 'text-green-600' };
+      case 'reprovada': return { label: 'Reprovada', color: 'text-red-600' };
+      case 'pendente': return { label: 'Pendente', color: 'text-yellow-600' };
+      default: return { label: 'Em análise', color: 'text-blue-600' };
+    }
+  };
 
-  const serviceItems = [
-    { icon: FileText, label: 'Cotação', href: '#' },
-    { icon: Camera, label: 'Enviar Vistoria', href: '#' },
-    { icon: CreditCard, label: '2ª Via de Boleto', href: '#' },
-    { icon: Eye, label: 'Ver Contrato', href: '#' },
-    { icon: BookOpen, label: 'Regulamento', href: '#' },
-    { icon: MapPin, label: 'Rastreamento', href: '#' },
-    { icon: Bell, label: 'Notificações', href: '#' },
-    { icon: MessageCircle, label: 'Falar com Suporte', href: '#' },
+  const vistoriaStatus = getVistoriaStatus();
+
+  const quickActions = [
+    { icon: FileText, label: 'Ver contrato', onClick: () => {} },
+    { icon: Camera, label: 'Enviar vistoria', onClick: () => {} },
+    { icon: CreditCard, label: '2ª via de boleto', onClick: () => {} },
+    { icon: Bell, label: 'Notificações', onClick: () => {} },
+    { icon: BookOpen, label: 'Regulamento', onClick: () => {} },
+    { icon: MapPin, label: 'Rastreamento', onClick: () => {} },
+    { icon: MessageCircle, label: 'Falar com suporte', onClick: () => {} },
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-20">
-      {/* ── Header com gradiente ── */}
-      <div className="relative bg-primary px-5 pt-12 pb-24 rounded-b-[2rem] overflow-hidden">
-        {/* Overlay gradiente sutil */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-secondary/60" />
-        <div className="relative z-10">
-          <h1 className="text-2xl font-bold text-primary-foreground">
-            Olá, {firstName}!
+    <div className="min-h-screen bg-muted/30 flex flex-col">
+      {/* Header */}
+      <div className="bg-card border-b px-4 py-6 sm:px-6">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold text-foreground">
+            👋 Olá, {firstName}
           </h1>
-          <p className="text-primary-foreground/80 text-sm mt-1">
-            {brand?.name || 'Harmony Clube de Benefícios'}
-          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-muted-foreground">Status da Proteção:</span>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>
+              <StatusIcon className="h-4 w-4" />
+              {statusConfig.label}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── Card Veículo (sobrepondo o header) ── */}
-      <div className="px-4 -mt-16 relative z-10">
-        <Card className="rounded-2xl shadow-lg border-0 overflow-hidden">
-          <CardContent className="p-0">
-            {/* Área da imagem do veículo */}
-            <div className="bg-muted/50 flex items-center justify-center py-6 px-4">
-              {isLoading ? (
-                <div className="h-28 w-full animate-pulse bg-muted rounded" />
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-20 h-20 rounded-2xl bg-secondary/10 flex items-center justify-center">
-                    <Car className="h-10 w-10 text-secondary" />
+      {/* Main Content */}
+      <main className="flex-1 px-4 py-6 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Main Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Card: Meu Veículo */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-primary/10">
+                    <Car className="h-5 w-5 text-primary" />
                   </div>
+                  <h3 className="font-semibold text-lg">Meu Veículo</h3>
                 </div>
-              )}
-            </div>
+                
+                {isLoading ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </div>
+                ) : veiculo ? (
+                  <div className="space-y-2">
+                    <p className="text-foreground font-medium">
+                      {veiculo.marca} {veiculo.modelo}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      Placa: <span className="font-mono">{veiculo.placa}</span>
+                    </p>
+                    <p className="text-sm">
+                      Situação: <span className={veiculo.protecao_ativa ? 'text-green-600 font-medium' : 'text-yellow-600 font-medium'}>
+                        {veiculo.protecao_ativa ? 'Protegido' : 'Aguardando'}
+                      </span>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Nenhum veículo cadastrado</p>
+                )}
+                
+                <Button variant="ghost" size="sm" className="mt-4 w-full justify-between text-primary hover:text-primary">
+                  Ver detalhes
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
 
-            {/* Info do veículo */}
-            <div className="p-5 text-center">
-              <h2 className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-1">Meu Veículo</h2>
-              {veiculo ? (
-                <>
-                  <p className="text-lg font-bold text-foreground">{veiculo.marca} {veiculo.modelo} {veiculo.ano}</p>
-                  <p className="text-sm text-muted-foreground font-mono tracking-wider">{veiculo.placa}</p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum veículo cadastrado</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Card: Situação Financeira */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-green-100">
+                    <CreditCard className="h-5 w-5 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Situação Financeira</h3>
+                </div>
+                
+                {isLoading ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm">
+                      Adesão: <span className="text-green-600 font-medium">Paga</span>
+                    </p>
+                    <p className="text-sm">
+                      Mensalidade: <span className={proximaMensalidade?.status?.includes('ATRASADO') || proximaMensalidade?.status === 'atrasada' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                        {proximaMensalidade?.status?.includes('ATRASADO') || proximaMensalidade?.status === 'atrasada' ? 'Atrasada' : 'Em dia'}
+                      </span>
+                    </p>
+                    {proximaMensalidade && (
+                      <p className="text-xs text-muted-foreground">
+                        Próx. vencimento: {format(new Date(proximaMensalidade.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                <Button variant="ghost" size="sm" className="mt-4 w-full justify-between text-primary hover:text-primary">
+                  2ª via de boleto
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
 
-      {/* ── Botões de ação rápida ── */}
-      <div className="px-4 mt-4 grid grid-cols-2 gap-3">
-        <Button className="h-14 rounded-2xl text-sm font-semibold gap-2 shadow-sm">
-          <Phone className="h-4 w-4" />
-          Assistência 24h
-        </Button>
-        <Button variant="outline" className="h-14 rounded-2xl text-sm font-semibold gap-2 shadow-sm border-border bg-card">
-          <Shield className="h-4 w-4 text-primary" />
-          Visualizar Plano
-        </Button>
-      </div>
-
-      {/* ── Status da mensalidade ── */}
-      <div className="px-4 mt-4">
-        {isLoading ? (
-          <div className="h-14 animate-pulse bg-muted rounded-2xl" />
-        ) : (
-          <div className={`flex items-center justify-between px-5 py-4 rounded-2xl font-semibold text-sm ${
-            isMensalidadeAtrasada 
-              ? 'bg-destructive/10 text-destructive' 
-              : protectionStatus === 'ativa' 
-                ? 'bg-primary/10 text-primary' 
-                : 'bg-muted text-muted-foreground'
-          }`}>
-            <div className="flex items-center gap-2">
-              {protectionStatus === 'ativa' && <CheckCircle2 className="h-5 w-5" />}
-              {protectionStatus === 'aguardando_pagamento' && <Clock className="h-5 w-5" />}
-              {protectionStatus === 'suspensa' && <AlertCircle className="h-5 w-5" />}
-              <span>
-                {isMensalidadeAtrasada 
-                  ? 'Mensalidade atrasada' 
-                  : protectionStatus === 'ativa' 
-                    ? 'Mensalidade em dia' 
-                    : protectionStatus === 'suspensa' 
-                      ? 'Proteção suspensa' 
-                      : 'Aguardando pagamento'}
-              </span>
-            </div>
-            {proximaMensalidade && (
-              <span className="text-xs opacity-70">
-                Venc. {format(new Date(proximaMensalidade.data_vencimento), 'dd/MM', { locale: ptBR })}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── Cotações pendentes ── */}
-      {cotacoes.length > 0 && (
-        <div className="px-4 mt-5">
-          <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            Minhas Cotações
-          </h3>
-          <div className="space-y-2">
-            {cotacoes.slice(0, 3).map((cot) => {
-              const statusLabel: Record<string, string> = {
-                aceita: 'Aceita', novo: 'Em análise', aprovado: 'Aprovada',
-                aguardando_docs: 'Aguardando docs', adesao_concluida: 'Concluída', enviada: 'Enviada',
-              };
-              const statusColor: Record<string, string> = {
-                aceita: 'text-primary bg-primary/10', aprovado: 'text-primary bg-primary/10',
-                adesao_concluida: 'text-primary bg-primary/10', aguardando_docs: 'text-muted-foreground bg-muted',
-                enviada: 'text-secondary bg-secondary/10', novo: 'text-secondary bg-secondary/10',
-              };
-              return (
-                <Card key={cot.id} className="rounded-xl border-border/50">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">{cot.marca} {cot.modelo}</p>
-                      <p className="text-xs text-muted-foreground">{cot.ano_fabricacao}</p>
-                    </div>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[cot.status] || 'text-muted-foreground bg-muted'}`}>
-                      {statusLabel[cot.status] || cot.status}
+            {/* Card: Contrato */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-blue-100">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Contrato</h3>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    Status: <span className={associado?.termos_aceitos ? 'text-green-600 font-medium' : 'text-yellow-600 font-medium'}>
+                      {associado?.termos_aceitos ? 'Assinado' : 'Pendente'}
                     </span>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </p>
+                  {associado?.termos_aceitos_em && (
+                    <p className="text-xs text-muted-foreground">
+                      Assinado em: {format(new Date(associado.termos_aceitos_em), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  <Button variant="ghost" size="sm" className="flex-1 text-primary hover:text-primary">
+                    <Eye className="h-4 w-4 mr-1" />
+                    Visualizar
+                  </Button>
+                  <Button variant="ghost" size="sm" className="flex-1 text-primary hover:text-primary">
+                    <Download className="h-4 w-4 mr-1" />
+                    Baixar PDF
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card: Vistoria */}
+            <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-purple-100">
+                    <Camera className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg">Vistoria</h3>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    Status: <span className={`font-medium ${vistoriaStatus.color}`}>
+                      {vistoriaStatus.label}
+                    </span>
+                  </p>
+                </div>
+                
+                <Button variant="ghost" size="sm" className="mt-4 w-full justify-between text-primary hover:text-primary">
+                  Enviar vistoria
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      )}
 
-      {/* ── Serviços ── */}
-      <div className="px-4 mt-6">
-        <h3 className="text-sm font-bold text-foreground mb-3">Serviços</h3>
-        <Card className="rounded-2xl divide-y divide-border">
-          {serviceItems.map((item, i) => (
-            <button
-              key={i}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors first:rounded-t-2xl last:rounded-b-2xl"
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium text-foreground">{item.label}</span>
+          {/* Quick Actions */}
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="p-5">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                ⚡ Ações Rápidas
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {quickActions.map((action, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-auto py-3 px-4 flex flex-col items-center gap-2 rounded-xl hover:bg-primary/5 hover:border-primary/30"
+                    onClick={action.onClick}
+                  >
+                    <action.icon className="h-5 w-5 text-primary" />
+                    <span className="text-xs font-medium text-center">{action.label}</span>
+                  </Button>
+                ))}
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))}
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
 
-      {/* Espaço pro bottom nav */}
-      <div className="h-4" />
+      {/* Footer com cor azul escuro */}
+      <footer 
+        className="py-6 px-4 text-center"
+        style={{ backgroundColor: 'hsl(230, 70%, 18%)' }}
+      >
+        <p className="text-white/80 text-sm">
+          © {new Date().getFullYear()} {brand?.name || 'Harmony Clube de Benefícios'}. Todos os direitos reservados.
+        </p>
+      </footer>
     </div>
   );
 }

@@ -1,16 +1,13 @@
 export * from './types';
 export { HeroSection } from './HeroSection';
 export { ComoFuncionaSection } from './ComoFuncionaSection';
-export { DigitalNativeSection } from './DigitalNativeSection';
 export { DadosPessoaisForm } from './DadosPessoaisForm';
 export { DadosVeiculoForm } from './DadosVeiculoForm';
 export { ResultadoCotacao } from './ResultadoCotacao';
-export { CotacaoUnificadaForm } from './CotacaoUnificadaForm';
 export { BeneficiosSection } from './BeneficiosSection';
 export { ConfiancaSection } from './ConfiancaSection';
-export { FamiliaProtegidaBanner } from './FamiliaProtegidaBanner';
 export { CTAFinalSection } from './CTAFinalSection';
-
+export { PagamentoSection } from './PagamentoSection';
 export { LandingFooter } from './LandingFooter';
 export { CadastroContaForm } from './CadastroContaForm';
 export { DocumentosUploadForm } from './DocumentosUploadForm';
@@ -22,4 +19,3 @@ export { ContatoSection } from './ContatoSection';
 export { AnnouncementBanner } from './AnnouncementBanner';
 export { WhatsAppFloat } from './WhatsAppFloat';
 export { PromoBanner } from './PromoBanner';
-export { StepIndicator } from './StepIndicator';

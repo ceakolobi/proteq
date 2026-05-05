@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,10 +27,10 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showRegiaoSelector) return;
+
     const fetchRegioes = async () => {
       setIsLoadingRegioes(true);
       const { data, error } = await supabase
@@ -38,25 +38,15 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
         .select('id, nome, sede_id')
         .eq('ativo', true)
         .order('nome');
-      if (!error && data) setRegioes(data);
+
+      if (!error && data) {
+        setRegioes(data);
+      }
       setIsLoadingRegioes(false);
     };
+
     fetchRegioes();
   }, [showRegiaoSelector]);
-
-  // Check if content fits without scrolling (no scroll needed = already at end)
-  useEffect(() => {
-    const el = scrollAreaRef.current;
-    if (!el) return;
-    const check = () => {
-      const viewport = el.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-      if (viewport && viewport.scrollHeight <= viewport.clientHeight + 50) {
-        setScrolledToEnd(true);
-      }
-    };
-    const timer = setTimeout(check, 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -125,7 +115,6 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
         </CardHeader>
         <CardContent>
           <ScrollArea
-            ref={scrollAreaRef}
             className="h-[250px] w-full rounded-md border p-4"
             onScrollCapture={handleScroll}
           >

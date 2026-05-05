@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Shield, CheckCircle2, Play, Star } from 'lucide-react';
 import { useBrand } from '@/hooks/useBrand';
@@ -10,7 +9,6 @@ interface HeroSectionProps {
 
 export function HeroSection({ onStart }: HeroSectionProps) {
   const { brand, getLogoForContext } = useBrand();
-  const navigate = useNavigate();
 
   return (
     <section id="home" className="relative min-h-[90vh] flex items-center overflow-hidden pt-20">
@@ -21,8 +19,8 @@ export function HeroSection({ onStart }: HeroSectionProps) {
           alt="Família protegida com seu veículo"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/98 to-background/80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
       </div>
 
       {/* Decorative Elements */}
@@ -60,7 +58,7 @@ export function HeroSection({ onStart }: HeroSectionProps) {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button 
                 size="lg" 
-                onClick={() => navigate('/cotacao-publica')}
+                onClick={onStart}
                 className="text-lg px-8 py-7 rounded-xl shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 group"
               >
                 Fazer cotação agora
@@ -112,38 +110,10 @@ export function HeroSection({ onStart }: HeroSectionProps) {
 
           {/* Right Content - Stats Cards (visible on large screens) */}
           <div className="hidden lg:grid grid-cols-2 gap-4">
-            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-4 shadow-xl border-2 border-secondary">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                  <Shield className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] text-secondary-foreground/70 uppercase tracking-wide leading-tight">Proteção Veicular</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-primary leading-none">R$ 89,90</span>
-                    <span className="text-secondary-foreground/70 text-[10px]">/ mês</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 pt-2 border-t border-secondary-foreground/10">
-                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span>Carro reserva 30 dias</span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span>Guincho 500km</span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span>Assistência 24h</span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-secondary-foreground/90">
-                  <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
-                  <span>Vidros cobertos</span>
-                </div>
-              </div>
+            <div className="col-span-2 bg-secondary text-secondary-foreground rounded-2xl p-6 shadow-xl border-2 border-secondary">
+              <div className="text-4xl font-bold text-primary mb-2">R$ 89,90</div>
+              <p className="text-secondary-foreground/80">A partir de / mês</p>
+              <p className="text-sm text-secondary-foreground/70 mt-2">Proteção completa para seu veículo</p>
             </div>
             <div className="bg-card/80 backdrop-blur-sm border-2 border-secondary/30 rounded-2xl p-5 shadow-lg">
               <div className="text-2xl font-bold text-secondary mb-1">15k+</div>

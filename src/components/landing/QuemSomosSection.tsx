@@ -1,46 +1,25 @@
-import { Shield, Users, Award, Handshake, Target, Eye, Heart } from 'lucide-react';
+import { Shield, Users, Award, Heart } from 'lucide-react';
 
 const values = [
   {
     icon: Shield,
-    title: 'Proteção Completa',
-    description: 'Cobertura contra colisão, incêndio, roubo e furto, com assistência 24h em todo território nacional.',
+    title: 'Proteção Garantida',
+    description: 'Mais de 10 anos protegendo veículos e famílias em todo o Brasil com excelência e dedicação.',
   },
   {
     icon: Users,
-    title: 'Cooperativismo',
-    description: 'Sistema de colaboração mútua entre associados com os mesmos interesses e objetivos.',
+    title: 'Comunidade Forte',
+    description: 'Milhares de associados unidos pelo mesmo propósito: segurança e tranquilidade no trânsito.',
   },
   {
     icon: Award,
-    title: 'Custo Acessível',
-    description: 'Proteção veicular de qualidade por um valor justo, através do sistema de rateio.',
-  },
-  {
-    icon: Handshake,
-    title: 'Confiança',
-    description: 'Fundada em 2020, com planejamento desde 2019, construindo uma história sólida.',
-  },
-];
-
-const missionVisionValues = [
-  {
-    icon: Target,
-    title: 'Nossa Missão',
-    description: 'Garantir a tranquilidade dos associados através de serviços de qualidade, proporcionando segurança e conforto. E, ademais, nos comprometendo com a satisfação de todos os envolvidos.',
-    color: 'primary',
-  },
-  {
-    icon: Eye,
-    title: 'Nossa Visão',
-    description: 'Ser referência em proteção veicular no Brasil com o reconhecimento pela excelência dos serviços prestados aos associados e colaboradores, garantindo tranquilidade a um número cada vez maior de pessoas.',
-    color: 'secondary',
+    title: 'Qualidade Premium',
+    description: 'Atendimento humanizado e processos 100% digitais para sua comodidade.',
   },
   {
     icon: Heart,
-    title: 'Nossos Valores',
-    description: 'Respeito, ética, compromisso, qualidade, dedicação, tranquilidade ao associado e responsabilidade social.',
-    color: 'primary',
+    title: 'Compromisso Real',
+    description: 'Cuidamos do seu patrimônio como se fosse nosso, com transparência e honestidade.',
   },
 ];
 
@@ -58,38 +37,13 @@ export function QuemSomosSection() {
             Quem Somos
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-            Referência em <span className="text-secondary">Proteção Veicular</span> no Brasil
+            Sua segurança é nossa <span className="text-secondary">prioridade</span>
           </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-            A <strong className="text-foreground">Associação Harmony Clube de Benefícios</strong> (CNPJ 39.583.767/0001-26) 
-            foi planejada em 2019 e fundada em 2020 com o objetivo de proporcionar a proteção dos veículos 
-            de seus associados por um custo mais acessível, através do sistema de cooperativismo.
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            Somos uma associação de proteção veicular comprometida em oferecer 
+            tranquilidade e segurança para você e sua família. Com processos 100% 
+            digitais, eliminamos a burocracia e entregamos agilidade.
           </p>
-          <p className="text-base text-muted-foreground leading-relaxed">
-            O cooperativismo enaltece a colaboração e associação de pessoas com os mesmos interesses, 
-            tendo como base a colaboração recíproca de seus associados com a finalidade de prestação 
-            de assistência — no nosso caso, proteção veicular — resguardando-os quanto a danos em seus 
-            veículos causados por colisão, incêndio, roubo ou furto, além de assistência 24 horas em 
-            todo o território nacional. Tudo isso a um excelente custo-benefício.
-          </p>
-        </div>
-
-        {/* Mission, Vision, Values */}
-        <div className="grid md:grid-cols-3 gap-6 mb-16">
-          {missionVisionValues.map((item, index) => (
-            <div
-              key={index}
-              className="bg-card border border-border/50 rounded-2xl p-6 text-center hover:shadow-xl hover:border-primary/30 transition-all duration-300"
-            >
-              <div className={`w-16 h-16 bg-${item.color}/10 rounded-2xl flex items-center justify-center mx-auto mb-5`}>
-                <item.icon className={`h-8 w-8 text-${item.color}`} />
-              </div>
-              <h3 className="text-xl font-bold mb-4">{item.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {item.description}
-              </p>
-            </div>
-          ))}
         </div>
 
         {/* Values Grid */}
@@ -113,20 +67,20 @@ export function QuemSomosSection() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-16 border-t border-secondary/30">
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-secondary mb-2">2020</div>
-            <p className="text-sm text-muted-foreground">Ano de Fundação</p>
+            <div className="text-4xl md:text-5xl font-bold text-secondary mb-2">10+</div>
+            <p className="text-sm text-muted-foreground">Anos de Experiência</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">100%</div>
-            <p className="text-sm text-muted-foreground">Cobertura Nacional</p>
+            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">15k+</div>
+            <p className="text-sm text-muted-foreground">Veículos Protegidos</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-secondary mb-2">24h</div>
-            <p className="text-sm text-muted-foreground">Assistência</p>
+            <div className="text-4xl md:text-5xl font-bold text-secondary mb-2">98%</div>
+            <p className="text-sm text-muted-foreground">Satisfação</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">FIPE</div>
-            <p className="text-sm text-muted-foreground">Até 100% da Tabela</p>
+            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">24h</div>
+            <p className="text-sm text-muted-foreground">Suporte Disponível</p>
           </div>
         </div>
       </div>

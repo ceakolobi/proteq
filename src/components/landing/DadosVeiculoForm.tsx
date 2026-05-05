@@ -9,13 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { TIPOS_VEICULO_LANDING, type DadosVeiculo } from './types';
 import { cn } from '@/lib/utils';
-import { StepIndicator } from './StepIndicator';
-
-const QUOTATION_STEPS = [
-  { number: 1, label: 'Seus Dados' },
-  { number: 2, label: 'Veículo' },
-  { number: 3, label: 'Proposta' },
-];
 
 interface DadosVeiculoFormProps {
   onSubmit: (data: DadosVeiculo) => void;
@@ -296,7 +289,7 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
         setPlacaMessage(`${vehicleData.marca} ${vehicleData.modelo} - FIPE: R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`);
         
         // Preencher automaticamente com os dados da placa
-        const resultado: FipeValorResult = {
+        setValorEncontrado({
           tipoVeiculo: tipoVeiculo,
           valor: vehicleData.valor_fipe,
           valorFormatado: `R$ ${vehicleData.valor_fipe.toLocaleString('pt-BR')}`,
@@ -306,15 +299,9 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
           combustivel: vehicleData.combustivel || '',
           codigoFipe: vehicleData.codigo_fipe || '',
           mesReferencia: vehicleData.mes_referencia || '',
-        };
-        setValorEncontrado(resultado);
+        });
         
-        // Limpar os selects FIPE manuais já que os dados vieram da placa
-        setSelectedMarcaId('');
-        setSelectedModeloId('');
-        setSelectedAnoId('');
-        
-        toast.success('Veículo encontrado com valor FIPE! Dados preenchidos automaticamente.');
+        toast.success('Veículo encontrado com valor FIPE!');
       } else {
         setPlacaStatus('found_no_fipe');
         setPlacaMessage(`${vehicleData.marca} ${vehicleData.modelo} encontrado. Use a tabela FIPE para o valor.`);
@@ -403,14 +390,10 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-background to-muted/20 py-8 px-4">
-      <div className="container mx-auto max-w-xl">
-        {/* Step Indicator */}
-        <StepIndicator currentStep={2} steps={QUOTATION_STEPS} />
-
+    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-8 px-4">
+      <div className="w-full max-w-xl space-y-4">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Dados do Veículo</h1>
-          <p className="text-muted-foreground">Informe os dados do seu veículo</p>
+          <h1 className="text-2xl font-bold">Nova Cotação</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -517,10 +500,7 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
                 3. Dados do Veículo
               </CardTitle>
               <CardDescription>
-                {placaStatus === 'found_fipe' && valorEncontrado 
-                  ? 'Dados preenchidos automaticamente pela placa ✅' 
-                  : 'Preencha manualmente ou busque na tabela FIPE'
-                }
+                Preencha manualmente ou busque na tabela FIPE
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

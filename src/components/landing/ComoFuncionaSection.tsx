@@ -1,4 +1,4 @@
-import { ClipboardList, Calculator, FileText, CheckCircle } from 'lucide-react';
+import { ClipboardList, Calculator, CreditCard, CheckCircle } from 'lucide-react';
 
 const etapas = [
   {
@@ -15,9 +15,9 @@ const etapas = [
   },
   {
     numero: 3,
-    icon: FileText,
-    titulo: 'Envie os documentos',
-    descricao: 'Envie CNH, CRLV e fotos do veículo para validação',
+    icon: CreditCard,
+    titulo: 'Pague a adesão',
+    descricao: 'Taxa única de R$ 50,00 via Pix com liberação automática',
   },
   {
     numero: 4,

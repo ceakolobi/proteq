@@ -19,11 +19,11 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Cota, VehicleType } from '@/types/database';
-import {
-  calcularCotacaoCompleta,
-  parseValorBrasileiro,
-  type Cota as CotaCalculo,
-  type CotaCategoria
+import { 
+  isCota01, 
+  getCategoriaByTipoVeiculo, 
+  PARTICIPACAO_MINIMA_COTA_01,
+  type CotaCategoria 
 } from '@/lib/cotacaoUtils';
 import { 
   Calculator, 
@@ -96,17 +96,13 @@ export default function Cotacao() {
     }
 
     setIsCalculating(true);
-    const valorFipe = parseValorBrasileiro(formData.valorFipe);
+    const valorFipe = parseFloat(formData.valorFipe);
 
-    const calculo = calcularCotacaoCompleta(
-      valorFipe,
-      formData.tipo as VehicleType,
-      cotasAtivas as unknown as CotaCalculo[],
-      0,
-      formData.carroReservaExtra as 'nenhum' | '30dias' | '90dias'
+    const cotaEncontrada = cotasAtivas.find(
+      (cota) => valorFipe >= cota.fipe_min && valorFipe <= cota.fipe_max
     );
 
-    if (!calculo) {
+    if (!cotaEncontrada) {
       toast({
         variant: 'destructive',
         title: 'Faixa não encontrada',
@@ -116,15 +112,44 @@ export default function Cotacao() {
       return;
     }
 
+    const ajusteGeralValor = Number((cotaEncontrada as any).ajuste_geral_valor) || Number((cotaEncontrada as any).acrescimo_global) || 0;
+    let valorBase = 0;
+    switch (formData.tipo) {
+      case 'carro':
+        valorBase = cotaEncontrada.valor_carro || 0;
+        break;
+      case 'moto':
+        valorBase = cotaEncontrada.valor_moto || 0;
+        break;
+      case 'pickup':
+        valorBase = cotaEncontrada.valor_camionete || 0;
+        break;
+    }
+    let mensalidade = valorBase + ajusteGeralValor;
+
+    let carroReservaAdicional = 0;
+    if (formData.carroReservaExtra === '30dias') {
+      carroReservaAdicional = 39.90;
+    } else if (formData.carroReservaExtra === '90dias') {
+      carroReservaAdicional = 59.90;
+    }
+
+    const participacaoCalculada = valorFipe * 0.07;
+    const categoria = getCategoriaByTipoVeiculo(formData.tipo as VehicleType);
+    const ehCota01 = isCota01(cotaEncontrada.cota_nome);
+    const participacaoMinima = ehCota01 ? PARTICIPACAO_MINIMA_COTA_01[categoria] : 0;
+    const aplicouValorMinimo = ehCota01 && participacaoCalculada < participacaoMinima;
+    const participacao = aplicouValorMinimo ? participacaoMinima : participacaoCalculada;
+
     setResultado({
-      cota: calculo.cota as unknown as Cota,
-      mensalidade: calculo.valorFinal,
-      participacao: calculo.participacao,
-      ehCota01: calculo.ehCota01,
-      participacaoCalculada: calculo.participacaoCalculada,
-      participacaoMinima: calculo.participacaoMinima,
-      aplicouValorMinimo: calculo.aplicouValorMinimo,
-      categoria: calculo.categoria,
+      cota: cotaEncontrada,
+      mensalidade: mensalidade + carroReservaAdicional,
+      participacao,
+      ehCota01,
+      participacaoCalculada,
+      participacaoMinima,
+      aplicouValorMinimo,
+      categoria,
     });
 
     setIsCalculating(false);

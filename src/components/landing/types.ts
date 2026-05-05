@@ -30,7 +30,7 @@ export interface DadosCompletos {
   cotacao: ResultadoCotacaoPublica | null;
 }
 
-export type EtapaFunil = 'hero' | 'dados_pessoais' | 'dados_veiculo' | 'resultado' | 'cadastro' | 'documentos' | 'sucesso';
+export type EtapaFunil = 'hero' | 'dados_pessoais' | 'dados_veiculo' | 'resultado' | 'cadastro' | 'documentos' | 'pagamento' | 'sucesso';
 
 // Dados do cadastro completo
 export interface DadosCadastro {

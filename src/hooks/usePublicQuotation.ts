@@ -4,8 +4,12 @@ import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica, EtapaFunil, 
 import { calcularCotacaoCompleta } from '@/lib/cotacaoUtils';
 import type { Cota } from '@/lib/cotacaoUtils';
 import type { VehicleType } from '@/types/database';
-import { resolvePublicCompanyId } from '@/lib/publicCompany';
 import { toast } from 'sonner';
+
+interface ConfiguracaoFinanceira {
+  chave_pix: string | null;
+  tipo_chave_pix: string | null;
+}
 
 export function usePublicQuotation() {
   const [etapa, setEtapa] = useState<EtapaFunil>('hero');
@@ -15,38 +19,43 @@ export function usePublicQuotation() {
   const [dadosCadastro, setDadosCadastro] = useState<DadosCadastro | null>(null);
   const [documentos, setDocumentos] = useState<DocumentoUploadLanding[]>([]);
   const [cotas, setCotas] = useState<Cota[]>([]);
+  const [configFinanceira, setConfigFinanceira] = useState<ConfiguracaoFinanceira | null>(null);
   const [loading, setLoading] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
 
-  // Carregar cotas públicas (ativas) filtradas estritamente pela empresa pública
+  // Carregar cotas públicas (ativas)
   useEffect(() => {
     const fetchCotas = async () => {
-      const companyId = await resolvePublicCompanyId();
-
-      if (!companyId) {
-        console.error('[usePublicQuotation] Empresa pública não resolvida. Cotas não carregadas.');
-        setCotas([]);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('cotas')
         .select('*')
         .eq('ativo', true)
-        .eq('company_id', companyId)
         .order('fipe_min', { ascending: true });
-
+      
       if (error) {
         console.error('[usePublicQuotation] Erro ao buscar cotas:', error);
       }
-
+      
       if (data) {
-        console.log('[usePublicQuotation] Cotas carregadas para empresa:', data.length);
+        console.log('[usePublicQuotation] Cotas carregadas:', data.length);
         setCotas(data as unknown as Cota[]);
       }
     };
 
+    const fetchConfig = async () => {
+      const { data } = await supabase
+        .from('configuracoes_financeiras')
+        .select('chave_pix, tipo_chave_pix')
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        setConfigFinanceira(data);
+      }
+    };
+
     fetchCotas();
+    fetchConfig();
   }, []);
 
   const calcularCotacao = (veiculo: DadosVeiculo): ResultadoCotacaoPublica | null => {
@@ -80,82 +89,8 @@ export function usePublicQuotation() {
     };
   };
 
-  const avancarParaCotacao = () => {
-    sessionStorage.setItem('in_quotation_funnel', 'true');
+  const avancarParaDadosPessoais = () => {
     setEtapa('dados_pessoais');
-  };
-
-  // Alias for backward compat
-  const avancarParaDadosPessoais = avancarParaCotacao;
-
-  // Unified submit: saves personal data + vehicle + calculates quotation in one go
-  const submeterCotacaoUnificada = async (pessoais: DadosPessoais, veiculo: DadosVeiculo): Promise<ResultadoCotacaoPublica | null> => {
-    setDadosPessoais(pessoais);
-    setDadosVeiculo(veiculo);
-    setLoading(true);
-
-    try {
-      // Check if user is authenticated (RLS requires consultor_id = auth.uid() for authenticated users)
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id;
-
-      // Create/update lead
-      const { data: consultores } = await supabase
-        .from('profiles')
-        .select('id, company_id')
-        .limit(1) as { data: { id: string; company_id: string | null }[] | null };
-
-      const defaultConsultorId = consultores?.[0]?.id;
-      const companyId = consultores?.[0]?.company_id;
-      const consultorId = currentUserId || defaultConsultorId;
-
-      if (consultorId) {
-        const telefoneNormalizado = pessoais.telefone.replace(/\D/g, '');
-        const { data: existingLead } = await supabase
-          .from('leads')
-          .select('id')
-          .eq('telefone', telefoneNormalizado)
-          .limit(1)
-          .maybeSingle() as { data: { id: string } | null };
-
-        if (existingLead) {
-          setLeadId(existingLead.id);
-        } else {
-          const { data: novoLead } = await supabase
-            .from('leads')
-            .insert({
-              nome: pessoais.nome.trim(),
-              telefone: telefoneNormalizado,
-              email: pessoais.email.trim().toLowerCase(),
-              consultor_id: consultorId,
-              company_id: companyId,
-              origem: 'site' as const,
-              status: 'cotado' as const,
-            })
-            .select('id')
-            .single();
-          if (novoLead) setLeadId(novoLead.id);
-        }
-      }
-
-      // Calculate quotation
-      const resultado = calcularCotacao(veiculo);
-      setCotacao(resultado);
-
-      if (resultado) {
-        localStorage.setItem('cotacao_publica', JSON.stringify({
-          pessoais, veiculo, cotacao: resultado, timestamp: new Date().toISOString(),
-        }));
-      }
-
-      return resultado;
-    } catch (error) {
-      console.error('Erro ao processar cotação unificada:', error);
-      setCotacao(null);
-      return null;
-    } finally {
-      setLoading(false);
-    }
   };
 
   const salvarDadosPessoais = async (dados: DadosPessoais) => {
@@ -265,15 +200,22 @@ export function usePublicQuotation() {
   const voltarEtapa = () => {
     switch (etapa) {
       case 'dados_pessoais':
-      case 'dados_veiculo':
-      case 'resultado':
         setEtapa('hero');
         break;
+      case 'dados_veiculo':
+        setEtapa('dados_pessoais');
+        break;
+      case 'resultado':
+        setEtapa('dados_veiculo');
+        break;
       case 'cadastro':
-        setEtapa('dados_pessoais'); // goes back to unified form
+        setEtapa('resultado');
         break;
       case 'documentos':
         setEtapa('cadastro');
+        break;
+      case 'pagamento':
+        setEtapa('documentos');
         break;
       default:
         setEtapa('hero');
@@ -281,93 +223,7 @@ export function usePublicQuotation() {
   };
 
   // Novo fluxo: resultado -> cadastro
-  // Ao aceitar, persiste a cotação no banco e envia WhatsApp automaticamente
-  const aceitarProposta = async () => {
-    if (!dadosVeiculo || !cotacao) {
-      setEtapa('cadastro');
-      return;
-    }
-
-    try {
-      // Check auth for RLS compliance
-      const { data: { session: aceitarSession } } = await supabase.auth.getSession();
-      const aceitarUserId = aceitarSession?.user?.id;
-
-      const { data: consultores } = await supabase
-        .from('profiles')
-        .select('id, company_id')
-        .limit(1) as { data: { id: string; company_id: string | null }[] | null };
-
-      const defaultConsultorId2 = consultores?.[0]?.id;
-      const companyId = consultores?.[0]?.company_id;
-      const consultorId = aceitarUserId || defaultConsultorId2;
-
-      if (consultorId) {
-        // Criar cotação no banco com status 'aceita'
-        const { data: novaCotacao, error: cotacaoError } = await supabase
-          .from('cotacoes')
-          .insert({
-            tipo_bem: dadosVeiculo.tipo_bem as any,
-            marca: dadosVeiculo.marca || '',
-            modelo: dadosVeiculo.modelo || '',
-            ano_fabricacao: dadosVeiculo.ano || new Date().getFullYear(),
-            valor_bem: dadosVeiculo.valor_fipe || 0,
-            valor_fipe: dadosVeiculo.valor_fipe || null,
-            codigo_fipe: dadosVeiculo.codigo_fipe || null,
-            consultor_id: consultorId,
-            company_id: companyId,
-            lead_id: leadId,
-            cliente_nome: dadosPessoais.nome,
-            cliente_email: dadosPessoais.email,
-            cliente_whatsapp: dadosPessoais.telefone,
-            mensalidade: cotacao.mensalidade,
-            participacao: cotacao.participacao,
-            status: 'aceita' as any,
-            metodo_valoracao: 'fipe' as any,
-          })
-          .select('id')
-          .single();
-
-        if (cotacaoError) {
-          console.error('[usePublicQuotation] Erro ao criar cotação:', cotacaoError);
-        } else if (novaCotacao) {
-          console.log('[usePublicQuotation] Cotação criada e aceita:', novaCotacao.id);
-          
-          // Criar link único de adesão/vistoria
-          const { data: adesaoLink, error: adesaoError } = await supabase
-            .from('adesao_links')
-            .insert({
-              cotacao_id: novaCotacao.id,
-              company_id: companyId,
-            })
-            .select('token')
-            .single();
-
-          if (adesaoError) {
-            console.error('[usePublicQuotation] Erro ao criar link de adesão:', adesaoError);
-          } else if (adesaoLink) {
-            console.log('[usePublicQuotation] Link de adesão criado:', adesaoLink.token);
-            // Armazenar para uso no WhatsApp
-            sessionStorage.setItem('adesao_link', `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`);
-          }
-
-          // Atualizar lead com status convertido
-          if (leadId) {
-            await supabase
-              .from('leads')
-              .update({ status: 'convertido' as const })
-              .eq('id', leadId);
-          }
-        }
-      }
-
-      // Enviar automaticamente via WhatsApp
-      enviarPropostaWhatsApp();
-
-    } catch (error) {
-      console.error('[usePublicQuotation] Erro ao aceitar proposta:', error);
-    }
-
+  const aceitarProposta = () => {
     setEtapa('cadastro');
   };
 
@@ -414,17 +270,20 @@ export function usePublicQuotation() {
     }
   };
 
-  // Salvar documentos e finalizar adesão (sem taxa de adesão)
+  // Salvar documentos
   const salvarDocumentos = async (docs: DocumentoUploadLanding[]) => {
     setDocumentos(docs);
-    await finalizarAdesao();
+    // Por enquanto, documentos são salvos após pagamento
+    // Avança para pagamento
+    setEtapa('pagamento');
   };
 
-  // Finalizar adesão (sem cobrança de taxa)
-  const finalizarAdesao = async () => {
+  // Confirmar pagamento e finalizar
+  const confirmarPagamento = async () => {
     setLoading(true);
 
     try {
+      // Criar associado no sistema
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user || !dadosCadastro || !dadosVeiculo || !cotacao) {
@@ -479,8 +338,10 @@ export function usePublicQuotation() {
         console.error('Erro ao criar veículo:', veiculoError);
       }
 
-      toast.success('Adesão finalizada! Sua proteção está ativa.');
-      sessionStorage.removeItem('in_quotation_funnel');
+      // TODO: Upload de documentos para storage
+      // TODO: Registrar pagamento da adesão
+
+      toast.success('Cadastro finalizado! Sua proteção será ativada em até 72h.');
       setEtapa('sucesso');
     } catch (error) {
       console.error('Erro ao finalizar:', error);
@@ -491,7 +352,6 @@ export function usePublicQuotation() {
   };
 
   const reiniciar = () => {
-    sessionStorage.removeItem('in_quotation_funnel');
     setEtapa('hero');
     setDadosPessoais({ nome: '', telefone: '', email: '' });
     setDadosVeiculo(null);
@@ -500,70 +360,8 @@ export function usePublicQuotation() {
     setDocumentos([]);
   };
 
-  const enviarPropostaWhatsApp = async () => {
+  const enviarPropostaWhatsApp = () => {
     if (!dadosPessoais.telefone || !cotacao) return;
-
-    // Se ainda não criou cotação/adesão, cria agora
-    let adesaoUrl = sessionStorage.getItem('adesao_link') || '';
-    if (!adesaoUrl && dadosVeiculo && cotacao) {
-      try {
-        const { data: { session: whatsSession } } = await supabase.auth.getSession();
-        const whatsUserId = whatsSession?.user?.id;
-
-        const { data: consultores } = await supabase
-          .from('profiles')
-          .select('id, company_id')
-          .limit(1) as { data: { id: string; company_id: string | null }[] | null };
-
-        const defaultConsultorId3 = consultores?.[0]?.id;
-        const companyId = consultores?.[0]?.company_id;
-        const consultorId = whatsUserId || defaultConsultorId3;
-
-        if (consultorId) {
-          const { data: novaCotacao } = await supabase
-            .from('cotacoes')
-            .insert({
-              tipo_bem: dadosVeiculo.tipo_bem as any,
-              marca: dadosVeiculo.marca || '',
-              modelo: dadosVeiculo.modelo || '',
-              ano_fabricacao: dadosVeiculo.ano || new Date().getFullYear(),
-              valor_bem: dadosVeiculo.valor_fipe || 0,
-              valor_fipe: dadosVeiculo.valor_fipe || null,
-              codigo_fipe: dadosVeiculo.codigo_fipe || null,
-              consultor_id: consultorId,
-              company_id: companyId,
-              lead_id: leadId,
-              cliente_nome: dadosPessoais.nome,
-              cliente_email: dadosPessoais.email,
-              cliente_whatsapp: dadosPessoais.telefone,
-              mensalidade: cotacao.mensalidade,
-              participacao: cotacao.participacao,
-              status: 'enviada' as any,
-              metodo_valoracao: 'fipe' as any,
-            })
-            .select('id')
-            .single();
-
-          if (novaCotacao) {
-            const { data: adesaoLink } = await supabase
-              .from('adesao_links')
-              .insert({
-                cotacao_id: novaCotacao.id,
-                company_id: companyId,
-              })
-              .select('token')
-              .single();
-
-            if (adesaoLink) {
-              adesaoUrl = `${window.location.origin}/adesao/${novaCotacao.id}/${adesaoLink.token}`;
-              sessionStorage.setItem('adesao_link', adesaoUrl);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[usePublicQuotation] Erro ao criar cotação para WhatsApp:', error);
-      }
-    }
     
     const telefone = dadosPessoais.telefone.replace(/\D/g, '');
     const telefoneFormatado = telefone.startsWith('55') ? telefone : `55${telefone}`;
@@ -574,39 +372,35 @@ export function usePublicQuotation() {
       `🔹 Veículo: ${dadosVeiculo?.marca} ${dadosVeiculo?.modelo}\n` +
       `🔹 Valor FIPE: R$ ${cotacao.valorFipe.toLocaleString('pt-BR')}\n` +
       `🔹 Mensalidade: R$ ${cotacao.mensalidade.toFixed(2)}\n` +
-      `🔹 Participação: R$ ${cotacao.participacao.toFixed(2)}\n` +
-      `🔹 Adesão: GRÁTIS ✅\n\n` +
+      `🔹 Participação: R$ ${cotacao.participacao.toFixed(2)}\n\n` +
       `✅ Benefícios inclusos:\n` +
       cotacao.beneficios.map(b => `• ${b}`).join('\n') +
-      (adesaoUrl ? `\n\n📋 Conclua sua adesão pelo link:\n${adesaoUrl}` : '') +
       `\n\nPara contratar, continue pelo site ou responda esta mensagem!`
     );
     
-    const url = `https://wa.me/${telefoneFormatado}?text=${mensagem}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const url = `https://api.whatsapp.com/send?phone=${telefoneFormatado}&text=${mensagem}`;
+    window.open(url, '_blank');
   };
 
   return {
     etapa,
-    setEtapa,
     dadosPessoais,
-    setDadosPessoais,
     dadosVeiculo,
     cotacao,
     dadosCadastro,
     documentos,
+    configFinanceira,
     loading,
     
     // Actions
     avancarParaDadosPessoais,
-    avancarParaCotacao,
     salvarDadosPessoais,
     salvarDadosVeiculo,
-    submeterCotacaoUnificada,
     voltarEtapa,
     aceitarProposta,
     criarConta,
     salvarDocumentos,
+    confirmarPagamento,
     reiniciar,
     enviarPropostaWhatsApp,
   };

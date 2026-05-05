@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useReferenceData } from '@/hooks/useReferenceData';
@@ -86,20 +84,8 @@ import {
   History,
   Tractor,
   LayoutList,
-  Kanban,
-  MoreVertical,
-  Archive,
-  Lock,
-  AlertTriangle,
-  Trash2,
+  Kanban
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import type { VehicleType, Profile, Sede } from '@/types/database';
 import { vehicleTypeLabels } from '@/types/database';
 import { z } from 'zod';
@@ -799,7 +785,6 @@ export default function Leads() {
                       <TableHead>Lead</TableHead>
                       <TableHead>Contato</TableHead>
                       <TableHead>Localização</TableHead>
-                      <TableHead>Data</TableHead>
                       <TableHead>Origem</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Consultor</TableHead>
@@ -809,11 +794,11 @@ export default function Leads() {
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">Carregando...</TableCell>
+                        <TableCell colSpan={7} className="text-center py-8">Carregando...</TableCell>
                       </TableRow>
                     ) : filteredLeads.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
+                        <TableCell colSpan={7} className="text-center py-8">
                           <div className="flex flex-col items-center gap-2">
                             <Users className="h-8 w-8 text-muted-foreground" />
                             <p className="text-muted-foreground">Nenhum lead encontrado</p>
@@ -869,11 +854,6 @@ export default function Leads() {
                             ) : '-'}
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {format(new Date(lead.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                            </span>
-                          </TableCell>
-                          <TableCell>
                             {lead.origem && (
                               <Badge variant="outline" className="flex items-center gap-1 w-fit">
                                 {getOrigemIcon(lead.origem)}
@@ -891,76 +871,41 @@ export default function Leads() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              {isAdminPrincipal && (
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenHistory(lead)} title="Histórico">
+                                <History className="h-4 w-4" />
+                              </Button>
+                              {canEdit && (
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(lead)} title="Editar">
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               )}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-4 w-4" />
+                              {lead.status !== 'convertido' && lead.status !== 'perdido' && canCreate && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      navigate('/cotacoes', {
+                                        state: { leadId: lead.id, leadNome: lead.nome, tipoVeiculo: lead.tipo_veiculo }
+                                      });
+                                    }}
+                                    title="Criar Cotação"
+                                  >
+                                    <FileText className="h-4 w-4 text-blue-600" />
                                   </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleOpenHistory(lead)}>
-                                    <History className="mr-2 h-4 w-4" />
-                                    Histórico
-                                  </DropdownMenuItem>
-                                  {lead.status !== 'convertido' && lead.status !== 'perdido' && canCreate && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          navigate('/cotacoes', {
-                                            state: { leadId: lead.id, leadNome: lead.nome, tipoVeiculo: lead.tipo_veiculo }
-                                          });
-                                        }}
-                                      >
-                                        <FileText className="mr-2 h-4 w-4" />
-                                        Criar Cotação
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedLead(lead);
-                                          setIsConvertDialogOpen(true);
-                                        }}
-                                      >
-                                        <UserCheck className="mr-2 h-4 w-4" />
-                                        Converter
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  {isAdminPrincipal && (
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        onClick={() => handleStatusChange(lead, 'perdido')}
-                                      >
-                                        <Archive className="mr-2 h-4 w-4" />
-                                        Arquivar
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={async () => {
-                                          if (confirm('Tem certeza que deseja excluir este lead?')) {
-                                            try {
-                                              const { error } = await supabase.from('leads').delete().eq('id', lead.id);
-                                              if (error) throw error;
-                                              toast.success('Lead excluído com sucesso');
-                                              fetchLeads();
-                                            } catch (err: any) {
-                                              toast.error(err.message || 'Erro ao excluir lead');
-                                            }
-                                          }
-                                        }}
-                                        className="text-destructive"
-                                      >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Excluir
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedLead(lead);
+                                      setIsConvertDialogOpen(true);
+                                    }}
+                                    title="Converter"
+                                  >
+                                    <UserCheck className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

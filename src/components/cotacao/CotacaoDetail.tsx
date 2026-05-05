@@ -121,10 +121,6 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const [vistoriaLink, setVistoriaLink] = useState<string | null>(null);
   const [vistoriaId, setVistoriaId] = useState<string | null>(null);
 
-  // Estados para link de adesão
-  const [adesaoLink, setAdesaoLink] = useState<string | null>(null);
-  const [isGeneratingAdesaoLink, setIsGeneratingAdesaoLink] = useState(false);
-
   const canManage = isAdminPrincipal || hasRole('admin_regional') || cotacao.consultor_id === user?.id;
   const isAprovado = cotacao.status === 'aprovado';
   const canApprove = cotacao.status !== 'aprovado' && cotacao.status !== 'perdido' && canManage;
@@ -305,217 +301,50 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     navigate(`/layout-cotacao-harmony?id=${cotacao.id}`);
   };
 
-  // Generate PDF blob inline for email/WhatsApp
-  const generatePdfBlob = async (): Promise<{ blob: Blob; url: string } | null> => {
-    setIsGeneratingPdf(true);
-    try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      
-      const dataAtual = new Date().toLocaleDateString('pt-BR');
-      const dataValidade = new Date();
-      dataValidade.setDate(dataValidade.getDate() + 7);
-      const validadeStr = dataValidade.toLocaleDateString('pt-BR');
-
-      const html = `
-        <div style="font-family:Arial,sans-serif;color:#333;background:#fff;">
-          <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:40px 30px;text-align:center;color:#fff;">
-            <h1 style="font-size:28px;font-weight:bold;margin:0 0 8px;">🛡️ Proposta de Cotação</h1>
-            <p style="font-size:14px;opacity:0.9;margin:0;">Proteção Veicular</p>
-          </div>
-          <div style="padding:30px;">
-            <table style="width:100%;border-spacing:20px 0;border-collapse:separate;">
-              <tr>
-                <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
-                  <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Veículo</h2>
-                  <table style="width:100%;font-size:13px;">
-                    <tr><td style="padding:6px 0;color:#6b7280;">Marca:</td><td style="font-weight:600;text-align:right;">${cotacao.marca}</td></tr>
-                    <tr><td style="padding:6px 0;color:#6b7280;">Modelo:</td><td style="font-weight:600;text-align:right;">${cotacao.modelo}</td></tr>
-                    <tr><td style="padding:6px 0;color:#6b7280;">Ano:</td><td style="font-weight:600;text-align:right;">${cotacao.ano_fabricacao}</td></tr>
-                    ${cotacao.placa ? `<tr><td style="padding:6px 0;color:#6b7280;">Placa:</td><td style="font-weight:600;text-align:right;">${cotacao.placa}</td></tr>` : ''}
-                  </table>
-                </td>
-                <td style="width:50%;vertical-align:top;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
-                  <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #22C55E;padding-bottom:8px;margin-bottom:16px;">Valores</h2>
-                  <div style="background:linear-gradient(135deg,#F97316,#ea580c);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
-                    <p style="font-size:12px;text-transform:uppercase;opacity:0.9;margin:0 0 4px;">Mensalidade</p>
-                    <p style="font-size:32px;font-weight:bold;margin:0;">${formatCurrency(cotacao.mensalidade)}</p>
-                  </div>
-                  <table style="width:100%;font-size:13px;">
-                    <tr><td style="padding:4px 0;color:#6b7280;">Participação:</td><td style="font-weight:600;text-align:right;">${formatCurrency(cotacao.participacao)}</td></tr>
-                    <tr><td style="padding:4px 0;color:#6b7280;">Validade:</td><td style="font-weight:600;text-align:right;">${validadeStr}</td></tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </div>
-          ${clienteNome ? `
-          <div style="padding:0 30px 20px;">
-            <div style="border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
-              <h2 style="font-size:16px;font-weight:bold;border-bottom:2px solid #F97316;padding-bottom:8px;margin-bottom:16px;">Dados do Cliente</h2>
-              <table style="width:100%;font-size:13px;">
-                <tr><td style="padding:4px 0;color:#6b7280;">Nome:</td><td style="font-weight:600;">${clienteNome}</td></tr>
-                ${clienteEmail ? `<tr><td style="padding:4px 0;color:#6b7280;">E-mail:</td><td style="font-weight:600;">${clienteEmail}</td></tr>` : ''}
-                ${clienteWhatsapp ? `<tr><td style="padding:4px 0;color:#6b7280;">WhatsApp:</td><td style="font-weight:600;">${clienteWhatsapp}</td></tr>` : ''}
-              </table>
-            </div>
-          </div>` : ''}
-          <div style="padding:0 30px 20px;">
-            <div style="background:#f9fafb;border-radius:12px;padding:20px;">
-              <h3 style="font-size:14px;font-weight:bold;margin-bottom:10px;">Condições Importantes</h3>
-              <p style="font-size:11px;color:#6b7280;line-height:1.6;">
-                Esta proposta tem validade de 7 dias. Os valores podem sofrer alteração conforme tabela FIPE vigente.
-                A proteção terá início após aprovação da vistoria e confirmação do pagamento da primeira mensalidade.
-              </p>
-            </div>
-          </div>
-          <div style="background:linear-gradient(135deg,#F97316,#22C55E);padding:15px 30px;text-align:center;color:#fff;font-size:11px;">
-            <p style="margin:0;font-weight:600;">Proteção Veicular</p>
-            <p style="margin:4px 0 0;opacity:0.9;">Emitido em ${dataAtual}</p>
-          </div>
-        </div>
-      `;
-
-      const container = document.createElement('div');
-      container.innerHTML = html;
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      document.body.appendChild(container);
-
-      try {
-        const opt = {
-          margin: 0,
-          filename: `Proposta_${cotacao.marca}_${cotacao.modelo}.pdf`,
-          image: { type: 'jpeg', quality: 0.92 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, allowTaint: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
-          pagebreak: { mode: ['css', 'legacy'] },
-        };
-
-        const blob: Blob = await html2pdf().set(opt as any).from(container).outputPdf('blob');
-        
-        // Upload to storage
-        const filePath = `propostas/${cotacao.id}/Proposta_${cotacao.marca}_${cotacao.modelo}.pdf`;
-        const { error: uploadError } = await supabase.storage
-          .from('vistoria-fotos')
-          .upload(filePath, blob, { contentType: 'application/pdf', upsert: true });
-
-        let publicUrl = '';
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from('vistoria-fotos').getPublicUrl(filePath);
-          publicUrl = urlData?.publicUrl || '';
-        }
-
-        return { blob, url: publicUrl };
-      } finally {
-        document.body.removeChild(container);
-      }
-    } catch (err: any) {
-      console.error('Erro ao gerar PDF inline:', err);
-      toast.error('Erro ao gerar PDF');
-      return null;
-    } finally {
-      setIsGeneratingPdf(false);
-    }
-  };
-
-  // Enviar por e-mail com PDF gerado inline
-  const handleEnviarEmail = async () => {
+  // Enviar por e-mail - redireciona para gerar PDF primeiro
+  const handleEnviarEmail = () => {
     if (!clienteEmail) {
       toast.error('Informe o e-mail do cliente para enviar a proposta');
       return;
     }
-    
-    setIsSendingEmail(true);
-    try {
-      const result = await generatePdfBlob();
-      if (!result) {
-        setIsSendingEmail(false);
-        return;
-      }
-
-      // Convert blob to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(result.blob);
-      });
-
-      const { data, error } = await supabase.functions.invoke('send-proposta-email', {
-        body: {
-          to: clienteEmail,
-          clienteNome: clienteNome || 'Cliente',
-          modelo: `${cotacao.marca} ${cotacao.modelo}`,
-          mensalidade: formatCurrency(cotacao.mensalidade),
-          validadeDias: 7,
-          pdfUrl: result.url || null,
-          pdfBase64: base64,
-          filename: `Proposta_${cotacao.marca}_${cotacao.modelo}.pdf`,
-          empresaNome: 'Proteção Veicular',
-        },
-      });
-
-      if (error) throw error;
-      if (data && !data.success) throw new Error(data.error || 'Erro no envio');
-
-      // Update cotação
-      await supabase.from('cotacoes').update({
-        proposta_enviada_em: new Date().toISOString(),
-        proposta_enviada_por: user?.id,
-        status: cotacao.status === 'novo' ? 'enviada' : cotacao.status,
-      }).eq('id', cotacao.id);
-
-      toast.success(`E-mail enviado para ${clienteEmail}!`);
-      onUpdate();
-    } catch (err: any) {
-      console.error('Erro ao enviar e-mail:', err);
-      toast.error(err.message || 'Erro ao enviar e-mail');
-    } finally {
-      setIsSendingEmail(false);
-    }
+    // Redireciona para página de layout onde o PDF será gerado e pode ser enviado
+    toast.info('Gerando proposta para envio por e-mail...');
+    navigate(`/layout-cotacao-harmony?id=${cotacao.id}`);
   };
 
-  // Enviar por WhatsApp com link do PDF
-  const handleEnviarWhatsApp = async () => {
+  // Enviar por WhatsApp
+  const handleEnviarWhatsApp = () => {
     if (!clienteWhatsapp || clienteWhatsapp.replace(/\D/g, "").length < 10) {
       toast.error('Informe o WhatsApp do cliente para enviar a cotação');
       return;
-    }
-
-    // Try to generate PDF and get public URL
-    let pdfPublicUrl = '';
-    const result = await generatePdfBlob();
-    if (result?.url) {
-      pdfPublicUrl = result.url;
     }
 
     const numeroFormatado = formatWhatsappNumber(clienteWhatsapp);
     const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
     
     const mensagem = `${saudacao}, tudo bem?
-Segue sua *Proposta de Cotação* preparada especialmente para o seu ${cotacao.marca} ${cotacao.modelo} 🚗
+Segue sua *Proposta de Cotação* preparada especialmente para o seu ${cotacao.marca} ${cotacao.modelo} 🚗🚜🚚
 
 ✔️ Proteção completa
 ✔️ Assistência 24h
 ✔️ Coberturas reais e objetivas
 ✔️ Mensalidade: *${formatCurrency(cotacao.mensalidade)}*
-${pdfPublicUrl ? `\n📄 *PDF da Proposta:*\n${pdfPublicUrl}` : ''}
+
+Para ver o PDF completo, acesse o sistema e gere a proposta.
+
+Qualquer dúvida estou à disposição 🙏
 
 ⏳ *Validade da proposta:* 7 dias
 
 🤝 Conte com a gente!
 _Proteção Veicular_`;
 
-    const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
-      navigator.clipboard?.writeText(whatsappUrl).then(() => {
-        toast.info('Pop-up bloqueado. Link do WhatsApp copiado — cole no navegador.');
-      }).catch(() => {
-        toast.error('Permita pop-ups ou copie o link manualmente.');
-      });
+      // Fallback quando o navegador bloqueia pop-ups
+      window.location.assign(whatsappUrl);
       return;
     }
 
@@ -634,15 +463,11 @@ Qualquer dúvida, estou à disposição! 🙏
 
 _Proteção Veicular_`;
 
-    const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
-      navigator.clipboard?.writeText(whatsappUrl).then(() => {
-        toast.info('Pop-up bloqueado. Link do WhatsApp copiado — cole no navegador.');
-      }).catch(() => {
-        toast.error('Permita pop-ups ou copie o link manualmente.');
-      });
+      window.location.assign(whatsappUrl);
       return;
     }
 
@@ -680,68 +505,6 @@ _Proteção Veicular_`;
       handleCriarVistoria('link');
     }
   };
-
-  // Gerar link de adesão
-  const handleGerarLinkAdesao = async () => {
-    setIsGeneratingAdesaoLink(true);
-    try {
-      // Verificar se já existe um link de adesão para esta cotação
-      const { data: existing } = await supabase
-        .from('adesao_links')
-        .select('id, token')
-        .eq('cotacao_id', cotacao.id)
-        .neq('status', 'expirado')
-        .maybeSingle();
-
-      if (existing) {
-        const link = `${window.location.origin}/adesao/${cotacao.id}/${existing.token}`;
-        setAdesaoLink(link);
-        await navigator.clipboard.writeText(link);
-        toast.success('Link de adesão copiado!');
-        return;
-      }
-
-      // Criar novo link de adesão
-      const { data: newLink, error } = await supabase
-        .from('adesao_links')
-        .insert({
-          cotacao_id: cotacao.id,
-          status: 'pendente',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        })
-        .select('id, token')
-        .single();
-
-      if (error) throw error;
-
-      const link = `${window.location.origin}/adesao/${cotacao.id}/${newLink.token}`;
-      setAdesaoLink(link);
-      await navigator.clipboard.writeText(link);
-      toast.success('Link de adesão gerado e copiado!');
-    } catch (err: any) {
-      console.error('Erro ao gerar link de adesão:', err);
-      toast.error(err.message || 'Erro ao gerar link de adesão');
-    } finally {
-      setIsGeneratingAdesaoLink(false);
-    }
-  };
-
-  // Carregar link de adesão existente ao montar
-  useEffect(() => {
-    const loadAdesaoLink = async () => {
-      const { data } = await supabase
-        .from('adesao_links')
-        .select('token')
-        .eq('cotacao_id', cotacao.id)
-        .neq('status', 'expirado')
-        .maybeSingle();
-      
-      if (data) {
-        setAdesaoLink(`${window.location.origin}/adesao/${cotacao.id}/${data.token}`);
-      }
-    };
-    loadAdesaoLink();
-  }, [cotacao.id]);
 
   return (
     <div className="space-y-6">
@@ -1049,89 +812,17 @@ _Proteção Veicular_`;
 
               <Button 
                 onClick={handleEnviarWhatsApp}
-                disabled={!clienteWhatsapp || isGeneratingPdf}
+                disabled={!clienteWhatsapp}
                 className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
               >
-                {isGeneratingPdf ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                )}
-                {isGeneratingPdf ? 'Gerando PDF...' : 'Enviar pelo WhatsApp (com PDF)'}
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enviar pelo WhatsApp
                 {!clienteWhatsapp && <span className="ml-auto text-xs opacity-80">(informe o WhatsApp)</span>}
               </Button>
-            </div>
-
-            <Separator />
-
-            {/* Link de Adesão - Seção destacada */}
-            <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <ExternalLink className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">Link de Adesão</p>
-                  <p className="text-xs text-muted-foreground">
-                    Link para o cliente completar cadastro, documentos e vistoria
-                  </p>
-                </div>
-              </div>
-
-              {adesaoLink ? (
-                <div className="space-y-3">
-                  <div className="p-2.5 rounded-lg bg-background border text-sm">
-                    <p className="font-mono text-xs break-all text-primary select-all">{adesaoLink}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(adesaoLink);
-                        toast.success('Link copiado!');
-                      }}
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Copiar Link
-                    </Button>
-                    <Button
-                      size="sm"
-                      disabled={!clienteWhatsapp}
-                      onClick={() => {
-                        const numero = formatWhatsappNumber(clienteWhatsapp);
-                        const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : 'Olá 👋';
-                        const msg = `${saudacao}\n\nSua proposta para o ${cotacao.marca} ${cotacao.modelo} está pronta! 🎉\n\nPara finalizar sua adesão, acesse o link abaixo e envie seus documentos:\n${adesaoLink}\n\nO link é válido por *7 dias*.\n\nQualquer dúvida, estou à disposição! 🙏`;
-                        const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
-                        window.open(url, '_blank', 'noopener,noreferrer');
-                      }}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <MessageCircle className="w-3 h-3 mr-1" />
-                      Enviar WhatsApp
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  onClick={handleGerarLinkAdesao}
-                  disabled={isGeneratingAdesaoLink}
-                  className="w-full border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {isGeneratingAdesaoLink ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Link className="w-4 h-4 mr-2" />
-                  )}
-                  Gerar Link de Adesão
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
       </div>
-
 
       {/* Seção Iniciar Vistoria - Apenas para cotações aprovadas */}
       {isAprovado && (

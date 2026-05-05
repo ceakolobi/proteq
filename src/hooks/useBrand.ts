@@ -104,9 +104,6 @@ export function useBrand() {
         return brand.logos.dark;
       
       case 'sidebar':
-        // Sidebar sempre usa logo branca (fundo escuro)
-        return brand.logos.light;
-      
       case 'header':
       case 'auto':
       default:

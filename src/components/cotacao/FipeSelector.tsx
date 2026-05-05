@@ -53,14 +53,12 @@ interface FipeSelectorProps {
   disabled?: boolean;
   initialMarca?: string;
   initialModelo?: string;
-  origem?: string;
 }
 
 export default function FipeSelector({
   tipoBem,
   onValorFound,
   disabled = false,
-  origem = 'web',
 }: FipeSelectorProps) {
   const [marcas, setMarcas] = useState<FipeItem[]>([]);
   const [modelos, setModelos] = useState<FipeItem[]>([]);
@@ -90,7 +88,7 @@ export default function FipeSelector({
       headers: {
         'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
         'Content-Type': 'application/json',
-        'x-origem': origem,
+        'x-origem': 'web',
       },
     });
     
