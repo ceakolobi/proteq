@@ -53,7 +53,7 @@ export function useCotacoes(): UseCotacoesResult {
 
       // Fetch related data
       const cotacoesWithRelations: CotacaoWithRelations[] = await Promise.all(
-        (data || []).map(async (cotacao: Cotacao) => {
+        (data || []).map(async (cotacao: any) => {
           let lead_nome: string | undefined = undefined;
           let lead_email: string | undefined = undefined;
           let lead_telefone: string | undefined = undefined;
@@ -166,7 +166,7 @@ export function useCotacoes(): UseCotacoesResult {
 
       toast.success('Cotação criada com sucesso');
       await fetchCotacoes();
-      return newCotacao;
+      return newCotacao as unknown as Cotacao;
     } catch (error: any) {
       console.error('Erro ao criar cotação:', error);
       toast.error(error.message || 'Erro ao criar cotação');
