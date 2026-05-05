@@ -395,6 +395,24 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
       if (error) throw error;
 
+      // Salva benefícios extras selecionados
+      if (beneficiosSelecionadosObjs.length > 0 && novaCotacao) {
+        const beneficiosPayload = beneficiosSelecionadosObjs.map(b => ({
+          cotacao_id: (novaCotacao as any).id,
+          beneficio_id: b.id,
+          nome_snapshot: b.nome,
+          valor_snapshot: Number(b.valor_mensal),
+          selecionado_por: 'consultor',
+        }));
+        const { error: errBen } = await supabase
+          .from('cotacao_beneficios')
+          .insert(beneficiosPayload);
+        if (errBen) {
+          console.error('Erro ao salvar benefícios:', errBen);
+          toast.warning('Cotação criada, mas houve erro ao salvar benefícios extras.');
+        }
+      }
+
       toast.success('Cotação criada com sucesso!');
       onSuccess(novaCotacao as Cotacao);
     } catch (error: any) {
@@ -777,13 +795,23 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Mensalidade</p>
+                  <p className="text-sm text-muted-foreground">Mensalidade Total</p>
                   <p className="text-4xl font-bold text-primary">
-                    {formatCurrency(resultado.valorFinal)}
+                    {formatCurrency(resultado.valorFinal + valorBeneficiosExtras)}
                   </p>
+                  {valorBeneficiosExtras > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Base: {formatCurrency(resultado.valorFinal)} + Extras: {formatCurrency(valorBeneficiosExtras)}
+                    </p>
+                  )}
                   <div className="flex items-center justify-center gap-2 mt-2">
                     <Badge>{resultado.cotaNome}</Badge>
                     <Badge variant="secondary">{categoriaLabels[resultado.categoria]}</Badge>
+                    {beneficiosSelecionadosObjs.length > 0 && (
+                      <Badge variant="outline" className="border-primary text-primary">
+                        +{beneficiosSelecionadosObjs.length} extra(s)
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
