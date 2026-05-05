@@ -22,7 +22,8 @@ import {
   ContatoSection,
   AnnouncementBanner,
   WhatsAppFloat,
-  PromoBanner
+  PromoBanner,
+  EmilyFloat
 } from '@/components/landing';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
