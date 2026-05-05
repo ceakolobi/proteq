@@ -162,30 +162,20 @@ export default function AssinaturaTermoPublico() {
     setIsRenewingToken(true);
     
     try {
-      // Gerar novo token e nova data de expiração (72h)
-      const novaExpiracao = new Date();
-      novaExpiracao.setHours(novaExpiracao.getHours() + 72);
-      
-      const { data: novoTermo, error: updateError } = await supabase
-        .from('termos_aceite')
-        .update({
-          token_assinatura: crypto.randomUUID(),
-          token_expires_at: novaExpiracao.toISOString(),
-        })
-        .eq('id', termo.id)
-        .select('token_assinatura')
-        .single();
+      // Renovar via RPC seguro (exige posse do token antigo)
+      const { data: novoToken, error: updateError } = await supabase
+        .rpc('renovar_token_termo', { p_old_token: termo.token_assinatura });
 
       if (updateError) throw updateError;
+      if (!novoToken) throw new Error('Falha ao renovar token');
 
       toast.success('Link renovado! Redirecionando...');
-      
-      // Redirecionar para o novo token
+
       setTimeout(() => {
-        navigate(`/assinatura-termo/${novoTermo.token_assinatura}`);
+        navigate(`/assinatura-termo/${novoToken}`);
         window.location.reload();
       }, 1000);
-      
+
     } catch (err) {
       console.error('Error renewing token:', err);
       toast.error('Erro ao renovar o link. Tente novamente.');
