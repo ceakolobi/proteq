@@ -16,11 +16,7 @@ export type CotacaoStatus =
   | 'em_contato'
   | 'interessado'
   | 'aguardando_retorno'
-  | 'aguardando_docs'
-  | 'enviada'
-  | 'aceita'
   | 'aprovado'
-  | 'adesao_concluida'
   | 'perdido'
   | 'arquivado'
   | 'bloqueado'
@@ -130,11 +126,7 @@ export const cotacaoStatusLabels: Record<CotacaoStatus, string> = {
   em_contato: 'Em Contato',
   interessado: 'Interessado',
   aguardando_retorno: 'Aguardando Retorno',
-  aguardando_docs: 'Aguardando Documentos',
-  enviada: 'Enviada',
-  aceita: 'Aceita',
   aprovado: 'Aprovado',
-  adesao_concluida: 'Adesão Concluída',
   perdido: 'Perdido',
   arquivado: 'Arquivado',
   bloqueado: 'Bloqueado',
@@ -146,11 +138,7 @@ export const cotacaoStatusColors: Record<CotacaoStatus, string> = {
   em_contato: 'bg-yellow-100 text-yellow-800',
   interessado: 'bg-purple-100 text-purple-800',
   aguardando_retorno: 'bg-orange-100 text-orange-800',
-  aguardando_docs: 'bg-orange-100 text-orange-800',
-  enviada: 'bg-sky-100 text-sky-800',
-  aceita: 'bg-emerald-100 text-emerald-800',
   aprovado: 'bg-green-100 text-green-800',
-  adesao_concluida: 'bg-green-200 text-green-900',
   perdido: 'bg-red-100 text-red-800',
   arquivado: 'bg-gray-100 text-gray-800',
   bloqueado: 'bg-red-200 text-red-900',
