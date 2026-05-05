@@ -145,6 +145,72 @@ export type Database = {
           },
         ]
       }
+      adesao_links: {
+        Row: {
+          assinado_em: string | null
+          assinado_ip: string | null
+          assinatura_url: string | null
+          company_id: string | null
+          cotacao_id: string
+          created_at: string
+          dados_complementares: Json | null
+          documentos_enviados: Json | null
+          expires_at: string
+          fotos_veiculo: Json | null
+          id: string
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          assinado_em?: string | null
+          assinado_ip?: string | null
+          assinatura_url?: string | null
+          company_id?: string | null
+          cotacao_id: string
+          created_at?: string
+          dados_complementares?: Json | null
+          documentos_enviados?: Json | null
+          expires_at?: string
+          fotos_veiculo?: Json | null
+          id?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          assinado_em?: string | null
+          assinado_ip?: string | null
+          assinatura_url?: string | null
+          company_id?: string | null
+          cotacao_id?: string
+          created_at?: string
+          dados_complementares?: Json | null
+          documentos_enviados?: Json | null
+          expires_at?: string
+          fotos_veiculo?: Json | null
+          id?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adesao_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adesao_links_cotacao_id_fkey"
+            columns: ["cotacao_id"]
+            isOneToOne: false
+            referencedRelation: "cotacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_tokens: {
         Row: {
           company_id: string | null
@@ -3098,6 +3164,10 @@ export type Database = {
       can_edit_mensalidade: { Args: { _user_id: string }; Returns: boolean }
       can_manage_documents: { Args: { _user_id: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
+      check_lead_exists_by_phone: {
+        Args: { _telefone: string }
+        Returns: boolean
+      }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       enforce_company_isolation: {
         Args: { _company_id: string }
@@ -3107,6 +3177,27 @@ export type Database = {
       gerar_mensalidades_mes: {
         Args: { p_company_id?: string; p_mes_referencia: string }
         Returns: number
+      }
+      get_termo_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          associado_cpf: string
+          associado_email: string
+          associado_id: string
+          associado_nome: string
+          associado_telefone: string
+          associado_whatsapp: string
+          conteudo_termo: string
+          id: string
+          status: string
+          token_assinatura: string
+          token_expires_at: string
+          veiculo_ano: number
+          veiculo_id: string
+          veiculo_marca: string
+          veiculo_modelo: string
+          veiculo_placa: string
+        }[]
       }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
@@ -3149,10 +3240,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      renovar_token_termo: { Args: { p_old_token: string }; Returns: string }
       same_company: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      setup_demo_user_profile: { Args: never; Returns: undefined }
       strict_company_isolation: {
         Args: { _company_id: string }
         Returns: boolean
@@ -3211,6 +3304,10 @@ export type Database = {
         | "arquivado"
         | "bloqueado"
         | "quarentena"
+        | "aceita"
+        | "aguardando_docs"
+        | "adesao_concluida"
+        | "enviada"
       inspection_status:
         | "pendente"
         | "agendada"
@@ -3439,6 +3536,10 @@ export const Constants = {
         "arquivado",
         "bloqueado",
         "quarentena",
+        "aceita",
+        "aguardando_docs",
+        "adesao_concluida",
+        "enviada",
       ],
       inspection_status: [
         "pendente",

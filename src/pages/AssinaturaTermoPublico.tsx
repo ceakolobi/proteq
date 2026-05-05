@@ -91,49 +91,54 @@ export default function AssinaturaTermoPublico() {
     setTokenExpired(false);
 
     try {
-      // Buscar termo pelo token
-      const { data, error: fetchError } = await supabase
-        .from('termos_aceite')
-        .select(`
-          id,
-          associado_id,
-          veiculo_id,
-          conteudo_termo,
-          status,
-          token_assinatura,
-          token_expires_at
-        `)
-        .eq('token_assinatura', token)
-        .single();
+      // Buscar termo pelo token (via RPC seguro - exige conhecimento exato do token)
+      const { data: rows, error: fetchError } = await supabase
+        .rpc('get_termo_by_token', { p_token: token });
 
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          setError('Link inválido. Solicite um novo link de assinatura.');
-        } else {
-          throw fetchError;
-        }
+      if (fetchError) throw fetchError;
+
+      const row = Array.isArray(rows) ? rows[0] : rows;
+
+      if (!row) {
+        setError('Link inválido. Solicite um novo link de assinatura.');
         return;
       }
 
+      const baseTermo = {
+        id: row.id,
+        associado_id: row.associado_id,
+        veiculo_id: row.veiculo_id,
+        conteudo_termo: row.conteudo_termo,
+        status: row.status,
+        token_assinatura: row.token_assinatura,
+        token_expires_at: row.token_expires_at,
+      };
+
+      const associado = row.associado_nome ? {
+        nome_completo: row.associado_nome,
+        cpf: row.associado_cpf,
+        email: row.associado_email,
+        whatsapp: row.associado_whatsapp,
+        telefone: row.associado_telefone,
+      } : undefined;
+
+      const veiculo = row.veiculo_placa ? {
+        placa: row.veiculo_placa,
+        marca: row.veiculo_marca,
+        modelo: row.veiculo_modelo,
+        ano: row.veiculo_ano,
+      } : undefined;
+
       // Verificar se expirou
-      if (new Date(data.token_expires_at) < new Date()) {
+      if (new Date(row.token_expires_at) < new Date()) {
         setTokenExpired(true);
-        setTermo(data);
-        // Buscar dados do associado para renovação
-        const { data: associado } = await supabase
-          .from('associados')
-          .select('nome_completo, cpf, email, whatsapp, telefone')
-          .eq('id', data.associado_id)
-          .single();
-        if (associado) {
-          setTermo({ ...data, associado });
-        }
+        setTermo({ ...baseTermo, associado });
         return;
       }
 
       // Verificar status
-      if (data.status !== 'pendente') {
-        if (data.status === 'assinado') {
+      if (row.status !== 'pendente') {
+        if (row.status === 'assinado') {
           setError('Este termo já foi assinado.');
         } else {
           setError('Este termo não está mais disponível para assinatura.');
@@ -141,29 +146,7 @@ export default function AssinaturaTermoPublico() {
         return;
       }
 
-      // Buscar dados do associado
-      const { data: associado } = await supabase
-        .from('associados')
-        .select('nome_completo, cpf, email, whatsapp, telefone')
-        .eq('id', data.associado_id)
-        .single();
-
-      // Buscar dados do veículo se existir
-      let veiculo = null;
-      if (data.veiculo_id) {
-        const { data: veiculoData } = await supabase
-          .from('veiculos')
-          .select('placa, marca, modelo, ano')
-          .eq('id', data.veiculo_id)
-          .single();
-        veiculo = veiculoData;
-      }
-
-      setTermo({
-        ...data,
-        associado: associado || undefined,
-        veiculo: veiculo || undefined
-      });
+      setTermo({ ...baseTermo, associado, veiculo });
 
     } catch (err) {
       console.error('Error fetching termo:', err);
@@ -179,30 +162,20 @@ export default function AssinaturaTermoPublico() {
     setIsRenewingToken(true);
     
     try {
-      // Gerar novo token e nova data de expiração (72h)
-      const novaExpiracao = new Date();
-      novaExpiracao.setHours(novaExpiracao.getHours() + 72);
-      
-      const { data: novoTermo, error: updateError } = await supabase
-        .from('termos_aceite')
-        .update({
-          token_assinatura: crypto.randomUUID(),
-          token_expires_at: novaExpiracao.toISOString(),
-        })
-        .eq('id', termo.id)
-        .select('token_assinatura')
-        .single();
+      // Renovar via RPC seguro (exige posse do token antigo)
+      const { data: novoToken, error: updateError } = await supabase
+        .rpc('renovar_token_termo', { p_old_token: termo.token_assinatura });
 
       if (updateError) throw updateError;
+      if (!novoToken) throw new Error('Falha ao renovar token');
 
       toast.success('Link renovado! Redirecionando...');
-      
-      // Redirecionar para o novo token
+
       setTimeout(() => {
-        navigate(`/assinatura-termo/${novoTermo.token_assinatura}`);
+        navigate(`/assinatura-termo/${novoToken}`);
         window.location.reload();
       }, 1000);
-      
+
     } catch (err) {
       console.error('Error renewing token:', err);
       toast.error('Erro ao renovar o link. Tente novamente.');
