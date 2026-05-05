@@ -199,6 +199,9 @@ export default function Index() {
       
       {/* WhatsApp flutuante - sempre visível */}
       <WhatsAppFloat phoneNumber="5500000000000" />
+
+      {/* Emily - Consultora Virtual IA (botão flutuante azul) */}
+      <EmilyFloat onStartCotacao={quotation.avancarParaDadosPessoais} />
     </div>
   );
 }
