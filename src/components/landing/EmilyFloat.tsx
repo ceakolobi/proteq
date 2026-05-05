@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import emilyAvatar from '@/assets/emily-avatar.png';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -71,11 +72,22 @@ export function EmilyFloat({ onStartCotacao }: EmilyFloatProps) {
         aria-label="Falar com Emily"
       >
         <span className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-30" />
-        <div className="relative flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40">
-          {open ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
+        <div className="relative flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white pl-1.5 pr-5 py-1.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-blue-500/40">
+          <div className="relative w-11 h-11 rounded-full overflow-hidden ring-2 ring-white/80 bg-white shrink-0">
+            <img
+              src={emilyAvatar}
+              alt="Emily"
+              width={512}
+              height={512}
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 ring-2 ring-blue-600" />
+          </div>
           <span className="font-semibold text-sm hidden sm:block">
-            {open ? 'Fechar' : 'Falar com Emily'}
+            {open ? 'Fechar conversa' : 'Fale com a Consultora Emily'}
           </span>
+          {open && <X className="h-5 w-5 sm:hidden" />}
         </div>
       </button>
 
@@ -91,8 +103,14 @@ export function EmilyFloat({ onStartCotacao }: EmilyFloatProps) {
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-4 py-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5" />
+          <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-white/60 bg-white shrink-0">
+            <img
+              src={emilyAvatar}
+              alt="Emily"
+              width={512}
+              height={512}
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="flex-1">
             <p className="font-semibold text-sm">Emily • Consultora Virtual</p>
