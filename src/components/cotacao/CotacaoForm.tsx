@@ -51,6 +51,9 @@ import {
   type ResultadoCotacao,
   type Cota,
 } from '@/lib/cotacaoUtils';
+import { BeneficiosExtrasSelector } from './BeneficiosExtrasSelector';
+import type { BeneficioExtra } from '@/hooks/useBeneficiosExtras';
+import { Sparkles } from 'lucide-react';
 
 // Validação
 const cotacaoSchema = z.object({
@@ -101,6 +104,14 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [resultado, setResultado] = useState<ResultadoCotacao | null>(null);
+  
+  // Benefícios extras selecionados
+  const [beneficiosSelecionadosIds, setBeneficiosSelecionadosIds] = useState<string[]>([]);
+  const [beneficiosSelecionadosObjs, setBeneficiosSelecionadosObjs] = useState<BeneficioExtra[]>([]);
+  const valorBeneficiosExtras = useMemo(
+    () => beneficiosSelecionadosObjs.reduce((acc, b) => acc + Number(b.valor_mensal || 0), 0),
+    [beneficiosSelecionadosObjs]
+  );
   
   // Estado para prévia automática
   const [previewResult, setPreviewResult] = useState<ResultadoCotacao | null>(null);
