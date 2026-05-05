@@ -3178,6 +3178,27 @@ export type Database = {
         Args: { p_company_id?: string; p_mes_referencia: string }
         Returns: number
       }
+      get_termo_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          associado_cpf: string
+          associado_email: string
+          associado_id: string
+          associado_nome: string
+          associado_telefone: string
+          associado_whatsapp: string
+          conteudo_termo: string
+          id: string
+          status: string
+          token_assinatura: string
+          token_expires_at: string
+          veiculo_ano: number
+          veiculo_id: string
+          veiculo_marca: string
+          veiculo_modelo: string
+          veiculo_placa: string
+        }[]
+      }
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
@@ -3219,6 +3240,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      renovar_token_termo: { Args: { p_old_token: string }; Returns: string }
       same_company: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
