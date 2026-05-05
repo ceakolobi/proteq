@@ -419,7 +419,7 @@ export default function LayoutCotacaoHarmony() {
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
-      const pdfInstance = html2pdf().set(opt).from(element);
+      const pdfInstance = html2pdf().set(opt as any).from(element);
       const blob = await pdfInstance.outputPdf("blob");
 
       if (backCoverElement && temContracapa) {
