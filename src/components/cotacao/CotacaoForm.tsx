@@ -51,6 +51,9 @@ import {
   type ResultadoCotacao,
   type Cota,
 } from '@/lib/cotacaoUtils';
+import { BeneficiosExtrasSelector } from './BeneficiosExtrasSelector';
+import type { BeneficioExtra } from '@/hooks/useBeneficiosExtras';
+import { Sparkles } from 'lucide-react';
 
 // Validação
 const cotacaoSchema = z.object({
@@ -101,6 +104,14 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [resultado, setResultado] = useState<ResultadoCotacao | null>(null);
+  
+  // Benefícios extras selecionados
+  const [beneficiosSelecionadosIds, setBeneficiosSelecionadosIds] = useState<string[]>([]);
+  const [beneficiosSelecionadosObjs, setBeneficiosSelecionadosObjs] = useState<BeneficioExtra[]>([]);
+  const valorBeneficiosExtras = useMemo(
+    () => beneficiosSelecionadosObjs.reduce((acc, b) => acc + Number(b.valor_mensal || 0), 0),
+    [beneficiosSelecionadosObjs]
+  );
   
   // Estado para prévia automática
   const [previewResult, setPreviewResult] = useState<ResultadoCotacao | null>(null);
@@ -383,6 +394,24 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         .single();
 
       if (error) throw error;
+
+      // Salva benefícios extras selecionados
+      if (beneficiosSelecionadosObjs.length > 0 && novaCotacao) {
+        const beneficiosPayload = beneficiosSelecionadosObjs.map(b => ({
+          cotacao_id: (novaCotacao as any).id,
+          beneficio_id: b.id,
+          nome_snapshot: b.nome,
+          valor_snapshot: Number(b.valor_mensal),
+          selecionado_por: 'consultor',
+        }));
+        const { error: errBen } = await supabase
+          .from('cotacao_beneficios')
+          .insert(beneficiosPayload);
+        if (errBen) {
+          console.error('Erro ao salvar benefícios:', errBen);
+          toast.warning('Cotação criada, mas houve erro ao salvar benefícios extras.');
+        }
+      }
 
       toast.success('Cotação criada com sucesso!');
       onSuccess(novaCotacao as Cotacao);
@@ -706,6 +735,26 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   </Select>
                 </div>
 
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <Label className="text-base font-semibold">Benefícios Extras (opcional)</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione benefícios adicionais para personalizar o plano. Cada um soma um valor fixo na mensalidade.
+                  </p>
+                  <BeneficiosExtrasSelector
+                    tipoBem={formData.tipo_bem}
+                    selecionados={beneficiosSelecionadosIds}
+                    onChange={(ids, objs) => {
+                      setBeneficiosSelecionadosIds(ids);
+                      setBeneficiosSelecionadosObjs(objs);
+                    }}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label>Observações</Label>
                   <Textarea
@@ -746,13 +795,23 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Mensalidade</p>
+                  <p className="text-sm text-muted-foreground">Mensalidade Total</p>
                   <p className="text-4xl font-bold text-primary">
-                    {formatCurrency(resultado.valorFinal)}
+                    {formatCurrency(resultado.valorFinal + valorBeneficiosExtras)}
                   </p>
+                  {valorBeneficiosExtras > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Base: {formatCurrency(resultado.valorFinal)} + Extras: {formatCurrency(valorBeneficiosExtras)}
+                    </p>
+                  )}
                   <div className="flex items-center justify-center gap-2 mt-2">
                     <Badge>{resultado.cotaNome}</Badge>
                     <Badge variant="secondary">{categoriaLabels[resultado.categoria]}</Badge>
+                    {beneficiosSelecionadosObjs.length > 0 && (
+                      <Badge variant="outline" className="border-primary text-primary">
+                        +{beneficiosSelecionadosObjs.length} extra(s)
+                      </Badge>
+                    )}
                   </div>
                 </div>
 

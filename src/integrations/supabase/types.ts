@@ -553,6 +553,57 @@ export type Database = {
         }
         Relationships: []
       }
+      beneficios_extras: {
+        Row: {
+          aplica_caminhonete: boolean
+          aplica_carro: boolean
+          aplica_moto: boolean
+          ativo: boolean
+          company_id: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          valor_mensal: number
+        }
+        Insert: {
+          aplica_caminhonete?: boolean
+          aplica_carro?: boolean
+          aplica_moto?: boolean
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Update: {
+          aplica_caminhonete?: boolean
+          aplica_carro?: boolean
+          aplica_moto?: boolean
+          ativo?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       cobrancas: {
         Row: {
           associado_id: string
@@ -858,6 +909,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cotacao_beneficios: {
+        Row: {
+          beneficio_id: string | null
+          company_id: string | null
+          cotacao_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome_snapshot: string
+          selecionado_por: string
+          valor_snapshot: number
+        }
+        Insert: {
+          beneficio_id?: string | null
+          company_id?: string | null
+          cotacao_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_snapshot: string
+          selecionado_por?: string
+          valor_snapshot: number
+        }
+        Update: {
+          beneficio_id?: string | null
+          company_id?: string | null
+          cotacao_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_snapshot?: string
+          selecionado_por?: string
+          valor_snapshot?: number
+        }
+        Relationships: []
       }
       cotacao_contatos: {
         Row: {
