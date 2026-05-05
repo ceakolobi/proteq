@@ -717,6 +717,26 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   </Select>
                 </div>
 
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <Label className="text-base font-semibold">Benefícios Extras (opcional)</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione benefícios adicionais para personalizar o plano. Cada um soma um valor fixo na mensalidade.
+                  </p>
+                  <BeneficiosExtrasSelector
+                    tipoBem={formData.tipo_bem}
+                    selecionados={beneficiosSelecionadosIds}
+                    onChange={(ids, objs) => {
+                      setBeneficiosSelecionadosIds(ids);
+                      setBeneficiosSelecionadosObjs(objs);
+                    }}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label>Observações</Label>
                   <Textarea
