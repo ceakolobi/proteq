@@ -437,7 +437,7 @@ export function ResultadoCotacao({
         pagebreak: { mode: ['css', 'legacy'] },
       };
 
-      const blob: Blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+      const blob: Blob = await html2pdf().set(opt as any).from(container).outputPdf('blob');
       console.log('[PDF] Generated blob size:', blob.size);
       return blob;
     } finally {

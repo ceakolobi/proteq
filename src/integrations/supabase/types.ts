@@ -3164,6 +3164,10 @@ export type Database = {
       can_edit_mensalidade: { Args: { _user_id: string }; Returns: boolean }
       can_manage_documents: { Args: { _user_id: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
+      check_lead_exists_by_phone: {
+        Args: { _telefone: string }
+        Returns: boolean
+      }
       cleanup_expired_fipe_cache: { Args: never; Returns: number }
       enforce_company_isolation: {
         Args: { _company_id: string }

@@ -284,7 +284,7 @@ export default function CotacaoWizard({ leadId, leadNome, onSuccess, onCancel }:
           pagebreak: { mode: ['css', 'legacy'] },
         };
 
-        const blob = await html2pdf().set(opt).from(container).outputPdf('blob');
+        const blob = await html2pdf().set(opt as any).from(container).outputPdf('blob');
         setPdfBlob(blob);
 
         // Upload to storage
