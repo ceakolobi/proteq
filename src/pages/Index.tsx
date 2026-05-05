@@ -22,7 +22,8 @@ import {
   ContatoSection,
   AnnouncementBanner,
   WhatsAppFloat,
-  PromoBanner
+  PromoBanner,
+  EmilyChat
 } from '@/components/landing';
 import { Button } from '@/components/ui/button';
 import { LogIn, CheckCircle2, Shield, PartyPopper, Clock } from 'lucide-react';
@@ -199,6 +200,9 @@ export default function Index() {
       
       {/* WhatsApp flutuante - sempre visível */}
       <WhatsAppFloat phoneNumber="5500000000000" />
+
+      {/* Emily — consultora virtual (somente na home) */}
+      {quotation.etapa === 'hero' && <EmilyChat />}
     </div>
   );
 }
