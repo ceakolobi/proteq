@@ -89,6 +89,8 @@ export default function Index() {
             onBack={quotation.voltarEtapa}
             onContinue={quotation.aceitarProposta}
             onWhatsApp={quotation.enviarPropostaWhatsApp}
+            beneficiosSelecionadosIds={quotation.beneficiosSelecionadosIds}
+            onBeneficiosChange={quotation.setBeneficiosExtras}
           />
         );
       

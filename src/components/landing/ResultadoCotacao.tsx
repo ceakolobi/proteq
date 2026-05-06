@@ -26,6 +26,8 @@ interface ResultadoCotacaoProps {
   onBack: () => void;
   onContinue: () => void;
   onWhatsApp: () => void;
+  beneficiosSelecionadosIds?: string[];
+  onBeneficiosChange?: (ids: string[], objs: BeneficioExtra[]) => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -40,9 +42,11 @@ export function ResultadoCotacao({
   dadosVeiculo, 
   cotacao, 
   onBack, 
-  onContinue,
-  onWhatsApp 
-}: ResultadoCotacaoProps) {
+   onContinue,
+   onWhatsApp,
+   beneficiosSelecionadosIds = [],
+   onBeneficiosChange
+ }: ResultadoCotacaoProps) {
   if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
@@ -174,6 +178,28 @@ export function ResultadoCotacao({
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Benefícios Extras Opcionais */}
+        <div className="mt-8">
+          <Card className="shadow-xl border-2 border-primary/20">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl flex items-center gap-2 text-primary">
+                <Sparkles className="h-6 w-6" />
+                Deseja adicionar mais benefícios?
+              </CardTitle>
+              <CardDescription>
+                Personalize seu plano adicionando coberturas extras opcionais
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BeneficiosExtrasSelector 
+                tipoBem={dadosVeiculo.tipo_bem}
+                selecionados={beneficiosSelecionadosIds}
+                onChange={onBeneficiosChange || (() => {})}
+              />
             </CardContent>
           </Card>
         </div>
