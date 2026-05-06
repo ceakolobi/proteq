@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica, EtapaFunil, DadosCadastro, DocumentoUploadLanding } from '@/components/landing/types';
 import { calcularCotacaoCompleta } from '@/lib/cotacaoUtils';
@@ -364,6 +364,8 @@ export function usePublicQuotation() {
     setCotacao(null);
     setDadosCadastro(null);
     setDocumentos([]);
+    setBeneficiosSelecionadosIds([]);
+    setBeneficiosSelecionadosObjs([]);
   };
 
   const enviarPropostaWhatsApp = () => {
@@ -380,7 +382,7 @@ export function usePublicQuotation() {
       `🔹 Mensalidade: R$ ${cotacao.mensalidade.toFixed(2)}\n` +
       `🔹 Participação: R$ ${cotacao.participacao.toFixed(2)}\n\n` +
       `✅ Benefícios inclusos:\n` +
-      quotation.beneficios.map(b => `• ${b}`).join('\n') +
+      cotacao.beneficios.map(b => `• ${b}`).join('\n') +
       (beneficiosSelecionadosObjs.length > 0 ? 
         `\n\n➕ Benefícios Extras:\n` + beneficiosSelecionadosObjs.map(b => `• ${b.nome} (+ R$ ${Number(b.valor_mensal).toFixed(2)})`).join('\n') 
         : '') +
@@ -392,6 +394,23 @@ export function usePublicQuotation() {
     window.open(url, '_blank');
   };
 
+  const setBeneficiosExtras = (ids: string[], objs: BeneficioExtra[]) => {
+    setBeneficiosSelecionadosIds(ids);
+    setBeneficiosSelecionadosObjs(objs);
+    
+    if (cotacao) {
+      const valorBase = cotacao.valorMensalBase || cotacao.mensalidade;
+      const extraTotal = objs.reduce((acc, b) => acc + Number(b.valor_mensal || 0), 0);
+      
+      setCotacao({
+        ...cotacao,
+        mensalidade: valorBase + extraTotal,
+        beneficiosExtras: ids,
+        valorMensalBase: valorBase
+      });
+    }
+  };
+
   return {
     etapa,
     dadosPessoais,
@@ -401,6 +420,8 @@ export function usePublicQuotation() {
     documentos,
     configFinanceira,
     loading,
+    beneficiosSelecionadosIds,
+    beneficiosSelecionadosObjs,
     
     // Actions
     avancarParaDadosPessoais,
@@ -413,5 +434,6 @@ export function usePublicQuotation() {
     confirmarPagamento,
     reiniciar,
     enviarPropostaWhatsApp,
+    setBeneficiosExtras,
   };
 }

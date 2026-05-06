@@ -18,6 +18,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
+import { type BeneficioExtra } from '@/hooks/useBeneficiosExtras';
 
 interface ResultadoCotacaoProps {
   dadosPessoais: DadosPessoais;
@@ -42,11 +44,11 @@ export function ResultadoCotacao({
   dadosVeiculo, 
   cotacao, 
   onBack, 
-   onContinue,
-   onWhatsApp,
-   beneficiosSelecionadosIds = [],
-   onBeneficiosChange
- }: ResultadoCotacaoProps) {
+  onContinue,
+  onWhatsApp,
+  beneficiosSelecionadosIds = [],
+  onBeneficiosChange
+}: ResultadoCotacaoProps) {
   if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
@@ -70,7 +72,7 @@ export function ResultadoCotacao({
             </div>
             <h3 className="font-semibold text-lg">Cotação não disponível</h3>
             <p className="text-muted-foreground text-sm">
-              Não encontramos uma faixa de proteção para o veículo informado 
+              Não encontramos uma faixa de proteção para the veículo informado 
               ({dadosVeiculo.marca} {dadosVeiculo.modelo} - {formatCurrency(dadosVeiculo.valor_fipe || 0)}).
             </p>
             <p className="text-xs text-muted-foreground">
