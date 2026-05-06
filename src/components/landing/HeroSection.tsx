@@ -50,7 +50,7 @@ export function HeroSection({ onStart }: HeroSectionProps) {
               </h1>
               
               <p className="text-xl md:text-2xl text-muted-foreground max-w-lg leading-relaxed">
-                Cotação online em <strong className="text-foreground">2 minutos</strong>, contratação digital e ativação imediata.
+                Cotação online em <strong className="text-foreground">3 minutos</strong>, contratação digital e ativação imediata.
               </p>
             </div>
 
