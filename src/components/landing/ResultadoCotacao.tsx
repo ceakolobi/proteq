@@ -18,6 +18,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
+import { type BeneficioExtra } from '@/hooks/useBeneficiosExtras';
 
 interface ResultadoCotacaoProps {
   dadosPessoais: DadosPessoais;
@@ -26,6 +28,8 @@ interface ResultadoCotacaoProps {
   onBack: () => void;
   onContinue: () => void;
   onWhatsApp: () => void;
+  beneficiosSelecionadosIds?: string[];
+  onBeneficiosChange?: (ids: string[], objs: BeneficioExtra[]) => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -41,7 +45,9 @@ export function ResultadoCotacao({
   cotacao, 
   onBack, 
   onContinue,
-  onWhatsApp 
+  onWhatsApp,
+  beneficiosSelecionadosIds = [],
+  onBeneficiosChange
 }: ResultadoCotacaoProps) {
   if (!dadosVeiculo) {
     return (
@@ -66,7 +72,7 @@ export function ResultadoCotacao({
             </div>
             <h3 className="font-semibold text-lg">Cotação não disponível</h3>
             <p className="text-muted-foreground text-sm">
-              Não encontramos uma faixa de proteção para o veículo informado 
+              Não encontramos uma faixa de proteção para the veículo informado 
               ({dadosVeiculo.marca} {dadosVeiculo.modelo} - {formatCurrency(dadosVeiculo.valor_fipe || 0)}).
             </p>
             <p className="text-xs text-muted-foreground">
@@ -174,6 +180,28 @@ export function ResultadoCotacao({
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Benefícios Extras Opcionais */}
+        <div className="mt-8">
+          <Card className="shadow-xl border-2 border-primary/20">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl flex items-center gap-2 text-primary">
+                <Sparkles className="h-6 w-6" />
+                Deseja adicionar mais benefícios?
+              </CardTitle>
+              <CardDescription>
+                Personalize seu plano adicionando coberturas extras opcionais
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BeneficiosExtrasSelector 
+                tipoBem={dadosVeiculo.tipo_bem}
+                selecionados={beneficiosSelecionadosIds}
+                onChange={onBeneficiosChange || (() => {})}
+              />
             </CardContent>
           </Card>
         </div>

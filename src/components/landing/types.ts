@@ -22,6 +22,8 @@ export interface ResultadoCotacaoPublica {
   valorFipe: number;
   cotaNome: string;
   beneficios: string[];
+  beneficiosExtras?: string[]; // IDs dos benefícios extras selecionados
+  valorMensalBase?: number; // Mensalidade sem os extras
 }
 
 export interface DadosCompletos {

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica, EtapaFunil, DadosCadastro, DocumentoUploadLanding } from '@/components/landing/types';
 import { calcularCotacaoCompleta } from '@/lib/cotacaoUtils';
 import type { Cota } from '@/lib/cotacaoUtils';
+import type { BeneficioExtra } from '@/hooks/useBeneficiosExtras';
 import type { VehicleType } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -22,6 +23,10 @@ export function usePublicQuotation() {
   const [configFinanceira, setConfigFinanceira] = useState<ConfiguracaoFinanceira | null>(null);
   const [loading, setLoading] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
+  
+  // Benefícios extras selecionados
+  const [beneficiosSelecionadosIds, setBeneficiosSelecionadosIds] = useState<string[]>([]);
+  const [beneficiosSelecionadosObjs, setBeneficiosSelecionadosObjs] = useState<BeneficioExtra[]>([]);
 
   // Carregar cotas públicas (ativas)
   useEffect(() => {
@@ -78,6 +83,7 @@ export function usePublicQuotation() {
       participacao: resultado.participacao,
       valorFipe: veiculo.valor_fipe,
       cotaNome: resultado.cotaNome,
+      valorMensalBase: resultado.valorFinal,
       beneficios: [
         'Proteção contra roubo e furto',
         'Assistência 24h',
@@ -358,6 +364,8 @@ export function usePublicQuotation() {
     setCotacao(null);
     setDadosCadastro(null);
     setDocumentos([]);
+    setBeneficiosSelecionadosIds([]);
+    setBeneficiosSelecionadosObjs([]);
   };
 
   const enviarPropostaWhatsApp = () => {
@@ -375,11 +383,32 @@ export function usePublicQuotation() {
       `🔹 Participação: R$ ${cotacao.participacao.toFixed(2)}\n\n` +
       `✅ Benefícios inclusos:\n` +
       cotacao.beneficios.map(b => `• ${b}`).join('\n') +
+      (beneficiosSelecionadosObjs.length > 0 ? 
+        `\n\n➕ Benefícios Extras:\n` + beneficiosSelecionadosObjs.map(b => `• ${b.nome} (+ R$ ${Number(b.valor_mensal).toFixed(2)})`).join('\n') 
+        : '') +
+      `\n\n💰 Valor Total: R$ ${cotacao.mensalidade.toFixed(2)}` +
       `\n\nPara contratar, continue pelo site ou responda esta mensagem!`
     );
     
     const url = `https://api.whatsapp.com/send?phone=${telefoneFormatado}&text=${mensagem}`;
     window.open(url, '_blank');
+  };
+
+  const setBeneficiosExtras = (ids: string[], objs: BeneficioExtra[]) => {
+    setBeneficiosSelecionadosIds(ids);
+    setBeneficiosSelecionadosObjs(objs);
+    
+    if (cotacao) {
+      const valorBase = cotacao.valorMensalBase || cotacao.mensalidade;
+      const extraTotal = objs.reduce((acc, b) => acc + Number(b.valor_mensal || 0), 0);
+      
+      setCotacao({
+        ...cotacao,
+        mensalidade: valorBase + extraTotal,
+        beneficiosExtras: ids,
+        valorMensalBase: valorBase
+      });
+    }
   };
 
   return {
@@ -391,6 +420,8 @@ export function usePublicQuotation() {
     documentos,
     configFinanceira,
     loading,
+    beneficiosSelecionadosIds,
+    beneficiosSelecionadosObjs,
     
     // Actions
     avancarParaDadosPessoais,
@@ -403,5 +434,6 @@ export function usePublicQuotation() {
     confirmarPagamento,
     reiniciar,
     enviarPropostaWhatsApp,
+    setBeneficiosExtras,
   };
 }
