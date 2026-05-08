@@ -381,55 +381,108 @@ export default function LayoutCotacaoHarmony() {
     }, 100);
   };
 
+  // Aguarda todas as <img> dentro do elemento carregarem (evita captura em branco)
+  const waitForImages = async (root: HTMLElement, timeoutMs = 8000): Promise<void> => {
+    const imgs = Array.from(root.querySelectorAll("img"));
+    if (imgs.length === 0) return;
+
+    const promises = imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      // Tenta forçar CORS para evitar canvas tainted
+      try {
+        if (!img.crossOrigin) img.crossOrigin = "anonymous";
+      } catch {}
+      return new Promise<void>((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+        // fallback: resolve sempre após o timeout
+        setTimeout(done, timeoutMs);
+      });
+    });
+
+    await Promise.all(promises);
+  };
+
   const handleGeneratePdf = async () => {
-    if (!pdfContentRef.current) return;
+    if (!pdfContentRef.current) {
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Conteúdo da cotação ainda não está pronto. Aguarde e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validação básica dos dados antes de gerar
+    if (!cotacao) {
+      toast({
+        title: "Cotação não carregada",
+        description: "Recarregue a página antes de gerar o PDF.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsGeneratingPdf(true);
 
+    const element = pdfContentRef.current;
+    const backCoverElement = element.querySelector('.pdf-back-cover') as HTMLElement | null;
+
     try {
-      const element = pdfContentRef.current;
       const filename = `Proposta_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
 
-      const backCoverElement = element.querySelector('.pdf-back-cover') as HTMLElement;
       if (backCoverElement && temContracapa) {
         backCoverElement.style.display = 'flex';
       }
 
+      // Garante que o DOM atualizou e que todas as imagens (capa/contracapa/logos) carregaram
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await waitForImages(element);
+
       const opt = {
         margin: 0,
         filename: filename,
-        image: { 
-          type: "jpeg", 
-          quality: 0.92
+        image: {
+          type: "jpeg",
+          quality: 0.95,
         },
-        html2canvas: { 
-          scale: 2.5,
+        html2canvas: {
+          scale: 2,
           useCORS: true,
+          allowTaint: true,        // permite imagens cross-origin sem quebrar a captura
           logging: false,
           letterRendering: true,
-          allowTaint: false,
           backgroundColor: "#ffffff",
+          imageTimeout: 15000,
+          windowWidth: element.scrollWidth,
+          windowHeight: element.scrollHeight,
         },
-        jsPDF: { 
-          unit: "mm", 
-          format: "a4", 
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
           orientation: "portrait",
           compress: true,
         },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
-      const pdfInstance = html2pdf().set(opt).from(element);
-      const blob = await pdfInstance.outputPdf("blob");
+      const blob: Blob = await html2pdf().set(opt).from(element).outputPdf("blob");
 
-      if (backCoverElement && temContracapa) {
-        backCoverElement.style.display = 'none';
+      // Sanity-check: PDF "em branco" geralmente é muito pequeno (< ~5 KB)
+      if (!blob || blob.size < 2000) {
+        throw new Error(`PDF gerado vazio (size=${blob?.size ?? 0} bytes)`);
       }
-      
-      setPdfBlob(blob);
+
+      // Garante MIME type correto
+      const pdfBlob = blob.type === "application/pdf"
+        ? blob
+        : new Blob([blob], { type: "application/pdf" });
+
+      setPdfBlob(pdfBlob);
       setPdfFilename(filename);
 
-      const publicUrl = await uploadPdfToStorage(blob, filename);
+      const publicUrl = await uploadPdfToStorage(pdfBlob, filename);
       if (publicUrl) {
         setPdfUrl(publicUrl);
       }
@@ -440,14 +493,20 @@ export default function LayoutCotacaoHarmony() {
         title: "PDF gerado com sucesso!",
         description: "Escolha como deseja compartilhar.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao gerar PDF:", error);
       toast({
         title: "Erro ao gerar PDF",
-        description: "Tente novamente ou use a opção de imprimir.",
+        description:
+          error?.message?.includes("vazio")
+            ? "PDF saiu em branco. Verifique a conexão e tente novamente — pode ser bloqueio de imagens da capa."
+            : (error?.message || "Tente novamente ou use a opção de imprimir."),
         variant: "destructive",
       });
     } finally {
+      if (backCoverElement && temContracapa) {
+        backCoverElement.style.display = 'none';
+      }
       setIsGeneratingPdf(false);
     }
   };
