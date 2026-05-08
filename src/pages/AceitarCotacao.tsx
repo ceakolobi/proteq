@@ -119,8 +119,8 @@ export default function AceitarCotacao() {
       <div className="max-w-xl mx-auto space-y-6">
         {/* Cabeçalho */}
         <div className="text-center space-y-2">
-          {brand?.logo && (
-            <img src={brand.logo} alt={brand.companyName} className="h-12 mx-auto object-contain" />
+          {brand?.logos?.primary && (
+            <img src={brand.logos.primary} alt={brand.name} className="h-12 mx-auto object-contain" />
           )}
           <h1 className="text-2xl md:text-3xl font-bold">Sua proposta está pronta</h1>
           <p className="text-sm text-muted-foreground">
