@@ -191,6 +191,7 @@ const App = () => (
                 <Route path="/segunda-via-boleto" element={<SegundaViaBoleto />} />
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
                 <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
+                <Route path="/aceitar/:token" element={<AceitarCotacao />} />
 
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />
