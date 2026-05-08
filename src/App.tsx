@@ -36,6 +36,7 @@ import DocumentosContratos from "./pages/DocumentosContratos";
 import BeneficiosExtras from "./pages/BeneficiosExtras";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
+import AceitarCotacao from "./pages/AceitarCotacao";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
