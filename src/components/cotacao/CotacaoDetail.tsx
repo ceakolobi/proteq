@@ -120,10 +120,48 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const [isCreatingVistoria, setIsCreatingVistoria] = useState(false);
   const [vistoriaLink, setVistoriaLink] = useState<string | null>(null);
   const [vistoriaId, setVistoriaId] = useState<string | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const canManage = isAdminPrincipal || hasRole('admin_regional') || cotacao.consultor_id === user?.id;
   const isAprovado = cotacao.status === 'aprovado';
+  const isAceita = cotacao.status === 'aceita' || !!(cotacao as any).aceita_em;
   const canApprove = cotacao.status !== 'aprovado' && cotacao.status !== 'perdido' && canManage;
+
+  // Marca cotação como aceita (CRM interno) — dispara vistoria automaticamente
+  const handleMarcarAceita = async () => {
+    if (!confirm('Confirma marcar esta cotação como ACEITA? Isso disparará o fluxo de vistoria.')) return;
+    setIsAccepting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('aceitar-cotacao', {
+        body: { cotacao_id: cotacao.id, internal: true },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Falha ao aceitar');
+
+      toast.success(
+        data.vistoria_url
+          ? 'Cotação aceita! Vistoria criada e link disponível.'
+          : 'Cotação aceita!'
+      );
+      onUpdate();
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao aceitar cotação');
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  // Copia link público de aceite para o cliente
+  const handleCopyAceiteLink = () => {
+    const token = (cotacao as any).aceite_token;
+    if (!token) {
+      toast.error('Cotação ainda não tem link de aceite. Recarregue.');
+      return;
+    }
+    const url = `${window.location.origin}/aceitar/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link de aceite copiado!');
+  };
 
   const formatCurrency = (value: number | null | undefined) => {
     if (value == null) return '-';
