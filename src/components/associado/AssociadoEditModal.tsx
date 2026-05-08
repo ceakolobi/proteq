@@ -391,7 +391,7 @@ export function AssociadoEditModal({
 
       const { error } = await supabase
         .from('associados')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', associado.id);
 
       if (error) throw error;

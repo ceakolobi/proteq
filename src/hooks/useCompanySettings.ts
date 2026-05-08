@@ -199,7 +199,7 @@ export function useCompanySettings() {
 
         const { error } = await supabase
           .from("settings")
-          .update(legacyUpdates)
+          .update(legacyUpdates as never)
           .eq("id", settings.id);
 
         if (error) {
@@ -242,7 +242,7 @@ export function useCompanySettings() {
 
       const { error } = await supabase
         .from("companies")
-        .update(companyUpdates)
+        .update(companyUpdates as never)
         .eq("id", settings.id);
 
       if (error) {
