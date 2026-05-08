@@ -559,9 +559,32 @@ _Proteção Veicular_`;
             {tipoBemLabels[cotacao.tipo_bem]} • {cotacao.ano_fabricacao}
           </p>
         </div>
-        <Badge className={`${cotacaoStatusColors[cotacao.status]} text-sm`}>
-          {cotacaoStatusLabels[cotacao.status]}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge className={`${cotacaoStatusColors[cotacao.status]} text-sm`}>
+            {cotacaoStatusLabels[cotacao.status]}
+          </Badge>
+          {canManage && !isAceita && (
+            <Button
+              size="sm"
+              onClick={handleMarcarAceita}
+              disabled={isAccepting}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {isAccepting ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-1" />
+              )}
+              Marcar Aceita
+            </Button>
+          )}
+          {canManage && (
+            <Button size="sm" variant="outline" onClick={handleCopyAceiteLink}>
+              <MessageCircle className="w-4 h-4 mr-1" />
+              Copiar link de aceite
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
