@@ -328,7 +328,7 @@ export default function Ativacoes() {
 
       const { error } = await supabase
         .from('ativacoes')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', selectedAtivacao.id);
 
       if (error) throw error;

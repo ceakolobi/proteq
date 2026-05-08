@@ -326,7 +326,7 @@ export default function Vistorias() {
 
       const { error } = await supabase
         .from('vistorias')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', selectedVistoria.id);
 
       if (error) throw error;
