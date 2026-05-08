@@ -36,6 +36,7 @@ import DocumentosContratos from "./pages/DocumentosContratos";
 import BeneficiosExtras from "./pages/BeneficiosExtras";
 import VistoriaPublica from "./pages/VistoriaPublica";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
+import AceitarCotacao from "./pages/AceitarCotacao";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
@@ -190,6 +191,7 @@ const App = () => (
                 <Route path="/segunda-via-boleto" element={<SegundaViaBoleto />} />
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
                 <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
+                <Route path="/aceitar/:token" element={<AceitarCotacao />} />
 
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />

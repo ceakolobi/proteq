@@ -999,6 +999,10 @@ export type Database = {
       }
       cotacoes: {
         Row: {
+          aceita_em: string | null
+          aceita_ip: string | null
+          aceite_expires_at: string | null
+          aceite_token: string | null
           ajuste_geral_valor: number | null
           ajuste_individual_valor: number | null
           ano_fabricacao: number
@@ -1052,6 +1056,10 @@ export type Database = {
           veiculo_id: string | null
         }
         Insert: {
+          aceita_em?: string | null
+          aceita_ip?: string | null
+          aceite_expires_at?: string | null
+          aceite_token?: string | null
           ajuste_geral_valor?: number | null
           ajuste_individual_valor?: number | null
           ano_fabricacao: number
@@ -1105,6 +1113,10 @@ export type Database = {
           veiculo_id?: string | null
         }
         Update: {
+          aceita_em?: string | null
+          aceita_ip?: string | null
+          aceite_expires_at?: string | null
+          aceite_token?: string | null
           ajuste_geral_valor?: number | null
           ajuste_individual_valor?: number | null
           ano_fabricacao?: number
