@@ -136,25 +136,54 @@ export const PdfActionsModal = ({
     }
 
     const numeroFormatado = formatWhatsappNumber(whatsappNumero);
-    const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
-    
-    const mensagem = `${saudacao}, tudo bem?
-Aqui é da *${empresaNome}*.
-Segue sua *Proposta de Cotação* preparada especialmente para o seu veículo 🚗🚜🚚
+    const nomePrimeiro = (clienteNome || '').split(' ')[0] || 'tudo bem';
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const veiculoLinha = modelo ? `\n• *Veículo:* ${modelo}` : '';
+    const mensalidadeLinha = mensalidade
+      ? `*Mensalidade Base:* apenas *${mensalidade}/mês*`
+      : `*Mensalidade Base:* condições no PDF anexo`;
 
-✔️ Proteção completa
-✔️ Assistência 24h
-✔️ Coberturas reais e objetivas
-✔️ Mensalidade acessível
+    const mensagem = `${siteUrl}
 
-📄 ${pdfUrl ? `Acesse o PDF com todos os detalhes:\n${pdfUrl}` : "Estou lhe enviando o PDF com todos os detalhes."}
+*Olá, ${nomePrimeiro}!* Tudo bem?
 
-Qualquer dúvida estou à disposição 🙏
+Aqui é da *${empresaNome}*. Conforme conversamos, preparei a sua proposta de proteção veicular, com foco em segurança e o melhor custo-benefício.
+
+━━━━━━━━━━━━━━━
+📋 *RESUMO DA SUA COTAÇÃO*
+━━━━━━━━━━━━━━━${veiculoLinha}
+
+🔒 *COBERTURA INTEGRAL (Plano Base):*
+• Roubo, Furto, Colisão e Incêndio (100% FIPE)
+• Proteção contra Terceiros
+• Fenômenos da Natureza (Granizo, Enchentes, etc.)
+• Assistência 24h Padrão (Guincho, Chaveiro, Bateria)
+
+━━━━━━━━━━━━━━━
+⚡ *OPCIONAIS DISPONÍVEIS*
+━━━━━━━━━━━━━━━
+🚗 *Carro Reserva:* +30 dias (R$ 39,90) ou +90 dias (R$ 59,90)
+🛠️ *Clube de Benefícios:* descontos em oficinas, guincho expandido e assistência 24h ampliada
+
+━━━━━━━━━━━━━━━
+💰 *INVESTIMENTO*
+━━━━━━━━━━━━━━━
+${mensalidadeLinha}
+
+🎁 *1ª mensalidade GRÁTIS*
+✅ *SEM* taxa de adesão  ✅ *SEM* análise de condutor  ✅ *SEM* consulta SPC/Serasa
+
+📄 ${pdfUrl ? `Proposta completa em PDF:\n${pdfUrl}` : "Estou lhe enviando o PDF com todos os detalhes."}
+
+━━━━━━━━━━━━━━━
+📲 *Como deseja prosseguir?*
+━━━━━━━━━━━━━━━
+1️⃣ Fechar o *Plano Base* agora
+2️⃣ Incluir *opcionais* (me diga quais!)
+3️⃣ Tirar *dúvidas* com um consultor
 
 ⏳ *Validade da proposta:* ${validadeDias} dias
-
-🤝 Conte com a gente!
-_${empresaNome} - Proteção Veicular_`;
+🤝 _${empresaNome} — Proteção Veicular_`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");

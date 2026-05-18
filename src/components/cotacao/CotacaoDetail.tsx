@@ -358,24 +358,66 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     }
 
     const numeroFormatado = formatWhatsappNumber(clienteWhatsapp);
-    const saudacao = clienteNome ? `Olá ${clienteNome} 👋` : "Olá 👋";
-    
-    const mensagem = `${saudacao}, tudo bem?
-Segue sua *Proposta de Cotação* preparada especialmente para o seu ${cotacao.marca} ${cotacao.modelo} 🚗🚜🚚
+    const nomePrimeiro = (clienteNome || '').split(' ')[0] || 'tudo bem';
+    const veiculo = `${cotacao.marca} ${cotacao.modelo}${cotacao.ano_modelo ? ` ${cotacao.ano_modelo}` : ''}`;
+    const valorFipeFmt = cotacao.valor_fipe ? formatCurrency(cotacao.valor_fipe) : formatCurrency(cotacao.valor_bem);
+    const mensalidadeFmt = formatCurrency(cotacao.mensalidade);
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
-✔️ Proteção completa
-✔️ Assistência 24h
-✔️ Coberturas reais e objetivas
-✔️ Mensalidade: *${formatCurrency(cotacao.mensalidade)}*
+    const mensagem = `${siteUrl}
 
-Para ver o PDF completo, acesse o sistema e gere a proposta.
+*Olá, ${nomePrimeiro}!* Tudo bem?
 
-Qualquer dúvida estou à disposição 🙏
+Conforme conversamos, preparei a proposta de proteção para o seu veículo. Focamos em garantir o melhor custo-benefício com a máxima segurança para você.
+
+━━━━━━━━━━━━━━━
+📋 *RESUMO DA SUA COTAÇÃO*
+━━━━━━━━━━━━━━━
+
+• *Veículo:* ${veiculo}
+• *FIPE de Referência:* ${valorFipeFmt}
+
+🔒 *COBERTURA INTEGRAL INCLUSA (Plano Base):*
+• Roubo, Furto, Colisão e Incêndio (100% FIPE)
+• Proteção contra Terceiros
+• Fenômenos da Natureza (Granizo, Enchentes, etc.)
+• Assistência 24h Padrão (Guincho, Chaveiro, Carga de Bateria)
+
+━━━━━━━━━━━━━━━
+⚡ *PERSONALIZE SUA PROTEÇÃO (Opcionais)*
+━━━━━━━━━━━━━━━
+_Escolha o que faz mais sentido para o seu dia a dia:_
+
+🚗 *Carro Reserva Estendido:*
+▫️ +30 dias: *R$ 39,90/mês*
+▫️ +90 dias: *R$ 59,90/mês*
+
+🛠️ *Clube de Benefícios & Oficinas:*
+▫️ Descontos exclusivos em oficinas credenciadas
+▫️ Km de guincho expandido
+▫️ Assistência 24h ampliada
+
+━━━━━━━━━━━━━━━
+💰 *INVESTIMENTO*
+━━━━━━━━━━━━━━━
+
+*Mensalidade Base:* apenas *${mensalidadeFmt}/mês*
+_(opcionais escolhidos são somados à mensalidade)_
+
+🎁 *1ª mensalidade GRÁTIS*
+✅ *SEM* taxa de adesão
+✅ *SEM* análise de condutor
+✅ *SEM* consulta SPC/Serasa
+
+━━━━━━━━━━━━━━━
+📲 *Como deseja prosseguir?*
+━━━━━━━━━━━━━━━
+1️⃣ Quero fechar o *Plano Base* agora
+2️⃣ Quero incluir *opcionais* (me diga quais!)
+3️⃣ Tenho *dúvidas* e quero falar com um consultor
 
 ⏳ *Validade da proposta:* 7 dias
-
-🤝 Conte com a gente!
-_Proteção Veicular_`;
+🤝 _Conte com a gente!_`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
