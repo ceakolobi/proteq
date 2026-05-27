@@ -269,66 +269,44 @@ export function ResultadoCotacao({
   };
 
   const handleWhatsAppPDF = async () => {
-    const pendingWindow = window.open('about:blank', '_blank');
-    pendingWindow?.document.write(
-      '<p style="font-family: Arial, sans-serif; padding: 24px;">Gerando PDF da proposta para WhatsApp...</p>',
-    );
-
     setLoadingAction('whatsapp');
     try {
-      const result = await gerarPDF();
-      if (!result) {
-        pendingWindow?.close();
-        return;
+      const veic = dadosVeiculo;
+      const valorMensal = cotacao?.valorMensal ?? 0;
+      const fipe = cotacao?.valorFipe ?? 0;
+      const cobertura = cotacao?.coberturaTotal ?? fipe;
+
+      const linhas: string[] = [];
+      linhas.push('*Sua cotação Harmony Agro*');
+      linhas.push('');
+      linhas.push(`👤 ${dadosPessoais.nome}`);
+      if (veic) {
+        linhas.push(`🚗 ${veic.marca} ${veic.modelo} ${veic.ano}`);
+        if (veic.placa) linhas.push(`🔖 Placa: ${veic.placa}`);
       }
+      if (fipe) linhas.push(`💰 Valor FIPE: ${formatCurrency(fipe)}`);
+      if (cobertura) linhas.push(`🛡️ Cobertura: ${formatCurrency(cobertura)}`);
+      linhas.push('');
+      linhas.push(`✅ *Mensalidade: ${formatCurrency(valorMensal)}*`);
+      linhas.push('🎁 1ª mensalidade grátis');
+      linhas.push('🚫 Sem taxa de adesão');
+      linhas.push('🚫 Sem análise de condutor');
+      linhas.push('🚫 Sem consulta SPC/Serasa');
+      linhas.push('');
+      linhas.push('Quero saber mais sobre essa proteção!');
 
-      const pdfFile = new File([result.blob], filename, { type: 'application/pdf' });
-      const shareData = {
-        title: 'Proposta Harmony Agro',
-        text: 'Segue sua proposta de cotação em PDF.',
-        files: [pdfFile],
-      };
-
-      if (navigator.canShare?.(shareData)) {
-        pendingWindow?.close();
-        await navigator.share(shareData);
-        return;
-      }
-
-      const { data, error: uploadError } = await supabase.functions.invoke('upload-proposta-publica', {
-        body: {
-          filename,
-          pdfBase64: result.base64,
-        },
-      });
-
-      if (uploadError) throw uploadError;
-      if (!data?.publicUrl) throw new Error('Não foi possível gerar o link público do PDF.');
-
-      const url = data.publicUrl as string;
+      const message = linhas.join('\n');
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
-      const message = `Olá! Segue sua proposta de cotação em PDF: ${url}`;
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = telefone
-        ? `https://wa.me/${telefone}?text=${encodedMessage}`
-        : `https://wa.me/?text=${encodedMessage}`;
 
       await navigator.clipboard?.writeText(message).catch(() => undefined);
-
-      if (pendingWindow && !pendingWindow.closed) {
-        pendingWindow.location.replace(whatsappUrl);
-      } else {
-        openWhatsApp(telefone, message);
-      }
+      openWhatsApp(telefone, message);
 
       toast({
-        title: 'Proposta pronta',
-        description: 'Abrindo o WhatsApp. Se não abrir, a mensagem com o link do PDF já foi copiada.',
+        title: 'Abrindo WhatsApp',
+        description: 'Mensagem com a cotação pronta. Também copiamos para sua área de transferência.',
       });
-
     } catch (e: unknown) {
-      pendingWindow?.close();
-      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: getErrorMessage(e) });
+      toast({ variant: 'destructive', title: 'Erro ao abrir WhatsApp', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
