@@ -49,9 +49,19 @@ const formatCurrency = (value: number) => {
 };
 
 const getWhatsAppPhone = (telefone?: string) => {
-  const digits = (telefone || '').replace(/\D/g, '');
+  let digits = (telefone || '').replace(/\D/g, '');
   if (!digits) return '';
+  if (digits.startsWith('00')) digits = digits.replace(/^00+/, '');
+  if (!digits.startsWith('55')) digits = digits.replace(/^0+/, '');
   return digits.startsWith('55') ? digits : `55${digits}`;
+};
+
+const openWhatsApp = (telefone: string, mensagem: string) => {
+  const text = encodeURIComponent(mensagem);
+  const url = telefone
+    ? `https://wa.me/${telefone}?text=${text}`
+    : `https://wa.me/?text=${text}`;
+  window.location.href = url;
 };
 
 export function ResultadoCotacao({
@@ -247,37 +257,34 @@ export function ResultadoCotacao({
   };
 
   const handleWhatsAppPDF = async () => {
-    // Abrir a janela SINCRONAMENTE para evitar bloqueio de pop-up
-    const waWindow = window.open('about:blank', '_blank');
-    if (waWindow) {
-      waWindow.document.write('<p style="font-family: Arial, sans-serif; padding: 24px;">Gerando proposta para WhatsApp...</p>');
-    }
     setLoadingAction('whatsapp');
     try {
       const result = await gerarPDF();
-      if (!result) {
-        waWindow?.close();
+      if (!result) return;
+
+      const pdfFile = new File([result.blob], filename, { type: 'application/pdf' });
+      const shareData = {
+        title: 'Proposta Harmony Agro',
+        text: 'Segue sua proposta de cotação em PDF.',
+        files: [pdfFile],
+      };
+
+      if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
         return;
       }
+
       const path = `${Date.now()}-${filename}`;
       const { error: upErr } = await supabase.storage
         .from('propostas')
         .upload(path, result.blob, { contentType: 'application/pdf', upsert: false });
       if (upErr) throw upErr;
+
       const { data } = supabase.storage.from('propostas').getPublicUrl(path);
       const url = data.publicUrl;
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
-      const text = encodeURIComponent(`Olá! Segue sua proposta de proteção veicular: ${url}`);
-      const waUrl = telefone
-        ? `https://api.whatsapp.com/send?phone=${telefone}&text=${text}`
-        : `https://api.whatsapp.com/send?text=${text}`;
-      if (waWindow && !waWindow.closed) {
-        waWindow.location.replace(waUrl);
-      } else {
-        window.location.assign(waUrl);
-      }
+      openWhatsApp(telefone, `Olá! Segue sua proposta de cotação em PDF: ${url}`);
     } catch (e: any) {
-      waWindow?.close();
       toast({ variant: 'destructive', title: 'Erro ao gerar link', description: e?.message || 'Tente novamente.' });
     } finally {
       setLoadingAction(null);
