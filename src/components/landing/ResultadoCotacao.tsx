@@ -285,7 +285,7 @@ export function ResultadoCotacao({
         if (veic.placa) linhas.push(`🔖 Placa: ${veic.placa}`);
       }
       if (fipe) linhas.push(`💰 Valor FIPE: ${formatCurrency(fipe)}`);
-      if (cobertura) linhas.push(`🛡️ Cobertura: ${formatCurrency(cobertura)}`);
+      if (participacao) linhas.push(`🛡️ Participação: ${formatCurrency(participacao)}`);
       linhas.push('');
       linhas.push(`✅ *Mensalidade: ${formatCurrency(valorMensal)}*`);
       linhas.push('🎁 1ª mensalidade grátis');
