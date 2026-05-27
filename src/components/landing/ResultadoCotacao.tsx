@@ -58,9 +58,13 @@ const getWhatsAppPhone = (telefone?: string) => {
 
 const openWhatsApp = (telefone: string, mensagem: string) => {
   const text = encodeURIComponent(mensagem);
-  const url = telefone
-    ? `https://wa.me/${telefone}?text=${text}`
-    : `https://wa.me/?text=${text}`;
+  const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+  const baseUrl = isMobile ? 'https://wa.me' : 'https://web.whatsapp.com/send';
+  const url = isMobile
+    ? telefone
+      ? `${baseUrl}/${telefone}?text=${text}`
+      : `${baseUrl}/?text=${text}`
+    : `${baseUrl}?${telefone ? `phone=${telefone}&` : ''}text=${text}`;
   const opened = window.open(url, '_blank', 'noopener,noreferrer');
   if (!opened) {
     const link = document.createElement('a');
@@ -71,6 +75,18 @@ const openWhatsApp = (telefone: string, mensagem: string) => {
     link.click();
     document.body.removeChild(link);
   }
+};
+
+const getWhatsAppUrl = (telefone: string, mensagem: string) => {
+  const text = encodeURIComponent(mensagem);
+  const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    return `https://wa.me/${telefone}?text=${text}`;
+  }
+
+  // No desktop, wa.me redireciona para api.whatsapp.com, que pode ser bloqueado no preview.
+  return `https://web.whatsapp.com/send?phone=${telefone}&text=${text}`;
 };
 
 
@@ -305,7 +321,7 @@ export function ResultadoCotacao({
         `📄 Baixe sua proposta completa em PDF:\n${publicUrl}\n\n` +
         `Proposta válida por 7 dias.`;
 
-      const url = `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`;
+      const url = getWhatsAppUrl(telefone, mensagem);
 
       if (waWindow && !waWindow.closed) {
         waWindow.location.href = url;
