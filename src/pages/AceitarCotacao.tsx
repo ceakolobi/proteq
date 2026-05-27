@@ -33,18 +33,17 @@ export default function AceitarCotacao() {
     }
     (async () => {
       const { data, error } = await supabase
-        .from("cotacoes")
-        .select("id, marca, modelo, ano_modelo, valor_bem, mensalidade, cliente_nome, cliente_email, cliente_whatsapp, status, aceite_expires_at, aceita_em, placa")
-        .eq("aceite_token", token)
-        .maybeSingle();
+        .rpc("get_cotacao_publica_by_token", { p_token: token });
 
-      if (error || !data) {
+      const row = Array.isArray(data) ? data[0] : data;
+
+      if (error || !row) {
         setErro("Cotação não encontrada ou link expirado.");
-      } else if (data.aceite_expires_at && new Date(data.aceite_expires_at) < new Date()) {
+      } else if (row.aceite_expires_at && new Date(row.aceite_expires_at) < new Date()) {
         setErro("Este link de cotação expirou. Solicite uma nova proposta.");
       } else {
-        setCotacao(data);
-        if (data.status === "aceita" || data.aceita_em) {
+        setCotacao(row);
+        if (row.status === "aceita" || row.aceita_em) {
           setAceita(true);
         }
       }
