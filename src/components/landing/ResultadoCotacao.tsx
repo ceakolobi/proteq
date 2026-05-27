@@ -417,7 +417,7 @@ export function ResultadoCotacao({
         </div>
 
         {/* Botões de ação */}
-        <Card className="mt-6 shadow-xl" ref={actionsRef as any}>
+        <Card className="mt-6 shadow-xl">
           <CardContent className="pt-6">
             <p className="text-center text-sm text-muted-foreground mb-4">
               Receba sua proposta detalhada
