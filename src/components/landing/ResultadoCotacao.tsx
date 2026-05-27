@@ -247,6 +247,15 @@ export function ResultadoCotacao({
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-16 px-4">
+      {/* Hidden off-screen view used only for PDF capture */}
+      <PropostaPDFView
+        ref={pdfViewRef}
+        dadosPessoais={dadosPessoais}
+        dadosVeiculo={dadosVeiculo}
+        cotacao={cotacao}
+        beneficiosSelecionadosIds={beneficiosSelecionadosIds}
+      />
+
       <div className="container mx-auto max-w-5xl" ref={pdfRef}>
         {/* Header */}
         <div className="text-center mb-10">
