@@ -269,44 +269,48 @@ export function ResultadoCotacao({
   };
 
   const handleWhatsAppPDF = async () => {
+    const telefone = getWhatsAppPhone(dadosPessoais.telefone);
+    if (!telefone) {
+      toast({
+        variant: 'destructive',
+        title: 'Telefone não informado',
+        description: 'Informe o WhatsApp do cliente antes de enviar a proposta.',
+      });
+      return;
+    }
+
     setLoadingAction('whatsapp');
     try {
-      const veic = dadosVeiculo;
-      const valorMensal = cotacao?.mensalidade ?? 0;
-      const fipe = cotacao?.valorFipe ?? 0;
-      const participacao = cotacao?.participacao ?? 0;
+      const result = await gerarPDF();
+      if (!result) throw new Error('Falha ao gerar PDF');
 
-      const linhas: string[] = [];
-      linhas.push('*Sua cotação Harmony Agro*');
-      linhas.push('');
-      linhas.push(`👤 ${dadosPessoais.nome}`);
-      if (veic) {
-        linhas.push(`🚗 ${veic.marca} ${veic.modelo} ${veic.ano}`);
-        if (veic.placa) linhas.push(`🔖 Placa: ${veic.placa}`);
-      }
-      if (fipe) linhas.push(`💰 Valor FIPE: ${formatCurrency(fipe)}`);
-      if (participacao) linhas.push(`🛡️ Participação: ${formatCurrency(participacao)}`);
-      linhas.push('');
-      linhas.push(`✅ *Mensalidade: ${formatCurrency(valorMensal)}*`);
-      linhas.push('🎁 1ª mensalidade grátis');
-      linhas.push('🚫 Sem taxa de adesão');
-      linhas.push('🚫 Sem análise de condutor');
-      linhas.push('🚫 Sem consulta SPC/Serasa');
-      linhas.push('');
-      linhas.push('Quero saber mais sobre essa proteção!');
-
-      const message = linhas.join('\n');
-      const telefone = getWhatsAppPhone(dadosPessoais.telefone);
-
-      await navigator.clipboard?.writeText(message).catch(() => undefined);
-      openWhatsApp(telefone, message);
-
-      toast({
-        title: 'Abrindo WhatsApp',
-        description: 'Mensagem com a cotação pronta. Também copiamos para sua área de transferência.',
+      const { data, error } = await supabase.functions.invoke('upload-proposta-publica', {
+        body: { filename, pdfBase64: result.base64 },
       });
+      if (error) throw error;
+      const publicUrl = (data as { publicUrl?: string })?.publicUrl;
+      if (!publicUrl) throw new Error('URL pública não retornada');
+
+      const nomeCliente = dadosPessoais.nome?.split(' ')[0] || 'cliente';
+      const modelo = `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`;
+      const mensagem =
+        `Olá ${nomeCliente}! 😊\n\n` +
+        `Segue sua proposta de proteção veicular Harmony Agro:\n\n` +
+        `🚗 Veículo: ${modelo} - ${dadosVeiculo.ano}\n` +
+        `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n\n` +
+        `📄 Baixe sua proposta completa em PDF:\n${publicUrl}\n\n` +
+        `Proposta válida por 7 dias.`;
+
+      const url = `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`;
+      window.open(url, '_blank');
+
+      toast({ title: 'Proposta gerada!', description: 'Abrindo WhatsApp com o link do PDF.' });
     } catch (e: unknown) {
-      toast({ variant: 'destructive', title: 'Erro ao abrir WhatsApp', description: getErrorMessage(e) });
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível gerar a proposta. Tente novamente.',
+      });
     } finally {
       setLoadingAction(null);
     }
