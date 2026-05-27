@@ -59,8 +59,8 @@ const getWhatsAppPhone = (telefone?: string) => {
 const openWhatsApp = (telefone: string, mensagem: string) => {
   const text = encodeURIComponent(mensagem);
   const url = telefone
-    ? `https://wa.me/${telefone}?text=${text}`
-    : `https://wa.me/?text=${text}`;
+    ? `whatsapp://send?phone=${telefone}&text=${text}`
+    : `whatsapp://send?text=${text}`;
   const opened = window.open(url, '_blank', 'noopener,noreferrer');
   if (!opened) {
     const link = document.createElement('a');
@@ -307,14 +307,21 @@ export function ResultadoCotacao({
       const message = `Olá! Segue sua proposta de cotação em PDF: ${url}`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = telefone
-        ? `https://wa.me/${telefone}?text=${encodedMessage}`
-        : `https://wa.me/?text=${encodedMessage}`;
+        ? `whatsapp://send?phone=${telefone}&text=${encodedMessage}`
+        : `whatsapp://send?text=${encodedMessage}`;
+
+      await navigator.clipboard?.writeText(message).catch(() => undefined);
 
       if (pendingWindow && !pendingWindow.closed) {
         pendingWindow.location.replace(whatsappUrl);
       } else {
         openWhatsApp(telefone, message);
       }
+
+      toast({
+        title: 'Proposta pronta',
+        description: 'Abrindo o app do WhatsApp. Se não abrir, a mensagem com o link do PDF já foi copiada.',
+      });
 
     } catch (e: unknown) {
       pendingWindow?.close();
