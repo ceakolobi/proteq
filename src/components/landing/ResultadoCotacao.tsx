@@ -48,6 +48,12 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const getWhatsAppPhone = (telefone?: string) => {
+  const digits = (telefone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.startsWith('55') ? digits : `55${digits}`;
+};
+
 export function ResultadoCotacao({
   dadosPessoais,
   dadosVeiculo,
@@ -243,6 +249,9 @@ export function ResultadoCotacao({
   const handleWhatsAppPDF = async () => {
     // Abrir a janela SINCRONAMENTE para evitar bloqueio de pop-up
     const waWindow = window.open('about:blank', '_blank');
+    if (waWindow) {
+      waWindow.document.write('<p style="font-family: Arial, sans-serif; padding: 24px;">Gerando proposta para WhatsApp...</p>');
+    }
     setLoadingAction('whatsapp');
     try {
       const result = await gerarPDF();
@@ -257,21 +266,15 @@ export function ResultadoCotacao({
       if (upErr) throw upErr;
       const { data } = supabase.storage.from('propostas').getPublicUrl(path);
       const url = data.publicUrl;
-      const telefone = (dadosPessoais.telefone || '').replace(/\D/g, '');
+      const telefone = getWhatsAppPhone(dadosPessoais.telefone);
       const text = encodeURIComponent(`Olá! Segue sua proposta de proteção veicular: ${url}`);
       const waUrl = telefone
-        ? `https://wa.me/55${telefone}?text=${text}`
-        : `https://wa.me/?text=${text}`;
+        ? `https://api.whatsapp.com/send?phone=${telefone}&text=${text}`
+        : `https://api.whatsapp.com/send?text=${text}`;
       if (waWindow && !waWindow.closed) {
-        waWindow.location.href = waUrl;
+        waWindow.location.replace(waUrl);
       } else {
-        // Fallback: copiar link
-        try {
-          await navigator.clipboard.writeText(waUrl);
-          toast({ title: 'Pop-up bloqueado', description: 'Link do WhatsApp copiado. Cole no navegador.' });
-        } catch {
-          toast({ variant: 'destructive', title: 'Pop-up bloqueado', description: 'Permita pop-ups para enviar pelo WhatsApp.' });
-        }
+        window.location.assign(waUrl);
       }
     } catch (e: any) {
       waWindow?.close();
