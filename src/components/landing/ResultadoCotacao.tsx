@@ -241,10 +241,15 @@ export function ResultadoCotacao({
   };
 
   const handleWhatsAppPDF = async () => {
+    // Abrir a janela SINCRONAMENTE para evitar bloqueio de pop-up
+    const waWindow = window.open('about:blank', '_blank');
     setLoadingAction('whatsapp');
     try {
       const result = await gerarPDF();
-      if (!result) return;
+      if (!result) {
+        waWindow?.close();
+        return;
+      }
       const path = `${Date.now()}-${filename}`;
       const { error: upErr } = await supabase.storage
         .from('propostas')
@@ -253,17 +258,29 @@ export function ResultadoCotacao({
       const { data } = supabase.storage.from('propostas').getPublicUrl(path);
       const url = data.publicUrl;
       const telefone = (dadosPessoais.telefone || '').replace(/\D/g, '');
-      const text = encodeURIComponent(`Segue sua proposta: ${url}`);
+      const text = encodeURIComponent(`Olá! Segue sua proposta de proteção veicular: ${url}`);
       const waUrl = telefone
         ? `https://wa.me/55${telefone}?text=${text}`
         : `https://wa.me/?text=${text}`;
-      window.open(waUrl, '_blank');
+      if (waWindow && !waWindow.closed) {
+        waWindow.location.href = waUrl;
+      } else {
+        // Fallback: copiar link
+        try {
+          await navigator.clipboard.writeText(waUrl);
+          toast({ title: 'Pop-up bloqueado', description: 'Link do WhatsApp copiado. Cole no navegador.' });
+        } catch {
+          toast({ variant: 'destructive', title: 'Pop-up bloqueado', description: 'Permita pop-ups para enviar pelo WhatsApp.' });
+        }
+      }
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: e?.message });
+      waWindow?.close();
+      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: e?.message || 'Tente novamente.' });
     } finally {
       setLoadingAction(null);
     }
   };
+
 
   const isLoading = loadingAction !== null;
 
