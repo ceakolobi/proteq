@@ -933,7 +933,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   <Button variant="outline" onClick={onCancel} className="flex-1">
                     Cancelar
                   </Button>
-                  <Button onClick={handleSalvar} className="flex-1">
+                  <Button onClick={() => handleSalvar()} className="flex-1">
                     <FileText className="w-4 h-4 mr-2" />
                     Salvar Cotação
                   </Button>
