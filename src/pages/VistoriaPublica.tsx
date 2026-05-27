@@ -80,34 +80,19 @@ export default function VistoriaPublica() {
 
   const fetchVistoria = async () => {
     try {
-      const { data, error } = await supabase
-        .from('vistorias')
-        .select(`
-          id,
-          token_acesso,
-          token_expires_at,
-          status,
-          tipo_vistoria,
-          checklist,
-          fotos,
-          observacoes,
-          veiculo:veiculos!vistorias_veiculo_id_fkey (
-            id,
-            marca,
-            modelo,
-            placa,
-            ano
-          ),
-          associado:associados!vistorias_associado_id_fkey (
-            id,
-            nome_completo
-          )
-        `)
-        .eq('token_acesso', token)
-        .single();
+      const { data: rows, error } = await supabase
+        .rpc('get_vistoria_publica_by_token', { p_token: token });
 
+      const data = rows?.[0];
       if (error || !data) {
-        setNotFound(true);
+        // Could be expired or not found
+        const { data: anyRows } = await supabase
+          .rpc('get_vistoria_publica_by_token', { p_token: token });
+        if (!anyRows?.[0]) {
+          setNotFound(true);
+        } else {
+          setIsExpired(true);
+        }
         return;
       }
 
@@ -122,8 +107,27 @@ export default function VistoriaPublica() {
         setIsCompleted(true);
       }
 
-      setVistoria(data as unknown as VistoriaData);
-      setChecklist(data.checklist as Record<string, boolean> || {});
+      const mapped: VistoriaData = {
+        id: data.id,
+        token_acesso: data.token_acesso,
+        token_expires_at: data.token_expires_at,
+        status: data.status,
+        tipo_vistoria: data.tipo_vistoria,
+        checklist: data.checklist as Record<string, boolean> | null,
+        fotos: data.fotos,
+        observacoes: data.observacoes,
+        veiculo: {
+          id: data.veiculo_id,
+          marca: data.veiculo_marca,
+          modelo: data.veiculo_modelo,
+          placa: data.veiculo_placa,
+          ano: data.veiculo_ano,
+        },
+        associado: data.associado_id ? { id: data.associado_id, nome_completo: data.associado_nome } : null,
+      };
+
+      setVistoria(mapped);
+      setChecklist((data.checklist as Record<string, boolean>) || {});
       setFotos(data.fotos || []);
     } catch (err) {
       console.error('Erro ao buscar vistoria:', err);
