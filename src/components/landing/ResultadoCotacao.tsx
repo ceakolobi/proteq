@@ -59,9 +59,10 @@ const getWhatsAppPhone = (telefone?: string) => {
 const openWhatsApp = (telefone: string, mensagem: string) => {
   const text = encodeURIComponent(mensagem);
   const url = telefone
-    ? `https://wa.me/${telefone}?text=${text}`
-    : `https://wa.me/?text=${text}`;
-  window.location.href = url;
+    ? `https://api.whatsapp.com/send?phone=${telefone}&text=${text}`
+    : `https://api.whatsapp.com/send?text=${text}`;
+  const opened = window.open(url, '_blank');
+  if (!opened) window.location.assign(url);
 };
 
 const getErrorMessage = (error: unknown) =>
@@ -259,10 +260,18 @@ export function ResultadoCotacao({
   };
 
   const handleWhatsAppPDF = async () => {
+    const pendingWindow = window.open('about:blank', '_blank');
+    pendingWindow?.document.write(
+      '<p style="font-family: Arial, sans-serif; padding: 24px;">Gerando PDF da proposta para WhatsApp...</p>',
+    );
+
     setLoadingAction('whatsapp');
     try {
       const result = await gerarPDF();
-      if (!result) return;
+      if (!result) {
+        pendingWindow?.close();
+        return;
+      }
 
       const pdfFile = new File([result.blob], filename, { type: 'application/pdf' });
       const shareData = {
@@ -272,6 +281,7 @@ export function ResultadoCotacao({
       };
 
       if (navigator.canShare?.(shareData)) {
+        pendingWindow?.close();
         await navigator.share(shareData);
         return;
       }
@@ -285,8 +295,18 @@ export function ResultadoCotacao({
       const { data } = supabase.storage.from('propostas').getPublicUrl(path);
       const url = data.publicUrl;
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
-      openWhatsApp(telefone, `Olá! Segue sua proposta de cotação em PDF: ${url}`);
+      const message = encodeURIComponent(`Olá! Segue sua proposta de cotação em PDF: ${url}`);
+      const whatsappUrl = telefone
+        ? `https://api.whatsapp.com/send?phone=${telefone}&text=${message}`
+        : `https://api.whatsapp.com/send?text=${message}`;
+
+      if (pendingWindow && !pendingWindow.closed) {
+        pendingWindow.location.replace(whatsappUrl);
+      } else {
+        openWhatsApp(telefone, `Olá! Segue sua proposta de cotação em PDF: ${url}`);
+      }
     } catch (e: unknown) {
+      pendingWindow?.close();
       toast({ variant: 'destructive', title: 'Erro ao gerar link', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
