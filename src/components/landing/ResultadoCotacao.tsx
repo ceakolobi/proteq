@@ -60,8 +60,10 @@ export function ResultadoCotacao({
 }: ResultadoCotacaoProps) {
   const pdfRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const pdfViewRef = useRef<HTMLDivElement>(null);
   const [loadingAction, setLoadingAction] = useState<null | 'pdf' | 'email' | 'whatsapp'>(null);
   const { toast } = useToast();
+
 
   if (!dadosVeiculo) {
     return (
