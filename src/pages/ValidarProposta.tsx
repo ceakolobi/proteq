@@ -37,11 +37,9 @@ export default function ValidarProposta() {
 
       try {
         // Buscar cotação
-        const { data: cotacao, error: cotacaoError } = await supabase
-          .from("cotacoes")
-          .select("id, created_at, modelo, marca, consultor_id")
-          .eq("id", cotacaoId)
-          .single();
+        const { data: cotacaoRows, error: cotacaoError } = await supabase
+          .rpc("get_proposta_publica_by_id", { p_id: cotacaoId });
+        const cotacao = cotacaoRows?.[0];
 
         if (cotacaoError || !cotacao) {
           setError("Proposta não encontrada");
@@ -52,12 +50,9 @@ export default function ValidarProposta() {
         // Buscar nome do consultor
         let consultorNome = "Consultor Harmony Agro";
         if (cotacao.consultor_id) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("nome_completo")
-            .eq("id", cotacao.consultor_id)
-            .single();
-          
+          const { data: profileRows } = await supabase
+            .rpc("get_consultor_publico", { p_consultor_id: cotacao.consultor_id });
+          const profile = profileRows?.[0];
           if (profile?.nome_completo) {
             consultorNome = profile.nome_completo;
           }
