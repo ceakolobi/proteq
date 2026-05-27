@@ -49,10 +49,23 @@ const formatCurrency = (value: number) => {
 };
 
 const getWhatsAppPhone = (telefone?: string) => {
-  const digits = (telefone || '').replace(/\D/g, '');
+  let digits = (telefone || '').replace(/\D/g, '');
   if (!digits) return '';
+  if (digits.startsWith('00')) digits = digits.replace(/^00+/, '');
+  if (!digits.startsWith('55')) digits = digits.replace(/^0+/, '');
   return digits.startsWith('55') ? digits : `55${digits}`;
 };
+
+const openWhatsApp = (telefone: string, mensagem: string) => {
+  const text = encodeURIComponent(mensagem);
+  const url = telefone
+    ? `https://wa.me/${telefone}?text=${text}`
+    : `https://wa.me/?text=${text}`;
+  window.location.href = url;
+};
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Tente novamente.';
 
 export function ResultadoCotacao({
   dadosPessoais,
@@ -65,7 +78,6 @@ export function ResultadoCotacao({
   onBeneficiosChange,
 }: ResultadoCotacaoProps) {
   const pdfRef = useRef<HTMLDivElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
   const pdfViewRef = useRef<HTMLDivElement>(null);
   const [loadingAction, setLoadingAction] = useState<null | 'pdf' | 'email' | 'whatsapp'>(null);
   const { toast } = useToast();
@@ -210,8 +222,8 @@ export function ResultadoCotacao({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erro ao gerar PDF', description: e?.message });
+    } catch (e: unknown) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar PDF', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
@@ -239,46 +251,43 @@ export function ResultadoCotacao({
       });
       if (error) throw error;
       toast({ title: 'E-mail enviado!', description: `Proposta enviada para ${dadosPessoais.email}` });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erro ao enviar e-mail', description: e?.message });
+    } catch (e: unknown) {
+      toast({ variant: 'destructive', title: 'Erro ao enviar e-mail', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
   };
 
   const handleWhatsAppPDF = async () => {
-    // Abrir a janela SINCRONAMENTE para evitar bloqueio de pop-up
-    const waWindow = window.open('about:blank', '_blank');
-    if (waWindow) {
-      waWindow.document.write('<p style="font-family: Arial, sans-serif; padding: 24px;">Gerando proposta para WhatsApp...</p>');
-    }
     setLoadingAction('whatsapp');
     try {
       const result = await gerarPDF();
-      if (!result) {
-        waWindow?.close();
+      if (!result) return;
+
+      const pdfFile = new File([result.blob], filename, { type: 'application/pdf' });
+      const shareData = {
+        title: 'Proposta Harmony Agro',
+        text: 'Segue sua proposta de cotação em PDF.',
+        files: [pdfFile],
+      };
+
+      if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
         return;
       }
+
       const path = `${Date.now()}-${filename}`;
       const { error: upErr } = await supabase.storage
         .from('propostas')
         .upload(path, result.blob, { contentType: 'application/pdf', upsert: false });
       if (upErr) throw upErr;
+
       const { data } = supabase.storage.from('propostas').getPublicUrl(path);
       const url = data.publicUrl;
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
-      const text = encodeURIComponent(`Olá! Segue sua proposta de proteção veicular: ${url}`);
-      const waUrl = telefone
-        ? `https://api.whatsapp.com/send?phone=${telefone}&text=${text}`
-        : `https://api.whatsapp.com/send?text=${text}`;
-      if (waWindow && !waWindow.closed) {
-        waWindow.location.replace(waUrl);
-      } else {
-        window.location.assign(waUrl);
-      }
-    } catch (e: any) {
-      waWindow?.close();
-      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: e?.message || 'Tente novamente.' });
+      openWhatsApp(telefone, `Olá! Segue sua proposta de cotação em PDF: ${url}`);
+    } catch (e: unknown) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
@@ -408,7 +417,7 @@ export function ResultadoCotacao({
         </div>
 
         {/* Botões de ação */}
-        <Card className="mt-6 shadow-xl" ref={actionsRef as any}>
+        <Card className="mt-6 shadow-xl">
           <CardContent className="pt-6">
             <p className="text-center text-sm text-muted-foreground mb-4">
               Receba sua proposta detalhada
