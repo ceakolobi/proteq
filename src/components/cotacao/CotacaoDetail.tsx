@@ -920,13 +920,13 @@ _Proteção Veicular_`;
               </Button>
 
               <Button 
-                onClick={handleEnviarWhatsApp}
-                disabled={!clienteWhatsapp}
-                className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
+                disabled={true}
+                className="w-full justify-start bg-green-600/50 hover:bg-green-600/50 text-white/70 cursor-not-allowed"
+                title="Opção temporariamente desabilitada"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Enviar pelo WhatsApp
-                {!clienteWhatsapp && <span className="ml-auto text-xs opacity-80">(informe o WhatsApp)</span>}
+                <span className="ml-auto text-xs opacity-80">(em manutenção)</span>
               </Button>
             </div>
           </CardContent>
@@ -991,16 +991,13 @@ _Proteção Veicular_`;
               </Button>
 
               <Button
-                onClick={() => handleCriarVistoria('whatsapp')}
-                disabled={isCreatingVistoria || !clienteWhatsapp}
-                className="justify-start bg-green-600 hover:bg-green-700 text-white"
+                disabled={true}
+                className="justify-start bg-green-600/50 hover:bg-green-600/50 text-white/70 cursor-not-allowed"
+                title="Opção temporariamente desabilitada"
               >
-                {isCreatingVistoria ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                )}
+                <MessageCircle className="w-4 h-4 mr-2" />
                 Enviar Link por WhatsApp
+                <span className="ml-auto text-xs opacity-80">(em manutenção)</span>
               </Button>
             </div>
 

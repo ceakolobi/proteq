@@ -463,21 +463,13 @@ export function ResultadoCotacao({
             <div className="grid grid-cols-3 gap-3 mb-6">
               <Button
                 variant="outline"
-                className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
-                onClick={handleWhatsAppPDF}
-                disabled={isLoading}
+                className="flex-col h-auto py-4 gap-2 border-2 opacity-50 cursor-not-allowed"
+                disabled={true}
+                title="Opção temporariamente desabilitada"
               >
-                {loadingAction === 'whatsapp' ? (
-                  <>
-                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                    <span className="text-xs">Gerando PDF...</span>
-                  </>
-                ) : (
-                  <>
-                    <MessageCircle className="h-5 w-5 text-primary" />
-                    <span className="text-xs">WhatsApp</span>
-                  </>
-                )}
+                <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">WhatsApp</span>
+                <span className="text-[10px] text-muted-foreground">(em manutenção)</span>
               </Button>
 
               <Button
