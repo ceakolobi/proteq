@@ -18,6 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
 import { type BeneficioExtra } from '@/hooks/useBeneficiosExtras';
 
