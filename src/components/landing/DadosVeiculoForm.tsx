@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { TIPOS_VEICULO_LANDING, type DadosVeiculo } from './types';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 interface DadosVeiculoFormProps {
   onSubmit: (data: DadosVeiculo) => void;
