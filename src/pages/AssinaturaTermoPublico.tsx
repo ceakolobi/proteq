@@ -632,10 +632,11 @@ export default function AssinaturaTermoPublico() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            onClick={enviarCodigoWhatsApp}
-                            className="text-muted-foreground"
+                            disabled
+                            className="text-muted-foreground cursor-not-allowed"
                           >
                             Reenviar código
+                            <span className="ml-1 text-[10px]">(em manutenção)</span>
                           </Button>
                         </>
                       )}
