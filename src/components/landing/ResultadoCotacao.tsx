@@ -306,17 +306,16 @@ export function ResultadoCotacao({
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
       const message = `Olá! Segue sua proposta de cotação em PDF: ${url}`;
       const encodedMessage = encodeURIComponent(message);
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const whatsappBaseUrl = isMobile ? 'whatsapp://send' : 'https://web.whatsapp.com/send';
       const whatsappUrl = telefone
-        ? `${whatsappBaseUrl}?phone=${telefone}&text=${encodedMessage}`
-        : `${whatsappBaseUrl}?text=${encodedMessage}`;
+        ? `https://wa.me/${telefone}?text=${encodedMessage}`
+        : `https://wa.me/?text=${encodedMessage}`;
 
       if (pendingWindow && !pendingWindow.closed) {
         pendingWindow.location.replace(whatsappUrl);
       } else {
         openWhatsApp(telefone, message);
       }
+
     } catch (e: unknown) {
       pendingWindow?.close();
       toast({ variant: 'destructive', title: 'Erro ao gerar link', description: getErrorMessage(e) });
