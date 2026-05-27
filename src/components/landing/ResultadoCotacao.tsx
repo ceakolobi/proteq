@@ -272,9 +272,9 @@ export function ResultadoCotacao({
     setLoadingAction('whatsapp');
     try {
       const veic = dadosVeiculo;
-      const valorMensal = cotacao?.valorMensal ?? 0;
+      const valorMensal = cotacao?.mensalidade ?? 0;
       const fipe = cotacao?.valorFipe ?? 0;
-      const cobertura = cotacao?.coberturaTotal ?? fipe;
+      const participacao = cotacao?.participacao ?? 0;
 
       const linhas: string[] = [];
       linhas.push('*Sua cotação Harmony Agro*');
