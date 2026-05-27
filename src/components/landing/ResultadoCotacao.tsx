@@ -18,6 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
 import { type BeneficioExtra } from '@/hooks/useBeneficiosExtras';
 
@@ -101,6 +102,7 @@ export function ResultadoCotacao({
       <div className="container mx-auto max-w-5xl">
         {/* Header */}
         <div className="text-center mb-10">
+          <img src={logoHarmony} alt="Harmony" className="h-14 object-contain mx-auto mb-4" />
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
             <Sparkles className="h-8 w-8 text-primary" />
           </div>
