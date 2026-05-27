@@ -311,13 +311,14 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     setIsCalculating(false);
   };
 
-  const handleSalvar = async () => {
-    if (!resultado) {
+  const handleSalvar = async (resultadoParaSalvar?: ResultadoCotacao) => {
+    const resultadoFinal = resultadoParaSalvar || resultado;
+    if (!resultadoFinal) {
       toast.error('Calcule a cotação primeiro');
       return;
     }
     
-    if (!resultado.valorFinal || resultado.valorFinal <= 0) {
+    if (!resultadoFinal.valorFinal || resultadoFinal.valorFinal <= 0) {
       toast.error('Não é possível salvar cotação sem mensalidade calculada');
       return;
     }
@@ -360,26 +361,23 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         placa: formData.placa || null,
         chassi: formData.chassi || null,
         ano_modelo: formData.ano_modelo ? parseInt(formData.ano_modelo) : null,
-        categoria: resultado.categoria, // CATEGORIA OBRIGATÓRIA
+        categoria: resultadoFinal.categoria,
         cor: formData.cor || null,
         renavam: formData.renavam || null,
         valor_fipe: fipeBloqueado ? valorBem : null,
         codigo_fipe: formData.codigo_fipe || null,
         usuario_informou_valor: !fipeBloqueado ? user?.id : null,
         data_valor_informado: !fipeBloqueado ? new Date().toISOString() : null,
-        cota_id: resultado.cotaId,
-        // Campos de cálculo (valores fixos em R$)
-        valor_base: resultado.valorBase,
-        ajuste_geral_valor: resultado.ajusteGeralValor,
-        ajuste_individual_valor: resultado.ajusteIndividualValor,
-        valor_final: resultado.valorFinal,
-        mensalidade: resultado.valorFinal,
-        participacao: resultado.participacao,
-        // Rastreamento de edição
+        cota_id: resultadoFinal.cotaId,
+        valor_base: resultadoFinal.valorBase,
+        ajuste_geral_valor: resultadoFinal.ajusteGeralValor,
+        ajuste_individual_valor: resultadoFinal.ajusteIndividualValor,
+        valor_final: resultadoFinal.valorFinal,
+        mensalidade: resultadoFinal.valorFinal,
+        participacao: resultadoFinal.participacao,
         editado_por: formData.ajuste_individual_valor !== 0 ? user?.id : null,
         perfil_editor: formData.ajuste_individual_valor !== 0 ? perfilEditor : null,
         motivo_ajuste: formData.motivo_ajuste || null,
-        // Carro reserva
         carro_reserva_dias: formData.carro_reserva_extra === 'nenhum' ? 15 : 
                            formData.carro_reserva_extra === '30dias' ? 45 : 105,
         carro_reserva_adicional: formData.carro_reserva_extra === 'nenhum' ? 0 : 
@@ -395,7 +393,6 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
       if (error) throw error;
 
-      // Salva benefícios extras selecionados
       if (beneficiosSelecionadosObjs.length > 0 && novaCotacao) {
         const beneficiosPayload = beneficiosSelecionadosObjs.map(b => ({
           cotacao_id: (novaCotacao as any).id,
@@ -419,6 +416,35 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       console.error('Erro ao salvar cotação:', error);
       toast.error(error.message || 'Erro ao salvar cotação');
     }
+  };
+
+  // Confirma e salva em um único passo a partir da prévia (igual ao fluxo da landing)
+  const handleConfirmarESalvar = async () => {
+    if (!formData.tipo_bem || !formData.marca || !formData.modelo || !formData.ano_fabricacao || !formData.valor_bem) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    const valorBem = parseValorBrasileiro(formData.valor_bem);
+    if (valorBem < 1000) {
+      setErrors({ valor_bem: 'Valor mínimo R$ 1.000,00' });
+      return;
+    }
+    setIsCalculating(true);
+    const result = calcularCotacaoCompleta(
+      valorBem,
+      formData.tipo_bem as TipoBem,
+      cotasAtivas,
+      formData.ajuste_individual_valor,
+      formData.carro_reserva_extra
+    );
+    if (!result) {
+      toast.error('Não há faixa configurada para este valor.');
+      setIsCalculating(false);
+      return;
+    }
+    setResultado(result);
+    await handleSalvar(result);
+    setIsCalculating(false);
   };
 
   const canCalculate = formData.tipo_bem && formData.marca && formData.modelo && 
