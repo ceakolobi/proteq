@@ -64,6 +64,9 @@ const openWhatsApp = (telefone: string, mensagem: string) => {
   window.location.href = url;
 };
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Tente novamente.';
+
 export function ResultadoCotacao({
   dadosPessoais,
   dadosVeiculo,
@@ -75,7 +78,6 @@ export function ResultadoCotacao({
   onBeneficiosChange,
 }: ResultadoCotacaoProps) {
   const pdfRef = useRef<HTMLDivElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
   const pdfViewRef = useRef<HTMLDivElement>(null);
   const [loadingAction, setLoadingAction] = useState<null | 'pdf' | 'email' | 'whatsapp'>(null);
   const { toast } = useToast();
@@ -220,8 +222,8 @@ export function ResultadoCotacao({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erro ao gerar PDF', description: e?.message });
+    } catch (e: unknown) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar PDF', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
@@ -249,8 +251,8 @@ export function ResultadoCotacao({
       });
       if (error) throw error;
       toast({ title: 'E-mail enviado!', description: `Proposta enviada para ${dadosPessoais.email}` });
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erro ao enviar e-mail', description: e?.message });
+    } catch (e: unknown) {
+      toast({ variant: 'destructive', title: 'Erro ao enviar e-mail', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
@@ -284,8 +286,8 @@ export function ResultadoCotacao({
       const url = data.publicUrl;
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
       openWhatsApp(telefone, `Olá! Segue sua proposta de cotação em PDF: ${url}`);
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: e?.message || 'Tente novamente.' });
+    } catch (e: unknown) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: getErrorMessage(e) });
     } finally {
       setLoadingAction(null);
     }
