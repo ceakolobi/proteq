@@ -143,8 +143,8 @@ const handler = async (req: Request): Promise<Response> => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🛡️ Proposta de Cotação</h1>
-      <p>Proteção Veicular • ${empresaNome}</p>
+      <img src="https://sbtfhtllzpurjprivqoi.supabase.co/storage/v1/object/public/branding/logo-harmony-branca.png" alt="Harmony Agro" style="max-height: 60px; margin-bottom: 12px;" />
+      <h1>Proposta de Cotação</h1>
     </div>
     
     <div class="content">
