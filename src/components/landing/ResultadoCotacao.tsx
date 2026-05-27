@@ -27,6 +27,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PropostaPDFView } from './PropostaPDFView';
+
 
 interface ResultadoCotacaoProps {
   dadosPessoais: DadosPessoais;
