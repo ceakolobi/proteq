@@ -115,11 +115,17 @@ export function ResultadoCotacao({
   const filename = `proposta-${(dadosPessoais.nome || 'cliente').split(' ')[0].toLowerCase()}-${Date.now()}.pdf`;
 
   const gerarPDF = async (): Promise<{ blob: Blob; base64: string } | null> => {
-    if (!pdfRef.current) return null;
-    const element = pdfRef.current;
-    const actionsEl = actionsRef.current;
-    const prevDisplay = actionsEl?.style.display;
-    if (actionsEl) actionsEl.style.display = 'none';
+    const element = pdfViewRef.current;
+    if (!element) return null;
+
+    // Make element measurable (still off-screen)
+    const prevLeft = element.style.left;
+    element.style.left = '0';
+    element.style.top = '0';
+    element.style.zIndex = '-1';
+    element.style.opacity = '0';
+    // wait a tick for layout
+    await new Promise((r) => setTimeout(r, 50));
 
     try {
       const canvas = await html2canvas(element, {
@@ -127,33 +133,39 @@ export function ResultadoCotacao({
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        windowWidth: 794,
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
+      const margin = 10;
+      const imgWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       let heightLeft = imgHeight;
-      let position = 0;
+      let position = margin;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
 
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
+        position = margin - (imgHeight - heightLeft);
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight - margin * 2;
       }
 
       const blob = pdf.output('blob');
       const base64 = (pdf.output('datauristring') as string).split(',')[1];
       return { blob, base64 };
     } finally {
-      if (actionsEl) actionsEl.style.display = prevDisplay || '';
+      element.style.left = prevLeft || '-9999px';
+      element.style.top = '0';
+      element.style.zIndex = '';
+      element.style.opacity = '';
+
     }
   };
 
