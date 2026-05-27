@@ -3277,6 +3277,14 @@ export type Database = {
         Args: { p_company_id?: string; p_mes_referencia: string }
         Returns: number
       }
+      get_consultor_publico: {
+        Args: { p_consultor_id: string }
+        Returns: {
+          company_id: string
+          id: string
+          nome_completo: string
+        }[]
+      }
       get_cotacao_publica_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -3292,6 +3300,28 @@ export type Database = {
           modelo: string
           placa: string
           status: string
+          valor_bem: number
+        }[]
+      }
+      get_default_consultor_publico: {
+        Args: never
+        Returns: {
+          company_id: string
+          id: string
+          nome_completo: string
+        }[]
+      }
+      get_proposta_publica_by_id: {
+        Args: { p_id: string }
+        Returns: {
+          ano_modelo: number
+          cliente_nome: string
+          consultor_id: string
+          created_at: string
+          id: string
+          marca: string
+          mensalidade: number
+          modelo: string
           valor_bem: number
         }[]
       }
@@ -3319,6 +3349,26 @@ export type Database = {
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
+      get_vistoria_publica_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          associado_id: string
+          associado_nome: string
+          checklist: Json
+          fotos: string[]
+          id: string
+          observacoes: string
+          status: string
+          tipo_vistoria: string
+          token_acesso: string
+          token_expires_at: string
+          veiculo_ano: number
+          veiculo_id: string
+          veiculo_marca: string
+          veiculo_modelo: string
+          veiculo_placa: string
+        }[]
+      }
       has_permission: {
         Args: {
           _action: Database["public"]["Enums"]["permission_action"]
@@ -3358,6 +3408,10 @@ export type Database = {
         Returns: undefined
       }
       renovar_token_termo: { Args: { p_old_token: string }; Returns: string }
+      salvar_vistoria_publica: {
+        Args: { p_checklist: Json; p_fotos: string[]; p_token: string }
+        Returns: string
+      }
       same_company: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
