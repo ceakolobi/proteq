@@ -300,6 +300,13 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
           codigoFipe: vehicleData.codigo_fipe || '',
           mesReferencia: vehicleData.mes_referencia || '',
         });
+
+        // Propagar para os selects de Marca/Modelo/Ano (best-effort match por nome)
+        autoSelectFipeFromNames(
+          vehicleData.marca || '',
+          vehicleData.modelo || '',
+          vehicleData.ano_modelo || vehicleData.ano_fabricacao
+        ).catch((e) => console.warn('[FIPE auto-select] falhou:', e));
         
         toast.success('Veículo encontrado com valor FIPE!');
       } else {
@@ -313,6 +320,82 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
       setPlacaStatus('error');
       setPlacaMessage('Erro ao consultar. Use a tabela FIPE abaixo.');
     }
+  };
+
+  // Normaliza string para comparação (uppercase, sem acento, sem espaços extras)
+  const normalize = (s: string) =>
+    (s || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  // Tenta selecionar Marca/Modelo/Ano automaticamente a partir dos nomes retornados pela placa
+  const autoSelectFipeFromNames = async (marcaNome: string, modeloNome: string, anoModelo: number | string) => {
+    if (!marcaNome) return;
+
+    // 1) Marcas
+    setLoadingMarcas(true);
+    let marcasList: FipeItem[] = [];
+    try {
+      const resp = await fetchFipe('marcas', { tipo: tipoVeiculo });
+      marcasList = resp.data as FipeItem[];
+      setMarcas(marcasList);
+    } finally {
+      setLoadingMarcas(false);
+    }
+
+    const marcaAlvo = normalize(marcaNome);
+    const marcaMatch =
+      marcasList.find((m) => normalize(m.nome) === marcaAlvo) ||
+      marcasList.find((m) => normalize(m.nome).startsWith(marcaAlvo)) ||
+      marcasList.find((m) => marcaAlvo.startsWith(normalize(m.nome)));
+    if (!marcaMatch) return;
+    setSelectedMarcaId(marcaMatch.id);
+
+    // 2) Modelos
+    setLoadingModelos(true);
+    let modelosList: FipeItem[] = [];
+    try {
+      const resp = await fetchFipe('modelos', { tipo: tipoVeiculo, marcaId: marcaMatch.id });
+      modelosList = resp.data as FipeItem[];
+      setModelos(modelosList);
+    } finally {
+      setLoadingModelos(false);
+    }
+
+    const modeloAlvo = normalize(modeloNome);
+    const modeloMatch =
+      modelosList.find((m) => normalize(m.nome) === modeloAlvo) ||
+      modelosList.find((m) => normalize(m.nome).startsWith(modeloAlvo)) ||
+      modelosList.find((m) => modeloAlvo && normalize(m.nome).includes(modeloAlvo)) ||
+      modelosList.find((m) => modeloAlvo && modeloAlvo.includes(normalize(m.nome)));
+    if (!modeloMatch) return;
+    setSelectedModeloId(modeloMatch.id);
+
+    // 3) Anos
+    setLoadingAnos(true);
+    let anosList: FipeItem[] = [];
+    try {
+      const resp = await fetchFipe('anos', {
+        tipo: tipoVeiculo,
+        marcaId: marcaMatch.id,
+        modeloId: modeloMatch.id,
+      });
+      anosList = resp.data as FipeItem[];
+      setAnos(anosList);
+    } finally {
+      setLoadingAnos(false);
+    }
+
+    const anoStr = String(anoModelo || '');
+    const anoMatch =
+      anosList.find((a) => a.id.startsWith(`${anoStr}-`)) ||
+      anosList.find((a) => a.nome.startsWith(anoStr)) ||
+      anosList.find((a) => a.id === anoStr);
+    if (anoMatch) setSelectedAnoId(anoMatch.id);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
