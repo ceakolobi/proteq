@@ -209,15 +209,11 @@ export default function VistoriaPublica() {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('vistorias')
-        .update({
-          checklist,
-          fotos,
-          status: 'em_andamento',
-          solicitada_em: new Date().toISOString(),
-        })
-        .eq('id', vistoria.id);
+      const { error } = await supabase.rpc('salvar_vistoria_publica', {
+        p_token: token,
+        p_checklist: checklist,
+        p_fotos: fotos,
+      });
 
       if (error) throw error;
 
