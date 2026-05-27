@@ -106,9 +106,7 @@ export function usePublicQuotation() {
     try {
       // Buscar um consultor padrão (primeiro ativo) para associar o lead
       const { data: consultores } = await supabase
-        .from('profiles')
-        .select('id, company_id')
-        .limit(1) as { data: { id: string; company_id: string | null }[] | null };
+        .rpc('get_default_consultor_publico') as { data: { id: string; company_id: string | null }[] | null };
 
       const consultorId = consultores?.[0]?.id;
       const companyId = consultores?.[0]?.company_id;
