@@ -410,6 +410,12 @@ _(opcionais escolhidos são somados à mensalidade)_
 ✅ *SEM* consulta SPC/Serasa
 
 ━━━━━━━━━━━━━━━
+📄 *VEJA SUA PROPOSTA COMPLETA*
+━━━━━━━━━━━━━━━
+👉 ${propostaUrl}
+_(abra o link para visualizar todos os detalhes e aceitar online)_
+
+━━━━━━━━━━━━━━━
 📲 *Como deseja prosseguir?*
 ━━━━━━━━━━━━━━━
 1️⃣ Quero fechar o *Plano Base* agora
