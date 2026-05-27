@@ -920,7 +920,6 @@ _Proteção Veicular_`;
               </Button>
 
               <Button 
-                onClick={handleEnviarWhatsApp}
                 disabled={true}
                 className="w-full justify-start bg-green-600/50 hover:bg-green-600/50 text-white/70 cursor-not-allowed"
                 title="Opção temporariamente desabilitada"
@@ -992,7 +991,6 @@ _Proteção Veicular_`;
               </Button>
 
               <Button
-                onClick={() => handleCriarVistoria('whatsapp')}
                 disabled={true}
                 className="justify-start bg-green-600/50 hover:bg-green-600/50 text-white/70 cursor-not-allowed"
                 title="Opção temporariamente desabilitada"
