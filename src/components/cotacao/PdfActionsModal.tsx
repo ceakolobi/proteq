@@ -185,7 +185,7 @@ ${mensalidadeLinha}
 ⏳ *Validade da proposta:* ${validadeDias} dias
 🤝 _${empresaNome} — Proteção Veicular_`;
 
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=${numeroFormatado}&text=${encodeURIComponent(mensagem)}`;
+    const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
