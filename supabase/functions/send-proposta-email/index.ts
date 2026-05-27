@@ -126,9 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #f97316 0%, #22c55e 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-    .header h1 { color: white; margin: 0; font-size: 24px; }
-    .header p { color: rgba(255,255,255,0.9); margin: 10px 0 0 0; }
+    .header { background: #ffffff; padding: 30px; text-align: center; border-bottom: 1px solid #e5e7eb; border-radius: 10px 10px 0 0; }
     .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
     .beneficios { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
     .beneficio { padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
@@ -143,7 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://sbtfhtllzpurjprivqoi.supabase.co/storage/v1/object/public/vistoria-fotos/companies/a0000000-0000-0000-0000-000000000001/logo_branca_1767659157098.png" alt="Harmony Agro" style="max-height: 64px; margin: 0 auto; display: block;" />
+      <img src="https://sbtfhtllzpurjprivqoi.supabase.co/storage/v1/object/public/vistoria-fotos/companies/a0000000-0000-0000-0000-000000000001/logo_1767659167089.png" alt="Harmony Agro" style="max-height: 72px; margin: 0 auto; display: block;" />
     </div>
     
     <div class="content">
