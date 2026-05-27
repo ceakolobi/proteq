@@ -58,11 +58,21 @@ const getWhatsAppPhone = (telefone?: string) => {
 
 const openWhatsApp = (telefone: string, mensagem: string) => {
   const text = encodeURIComponent(mensagem);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const baseUrl = isMobile ? 'whatsapp://send' : 'https://web.whatsapp.com/send';
   const url = telefone
-    ? `https://api.whatsapp.com/send?phone=${telefone}&text=${text}`
-    : `https://api.whatsapp.com/send?text=${text}`;
+    ? `${baseUrl}?phone=${telefone}&text=${text}`
+    : `${baseUrl}?text=${text}`;
   const opened = window.open(url, '_blank');
-  if (!opened) window.location.assign(url);
+  if (!opened) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 };
 
 const getErrorMessage = (error: unknown) =>
@@ -295,15 +305,18 @@ export function ResultadoCotacao({
       const { data } = supabase.storage.from('propostas').getPublicUrl(path);
       const url = data.publicUrl;
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
-      const message = encodeURIComponent(`Olá! Segue sua proposta de cotação em PDF: ${url}`);
+      const message = `Olá! Segue sua proposta de cotação em PDF: ${url}`;
+      const encodedMessage = encodeURIComponent(message);
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const whatsappBaseUrl = isMobile ? 'whatsapp://send' : 'https://web.whatsapp.com/send';
       const whatsappUrl = telefone
-        ? `https://api.whatsapp.com/send?phone=${telefone}&text=${message}`
-        : `https://api.whatsapp.com/send?text=${message}`;
+        ? `${whatsappBaseUrl}?phone=${telefone}&text=${encodedMessage}`
+        : `${whatsappBaseUrl}?text=${encodedMessage}`;
 
       if (pendingWindow && !pendingWindow.closed) {
         pendingWindow.location.replace(whatsappUrl);
       } else {
-        openWhatsApp(telefone, `Olá! Segue sua proposta de cotação em PDF: ${url}`);
+        openWhatsApp(telefone, message);
       }
     } catch (e: unknown) {
       pendingWindow?.close();
