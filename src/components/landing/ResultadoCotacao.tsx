@@ -59,8 +59,8 @@ const getWhatsAppPhone = (telefone?: string) => {
 const openWhatsApp = (telefone: string, mensagem: string) => {
   const text = encodeURIComponent(mensagem);
   const url = telefone
-    ? `whatsapp://send?phone=${telefone}&text=${text}`
-    : `whatsapp://send?text=${text}`;
+    ? `https://wa.me/${telefone}?text=${text}`
+    : `https://wa.me/?text=${text}`;
   const opened = window.open(url, '_blank', 'noopener,noreferrer');
   if (!opened) {
     const link = document.createElement('a');
@@ -295,20 +295,23 @@ export function ResultadoCotacao({
         return;
       }
 
-      const path = `${Date.now()}-${filename}`;
-      const { error: upErr } = await supabase.storage
-        .from('propostas')
-        .upload(path, result.blob, { contentType: 'application/pdf', upsert: false });
-      if (upErr) throw upErr;
+      const { data, error: uploadError } = await supabase.functions.invoke('upload-proposta-publica', {
+        body: {
+          filename,
+          pdfBase64: result.base64,
+        },
+      });
 
-      const { data } = supabase.storage.from('propostas').getPublicUrl(path);
-      const url = data.publicUrl;
+      if (uploadError) throw uploadError;
+      if (!data?.publicUrl) throw new Error('Não foi possível gerar o link público do PDF.');
+
+      const url = data.publicUrl as string;
       const telefone = getWhatsAppPhone(dadosPessoais.telefone);
       const message = `Olá! Segue sua proposta de cotação em PDF: ${url}`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = telefone
-        ? `whatsapp://send?phone=${telefone}&text=${encodedMessage}`
-        : `whatsapp://send?text=${encodedMessage}`;
+        ? `https://wa.me/${telefone}?text=${encodedMessage}`
+        : `https://wa.me/?text=${encodedMessage}`;
 
       await navigator.clipboard?.writeText(message).catch(() => undefined);
 
@@ -320,7 +323,7 @@ export function ResultadoCotacao({
 
       toast({
         title: 'Proposta pronta',
-        description: 'Abrindo o app do WhatsApp. Se não abrir, a mensagem com o link do PDF já foi copiada.',
+        description: 'Abrindo o WhatsApp. Se não abrir, a mensagem com o link do PDF já foi copiada.',
       });
 
     } catch (e: unknown) {

@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.send-proposta-email]
 verify_jwt = false
 
+[functions.upload-proposta-publica]
+verify_jwt = false
+
 [functions.harmony-crm]
 verify_jwt = false
 
