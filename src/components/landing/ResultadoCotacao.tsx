@@ -1,11 +1,12 @@
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { 
-  ArrowRight, 
-  ArrowLeft, 
-  CheckCircle2, 
-  MessageCircle, 
-  Mail, 
+import {
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  MessageCircle,
+  Mail,
   FileText,
   Shield,
   Headphones,
@@ -15,12 +16,17 @@ import {
   Car,
   Key,
   Zap,
-  Sparkles
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
 import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
 import { type BeneficioExtra } from '@/hooks/useBeneficiosExtras';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ResultadoCotacaoProps {
   dadosPessoais: DadosPessoais;
@@ -40,16 +46,21 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function ResultadoCotacao({ 
-  dadosPessoais, 
-  dadosVeiculo, 
-  cotacao, 
-  onBack, 
+export function ResultadoCotacao({
+  dadosPessoais,
+  dadosVeiculo,
+  cotacao,
+  onBack,
   onContinue,
   onWhatsApp,
   beneficiosSelecionadosIds = [],
-  onBeneficiosChange
+  onBeneficiosChange,
 }: ResultadoCotacaoProps) {
+  const pdfRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const [loadingAction, setLoadingAction] = useState<null | 'pdf' | 'email' | 'whatsapp'>(null);
+  const { toast } = useToast();
+
   if (!dadosVeiculo) {
     return (
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-16 px-4">
@@ -73,7 +84,7 @@ export function ResultadoCotacao({
             </div>
             <h3 className="font-semibold text-lg">Cotação não disponível</h3>
             <p className="text-muted-foreground text-sm">
-              Não encontramos uma faixa de proteção para the veículo informado 
+              Não encontramos uma faixa de proteção para o veículo informado
               ({dadosVeiculo.marca} {dadosVeiculo.modelo} - {formatCurrency(dadosVeiculo.valor_fipe || 0)}).
             </p>
             <p className="text-xs text-muted-foreground">
@@ -97,9 +108,130 @@ export function ResultadoCotacao({
     { icon: Zap, titulo: 'Pane Elétrica', descricao: 'Assistência inclusa' },
   ];
 
+  const filename = `proposta-${(dadosPessoais.nome || 'cliente').split(' ')[0].toLowerCase()}-${Date.now()}.pdf`;
+
+  const gerarPDF = async (): Promise<{ blob: Blob; base64: string } | null> => {
+    if (!pdfRef.current) return null;
+    const element = pdfRef.current;
+    const actionsEl = actionsRef.current;
+    const prevDisplay = actionsEl?.style.display;
+    if (actionsEl) actionsEl.style.display = 'none';
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const blob = pdf.output('blob');
+      const base64 = (pdf.output('datauristring') as string).split(',')[1];
+      return { blob, base64 };
+    } finally {
+      if (actionsEl) actionsEl.style.display = prevDisplay || '';
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setLoadingAction('pdf');
+    try {
+      const result = await gerarPDF();
+      if (!result) return;
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar PDF', description: e?.message });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleEmail = async () => {
+    if (!dadosPessoais.email) {
+      toast({ variant: 'destructive', title: 'E-mail não informado' });
+      return;
+    }
+    setLoadingAction('email');
+    try {
+      const result = await gerarPDF();
+      if (!result) return;
+      const { error } = await supabase.functions.invoke('send-proposta-email', {
+        body: {
+          to: dadosPessoais.email,
+          clienteNome: dadosPessoais.nome,
+          modelo: `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`,
+          mensalidade: formatCurrency(cotacao.mensalidade),
+          validadeDias: 7,
+          pdfBase64: result.base64,
+          filename,
+        },
+      });
+      if (error) throw error;
+      toast({ title: 'E-mail enviado!', description: `Proposta enviada para ${dadosPessoais.email}` });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erro ao enviar e-mail', description: e?.message });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleWhatsAppPDF = async () => {
+    setLoadingAction('whatsapp');
+    try {
+      const result = await gerarPDF();
+      if (!result) return;
+      const path = `${Date.now()}-${filename}`;
+      const { error: upErr } = await supabase.storage
+        .from('propostas')
+        .upload(path, result.blob, { contentType: 'application/pdf', upsert: false });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('propostas').getPublicUrl(path);
+      const url = data.publicUrl;
+      const telefone = (dadosPessoais.telefone || '').replace(/\D/g, '');
+      const text = encodeURIComponent(`Segue sua proposta: ${url}`);
+      const waUrl = telefone
+        ? `https://wa.me/55${telefone}?text=${text}`
+        : `https://wa.me/?text=${text}`;
+      window.open(waUrl, '_blank');
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar link', description: e?.message });
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const isLoading = loadingAction !== null;
+
   return (
     <section className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-16 px-4">
-      <div className="container mx-auto max-w-5xl">
+      <div className="container mx-auto max-w-5xl" ref={pdfRef}>
         {/* Header */}
         <div className="text-center mb-10">
           <img src={logoHarmony} alt="Harmony" className="h-14 object-contain mx-auto mb-4" />
@@ -108,7 +240,7 @@ export function ResultadoCotacao({
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-2">Sua cotação está pronta!</h2>
           <p className="text-lg text-muted-foreground">
-            Olá <span className="font-semibold text-foreground">{dadosPessoais.nome.split(' ')[0]}</span>, 
+            Olá <span className="font-semibold text-foreground">{dadosPessoais.nome.split(' ')[0]}</span>,
             confira os valores da sua proteção
           </p>
         </div>
@@ -123,18 +255,18 @@ export function ResultadoCotacao({
               </p>
               <p className="text-sm opacity-80">Ano {dadosVeiculo.ano}</p>
             </div>
-            
+
             <CardContent className="pt-6 space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border/50">
                 <span className="text-muted-foreground text-sm">Valor FIPE</span>
                 <span className="font-semibold">{formatCurrency(cotacao.valorFipe)}</span>
               </div>
-              
+
               <div className="flex justify-between items-center pb-3 border-b border-border/50">
                 <span className="text-muted-foreground text-sm">Participação</span>
                 <span className="font-semibold">{formatCurrency(cotacao.participacao)}</span>
               </div>
-              
+
               <div className="pt-2">
                 <p className="text-sm text-muted-foreground mb-1">Mensalidade</p>
                 <p className="text-4xl font-bold text-primary">
@@ -170,8 +302,8 @@ export function ResultadoCotacao({
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {beneficiosIcons.map((beneficio, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="flex flex-col items-center text-center p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
                   >
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
@@ -199,7 +331,7 @@ export function ResultadoCotacao({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <BeneficiosExtrasSelector 
+              <BeneficiosExtrasSelector
                 tipoBem={dadosVeiculo.tipo_bem}
                 selecionados={beneficiosSelecionadosIds}
                 onChange={onBeneficiosChange || (() => {})}
@@ -209,51 +341,77 @@ export function ResultadoCotacao({
         </div>
 
         {/* Botões de ação */}
-        <Card className="mt-6 shadow-xl">
+        <Card className="mt-6 shadow-xl" ref={actionsRef as any}>
           <CardContent className="pt-6">
             <p className="text-center text-sm text-muted-foreground mb-4">
               Receba sua proposta detalhada
             </p>
-            
+
             <div className="grid grid-cols-3 gap-3 mb-6">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
-                onClick={onWhatsApp}
+                onClick={handleWhatsAppPDF}
+                disabled={isLoading}
               >
-                <MessageCircle className="h-5 w-5 text-primary" />
-                <span className="text-xs">WhatsApp</span>
+                {loadingAction === 'whatsapp' ? (
+                  <>
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <span className="text-xs">Gerando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    <span className="text-xs">WhatsApp</span>
+                  </>
+                )}
               </Button>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
-                onClick={() => {
-                  alert('Em breve: envio por email');
-                }}
+                onClick={handleEmail}
+                disabled={isLoading}
               >
-                <Mail className="h-5 w-5 text-primary" />
-                <span className="text-xs">E-mail</span>
+                {loadingAction === 'email' ? (
+                  <>
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <span className="text-xs">Gerando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-5 w-5 text-primary" />
+                    <span className="text-xs">E-mail</span>
+                  </>
+                )}
               </Button>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
-                onClick={() => {
-                  alert('Em breve: download PDF');
-                }}
+                onClick={handleDownloadPDF}
+                disabled={isLoading}
               >
-                <FileText className="h-5 w-5 text-primary" />
-                <span className="text-xs">Baixar PDF</span>
+                {loadingAction === 'pdf' ? (
+                  <>
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <span className="text-xs">Gerando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-5 w-5 text-primary" />
+                    <span className="text-xs">Baixar PDF</span>
+                  </>
+                )}
               </Button>
             </div>
 
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={onBack} className="px-6">
+              <Button variant="ghost" onClick={onBack} className="px-6" disabled={isLoading}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar
               </Button>
-              <Button onClick={onContinue} className="flex-1 py-6 text-lg">
+              <Button onClick={onContinue} className="flex-1 py-6 text-lg" disabled={isLoading}>
                 Aceitar proposta
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
