@@ -3277,6 +3277,24 @@ export type Database = {
         Args: { p_company_id?: string; p_mes_referencia: string }
         Returns: number
       }
+      get_cotacao_publica_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          aceita_em: string
+          aceite_expires_at: string
+          ano_modelo: number
+          cliente_email: string
+          cliente_nome: string
+          cliente_whatsapp: string
+          id: string
+          marca: string
+          mensalidade: number
+          modelo: string
+          placa: string
+          status: string
+          valor_bem: number
+        }[]
+      }
       get_termo_by_token: {
         Args: { p_token: string }
         Returns: {
