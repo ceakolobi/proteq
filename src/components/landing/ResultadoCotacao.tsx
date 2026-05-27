@@ -58,12 +58,10 @@ const getWhatsAppPhone = (telefone?: string) => {
 
 const openWhatsApp = (telefone: string, mensagem: string) => {
   const text = encodeURIComponent(mensagem);
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const baseUrl = isMobile ? 'whatsapp://send' : 'https://web.whatsapp.com/send';
   const url = telefone
-    ? `${baseUrl}?phone=${telefone}&text=${text}`
-    : `${baseUrl}?text=${text}`;
-  const opened = window.open(url, '_blank');
+    ? `https://wa.me/${telefone}?text=${text}`
+    : `https://wa.me/?text=${text}`;
+  const opened = window.open(url, '_blank', 'noopener,noreferrer');
   if (!opened) {
     const link = document.createElement('a');
     link.href = url;
@@ -74,6 +72,7 @@ const openWhatsApp = (telefone: string, mensagem: string) => {
     document.body.removeChild(link);
   }
 };
+
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Tente novamente.';
