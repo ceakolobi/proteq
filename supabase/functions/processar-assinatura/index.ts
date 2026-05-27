@@ -172,7 +172,7 @@ serve(async (req: Request) => {
         `Em caso de dúvidas, estamos à disposição.`
       );
 
-      whatsappConfirmacao = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${mensagemConfirmacao}`;
+      whatsappConfirmacao = `https://wa.me/${formattedPhone}?text=${mensagemConfirmacao}`;
     }
 
     // 5. Enviar e-mail de confirmação
