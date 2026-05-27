@@ -1031,13 +1031,13 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
                 <div className="pt-2">
                   <Button 
-                    onClick={handleCalcular} 
+                    onClick={handleConfirmarESalvar} 
                     className="w-full" 
                     size="lg"
                     disabled={isCalculating || cotasLoading || !canCalculate}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
-                    {isCalculating ? 'Calculando...' : 'Confirmar e Salvar'}
+                    {isCalculating ? 'Salvando...' : 'Confirmar e Salvar'}
                   </Button>
                 </div>
               </CardContent>
