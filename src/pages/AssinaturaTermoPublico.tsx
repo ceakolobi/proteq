@@ -213,7 +213,7 @@ export default function AssinaturaTermoPublico() {
         `Harmony Clube de Benefícios`
       );
       
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${mensagem}`;
+      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${mensagem}`;
       
       // Tentar abrir em nova aba
       const newWindow = window.open(whatsappUrl, '_blank');

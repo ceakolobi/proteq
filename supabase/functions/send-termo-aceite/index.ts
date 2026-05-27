@@ -164,7 +164,7 @@ serve(async (req: Request) => {
           `Qualquer dúvida, estamos à disposição.`
         );
 
-        results.whatsapp = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${message}`;
+        results.whatsapp = `https://wa.me/${formattedPhone}?text=${message}`;
       }
     }
 
