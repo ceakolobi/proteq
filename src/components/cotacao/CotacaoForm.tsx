@@ -954,11 +954,21 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Mensalidade Estimada</p>
                   <p className="text-3xl font-bold text-primary">
-                    {formatCurrency(previewResult.valorFinal)}
+                    {formatCurrency(previewResult.valorFinal + valorBeneficiosExtras)}
                   </p>
+                  {valorBeneficiosExtras > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Base: {formatCurrency(previewResult.valorFinal)} + Extras: {formatCurrency(valorBeneficiosExtras)}
+                    </p>
+                  )}
                   <div className="flex items-center justify-center gap-2 mt-2">
                     <Badge variant="outline">{previewResult.cotaNome}</Badge>
                     <Badge variant="secondary">{categoriaLabels[previewResult.categoria]}</Badge>
+                    {beneficiosSelecionadosObjs.length > 0 && (
+                      <Badge variant="outline" className="border-primary text-primary">
+                        +{beneficiosSelecionadosObjs.length} extra(s)
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
