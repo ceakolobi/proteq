@@ -477,7 +477,7 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
     <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 py-8 px-4">
       <div className="w-full max-w-xl space-y-4">
         <div className="flex flex-col items-center text-center mb-6 gap-3">
-          <BrandLogo context="login" size="lg" />
+          <img src={logoHarmony} alt="Harmony" className="h-14 object-contain" />
           <h1 className="text-2xl font-bold">Nova Cotação</h1>
         </div>
 
