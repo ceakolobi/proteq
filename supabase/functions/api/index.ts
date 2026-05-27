@@ -758,17 +758,29 @@ serve(async (req) => {
       });
 
     const origemResposta = endpoint === 'placa' ? 'API_PLACAS' : 'FIPE';
+    const errMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+
+    // Erros transitórios upstream (rate-limit FIPE, 5xx): retornar 200 com fallback
+    // para evitar que o frontend trate como crash/tela em branco.
+    const isUpstreamTransient =
+      /\b(429|5\d{2})\b/.test(errMsg) ||
+      /rate.?limit|too many requests/i.test(errMsg);
+    const httpStatus = isUpstreamTransient ? 200 : 500;
+
+    const body = createStandardResponse(
+      false,
+      null,
+      false,
+      undefined,
+      isUpstreamTransient ? 'RATE_LIMITED' : errMsg,
+      origemResposta
+    ) as Record<string, unknown>;
+    if (isUpstreamTransient) body.fallback = true;
 
     return new Response(
-      JSON.stringify(createStandardResponse(
-        false,
-        null,
-        false,
-        undefined,
-        error instanceof Error ? error.message : 'Erro desconhecido',
-        origemResposta
-      )),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(body),
+      { status: httpStatus, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   }
 });
