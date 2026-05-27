@@ -118,14 +118,35 @@ export function ResultadoCotacao({
     const element = pdfViewRef.current;
     if (!element) return null;
 
-    // Make element measurable (still off-screen)
-    const prevLeft = element.style.left;
+    const previousStyles = {
+      left: element.style.left,
+      top: element.style.top,
+      zIndex: element.style.zIndex,
+      opacity: element.style.opacity,
+      pointerEvents: element.style.pointerEvents,
+    };
+
+    // html2canvas pode gerar PDF em branco se o elemento estiver muito fora da tela
+    // ou com opacity: 0. Mantemos renderizado e visível apenas durante a captura.
     element.style.left = '0';
     element.style.top = '0';
-    element.style.zIndex = '-1';
-    element.style.opacity = '0';
-    // wait a tick for layout
-    await new Promise((r) => setTimeout(r, 50));
+    element.style.zIndex = '9999';
+    element.style.opacity = '1';
+    element.style.pointerEvents = 'none';
+
+    const images = Array.from(element.querySelectorAll('img'));
+    await Promise.all(
+      images.map(
+        (img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }),
+      ),
+    );
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
 
     try {
       const canvas = await html2canvas(element, {
@@ -161,10 +182,11 @@ export function ResultadoCotacao({
       const base64 = (pdf.output('datauristring') as string).split(',')[1];
       return { blob, base64 };
     } finally {
-      element.style.left = prevLeft || '-9999px';
-      element.style.top = '0';
-      element.style.zIndex = '';
-      element.style.opacity = '';
+      element.style.left = previousStyles.left || '-9999px';
+      element.style.top = previousStyles.top;
+      element.style.zIndex = previousStyles.zIndex;
+      element.style.opacity = previousStyles.opacity;
+      element.style.pointerEvents = previousStyles.pointerEvents;
 
     }
   };
