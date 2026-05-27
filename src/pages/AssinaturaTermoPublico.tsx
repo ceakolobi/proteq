@@ -410,11 +410,13 @@ export default function AssinaturaTermoPublico() {
             
             {whatsappConfirmacao && (
               <Button 
-                onClick={abrirWhatsAppConfirmacao} 
-                className="w-full bg-green-600 hover:bg-green-700"
+                disabled
+                className="w-full bg-green-600/50 text-white/70 cursor-not-allowed"
+                title="Opção temporariamente desabilitada"
               >
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Enviar Confirmação via WhatsApp
+                <span className="ml-auto text-xs">(em manutenção)</span>
               </Button>
             )}
           </CardContent>
@@ -594,21 +596,13 @@ export default function AssinaturaTermoPublico() {
 
                   {!codigoEnviado ? (
                     <Button 
-                      onClick={enviarCodigoWhatsApp} 
-                      disabled={isSendingCode}
-                      className="w-full bg-green-600 hover:bg-green-700"
+                      disabled
+                      className="w-full bg-green-600/50 text-white/70 cursor-not-allowed"
+                      title="Opção temporariamente desabilitada"
                     >
-                      {isSendingCode ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Gerando código...
-                        </>
-                      ) : (
-                        <>
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          Receber código por WhatsApp
-                        </>
-                      )}
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Receber código por WhatsApp
+                      <span className="ml-auto text-xs">(em manutenção)</span>
                     </Button>
                   ) : (
                     <div className="space-y-3">

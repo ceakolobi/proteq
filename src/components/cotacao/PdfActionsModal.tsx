@@ -415,11 +415,12 @@ ${mensalidadeLinha}
               {isCopied ? "Link Copiado!" : "Copiar Link do PDF"}
             </Button>
 
-            {/* WhatsApp */}
-            <div className="space-y-2 pt-2 border-t">
-              <Label htmlFor="whatsappNumero" className="text-sm font-medium flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-green-600" />
+            {/* WhatsApp - temporariamente desabilitado */}
+            <div className="space-y-2 pt-2 border-t opacity-50">
+              <Label htmlFor="whatsappNumero" className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                <MessageCircle className="w-4 h-4 text-muted-foreground" />
                 Enviar no WhatsApp
+                <span className="text-xs ml-auto">(em manutenção)</span>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -427,28 +428,20 @@ ${mensalidadeLinha}
                   type="tel"
                   placeholder="(00) 00000-0000"
                   value={whatsappNumero}
-                  onChange={(e) => {
-                    // Formatar telefone
-                    const value = e.target.value.replace(/\D/g, "");
-                    if (value.length <= 11) {
-                      const formatted = value
-                        .replace(/(\d{2})(\d)/, "($1) $2")
-                        .replace(/(\d{5})(\d)/, "$1-$2");
-                      setWhatsappNumero(formatted);
-                    }
-                  }}
-                  className="flex-1"
+                  disabled
+                  className="flex-1 bg-muted cursor-not-allowed"
                 />
                 <Button
-                  onClick={handleWhatsApp}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4"
+                  disabled
+                  className="bg-green-600/50 text-white/70 px-4 cursor-not-allowed"
+                  title="Opção temporariamente desabilitada"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Enviar
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Abre o WhatsApp Web com a mensagem e link do PDF
+                Opção temporariamente desabilitada
               </p>
             </div>
 
