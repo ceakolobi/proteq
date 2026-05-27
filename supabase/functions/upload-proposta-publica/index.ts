@@ -53,7 +53,7 @@ serve(async (req: Request) => {
     const path = `publicas/${crypto.randomUUID()}-${safeFilename}`;
     const bytes = base64ToBytes(pdfBase64);
 
-    if (bytes.byteLength > 8 * 1024 * 1024) {
+    if (bytes.byteLength > 20 * 1024 * 1024) {
       return new Response(JSON.stringify({ error: "PDF muito grande para envio." }), {
         status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
