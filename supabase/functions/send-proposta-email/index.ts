@@ -141,7 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://sbtfhtllzpurjprivqoi.supabase.co/storage/v1/object/public/vistoria-fotos/companies/a0000000-0000-0000-0000-000000000001/logo_email_harmony_agro_v2.png" alt="Harmony Agro - Clube de Benefícios" style="max-height: 80px; margin: 0 auto; display: block;" />
+      <img src="https://sbtfhtllzpurjprivqoi.supabase.co/storage/v1/object/public/vistoria-fotos/companies/a0000000-0000-0000-0000-000000000001/logo_email_harmony_agro_v3.png" alt="Harmony Agro - Clube de Benefícios" style="max-height: 80px; margin: 0 auto; display: block;" />
     </div>
     
     <div class="content">
