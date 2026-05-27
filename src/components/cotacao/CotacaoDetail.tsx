@@ -363,10 +363,10 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     const valorFipeFmt = cotacao.valor_fipe ? formatCurrency(cotacao.valor_fipe) : formatCurrency(cotacao.valor_bem);
     const mensalidadeFmt = formatCurrency(cotacao.mensalidade);
     const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const aceiteToken = (cotacao as any).aceite_token as string | undefined;
+    const propostaUrl = aceiteToken ? `${siteUrl}/aceitar/${aceiteToken}` : siteUrl;
 
-    const mensagem = `${siteUrl}
-
-*Olá, ${nomePrimeiro}!* Tudo bem?
+    const mensagem = `*Olá, ${nomePrimeiro}!* Tudo bem?
 
 Conforme conversamos, preparei a proposta de proteção para o seu veículo. Focamos em garantir o melhor custo-benefício com a máxima segurança para você.
 
@@ -408,6 +408,12 @@ _(opcionais escolhidos são somados à mensalidade)_
 ✅ *SEM* taxa de adesão
 ✅ *SEM* análise de condutor
 ✅ *SEM* consulta SPC/Serasa
+
+━━━━━━━━━━━━━━━
+📄 *VEJA SUA PROPOSTA COMPLETA*
+━━━━━━━━━━━━━━━
+👉 ${propostaUrl}
+_(abra o link para visualizar todos os detalhes e aceitar online)_
 
 ━━━━━━━━━━━━━━━
 📲 *Como deseja prosseguir?*
