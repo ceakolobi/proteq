@@ -1,4 +1,4 @@
-import { Gift, Clock, ArrowRight } from 'lucide-react';
+import { Gift, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PromoBannerProps {
@@ -33,8 +33,8 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
             </h2>
             
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
-              Cadastre-se até <strong>30 de março</strong> e ganhe sua primeira mensalidade. 
-              Só pague a partir de <strong>10 de março</strong>!
+              Cadastre-se até <strong>30 de junho</strong> e escolha a sua melhor data de vencimento:{' '}
+              <strong>05, 10, 15, 20, 25 ou 30</strong>.
             </p>
             
             <p className="text-base md:text-lg text-primary-foreground/80 mb-6 bg-white/10 backdrop-blur-sm inline-block px-4 py-2 rounded-lg">
@@ -50,14 +50,8 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                 Quero minha cotação grátis
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3">
-                <Clock className="h-5 w-5 text-secondary" />
-                <span className="text-primary-foreground font-medium">
-                  Vencimento: <strong>10/03</strong>
-                </span>
-              </div>
             </div>
+
           </div>
 
           {/* Right content - Promo card */}
@@ -76,7 +70,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                 
                 <div className="mt-6 pt-6 border-t border-white/20">
                   <p className="text-xs text-primary-foreground/70">
-                    *Válido para cadastros até 30/03/2025
+                    *Válido para cadastros até 30/06/2026
                   </p>
                 </div>
               </div>
