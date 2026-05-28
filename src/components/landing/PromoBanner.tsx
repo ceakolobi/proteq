@@ -1,4 +1,4 @@
-import { Gift, Clock, ArrowRight } from 'lucide-react';
+import { Gift, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PromoBannerProps {
