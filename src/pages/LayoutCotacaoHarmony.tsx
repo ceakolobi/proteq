@@ -475,9 +475,30 @@ export default function LayoutCotacaoHarmony() {
       }
 
       // Garante MIME type correto
-      const pdfBlob = blob.type === "application/pdf"
+      const propostaBlob = blob.type === "application/pdf"
         ? blob
         : new Blob([blob], { type: "application/pdf" });
+
+      // Mescla a proposta com capa personalizada + Regulamento Interno
+      let pdfBlob = propostaBlob;
+      try {
+        const { mergePropostaComRegulamento } = await import("@/lib/mergeRegulamento");
+        pdfBlob = await mergePropostaComRegulamento(propostaBlob, {
+          clienteNome: nomeCliente || cotacao?.cliente_nome,
+          clienteEmail: cotacao?.cliente_email,
+          clienteWhatsapp: cotacao?.cliente_whatsapp,
+          modelo: cotacao?.modelo,
+          marca: cotacao?.marca,
+          chassi: cotacao?.chassi,
+          anoFabricacao: cotacao?.ano_fabricacao,
+          anoModelo: cotacao?.ano_modelo,
+          valorBem: cotacao?.valor_fipe || cotacao?.valor_bem,
+          mensalidade: cotacao?.mensalidade,
+          numeroCotacao: numeroCotacaoCurto,
+        });
+      } catch (mergeErr) {
+        console.error("Falha ao mesclar regulamento — enviando apenas a proposta:", mergeErr);
+      }
 
       setPdfBlob(pdfBlob);
       setPdfFilename(filename);
