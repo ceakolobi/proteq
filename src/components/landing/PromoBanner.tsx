@@ -32,12 +32,12 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
               <span className="text-secondary">GRÁTIS!</span>
             </h2>
             
-            <p className="text-lg md:text-xl text-primary-foreground/90 mb-4 max-w-xl">
+            <p className="text-lg md:text-xl text-white mb-4 max-w-xl">
               Cadastre-se até <strong>30 de junho</strong> e escolha a sua melhor data de vencimento:{' '}
               <strong>05, 10, 15, 20, 25 ou 30</strong>.
             </p>
             
-            <p className="text-base md:text-lg text-primary-foreground/80 mb-6 bg-white/10 backdrop-blur-sm inline-block px-4 py-2 rounded-lg">
+            <p className="text-base md:text-lg text-white mb-6 bg-white/10 backdrop-blur-sm inline-block px-4 py-2 rounded-lg">
               💰 <strong>Adesão de apenas R$ 50</strong> para qualquer veículo
             </p>
 
