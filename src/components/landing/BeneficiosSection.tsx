@@ -34,8 +34,8 @@ const beneficios = [
   },
   { 
     icon: Truck, 
-    titulo: 'Guincho 500km', 
-    descricao: '250km ida e volta' 
+    titulo: 'Guincho', 
+    descricao: '250 km' 
   },
   { 
     icon: Car, 

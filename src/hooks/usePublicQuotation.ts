@@ -89,7 +89,7 @@ export function usePublicQuotation() {
         'Assistência 24h',
         'Rastreamento veicular',
         'Até 100% da FIPE',
-        'Guincho 500km',
+        'Guincho 250 km',
         '30 dias de carro reserva',
       ],
     };
