@@ -18,7 +18,7 @@ const beneficiosInclusos = [
   { titulo: 'Assistência 24h', descricao: 'Suporte integral' },
   { titulo: 'Rastreamento', descricao: 'Tempo real' },
   { titulo: '100% FIPE', descricao: 'Indenização total' },
-  { titulo: 'Guincho 500km', descricao: '250km ida/volta' },
+  { titulo: 'Guincho', descricao: '250 km' },
   { titulo: 'Carro Reserva', descricao: '30 dias inclusos' },
   { titulo: 'Chaveiro 24h', descricao: 'Gratuito' },
   { titulo: 'Pane Elétrica', descricao: 'Assistência inclusa' },
