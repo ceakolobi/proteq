@@ -70,7 +70,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                 
                 <div className="mt-6 pt-6 border-t border-white/20">
                   <p className="text-xs text-primary-foreground/70">
-                    *Válido para cadastros até 30/03/2025
+                    *Válido para cadastros até 30/06/2026
                   </p>
                 </div>
               </div>
