@@ -89,7 +89,7 @@ const beneficiosInclusos = [
   },
   {
     titulo: "Guincho",
-    subtitulo: "250 km",
+    subtitulo: "500 km (250 ida e volta)",
     icon: Truck,
   },
   {
