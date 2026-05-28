@@ -174,5 +174,5 @@ export async function mergePropostaComRegulamento(
   }
 
   const out = await merged.save();
-  return new Blob([out], { type: "application/pdf" });
+  return new Blob([out as BlobPart], { type: "application/pdf" });
 }
