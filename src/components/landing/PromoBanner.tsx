@@ -62,14 +62,14 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                   <Gift className="h-10 w-10 text-secondary-foreground" />
                 </div>
                 
-                <p className="text-primary-foreground/80 text-sm mb-2">Você economiza</p>
-                <p className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">
+                <p className="text-white text-sm mb-2">Você economiza</p>
+                <p className="text-4xl md:text-5xl font-bold text-white mb-2">
                   R$ <span className="text-secondary">150</span>
                 </p>
-                <p className="text-primary-foreground/80 text-sm">valor médio da 1ª mensalidade</p>
+                <p className="text-white text-sm">valor médio da 1ª mensalidade</p>
                 
-                <div className="mt-6 pt-6 border-t border-white/20">
-                  <p className="text-xs text-primary-foreground/70">
+                <div className="mt-6 pt-6 border-t border-white/30">
+                  <p className="text-xs text-white">
                     *Válido para cadastros até 30/06/2026
                   </p>
                 </div>
