@@ -64,7 +64,7 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
                 
                 <p className="text-white text-sm mb-2">Você economiza</p>
                 <p className="text-4xl md:text-5xl font-bold text-white mb-2">
-                  R$ <span className="text-secondary">150</span>
+                  R$ <span className="text-white">150</span>
                 </p>
                 <p className="text-white text-sm">valor médio da 1ª mensalidade</p>
                 
