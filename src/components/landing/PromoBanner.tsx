@@ -24,10 +24,10 @@ export function PromoBanner({ onStart }: PromoBannerProps) {
           <div className="flex-1 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
               <Gift className="h-5 w-5 text-secondary" />
-              <span className="text-sm font-semibold text-primary-foreground">Oferta por tempo limitado</span>
+              <span className="text-sm font-semibold text-white">Oferta por tempo limitado</span>
             </div>
             
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
               1ª Mensalidade{' '}
               <span className="text-secondary">GRÁTIS!</span>
             </h2>
