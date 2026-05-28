@@ -137,7 +137,7 @@ export function ResultadoCotacao({
     { icon: Headphones, titulo: 'Assistência 24h', descricao: 'Suporte integral' },
     { icon: MapPin, titulo: 'Rastreamento', descricao: 'Tempo real' },
     { icon: Percent, titulo: '100% FIPE', descricao: 'Indenização total' },
-    { icon: Truck, titulo: 'Guincho', descricao: '250 km' },
+    { icon: Truck, titulo: 'Guincho', descricao: '500 km (250 ida e volta)' },
     { icon: Car, titulo: 'Carro Reserva', descricao: '30 dias inclusos' },
     { icon: Key, titulo: 'Chaveiro 24h', descricao: 'Gratuito' },
     { icon: Zap, titulo: 'Pane Elétrica', descricao: 'Assistência inclusa' },
