@@ -400,50 +400,23 @@ ${mensalidadeLinha}
               Baixar PDF
             </Button>
 
-            {/* Copiar Link */}
-            <Button
-              onClick={handleCopyLink}
-              variant="outline"
-              className="w-full justify-start"
-              disabled={!pdfUrl}
-            >
-              {isCopied ? (
-                <Check className="w-4 h-4 mr-2 text-harmony-green" />
-              ) : (
-                <Copy className="w-4 h-4 mr-2" />
-              )}
-              {isCopied ? "Link Copiado!" : "Copiar Link do PDF"}
-            </Button>
+            {/* Copiar Link (opcional, discreto) */}
+            {pdfUrl && (
+              <Button
+                onClick={handleCopyLink}
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-muted-foreground"
+              >
+                {isCopied ? (
+                  <Check className="w-4 h-4 mr-2 text-harmony-green" />
+                ) : (
+                  <Copy className="w-4 h-4 mr-2" />
+                )}
+                {isCopied ? "Link copiado!" : "Copiar link do PDF (opcional)"}
+              </Button>
+            )}
 
-            {/* WhatsApp - temporariamente desabilitado */}
-            <div className="space-y-2 pt-2 border-t opacity-50">
-              <Label htmlFor="whatsappNumero" className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                <MessageCircle className="w-4 h-4 text-muted-foreground" />
-                Enviar no WhatsApp
-                <span className="text-xs ml-auto">(em manutenção)</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="whatsappNumero"
-                  type="tel"
-                  placeholder="(00) 00000-0000"
-                  value={whatsappNumero}
-                  disabled
-                  className="flex-1 bg-muted cursor-not-allowed"
-                />
-                <Button
-                  disabled
-                  className="bg-green-600/50 text-white/70 px-4 cursor-not-allowed"
-                  title="Opção temporariamente desabilitada"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Enviar
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Opção temporariamente desabilitada
-              </p>
-            </div>
 
             {/* E-mail */}
             <div className="space-y-2 pt-2 border-t">
