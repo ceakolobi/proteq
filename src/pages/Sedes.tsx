@@ -44,8 +44,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Edit, Trash2, Users, MapPin } from 'lucide-react';
+import { Building2, Plus, Search, Edit, Trash2, Users, MapPin, RotateCcw } from 'lucide-react';
 import type { Sede, Profile } from '@/types/database';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
+
+const SEDES_FORM_INITIAL = {
+  nome: '',
+  tipo: 'regional' as 'matriz' | 'regional',
+  endereco: '',
+  telefone: '',
+  email: '',
+  ativo: true,
+  responsavel_id: '',
+};
 
 interface SedeWithResponsavel extends Sede {
   responsavel?: Profile | null;
@@ -65,14 +76,15 @@ export default function Sedes() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSede, setSelectedSede] = useState<SedeWithResponsavel | null>(null);
-  const [formData, setFormData] = useState({
-    nome: '',
-    tipo: 'regional' as 'matriz' | 'regional',
-    endereco: '',
-    telefone: '',
-    email: '',
-    ativo: true,
-    responsavel_id: '',
+  // Persistência automática do formulário em localStorage (somente p/ nova regional)
+  const {
+    value: formData,
+    setValue: setFormData,
+    clearDraft: clearFormDraft,
+    resetValue: resetFormData,
+    hasDraft: hasFormDraft,
+  } = useFormPersistence('sedes:form', SEDES_FORM_INITIAL, {
+    enabled: isDialogOpen && !selectedSede,
   });
 
   // Hooks para contar consultores e associados por sede (batch)
@@ -156,7 +168,8 @@ export default function Sedes() {
   const handleOpenDialog = (sede?: SedeWithResponsavel) => {
     if (sede) {
       setSelectedSede(sede);
-      setFormData({
+      // Edição: substitui valor sem mexer em rascunho de "nova regional"
+      resetFormData({
         nome: sede.nome,
         tipo: sede.tipo as 'matriz' | 'regional',
         endereco: sede.endereco || '',
@@ -167,17 +180,18 @@ export default function Sedes() {
       });
     } else {
       setSelectedSede(null);
-      setFormData({
-        nome: '',
-        tipo: 'regional',
-        endereco: '',
-        telefone: '',
-        email: '',
-        ativo: true,
-        responsavel_id: '',
-      });
+      // Nova: se houver rascunho salvo, mantém; senão começa em branco.
+      // O hook já carrega o draft automaticamente quando isDialogOpen abre.
+      if (!hasFormDraft) {
+        setFormData(SEDES_FORM_INITIAL);
+      }
     }
     setIsDialogOpen(true);
+  };
+
+  const handleDiscardDraft = () => {
+    resetFormData(SEDES_FORM_INITIAL);
+    toast.info('Rascunho descartado');
   };
 
   const handleSave = async () => {
@@ -245,6 +259,8 @@ export default function Sedes() {
         toast.success('Regional criada com sucesso');
       }
 
+      // Limpa rascunho ao salvar com sucesso
+      clearFormDraft();
       setIsDialogOpen(false);
       fetchSedes();
     } catch (error: any) {
@@ -502,6 +518,25 @@ export default function Sedes() {
                   : 'Cadastre uma nova regional no sistema'}
               </DialogDescription>
             </DialogHeader>
+
+            {!selectedSede && hasFormDraft && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                <span className="text-muted-foreground">
+                  Rascunho restaurado automaticamente. Você pode continuar de onde parou.
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={handleDiscardDraft}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+
 
             <div className="grid gap-4 py-4">
               <div className="space-y-2">

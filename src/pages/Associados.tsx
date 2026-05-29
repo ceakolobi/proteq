@@ -41,6 +41,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -48,6 +58,7 @@ import {
   UserPlus, 
   Search, 
   Edit, 
+  Trash2,
   Phone, 
   Mail,
   Car,
@@ -125,7 +136,11 @@ export default function Associados() {
   }, [associados.length, statusFilter, regiaoFilter, logViewList]);
   const [newAssociadoId, setNewAssociadoId] = useState<string | null>(null);
   const [isWizardMode, setIsWizardMode] = useState(false);
-  
+
+  // Exclusão de associado
+  const [associadoToDelete, setAssociadoToDelete] = useState<AssociadoWithDetails | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [formData, setFormData] = useState({
     nome_completo: '',
     cpf: '',
@@ -149,6 +164,64 @@ export default function Associados() {
   
   // canCreate e canEdit vêm do useModuleAccess (permissões granulares)
   const canEditAll = canEdit || isAdminPrincipal || isAdminRegional || isCadastro;
+  // Apenas Admin Principal e Admin Regional podem excluir clientes
+  const canDeleteAssociado = isAdminPrincipal || isAdminRegional;
+
+  const handleConfirmDelete = async () => {
+    if (!associadoToDelete) return;
+    setIsDeleting(true);
+    try {
+      // Exclusão em cascata manual (não há FK cascade no banco)
+      const associadoId = associadoToDelete.id;
+
+      // Coleta veículos do associado para limpar dependências
+      const { data: veiculos } = await supabase
+        .from('veiculos')
+        .select('id')
+        .eq('associado_id', associadoId);
+      const veiculoIds = (veiculos || []).map((v) => v.id);
+
+      // Apaga dependências (best-effort; ignora erros de tabelas inexistentes)
+      const safe = async (thenable: PromiseLike<any>) => {
+        try { await thenable; } catch (e) { console.warn('cascade step skipped:', e); }
+      };
+
+      if (veiculoIds.length > 0) {
+        await safe(supabase.from('documentos_veiculo').delete().in('veiculo_id', veiculoIds));
+        await safe((supabase.from as any)('vistorias').delete().in('veiculo_id', veiculoIds));
+        await safe(supabase.from('acionamentos_guincho').delete().in('veiculo_id', veiculoIds));
+      }
+
+      const { data: cotacoesIds } = await supabase
+        .from('cotacoes')
+        .select('id')
+        .eq('associado_id', associadoId);
+      const cotacaoIds = (cotacoesIds || []).map((c: any) => c.id);
+      if (cotacaoIds.length > 0) {
+        await safe(supabase.from('cotacao_beneficios').delete().in('cotacao_id', cotacaoIds));
+      }
+      await safe(supabase.from('cotacoes').delete().eq('associado_id', associadoId));
+      await safe((supabase.from as any)('mensalidades').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('cobrancas').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('ativacoes').delete().eq('associado_id', associadoId));
+      await safe((supabase.from as any)('termos_aceite').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('documentos_associado').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('veiculos').delete().eq('associado_id', associadoId));
+
+      // Por fim, o associado
+      const { error } = await supabase.from('associados').delete().eq('id', associadoId);
+      if (error) throw error;
+
+      toast.success(`Cliente "${associadoToDelete.nome_completo}" excluído com sucesso`);
+      setAssociadoToDelete(null);
+      fetchAssociados();
+    } catch (error: any) {
+      console.error('Error deleting associado:', error);
+      toast.error(error.message || 'Erro ao excluir cliente');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (isAllowed && !isChecking && !permissionsLoading && canAccessPage) {
@@ -613,8 +686,19 @@ export default function Associados() {
                 variant="ghost"
                 size="icon"
                 onClick={() => handleOpenEditDialog(associado)}
+                title="Editar"
               >
                 <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {canDeleteAssociado && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setAssociadoToDelete(associado)}
+                title="Excluir cliente"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             )}
           </div>
@@ -1270,6 +1354,38 @@ export default function Associados() {
           onSuccess={fetchAssociados}
           canEditStatus={canEditAll && !isConsultor}
         />
+
+        {/* Confirmação de Exclusão de Cliente */}
+        <AlertDialog
+          open={!!associadoToDelete}
+          onOpenChange={(open) => !open && !isDeleting && setAssociadoToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir <strong>{associadoToDelete?.nome_completo}</strong>.
+                <br /><br />
+                Esta ação também removerá <strong>veículos, cotações, mensalidades,
+                cobranças, ativações, vistorias, documentos e termos</strong> vinculados a este cliente.
+                <br /><br />
+                <span className="text-destructive font-medium">
+                  Esta ação não pode ser desfeita.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Excluindo...' : 'Sim, excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
