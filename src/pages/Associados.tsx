@@ -1354,6 +1354,38 @@ export default function Associados() {
           onSuccess={fetchAssociados}
           canEditStatus={canEditAll && !isConsultor}
         />
+
+        {/* Confirmação de Exclusão de Cliente */}
+        <AlertDialog
+          open={!!associadoToDelete}
+          onOpenChange={(open) => !open && !isDeleting && setAssociadoToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir <strong>{associadoToDelete?.nome_completo}</strong>.
+                <br /><br />
+                Esta ação também removerá <strong>veículos, cotações, mensalidades,
+                cobranças, ativações, vistorias, documentos e termos</strong> vinculados a este cliente.
+                <br /><br />
+                <span className="text-destructive font-medium">
+                  Esta ação não pode ser desfeita.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleConfirmDelete(); }}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Excluindo...' : 'Sim, excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
