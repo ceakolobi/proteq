@@ -259,6 +259,8 @@ export default function Sedes() {
         toast.success('Regional criada com sucesso');
       }
 
+      // Limpa rascunho ao salvar com sucesso
+      clearFormDraft();
       setIsDialogOpen(false);
       fetchSedes();
     } catch (error: any) {
