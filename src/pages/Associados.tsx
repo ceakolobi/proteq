@@ -136,7 +136,11 @@ export default function Associados() {
   }, [associados.length, statusFilter, regiaoFilter, logViewList]);
   const [newAssociadoId, setNewAssociadoId] = useState<string | null>(null);
   const [isWizardMode, setIsWizardMode] = useState(false);
-  
+
+  // Exclusão de associado
+  const [associadoToDelete, setAssociadoToDelete] = useState<AssociadoWithDetails | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [formData, setFormData] = useState({
     nome_completo: '',
     cpf: '',
