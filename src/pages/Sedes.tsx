@@ -168,7 +168,8 @@ export default function Sedes() {
   const handleOpenDialog = (sede?: SedeWithResponsavel) => {
     if (sede) {
       setSelectedSede(sede);
-      setFormData({
+      // Edição: substitui valor sem mexer em rascunho de "nova regional"
+      resetFormData({
         nome: sede.nome,
         tipo: sede.tipo as 'matriz' | 'regional',
         endereco: sede.endereco || '',
@@ -179,17 +180,18 @@ export default function Sedes() {
       });
     } else {
       setSelectedSede(null);
-      setFormData({
-        nome: '',
-        tipo: 'regional',
-        endereco: '',
-        telefone: '',
-        email: '',
-        ativo: true,
-        responsavel_id: '',
-      });
+      // Nova: se houver rascunho salvo, mantém; senão começa em branco.
+      // O hook já carrega o draft automaticamente quando isDialogOpen abre.
+      if (!hasFormDraft) {
+        setFormData(SEDES_FORM_INITIAL);
+      }
     }
     setIsDialogOpen(true);
+  };
+
+  const handleDiscardDraft = () => {
+    resetFormData(SEDES_FORM_INITIAL);
+    toast.info('Rascunho descartado');
   };
 
   const handleSave = async () => {
