@@ -164,6 +164,59 @@ export default function Associados() {
   
   // canCreate e canEdit vêm do useModuleAccess (permissões granulares)
   const canEditAll = canEdit || isAdminPrincipal || isAdminRegional || isCadastro;
+  // Apenas Admin Principal e Admin Regional podem excluir clientes
+  const canDeleteAssociado = isAdminPrincipal || isAdminRegional;
+
+  const handleConfirmDelete = async () => {
+    if (!associadoToDelete) return;
+    setIsDeleting(true);
+    try {
+      // Exclusão em cascata manual (não há FK cascade no banco)
+      const associadoId = associadoToDelete.id;
+
+      // Coleta veículos do associado para limpar dependências
+      const { data: veiculos } = await supabase
+        .from('veiculos')
+        .select('id')
+        .eq('associado_id', associadoId);
+      const veiculoIds = (veiculos || []).map((v) => v.id);
+
+      // Apaga dependências (best-effort; ignora "tabela não existe" silenciosamente)
+      const safe = async (fn: () => Promise<any>) => {
+        try { await fn(); } catch (e) { console.warn('cascade step skipped:', e); }
+      };
+
+      if (veiculoIds.length > 0) {
+        await safe(() => supabase.from('documentos_veiculo').delete().in('veiculo_id', veiculoIds));
+        await safe(() => supabase.from('vistorias' as any).delete().in('veiculo_id', veiculoIds));
+        await safe(() => supabase.from('acionamentos_guincho').delete().in('veiculo_id', veiculoIds));
+      }
+
+      await safe(() => supabase.from('cotacao_beneficios').delete().in('cotacao_id',
+        (await supabase.from('cotacoes').select('id').eq('associado_id', associadoId)).data?.map((c: any) => c.id) || []
+      ));
+      await safe(() => supabase.from('cotacoes').delete().eq('associado_id', associadoId));
+      await safe(() => supabase.from('mensalidades' as any).delete().eq('associado_id', associadoId));
+      await safe(() => supabase.from('cobrancas').delete().eq('associado_id', associadoId));
+      await safe(() => supabase.from('ativacoes').delete().eq('associado_id', associadoId));
+      await safe(() => supabase.from('termos_aceite' as any).delete().eq('associado_id', associadoId));
+      await safe(() => supabase.from('documentos_associado').delete().eq('associado_id', associadoId));
+      await safe(() => supabase.from('veiculos').delete().eq('associado_id', associadoId));
+
+      // Por fim, o associado
+      const { error } = await supabase.from('associados').delete().eq('id', associadoId);
+      if (error) throw error;
+
+      toast.success(`Cliente "${associadoToDelete.nome_completo}" excluído com sucesso`);
+      setAssociadoToDelete(null);
+      fetchAssociados();
+    } catch (error: any) {
+      console.error('Error deleting associado:', error);
+      toast.error(error.message || 'Erro ao excluir cliente');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     if (isAllowed && !isChecking && !permissionsLoading && canAccessPage) {
