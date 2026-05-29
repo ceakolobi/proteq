@@ -686,8 +686,19 @@ export default function Associados() {
                 variant="ghost"
                 size="icon"
                 onClick={() => handleOpenEditDialog(associado)}
+                title="Editar"
               >
                 <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {canDeleteAssociado && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setAssociadoToDelete(associado)}
+                title="Excluir cliente"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             )}
           </div>
