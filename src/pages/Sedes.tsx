@@ -76,14 +76,15 @@ export default function Sedes() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSede, setSelectedSede] = useState<SedeWithResponsavel | null>(null);
-  const [formData, setFormData] = useState({
-    nome: '',
-    tipo: 'regional' as 'matriz' | 'regional',
-    endereco: '',
-    telefone: '',
-    email: '',
-    ativo: true,
-    responsavel_id: '',
+  // Persistência automática do formulário em localStorage (somente p/ nova regional)
+  const {
+    value: formData,
+    setValue: setFormData,
+    clearDraft: clearFormDraft,
+    resetValue: resetFormData,
+    hasDraft: hasFormDraft,
+  } = useFormPersistence('sedes:form', SEDES_FORM_INITIAL, {
+    enabled: isDialogOpen && !selectedSede,
   });
 
   // Hooks para contar consultores e associados por sede (batch)
