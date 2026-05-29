@@ -181,27 +181,32 @@ export default function Associados() {
         .eq('associado_id', associadoId);
       const veiculoIds = (veiculos || []).map((v) => v.id);
 
-      // Apaga dependências (best-effort; ignora "tabela não existe" silenciosamente)
-      const safe = async (fn: () => Promise<any>) => {
-        try { await fn(); } catch (e) { console.warn('cascade step skipped:', e); }
+      // Apaga dependências (best-effort; ignora erros de tabelas inexistentes)
+      const safe = async (thenable: PromiseLike<any>) => {
+        try { await thenable; } catch (e) { console.warn('cascade step skipped:', e); }
       };
 
       if (veiculoIds.length > 0) {
-        await safe(() => supabase.from('documentos_veiculo').delete().in('veiculo_id', veiculoIds));
-        await safe(() => supabase.from('vistorias' as any).delete().in('veiculo_id', veiculoIds));
-        await safe(() => supabase.from('acionamentos_guincho').delete().in('veiculo_id', veiculoIds));
+        await safe(supabase.from('documentos_veiculo').delete().in('veiculo_id', veiculoIds));
+        await safe((supabase.from as any)('vistorias').delete().in('veiculo_id', veiculoIds));
+        await safe(supabase.from('acionamentos_guincho').delete().in('veiculo_id', veiculoIds));
       }
 
-      await safe(() => supabase.from('cotacao_beneficios').delete().in('cotacao_id',
-        (await supabase.from('cotacoes').select('id').eq('associado_id', associadoId)).data?.map((c: any) => c.id) || []
-      ));
-      await safe(() => supabase.from('cotacoes').delete().eq('associado_id', associadoId));
-      await safe(() => supabase.from('mensalidades' as any).delete().eq('associado_id', associadoId));
-      await safe(() => supabase.from('cobrancas').delete().eq('associado_id', associadoId));
-      await safe(() => supabase.from('ativacoes').delete().eq('associado_id', associadoId));
-      await safe(() => supabase.from('termos_aceite' as any).delete().eq('associado_id', associadoId));
-      await safe(() => supabase.from('documentos_associado').delete().eq('associado_id', associadoId));
-      await safe(() => supabase.from('veiculos').delete().eq('associado_id', associadoId));
+      const { data: cotacoesIds } = await supabase
+        .from('cotacoes')
+        .select('id')
+        .eq('associado_id', associadoId);
+      const cotacaoIds = (cotacoesIds || []).map((c: any) => c.id);
+      if (cotacaoIds.length > 0) {
+        await safe(supabase.from('cotacao_beneficios').delete().in('cotacao_id', cotacaoIds));
+      }
+      await safe(supabase.from('cotacoes').delete().eq('associado_id', associadoId));
+      await safe((supabase.from as any)('mensalidades').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('cobrancas').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('ativacoes').delete().eq('associado_id', associadoId));
+      await safe((supabase.from as any)('termos_aceite').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('documentos_associado').delete().eq('associado_id', associadoId));
+      await safe(supabase.from('veiculos').delete().eq('associado_id', associadoId));
 
       // Por fim, o associado
       const { error } = await supabase.from('associados').delete().eq('id', associadoId);
