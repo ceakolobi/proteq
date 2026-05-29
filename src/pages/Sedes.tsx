@@ -519,6 +519,25 @@ export default function Sedes() {
               </DialogDescription>
             </DialogHeader>
 
+            {!selectedSede && hasFormDraft && (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                <span className="text-muted-foreground">
+                  Rascunho restaurado automaticamente. Você pode continuar de onde parou.
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  onClick={handleDiscardDraft}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+
+
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="nome">Nome da Regional *</Label>
