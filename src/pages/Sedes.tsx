@@ -44,8 +44,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Edit, Trash2, Users, MapPin } from 'lucide-react';
+import { Building2, Plus, Search, Edit, Trash2, Users, MapPin, RotateCcw } from 'lucide-react';
 import type { Sede, Profile } from '@/types/database';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
+
+const SEDES_FORM_INITIAL = {
+  nome: '',
+  tipo: 'regional' as 'matriz' | 'regional',
+  endereco: '',
+  telefone: '',
+  email: '',
+  ativo: true,
+  responsavel_id: '',
+};
 
 interface SedeWithResponsavel extends Sede {
   responsavel?: Profile | null;
