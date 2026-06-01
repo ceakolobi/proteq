@@ -72,6 +72,7 @@ export default function AssinaturaTermoPublico() {
   const [assinaturaData, setAssinaturaData] = useState<string | null>(null);
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [metodoAssinatura, setMetodoAssinatura] = useState<'desenho' | 'codigo'>('desenho');
+  const toggleAceiteTermos = () => setAceitouTermos((prev) => !prev);
   
   // Code verification state
   const [codigoEnviado, setCodigoEnviado] = useState(false);
@@ -305,9 +306,10 @@ export default function AssinaturaTermoPublico() {
       setSuccess(true);
       toast.success('Termo assinado com sucesso!');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error signing termo:', err);
-      toast.error(err.message || 'Erro ao assinar o termo. Tente novamente.');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao assinar o termo. Tente novamente.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -649,16 +651,33 @@ export default function AssinaturaTermoPublico() {
             <Separator />
 
             {/* Checkbox obrigatório */}
-            <div className="flex items-start space-x-3 bg-primary/5 p-4 rounded-lg">
+            <div
+              className="flex items-start space-x-3 bg-primary/5 p-4 rounded-lg cursor-pointer"
+              onClick={toggleAceiteTermos}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  toggleAceiteTermos();
+                }
+              }}
+            >
               <Checkbox
                 id="aceite"
                 checked={aceitouTermos}
+                onClick={(event) => event.stopPropagation()}
                 onCheckedChange={(checked) => setAceitouTermos(checked === true)}
                 className="mt-0.5"
               />
               <label
                 htmlFor="aceite"
-                className="text-sm leading-relaxed cursor-pointer"
+                className="text-sm leading-relaxed cursor-pointer select-none"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  toggleAceiteTermos();
+                }}
               >
                 <span className="font-medium">Declaro que li e concordo com os termos apresentados.</span>
                 <br />
