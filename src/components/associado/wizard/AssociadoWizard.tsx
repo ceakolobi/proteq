@@ -19,7 +19,6 @@ import { ResumoStep } from './steps/ResumoStep';
 import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
-import { gerarConteudoTermoPDF } from '@/lib/termoAceiteContent';
 import { useWizardPersistence, type WizardDraft } from '@/hooks/useWizardPersistence';
 
 interface AssociadoWizardProps {
@@ -94,7 +93,6 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [veiculoData, setVeiculoData] = useState<VeiculoFormData>(initialVeiculoData);
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoUpload[]>([]);
-  const [termosAceitos, setTermosAceitos] = useState(true);
   const [selectedRegiaoId, setSelectedRegiaoId] = useState<string | null>(null);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
@@ -151,7 +149,6 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     const hasLocalData = Boolean(
       localDraft &&
         (localDraft.currentStep > 0 ||
-          localDraft.termosAceitos ||
           localDraft.associadoData?.nome_completo?.trim() ||
           localDraft.associadoData?.cpf?.trim() ||
           localDraft.veiculoData?.placa?.trim() ||
@@ -188,9 +185,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       currentStep,
       associadoData,
       veiculoData,
-      termosAceitos,
     });
-  }, [open, currentStep, associadoData, veiculoData, termosAceitos, saveDraftLocal]);
+  }, [open, currentStep, associadoData, veiculoData, saveDraftLocal]);
 
   const resetWizard = useCallback(() => {
     setCurrentStep(0);
@@ -198,7 +194,6 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setVeiculoData(initialVeiculoData);
     setDocsAssociado([]);
     setDocsVeiculo([]);
-    setTermosAceitos(true);
     setSelectedRegiaoId(null);
     setStepValidation({});
     setPendingDraft(null);
@@ -228,7 +223,6 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       setAssociadoData(safeAssociadoData as AssociadoFormData);
       setVeiculoData((pendingDraft.veiculoData || initialVeiculoData) as VeiculoFormData);
-      setTermosAceitos(true);
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
@@ -361,7 +355,6 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       currentStep: currentStep + 1,
       associadoData,
       veiculoData,
-      termosAceitos,
       lastUpdated: new Date().toISOString(),
     };
     saveDraftBackend(draft).finally(() => setTimeout(() => setIsSaving(false), 400));
