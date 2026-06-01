@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileText, Shield, CheckCircle, AlertTriangle, MapPin } from 'lucide-react';
@@ -49,9 +48,8 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
   }, [showRegiaoSelector]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
-    if (isAtBottom && !scrolledToEnd) {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 50) {
       setScrolledToEnd(true);
     }
   };
@@ -114,16 +112,16 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
           <CardTitle className="text-base">{TERMO_ACEITE_TITULO}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea
-            className="h-[250px] w-full rounded-md border p-4"
-            onScrollCapture={handleScroll}
+          <div
+            className="h-[250px] w-full overflow-y-auto rounded-md border p-4"
+            onScroll={handleScroll}
           >
             <div className="prose prose-sm max-w-none">
               <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
                 {TERMO_ACEITE_CONTEUDO}
               </pre>
             </div>
-          </ScrollArea>
+          </div>
 
           {!scrolledToEnd && (
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
