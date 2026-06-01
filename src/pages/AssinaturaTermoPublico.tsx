@@ -306,9 +306,10 @@ export default function AssinaturaTermoPublico() {
       setSuccess(true);
       toast.success('Termo assinado com sucesso!');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error signing termo:', err);
-      toast.error(err.message || 'Erro ao assinar o termo. Tente novamente.');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao assinar o termo. Tente novamente.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
