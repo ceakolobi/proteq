@@ -216,7 +216,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   const handleContinueDraft = () => {
     if (pendingDraft) {
-      setCurrentStep(pendingDraft.currentStep || 0);
+      setCurrentStep(Math.min(pendingDraft.currentStep || 0, STEPS.length - 1));
 
       const safeAssociadoData = pendingDraft.associadoData
         ? {
