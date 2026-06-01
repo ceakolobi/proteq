@@ -137,12 +137,11 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
           id="termos-aceite"
           checked={aceitou}
           onCheckedChange={(checked) => onChange(checked === true)}
-          disabled={!scrolledToEnd}
           className="h-5 w-5"
         />
         <Label
           htmlFor="termos-aceite"
-          className={`text-sm font-medium cursor-pointer select-none ${!scrolledToEnd ? 'text-muted-foreground cursor-not-allowed' : ''}`}
+          className="text-sm font-medium cursor-pointer select-none"
         >
           Li e aceito os termos acima
         </Label>
