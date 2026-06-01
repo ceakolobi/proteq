@@ -337,15 +337,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         // Documentos são recomendados mas não obrigatórios
         return true;
       
-      case 5: // Resumo
-        return true;
-
-      case 6: // Termos
-        if (!termosAceitos) {
-          toast.error('Você precisa aceitar os termos para continuar');
-          return false;
-        }
-        // Verificar se precisa de regional e se foi selecionada
+      case 5: // Resumo e confirmação
+        // Verificar se precisa de regional e se foi selecionada antes de salvar
         if (needsRegiaoSelector && !selectedRegiaoId) {
           toast.error('Selecione uma regional para o associado');
           return false;
