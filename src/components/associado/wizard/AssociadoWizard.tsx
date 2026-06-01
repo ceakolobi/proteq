@@ -733,22 +733,50 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         );
       case 5:
         return (
-          <ResumoStep
-            associadoData={associadoData}
-            veiculoData={veiculoData}
-            docsAssociado={docsAssociado}
-            docsVeiculo={docsVeiculo}
-          />
-        );
-      case 6:
-        return (
-          <TermosAceiteStep
-            aceitou={termosAceitos}
-            onChange={setTermosAceitos}
-            selectedRegiaoId={selectedRegiaoId}
-            onRegiaoChange={setSelectedRegiaoId}
-            showRegiaoSelector={needsRegiaoSelector}
-          />
+          <div className="space-y-6">
+            {needsRegiaoSelector && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Selecione a Regional do Associado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="regiao-select">Regional *</Label>
+                    <Select
+                      value={selectedRegiaoId || ''}
+                      onValueChange={setSelectedRegiaoId}
+                      disabled={isLoadingRegioes}
+                    >
+                      <SelectTrigger id="regiao-select" className="w-full">
+                        <SelectValue placeholder={isLoadingRegioes ? 'Carregando...' : 'Selecione uma regional'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {regioes.map((regiao) => (
+                          <SelectItem key={regiao.id} value={regiao.id}>
+                            {regiao.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!selectedRegiaoId && (
+                      <p className="text-xs text-destructive">
+                        É obrigatório selecionar uma regional para o associado.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            <ResumoStep
+              associadoData={associadoData}
+              veiculoData={veiculoData}
+              docsAssociado={docsAssociado}
+              docsVeiculo={docsVeiculo}
+            />
+          </div>
         );
       default:
         return null;
