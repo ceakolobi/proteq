@@ -2,7 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Check, Loader2, Save } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight, Check, Loader2, Save, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +16,6 @@ import { DocumentosAssociadoStep } from './steps/DocumentosAssociadoStep';
 import { DadosVeiculoStep } from './steps/DadosVeiculoStep';
 import { DocumentosVeiculoStep } from './steps/DocumentosVeiculoStep';
 import { ResumoStep } from './steps/ResumoStep';
-import { TermosAceiteStep } from './steps/TermosAceiteStep';
 import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
@@ -33,8 +35,13 @@ const STEPS = [
   { id: 'veiculo', label: 'Veículo', shortLabel: 'Veículo' },
   { id: 'docs-veiculo', label: 'Docs Veículo', shortLabel: 'Fotos' },
   { id: 'resumo', label: 'Resumo', shortLabel: 'Resumo' },
-  { id: 'termos', label: 'Termos', shortLabel: 'Termos' },
 ];
+
+interface Regiao {
+  id: string;
+  nome: string;
+  sede_id: string;
+}
 
 const initialAssociadoData: AssociadoFormData = {
   nome_completo: '',
@@ -87,8 +94,10 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [veiculoData, setVeiculoData] = useState<VeiculoFormData>(initialVeiculoData);
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoUpload[]>([]);
-  const [termosAceitos, setTermosAceitos] = useState(false);
+  const [termosAceitos, setTermosAceitos] = useState(true);
   const [selectedRegiaoId, setSelectedRegiaoId] = useState<string | null>(null);
+  const [regioes, setRegioes] = useState<Regiao[]>([]);
+  const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
   const [showDraftDialog, setShowDraftDialog] = useState(false);
@@ -110,6 +119,28 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   const isRealFile = (file: unknown): file is File =>
     typeof File !== 'undefined' && file instanceof File;
+
+  useEffect(() => {
+    if (!open || !needsRegiaoSelector) return;
+
+    const fetchRegioes = async () => {
+      setIsLoadingRegioes(true);
+      const { data, error } = await supabase
+        .from('regioes')
+        .select('id, nome, sede_id')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (error) {
+        toast.error('Erro ao carregar regionais');
+      } else {
+        setRegioes(data || []);
+      }
+      setIsLoadingRegioes(false);
+    };
+
+    fetchRegioes();
+  }, [open, needsRegiaoSelector]);
 
   // Check for draft when dialog opens
   useEffect(() => {
@@ -167,7 +198,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setVeiculoData(initialVeiculoData);
     setDocsAssociado([]);
     setDocsVeiculo([]);
-    setTermosAceitos(false);
+    setTermosAceitos(true);
     setSelectedRegiaoId(null);
     setStepValidation({});
     setPendingDraft(null);
@@ -185,7 +216,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   const handleContinueDraft = () => {
     if (pendingDraft) {
-      setCurrentStep(pendingDraft.currentStep || 0);
+      setCurrentStep(Math.min(pendingDraft.currentStep || 0, STEPS.length - 1));
 
       const safeAssociadoData = pendingDraft.associadoData
         ? {
@@ -197,7 +228,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       setAssociadoData(safeAssociadoData as AssociadoFormData);
       setVeiculoData((pendingDraft.veiculoData || initialVeiculoData) as VeiculoFormData);
-      setTermosAceitos(pendingDraft.termosAceitos || false);
+      setTermosAceitos(true);
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
@@ -306,15 +337,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         // Documentos são recomendados mas não obrigatórios
         return true;
       
-      case 5: // Resumo
-        return true;
-
-      case 6: // Termos
-        if (!termosAceitos) {
-          toast.error('Você precisa aceitar os termos para continuar');
-          return false;
-        }
-        // Verificar se precisa de regional e se foi selecionada
+      case 5: // Resumo e confirmação
+        // Verificar se precisa de regional e se foi selecionada antes de salvar
         if (needsRegiaoSelector && !selectedRegiaoId) {
           toast.error('Selecione uma regional para o associado');
           return false;
@@ -709,22 +733,50 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         );
       case 5:
         return (
-          <ResumoStep
-            associadoData={associadoData}
-            veiculoData={veiculoData}
-            docsAssociado={docsAssociado}
-            docsVeiculo={docsVeiculo}
-          />
-        );
-      case 6:
-        return (
-          <TermosAceiteStep
-            aceitou={termosAceitos}
-            onChange={setTermosAceitos}
-            selectedRegiaoId={selectedRegiaoId}
-            onRegiaoChange={setSelectedRegiaoId}
-            showRegiaoSelector={needsRegiaoSelector}
-          />
+          <div className="space-y-6">
+            {needsRegiaoSelector && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Selecione a Regional do Associado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="regiao-select">Regional *</Label>
+                    <Select
+                      value={selectedRegiaoId || ''}
+                      onValueChange={setSelectedRegiaoId}
+                      disabled={isLoadingRegioes}
+                    >
+                      <SelectTrigger id="regiao-select" className="w-full">
+                        <SelectValue placeholder={isLoadingRegioes ? 'Carregando...' : 'Selecione uma regional'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {regioes.map((regiao) => (
+                          <SelectItem key={regiao.id} value={regiao.id}>
+                            {regiao.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!selectedRegiaoId && (
+                      <p className="text-xs text-destructive">
+                        É obrigatório selecionar uma regional para o associado.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            <ResumoStep
+              associadoData={associadoData}
+              veiculoData={veiculoData}
+              docsAssociado={docsAssociado}
+              docsVeiculo={docsVeiculo}
+            />
+          </div>
         );
       default:
         return null;
