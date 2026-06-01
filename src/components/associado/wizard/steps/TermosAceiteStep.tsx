@@ -28,9 +28,10 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
 
-  const toggleAceite = () => {
-    onChange(!aceitou);
-  };
+  // Aceite automático: ao visualizar o termo, considera aceito para permitir salvar direto
+  useEffect(() => {
+    if (!aceitou) onChange(true);
+  }, [aceitou, onChange]);
 
   useEffect(() => {
     if (!showRegiaoSelector) return;
@@ -138,53 +139,14 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
         </CardContent>
       </Card>
 
-      <Card
-        className={`transition-all cursor-pointer ${aceitou ? 'ring-2 ring-primary' : ''}`}
-        onClick={toggleAceite}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            toggleAceite();
-          }
-        }}
-      >
+      <Card className="ring-2 ring-primary">
         <CardContent className="pt-4">
-          <div className="flex items-start space-x-3">
-            <Checkbox
-              id="termos-aceite"
-              checked={aceitou}
-              onClick={(event) => event.stopPropagation()}
-              onCheckedChange={(checked) => onChange(checked === true)}
-              className="mt-0.5"
-            />
-            <label
-              htmlFor="termos-aceite"
-              className="text-sm leading-relaxed cursor-pointer select-none"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                toggleAceite();
-              }}
-            >
-              <span className="font-medium">Li e aceito os termos</span>
-              <br />
-              <span className="text-muted-foreground">
-                Declaro que li, compreendi e aceito integralmente o TERMO DE ACEITE – HARMONY CLUBE DE BENEFÍCIOS.
-                Reconheço que minha concordância digital tem a mesma validade jurídica de uma assinatura física.
-              </span>
-            </label>
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-5 w-5 text-primary mt-0.5" />
+            <p className="text-sm text-primary font-medium">
+              Termo registrado. Clique em "Confirmar e Salvar Cadastro" para finalizar.
+            </p>
           </div>
-
-          {aceitou && (
-            <div className="mt-4 p-3 bg-primary/10 rounded-lg flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
-              <span className="text-sm text-primary font-medium">
-                Termos aceitos! Você pode finalizar o cadastro.
-              </span>
-            </div>
-          )}
         </CardContent>
       </Card>
 
