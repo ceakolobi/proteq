@@ -24,7 +24,7 @@ interface TermosAceiteStepProps {
 }
 
 export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiaoChange, showRegiaoSelector }: TermosAceiteStepProps) {
-  const [scrolledToEnd, setScrolledToEnd] = useState(false);
+  const [scrolledToEnd, setScrolledToEnd] = useState(true);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
 
