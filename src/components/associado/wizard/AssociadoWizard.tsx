@@ -16,6 +16,7 @@ import { DocumentosAssociadoStep } from './steps/DocumentosAssociadoStep';
 import { DadosVeiculoStep } from './steps/DadosVeiculoStep';
 import { DocumentosVeiculoStep } from './steps/DocumentosVeiculoStep';
 import { ResumoStep } from './steps/ResumoStep';
+import { TermosAceiteStep } from './steps/TermosAceiteStep';
 import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
@@ -34,6 +35,7 @@ const STEPS = [
   { id: 'veiculo', label: 'Veículo', shortLabel: 'Veículo' },
   { id: 'docs-veiculo', label: 'Docs Veículo', shortLabel: 'Fotos' },
   { id: 'resumo', label: 'Resumo', shortLabel: 'Resumo' },
+  { id: 'termos', label: 'Termos', shortLabel: 'Termos' },
 ];
 
 interface Regiao {
@@ -93,6 +95,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [veiculoData, setVeiculoData] = useState<VeiculoFormData>(initialVeiculoData);
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoUpload[]>([]);
+  const [termosAceitos, setTermosAceitos] = useState(false);
   const [selectedRegiaoId, setSelectedRegiaoId] = useState<string | null>(null);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
@@ -185,6 +188,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       currentStep,
       associadoData,
       veiculoData,
+      termosAceitos,
     });
   }, [open, currentStep, associadoData, veiculoData, saveDraftLocal]);
 
@@ -194,6 +198,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setVeiculoData(initialVeiculoData);
     setDocsAssociado([]);
     setDocsVeiculo([]);
+    setTermosAceitos(false);
     setSelectedRegiaoId(null);
     setStepValidation({});
     setPendingDraft(null);
@@ -223,6 +228,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       setAssociadoData(safeAssociadoData as AssociadoFormData);
       setVeiculoData((pendingDraft.veiculoData || initialVeiculoData) as VeiculoFormData);
+      setTermosAceitos(false);
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
@@ -332,13 +338,19 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         return true;
       
       case 5: // Resumo e confirmação
-        // Verificar se precisa de regional e se foi selecionada antes de salvar
         if (needsRegiaoSelector && !selectedRegiaoId) {
           toast.error('Selecione uma regional para o associado');
           return false;
         }
         return true;
-      
+
+      case 6: // Termos
+        if (!termosAceitos) {
+          toast.error('Você precisa ler e aceitar os termos para finalizar o cadastro');
+          return false;
+        }
+        return true;
+
       default:
         return true;
     }
@@ -718,6 +730,16 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             />
           </div>
         );
+      case 6:
+        return (
+          <TermosAceiteStep
+            aceitou={termosAceitos}
+            onChange={setTermosAceitos}
+            selectedRegiaoId={selectedRegiaoId}
+            onRegiaoChange={setSelectedRegiaoId}
+            showRegiaoSelector={false}
+          />
+        );
       default:
         return null;
     }
@@ -815,7 +837,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
+              <Button onClick={handleSubmit} disabled={isSubmitting || !termosAceitos}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

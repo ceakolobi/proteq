@@ -10,6 +10,7 @@ export interface WizardDraft {
   currentStep: number;
   associadoData: AssociadoFormData;
   veiculoData: VeiculoFormData;
+  termosAceitos?: boolean;
   lastUpdated: string;
 }
 
