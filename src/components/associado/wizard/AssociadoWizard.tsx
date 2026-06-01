@@ -2,7 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Check, Loader2, Save } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight, Check, Loader2, Save, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +16,6 @@ import { DocumentosAssociadoStep } from './steps/DocumentosAssociadoStep';
 import { DadosVeiculoStep } from './steps/DadosVeiculoStep';
 import { DocumentosVeiculoStep } from './steps/DocumentosVeiculoStep';
 import { ResumoStep } from './steps/ResumoStep';
-import { TermosAceiteStep } from './steps/TermosAceiteStep';
 import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
@@ -33,8 +35,13 @@ const STEPS = [
   { id: 'veiculo', label: 'Veículo', shortLabel: 'Veículo' },
   { id: 'docs-veiculo', label: 'Docs Veículo', shortLabel: 'Fotos' },
   { id: 'resumo', label: 'Resumo', shortLabel: 'Resumo' },
-  { id: 'termos', label: 'Termos', shortLabel: 'Termos' },
 ];
+
+interface Regiao {
+  id: string;
+  nome: string;
+  sede_id: string;
+}
 
 const initialAssociadoData: AssociadoFormData = {
   nome_completo: '',
@@ -87,8 +94,10 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [veiculoData, setVeiculoData] = useState<VeiculoFormData>(initialVeiculoData);
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoUpload[]>([]);
-  const [termosAceitos, setTermosAceitos] = useState(false);
+  const [termosAceitos, setTermosAceitos] = useState(true);
   const [selectedRegiaoId, setSelectedRegiaoId] = useState<string | null>(null);
+  const [regioes, setRegioes] = useState<Regiao[]>([]);
+  const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
   const [showDraftDialog, setShowDraftDialog] = useState(false);
@@ -110,6 +119,28 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   const isRealFile = (file: unknown): file is File =>
     typeof File !== 'undefined' && file instanceof File;
+
+  useEffect(() => {
+    if (!open || !needsRegiaoSelector) return;
+
+    const fetchRegioes = async () => {
+      setIsLoadingRegioes(true);
+      const { data, error } = await supabase
+        .from('regioes')
+        .select('id, nome, sede_id')
+        .eq('ativo', true)
+        .order('nome');
+
+      if (error) {
+        toast.error('Erro ao carregar regionais');
+      } else {
+        setRegioes(data || []);
+      }
+      setIsLoadingRegioes(false);
+    };
+
+    fetchRegioes();
+  }, [open, needsRegiaoSelector]);
 
   // Check for draft when dialog opens
   useEffect(() => {
@@ -167,7 +198,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setVeiculoData(initialVeiculoData);
     setDocsAssociado([]);
     setDocsVeiculo([]);
-    setTermosAceitos(false);
+    setTermosAceitos(true);
     setSelectedRegiaoId(null);
     setStepValidation({});
     setPendingDraft(null);
@@ -197,7 +228,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       setAssociadoData(safeAssociadoData as AssociadoFormData);
       setVeiculoData((pendingDraft.veiculoData || initialVeiculoData) as VeiculoFormData);
-      setTermosAceitos(pendingDraft.termosAceitos || false);
+      setTermosAceitos(true);
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
