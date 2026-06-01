@@ -28,6 +28,10 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
 
+  const toggleAceite = () => {
+    onChange(!aceitou);
+  };
+
   useEffect(() => {
     if (!showRegiaoSelector) return;
 
@@ -134,21 +138,35 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
         </CardContent>
       </Card>
 
-      <Card className={`transition-all ${aceitou ? 'ring-2 ring-primary' : ''}`}>
+      <Card
+        className={`transition-all cursor-pointer ${aceitou ? 'ring-2 ring-primary' : ''}`}
+        onClick={toggleAceite}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggleAceite();
+          }
+        }}
+      >
         <CardContent className="pt-4">
           <div className="flex items-start space-x-3">
             <Checkbox
               id="termos-aceite"
               checked={aceitou}
+              onClick={(event) => event.stopPropagation()}
               onCheckedChange={(checked) => onChange(checked === true)}
-              disabled={!scrolledToEnd}
               className="mt-0.5"
             />
             <label
               htmlFor="termos-aceite"
-              className={`text-sm leading-relaxed cursor-pointer ${
-                !scrolledToEnd ? 'text-muted-foreground' : ''
-              }`}
+              className="text-sm leading-relaxed cursor-pointer select-none"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleAceite();
+              }}
             >
               <span className="font-medium">Li e aceito os termos</span>
               <br />
