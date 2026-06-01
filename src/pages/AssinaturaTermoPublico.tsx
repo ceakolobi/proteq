@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -70,9 +69,7 @@ export default function AssinaturaTermoPublico() {
   
   // Form state
   const [assinaturaData, setAssinaturaData] = useState<string | null>(null);
-  const [aceitouTermos, setAceitouTermos] = useState(false);
   const [metodoAssinatura, setMetodoAssinatura] = useState<'desenho' | 'codigo'>('desenho');
-  const toggleAceiteTermos = () => setAceitouTermos((prev) => !prev);
   
   // Code verification state
   const [codigoEnviado, setCodigoEnviado] = useState(false);
@@ -246,8 +243,6 @@ export default function AssinaturaTermoPublico() {
   };
 
   const canSubmit = () => {
-    if (!aceitouTermos) return false;
-    
     if (metodoAssinatura === 'desenho') {
       return !!assinaturaData;
     } else {
@@ -649,43 +644,6 @@ export default function AssinaturaTermoPublico() {
             </Tabs>
 
             <Separator />
-
-            {/* Checkbox obrigatório */}
-            <div
-              className="flex items-start space-x-3 bg-primary/5 p-4 rounded-lg cursor-pointer"
-              onClick={toggleAceiteTermos}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  toggleAceiteTermos();
-                }
-              }}
-            >
-              <Checkbox
-                id="aceite"
-                checked={aceitouTermos}
-                onClick={(event) => event.stopPropagation()}
-                onCheckedChange={(checked) => setAceitouTermos(checked === true)}
-                className="mt-0.5"
-              />
-              <label
-                htmlFor="aceite"
-                className="text-sm leading-relaxed cursor-pointer select-none"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  toggleAceiteTermos();
-                }}
-              >
-                <span className="font-medium">Declaro que li e concordo com os termos apresentados.</span>
-                <br />
-                <span className="text-muted-foreground">
-                  Reconheço que esta assinatura digital tem validade jurídica conforme Lei nº 14.063/2020.
-                </span>
-              </label>
-            </div>
 
             {/* Botão principal */}
             <Button
