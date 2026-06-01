@@ -611,65 +611,12 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         });
       }
 
-      // 7. Create termo de aceite with signature request
-      const dataHoraAceite = new Date().toLocaleString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-
-      const conteudoTermo = gerarConteudoTermoPDF({
-        nomeAssociado: associadoData.nome_completo,
-        cpfCnpj: associadoData.cpf,
-        telefone: associadoData.telefone,
-        email: associadoData.email,
-        placa: veiculoData.placa.toUpperCase(),
-        marcaModelo: `${veiculoData.marca} ${veiculoData.modelo}`,
-        ano: veiculoData.ano,
-        dataHoraAceite,
-      });
-
-      const { data: termoData, error: termoError } = await supabase
-        .from('termos_aceite')
-        .insert({
-          associado_id: associado.id,
-          veiculo_id: veiculo.id,
-          conteudo_termo: conteudoTermo,
-          canal_aceite: 'app',
-          status: 'pendente',
-        })
-        .select()
-        .single();
-
-      if (termoError) {
-        console.error('Erro ao criar termo:', termoError);
-        // Não bloquear o cadastro por erro no termo
-      } else {
-        // 8. Update associado with termos_aceitos
-        await supabase
-          .from('associados')
-          .update({
-            termos_aceitos: true,
-            termos_aceitos_em: new Date().toISOString(),
-          })
-          .eq('id', associado.id);
-
-        // 9. Send notification via edge function (async, don't wait)
-        supabase.functions.invoke('send-termo-aceite', {
-          body: { termoId: termoData.id, canal: 'ambos' },
-        }).catch(err => console.error('Erro ao enviar notificação:', err));
-      }
-
       // Clear draft after successful submission
       await clearAll();
 
       const successMessage = associadoData.veio_de_outra_associacao 
         ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'
-        : 'Cadastro realizado com sucesso! O termo de aceite foi enviado para assinatura.';
+        : 'Cadastro realizado com sucesso!';
       
       toast.success(successMessage);
       resetWizard();
