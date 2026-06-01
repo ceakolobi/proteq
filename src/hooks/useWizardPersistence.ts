@@ -10,7 +10,6 @@ export interface WizardDraft {
   currentStep: number;
   associadoData: AssociadoFormData;
   veiculoData: VeiculoFormData;
-  termosAceitos: boolean;
   lastUpdated: string;
 }
 
@@ -91,7 +90,6 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
       currentStep: 0,
       associadoData: {} as AssociadoFormData,
       veiculoData: {} as VeiculoFormData,
-      termosAceitos: false,
       lastUpdated: new Date().toISOString(),
     };
 
@@ -159,7 +157,6 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
               comprovante_migracao_file: null,
             },
             veiculoData: data.veiculoData,
-            termosAceitos: data.termosAceitos,
           })
         );
 
@@ -248,7 +245,6 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
       const payload = data.draft_payload as {
         associadoData?: AssociadoFormData;
         veiculoData?: VeiculoFormData;
-        termosAceitos?: boolean;
       } | null;
 
       const draft: WizardDraft = {
@@ -260,7 +256,6 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
           comprovante_migracao_file: null,
         } as AssociadoFormData,
         veiculoData: (payload?.veiculoData ?? {}) as VeiculoFormData,
-        termosAceitos: payload?.termosAceitos ?? false,
         lastUpdated: data.draft_last_updated ?? new Date().toISOString(),
       };
 
