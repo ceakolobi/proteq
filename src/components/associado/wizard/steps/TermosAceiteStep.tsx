@@ -28,9 +28,10 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
 
-  const toggleAceite = () => {
-    onChange(!aceitou);
-  };
+  // Aceite automático: ao visualizar o termo, considera aceito para permitir salvar direto
+  useEffect(() => {
+    if (!aceitou) onChange(true);
+  }, [aceitou, onChange]);
 
   useEffect(() => {
     if (!showRegiaoSelector) return;
