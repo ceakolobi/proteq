@@ -36,11 +36,25 @@ export default function MeusContratos() {
       }
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        // Busca o associado_id vinculado ao usuário logado
+        const { data: assocData } = await supabase
+          .from("associados")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        let query = supabase
           .from("generated_contracts")
           .select("id, status, generated_at, pdf_path")
           .order("generated_at", { ascending: false })
           .limit(50);
+
+        // Se for associado, filtra pelos próprios contratos
+        if ((assocData as any)?.id) {
+          query = query.eq("associado_id", (assocData as any).id);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         setItems((data as any) ?? []);
       } catch (e) {

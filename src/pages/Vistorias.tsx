@@ -332,6 +332,47 @@ export default function Vistorias() {
       if (error) throw error;
 
       toast.success('Vistoria atualizada com sucesso!');
+
+      // Após aprovação: gerar contrato e enviar ao associado
+      if (formStatus === 'aprovada') {
+        const { data: veiculoData } = await supabase
+          .from('veiculos')
+          .select('associado_id')
+          .eq('id', selectedVistoria.veiculo_id)
+          .maybeSingle();
+
+        const associadoId = (veiculoData as any)?.associado_id as string | null;
+        if (associadoId) {
+          // Gera contrato e envia por email (fire-and-forget)
+          supabase.functions
+            .invoke('generate-contract-manual', {
+              body: { associadoId, veiculoId: selectedVistoria.veiculo_id, sendEmail: true },
+            })
+            .then(({ error: cErr }) => {
+              if (cErr) console.warn('Contrato não gerado:', cErr.message);
+              else toast.success('Contrato gerado e enviado ao associado!');
+            })
+            .catch((e) => console.warn('Erro ao gerar contrato:', e));
+
+          // Se houver termo pendente, reenvia link de assinatura
+          supabase
+            .from('termos_aceite' as any)
+            .select('id')
+            .eq('associado_id', associadoId)
+            .eq('status', 'pendente')
+            .maybeSingle()
+            .then(({ data: termo }) => {
+              if ((termo as any)?.id) {
+                supabase.functions
+                  .invoke('send-termo-aceite', {
+                    body: { termoId: (termo as any).id, canal: 'email' },
+                  })
+                  .catch((e) => console.warn('Erro ao enviar termo:', e));
+              }
+            });
+        }
+      }
+
       setIsEditDialogOpen(false);
       setSelectedVistoria(null);
       resetForm();

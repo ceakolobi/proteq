@@ -278,12 +278,24 @@ export default function VistoriaPublica() {
             <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-2" />
             <CardTitle>Vistoria Enviada!</CardTitle>
             <CardDescription>
-              Sua vistoria foi recebida com sucesso. Nossa equipe irá analisá-la e entrará em contato em breve.
+              Sua vistoria foi recebida com sucesso.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Obrigado por enviar as fotos e documentos do seu veículo.
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Nossa equipe irá analisar as fotos e documentos enviados.
+            </p>
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1">
+              <p className="font-medium text-foreground">Próximos passos:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Análise da vistoria pela nossa equipe</li>
+                <li>Geração automática do contrato após aprovação</li>
+                <li>Envio do contrato para assinatura digital por e-mail</li>
+                <li>Ativação da proteção do seu veículo</li>
+              </ol>
+            </div>
+            <p className="text-center">
+              Você receberá um e-mail assim que sua vistoria for aprovada.
             </p>
           </CardContent>
         </Card>
