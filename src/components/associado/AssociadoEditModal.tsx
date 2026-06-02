@@ -22,14 +22,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  User, 
-  MapPin, 
-  FileText, 
-  Calendar, 
-  Phone, 
-  Mail, 
-  Briefcase, 
+import {
+  User,
+  MapPin,
+  FileText,
+  Calendar,
+  Phone,
+  Mail,
+  Briefcase,
   Heart,
   CreditCard,
   Search,
@@ -38,7 +38,10 @@ import {
   Eye,
   Trash2,
   ExternalLink,
-  Building2
+  Building2,
+  Car,
+  Send,
+  Image
 } from 'lucide-react';
 import type { AssociateStatus } from '@/types/database';
 import { 
@@ -83,6 +86,22 @@ interface DocumentoAssociado {
   nome_arquivo: string;
   url: string;
   created_at: string;
+}
+
+interface DocumentoVeiculo {
+  id: string;
+  tipo: string;
+  nome_arquivo: string;
+  url: string;
+  created_at: string;
+}
+
+interface VeiculoInfo {
+  id: string;
+  marca: string;
+  modelo: string;
+  placa: string;
+  ano: number;
 }
 
 interface AssociadoEditModalProps {
@@ -148,9 +167,13 @@ export function AssociadoEditModal({
   
   const [formData, setFormData] = useState<Partial<AssociadoData>>({});
   const [documentos, setDocumentos] = useState<DocumentoAssociado[]>([]);
+  const [docsVeiculo, setDocsVeiculo] = useState<DocumentoVeiculo[]>([]);
+  const [veiculo, setVeiculo] = useState<VeiculoInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [uploadingVeicDoc, setUploadingVeicDoc] = useState(false);
+  const [isGeneratingContract, setIsGeneratingContract] = useState(false);
   const [activeTab, setActiveTab] = useState('dados');
   
   // Apenas Admin Principal e Admin Básico podem trocar a regional
@@ -185,6 +208,7 @@ export function AssociadoEditModal({
         cnh_estado: (associado as any).cnh_estado || '',
       });
       fetchDocumentos(associado.id);
+      fetchVeiculo(associado.id);
       setActiveTab('dados');
     }
   }, [open, associado]);
@@ -196,11 +220,98 @@ export function AssociadoEditModal({
         .select('*')
         .eq('associado_id', associadoId)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setDocumentos(data || []);
     } catch (error) {
       console.error('Error fetching documentos:', error);
+    }
+  };
+
+  const fetchVeiculo = async (associadoId: string) => {
+    try {
+      const { data: veics } = await supabase
+        .from('veiculos')
+        .select('id, marca, modelo, placa, ano')
+        .eq('associado_id', associadoId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const v = veics?.[0] ?? null;
+      setVeiculo(v as VeiculoInfo | null);
+      if (v) fetchDocsVeiculo(v.id);
+    } catch (e) {
+      console.error('Error fetching veiculo:', e);
+    }
+  };
+
+  const fetchDocsVeiculo = async (veiculoId: string) => {
+    try {
+      const { data } = await supabase
+        .from('documentos_veiculo')
+        .select('*')
+        .eq('veiculo_id', veiculoId)
+        .order('created_at', { ascending: false });
+      setDocsVeiculo((data as DocumentoVeiculo[]) || []);
+    } catch (e) {
+      console.error('Error fetching docs veiculo:', e);
+    }
+  };
+
+  const handleFileUploadVeiculo = async (file: File) => {
+    if (!veiculo?.id) { toast.error('Nenhum veículo vinculado a este associado'); return; }
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!validTypes.includes(file.type)) { toast.error('Formato inválido. Use JPG, PNG, WebP ou PDF'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 10MB'); return; }
+
+    setUploadingVeicDoc(true);
+    try {
+      const fileExt = file.name.split('.').pop() || 'bin';
+      const fileName = `${veiculo.id}/foto_${Date.now()}.${fileExt}`;
+      const { error: uploadErr } = await supabase.storage.from('veiculo-documentos').upload(fileName, file);
+      if (uploadErr) throw uploadErr;
+      const { data: { publicUrl } } = supabase.storage.from('veiculo-documentos').getPublicUrl(fileName);
+      const { error: dbErr } = await supabase.from('documentos_veiculo').insert({
+        veiculo_id: veiculo.id,
+        tipo: 'foto',
+        nome_arquivo: file.name,
+        url: publicUrl,
+      });
+      if (dbErr) throw dbErr;
+      toast.success('Foto do veículo enviada!');
+      fetchDocsVeiculo(veiculo.id);
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao enviar foto');
+    } finally {
+      setUploadingVeicDoc(false);
+    }
+  };
+
+  const handleDeleteDocVeiculo = async (doc: DocumentoVeiculo) => {
+    if (!confirm('Deseja excluir esta foto/documento?')) return;
+    try {
+      const urlParts = doc.url.split('/');
+      const path = urlParts.slice(-2).join('/');
+      await supabase.storage.from('veiculo-documentos').remove([path]);
+      await supabase.from('documentos_veiculo').delete().eq('id', doc.id);
+      toast.success('Removido');
+      if (veiculo) fetchDocsVeiculo(veiculo.id);
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao excluir');
+    }
+  };
+
+  const handleGerarContrato = async () => {
+    if (!associado?.id) return;
+    setIsGeneratingContract(true);
+    try {
+      const { error } = await supabase.functions.invoke('generate-contract-manual', {
+        body: { associadoId: associado.id, veiculoId: veiculo?.id ?? null, sendEmail: true },
+      });
+      if (error) throw error;
+      toast.success('Contrato gerado e enviado por e-mail!');
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao gerar contrato');
+    } finally {
+      setIsGeneratingContract(false);
     }
   };
 
@@ -426,26 +537,31 @@ export function AssociadoEditModal({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dados" className="gap-2">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="dados" className="gap-1 px-1">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Dados</span>
             </TabsTrigger>
-            <TabsTrigger value="endereco" className="gap-2">
+            <TabsTrigger value="endereco" className="gap-1 px-1">
               <MapPin className="h-4 w-4" />
               <span className="hidden sm:inline">Endereço</span>
             </TabsTrigger>
-            <TabsTrigger value="cnh" className="gap-2">
+            <TabsTrigger value="cnh" className="gap-1 px-1">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">CNH</span>
             </TabsTrigger>
-            <TabsTrigger value="documentos" className="gap-2">
+            <TabsTrigger value="documentos" className="gap-1 px-1">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Docs</span>
               {documentos.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                  {documentos.length}
-                </Badge>
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">{documentos.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="veiculo" className="gap-1 px-1">
+              <Car className="h-4 w-4" />
+              <span className="hidden sm:inline">Veículo</span>
+              {docsVeiculo.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">{docsVeiculo.length}</Badge>
               )}
             </TabsTrigger>
           </TabsList>
@@ -905,19 +1021,103 @@ export function AssociadoEditModal({
                 Formatos aceitos: JPG, PNG, WebP, PDF. Tamanho máximo: 10MB.
               </p>
             </TabsContent>
+
+            {/* Veículo Tab */}
+            <TabsContent value="veiculo" className="mt-0 space-y-4">
+              {veiculo ? (
+                <div className="space-y-1 p-3 bg-muted/50 rounded-lg">
+                  <p className="font-medium flex items-center gap-2">
+                    <Car className="h-4 w-4 text-primary" />
+                    {veiculo.marca} {veiculo.modelo} ({veiculo.ano})
+                  </p>
+                  <p className="text-sm text-muted-foreground font-mono">Placa: {veiculo.placa}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum veículo vinculado a este associado.</p>
+              )}
+
+              {veiculo && (
+                <>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Image className="h-4 w-4" />
+                      Fotos e Documentos do Veículo
+                    </Label>
+
+                    {/* Existing vehicle docs */}
+                    {docsVeiculo.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-2">
+                        {docsVeiculo.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
+                            <span className="truncate flex-1 mr-2">{doc.nome_arquivo}</span>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(doc.url, '_blank')}>
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteDocVeiculo(doc)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Nenhuma foto adicionada.</p>
+                    )}
+
+                    {/* Upload button */}
+                    <label className="cursor-pointer block">
+                      <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-md hover:bg-muted/50 transition-colors">
+                        {uploadingVeicDoc ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {uploadingVeicDoc ? 'Enviando...' : 'Adicionar foto/documento do veículo'}
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,application/pdf"
+                        disabled={uploadingVeicDoc}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUploadVeiculo(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Formatos aceitos: JPG, PNG, WebP, PDF. Tamanho máximo: 10MB.
+                    </p>
+                  </div>
+                </>
+              )}
+            </TabsContent>
           </ScrollArea>
         </Tabs>
 
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+        <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleGerarContrato}
+            disabled={isGeneratingContract || isLoading}
+            className="sm:mr-auto"
+          >
+            {isGeneratingContract ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
+            ) : (
+              <><Send className="h-4 w-4 mr-2" />Gerar Contrato</>
+            )}
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading || isGeneratingContract}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
+          <Button onClick={handleSave} disabled={isLoading || isGeneratingContract}>
             {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Salvando...
-              </>
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
             ) : (
               'Salvar'
             )}

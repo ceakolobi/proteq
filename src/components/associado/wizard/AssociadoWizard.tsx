@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Check, Loader2, Save, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Loader2, Save, MapPin, FileText, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -102,6 +102,9 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
   const [showDraftDialog, setShowDraftDialog] = useState(false);
+  // Estado pós-cadastro: guarda ids para oferecer geração de contrato
+  const [createdIds, setCreatedIds] = useState<{ associadoId: string; veiculoId: string; nome: string } | null>(null);
+  const [isGeneratingContract, setIsGeneratingContract] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WizardDraft | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -202,6 +205,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setSelectedRegiaoId(null);
     setStepValidation({});
     setPendingDraft(null);
+    // não resetar createdIds aqui — é resetado ao fechar o dialog pós-cadastro
   }, []);
 
   const handleClose = () => {
@@ -382,11 +386,13 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     entityId: string,
     table: 'documentos_associado' | 'documentos_veiculo',
     entityField: 'associado_id' | 'veiculo_id'
-  ) => {
+  ): Promise<{ uploaded: number; failed: number }> => {
+    let uploaded = 0;
+    let failed = 0;
+
     for (const doc of docs) {
       const file = doc.file;
       if (!isRealFile(file) || !file.name) {
-        // Anexos podem virar objetos vazios ao recuperar rascunho; ignore sem quebrar o fluxo
         continue;
       }
 
@@ -398,27 +404,32 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
+        failed++;
         continue;
       }
 
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
 
       if (table === 'documentos_associado') {
-        await supabase.from('documentos_associado').insert({
+        const { error: dbErr } = await supabase.from('documentos_associado').insert({
           associado_id: entityId,
           tipo: doc.tipo,
           nome_arquivo: file.name,
           url: urlData.publicUrl,
         });
+        if (dbErr) { console.error('DB insert error:', dbErr); failed++; continue; }
       } else {
-        await supabase.from('documentos_veiculo').insert({
+        const { error: dbErr2 } = await supabase.from('documentos_veiculo').insert({
           veiculo_id: entityId,
           tipo: doc.tipo,
           nome_arquivo: file.name,
           url: urlData.publicUrl,
         });
+        if (dbErr2) { console.error('DB insert error:', dbErr2); failed++; continue; }
       }
+      uploaded++;
     }
+    return { uploaded, failed };
   };
 
   const handleSubmit = async () => {
@@ -500,13 +511,16 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       // 3. Upload associado documents
       if (docsAssociado.length > 0) {
-        await uploadDocuments(
-          docsAssociado, 
-          'associado-documentos', 
-          associado.id, 
+        const { failed: docsFailed } = await uploadDocuments(
+          docsAssociado,
+          'associado-documentos',
+          associado.id,
           'documentos_associado',
           'associado_id'
         );
+        if (docsFailed > 0) {
+          toast.warning(`${docsFailed} documento(s) do associado não puderam ser enviados. Você pode adicioná-los depois na edição.`);
+        }
       }
 
       // 3. Find appropriate cota
@@ -573,13 +587,16 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
       // 5. Upload vehicle documents
       if (docsVeiculo.length > 0) {
-        await uploadDocuments(
+        const { failed: veicFailed } = await uploadDocuments(
           docsVeiculo,
           'veiculo-documentos',
           veiculo.id,
           'documentos_veiculo',
           'veiculo_id'
         );
+        if (veicFailed > 0) {
+          toast.warning(`${veicFailed} documento(s) do veículo não puderam ser enviados. Você pode adicioná-los depois na edição.`);
+        }
       }
 
       // 6. Create vistoria - dispensada se veio de outra associação
@@ -623,32 +640,22 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         });
       }
 
-      // 7. Gerar contrato automaticamente (fire-and-forget; não bloqueia sucesso do cadastro)
-      try {
-        const { error: contractError } = await supabase.functions.invoke('generate-contract-manual', {
-          body: {
-            associadoId: associado.id,
-            veiculoId: veiculo.id,
-            sendEmail: false,
-          },
-        });
-        if (contractError) {
-          console.warn('Contrato não gerado automaticamente:', contractError.message);
-        }
-      } catch (contractErr) {
-        console.warn('Erro ao gerar contrato automático:', contractErr);
-      }
-
       // Clear draft after successful submission
       await clearAll();
 
-      const successMessage = associadoData.veio_de_outra_associacao
-        ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'
-        : 'Cadastro realizado com sucesso!';
+      toast.success(
+        associadoData.veio_de_outra_associacao
+          ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'
+          : 'Cadastro realizado com sucesso!'
+      );
 
-      toast.success(successMessage);
+      // Mostra dialog pós-cadastro para oferecer geração de contrato
+      setCreatedIds({
+        associadoId: associado.id,
+        veiculoId: veiculo.id,
+        nome: associadoData.nome_completo,
+      });
       resetWizard();
-      onOpenChange(false);
       onSuccess();
     } catch (error: any) {
       console.error('Error submitting:', error);
@@ -867,6 +874,65 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
                 )}
               </Button>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pós-cadastro: opções de contrato */}
+      <Dialog open={!!createdIds} onOpenChange={(o) => { if (!o && !isGeneratingContract) { setCreatedIds(null); onOpenChange(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-primary" />
+              Cadastro Concluído!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              <strong>{createdIds?.nome}</strong> foi cadastrado com sucesso.
+              Deseja gerar e enviar o contrato agora?
+            </p>
+            <div className="grid gap-3">
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  if (!createdIds) return;
+                  setIsGeneratingContract(true);
+                  try {
+                    const { error } = await supabase.functions.invoke('generate-contract-manual', {
+                      body: { associadoId: createdIds.associadoId, veiculoId: createdIds.veiculoId, sendEmail: true },
+                    });
+                    if (error) throw error;
+                    toast.success('Contrato gerado e enviado ao associado por e-mail!');
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Erro ao gerar contrato. Tente pelo painel de contratos.');
+                  } finally {
+                    setIsGeneratingContract(false);
+                    setCreatedIds(null);
+                    onOpenChange(false);
+                  }
+                }}
+                disabled={isGeneratingContract}
+              >
+                {isGeneratingContract ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando contrato...</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" />Gerar e Enviar Contrato</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => { setCreatedIds(null); onOpenChange(false); }}
+                disabled={isGeneratingContract}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Finalizar sem Contrato
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              O contrato pode ser gerado depois em "Configurações → Contratos Gerados".
+            </p>
           </div>
         </DialogContent>
       </Dialog>
