@@ -623,13 +623,29 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         });
       }
 
+      // 7. Gerar contrato automaticamente (fire-and-forget; não bloqueia sucesso do cadastro)
+      try {
+        const { error: contractError } = await supabase.functions.invoke('generate-contract-manual', {
+          body: {
+            associadoId: associado.id,
+            veiculoId: veiculo.id,
+            sendEmail: false,
+          },
+        });
+        if (contractError) {
+          console.warn('Contrato não gerado automaticamente:', contractError.message);
+        }
+      } catch (contractErr) {
+        console.warn('Erro ao gerar contrato automático:', contractErr);
+      }
+
       // Clear draft after successful submission
       await clearAll();
 
-      const successMessage = associadoData.veio_de_outra_associacao 
+      const successMessage = associadoData.veio_de_outra_associacao
         ? 'Cadastro realizado com sucesso! Vistoria dispensada por migração de associação.'
         : 'Cadastro realizado com sucesso!';
-      
+
       toast.success(successMessage);
       resetWizard();
       onOpenChange(false);

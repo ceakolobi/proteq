@@ -423,6 +423,48 @@ async function fetchPublicAssetBytes(publicPath: string) {
   }
 }
 
+async function fetchUrlBytes(url: string): Promise<Uint8Array | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+async function prependCoverToPdf(
+  coverImgBytes: Uint8Array,
+  contractBytes: Uint8Array,
+  mimeHint: string
+): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const coverPage = doc.addPage([595.28, 841.89]);
+
+  let img = null;
+  try {
+    img = mimeHint === "png"
+      ? await doc.embedPng(coverImgBytes)
+      : await doc.embedJpg(coverImgBytes);
+  } catch {
+    try { img = await doc.embedPng(coverImgBytes); } catch { /* ignore */ }
+    if (!img) {
+      try { img = await doc.embedJpg(coverImgBytes); } catch { /* ignore */ }
+    }
+  }
+
+  if (img) {
+    const { width, height } = coverPage.getSize();
+    coverPage.drawImage(img, { x: 0, y: 0, width, height });
+  }
+
+  const contractDoc = await PDFDocument.load(contractBytes);
+  const copied = await doc.copyPages(contractDoc, contractDoc.getPageIndices());
+  copied.forEach((p) => doc.addPage(p));
+
+  return await doc.save();
+}
+
 function wrapTextToLines(text: string, maxChars: number) {
   const lines: string[] = [];
   const paragraphs = text.split("\n");
@@ -748,9 +790,10 @@ Deno.serve(async (req) => {
     if (rolesErr) throw rolesErr;
 
     const roles = (rolesRows ?? []).map((r: any) => r.role);
-    const allowed = roles.includes("admin_principal") || roles.includes("admin_nivel_basico") || roles.includes("admin_regional");
+    const ALLOWED_ROLES = ["admin_principal", "admin_nivel_basico", "admin_regional", "consultor_vendas", "cadastro", "financeiro"];
+    const allowed = roles.some((r: string) => ALLOWED_ROLES.includes(r));
     if (!allowed) {
-      return new Response(JSON.stringify({ error: "Sem permissão para gerar contrato manual" }), {
+      return new Response(JSON.stringify({ error: "Sem permissão para gerar contrato" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -853,10 +896,58 @@ Deno.serve(async (req) => {
 
     const contentSnapshot = version.content_markdown;
     const renderedMarkdown = applyVariables(contentSnapshot, vars);
-    const pdfBytes = await createContractPdfBytes({
+    let pdfBytes = await createContractPdfBytes({
       title: template.title ?? "Contrato",
       markdown: renderedMarkdown,
     });
+
+    // Prepend cover page from company settings (cover_mode + cover images)
+    try {
+      const { data: settings } = await adminClient
+        .from("company_settings")
+        .select("cover_mode, cover_fixed_index, cover_1, cover_2, cover_3, cover_4")
+        .eq("id", companyId)
+        .maybeSingle();
+
+      const { data: tableCovers } = await adminClient
+        .from("company_covers")
+        .select("public_url")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: true });
+
+      const legacyUrls: string[] = [
+        (settings as any)?.cover_1,
+        (settings as any)?.cover_2,
+        (settings as any)?.cover_3,
+        (settings as any)?.cover_4,
+      ].filter(Boolean) as string[];
+      const tableUrls: string[] = ((tableCovers as any[]) || [])
+        .map((c: any) => c.public_url)
+        .filter(Boolean);
+      const allCovers = [...legacyUrls, ...tableUrls];
+
+      if (allCovers.length > 0) {
+        const mode = (settings as any)?.cover_mode ?? "fixed";
+        const fixedIndex = Number((settings as any)?.cover_fixed_index ?? 1);
+        let coverUrl: string;
+        if (mode === "random") {
+          coverUrl = allCovers[Math.floor(Math.random() * allCovers.length)];
+        } else {
+          // "fixed" or "select" (auto-gen always uses configured fixed/first)
+          coverUrl = allCovers[(fixedIndex - 1) % allCovers.length] ?? allCovers[0];
+        }
+
+        const coverBytes = await fetchUrlBytes(coverUrl);
+        if (coverBytes) {
+          const lower = coverUrl.toLowerCase();
+          const mimeHint = lower.endsWith(".png") ? "png" : "jpeg";
+          pdfBytes = await prependCoverToPdf(coverBytes, pdfBytes, mimeHint);
+        }
+      }
+    } catch (coverErr) {
+      console.warn("cover_prepend_error:", coverErr);
+      // Continua sem capa se houver erro
+    }
 
     const { data: inserted, error: insErr } = await adminClient
       .from("generated_contracts")
