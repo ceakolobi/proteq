@@ -171,44 +171,65 @@ export default function Associados() {
     if (!associadoToDelete) return;
     setIsDeleting(true);
     try {
-      // Exclusão em cascata manual (não há FK cascade no banco)
       const associadoId = associadoToDelete.id;
 
-      // Coleta veículos do associado para limpar dependências
-      const { data: veiculos } = await supabase
+      // Executa step de cascata e loga erro sem lançar exceção
+      const safe = async (promise: Promise<{ error: any }>) => {
+        const { error } = await promise;
+        if (error) console.warn('cascade step error:', error.message || error.code);
+      };
+
+      // 1. Coleta IDs de veículos para limpar dependências vinculadas
+      const { data: veiculosData } = await supabase
         .from('veiculos')
         .select('id')
         .eq('associado_id', associadoId);
-      const veiculoIds = (veiculos || []).map((v) => v.id);
+      const veiculoIds = (veiculosData || []).map((v) => v.id);
 
-      // Apaga dependências (best-effort; ignora erros de tabelas inexistentes)
-      const safe = async (thenable: PromiseLike<any>) => {
-        try { await thenable; } catch (e) { console.warn('cascade step skipped:', e); }
-      };
-
+      // 2. Dependências dos veículos (CASCADE no banco, mas limpamos explicitamente)
       if (veiculoIds.length > 0) {
         await safe(supabase.from('documentos_veiculo').delete().in('veiculo_id', veiculoIds));
         await safe((supabase.from as any)('vistorias').delete().in('veiculo_id', veiculoIds));
         await safe(supabase.from('acionamentos_guincho').delete().in('veiculo_id', veiculoIds));
       }
 
-      const { data: cotacoesIds } = await supabase
+      // 3. Ativações — FK RESTRICT em veiculo_id e associado_id; deletar antes dos veículos
+      await safe(supabase.from('ativacoes').delete().eq('associado_id', associadoId));
+
+      // 4. Cotações e benefícios vinculados
+      const { data: cotacoesData } = await supabase
         .from('cotacoes')
         .select('id')
         .eq('associado_id', associadoId);
-      const cotacaoIds = (cotacoesIds || []).map((c: any) => c.id);
+      const cotacaoIds = (cotacoesData || []).map((c: any) => c.id);
       if (cotacaoIds.length > 0) {
         await safe(supabase.from('cotacao_beneficios').delete().in('cotacao_id', cotacaoIds));
       }
       await safe(supabase.from('cotacoes').delete().eq('associado_id', associadoId));
+
+      // 5. Registros financeiros
       await safe((supabase.from as any)('mensalidades').delete().eq('associado_id', associadoId));
       await safe(supabase.from('cobrancas').delete().eq('associado_id', associadoId));
-      await safe(supabase.from('ativacoes').delete().eq('associado_id', associadoId));
+
+      // 6. Outros registros do associado
       await safe((supabase.from as any)('termos_aceite').delete().eq('associado_id', associadoId));
       await safe(supabase.from('documentos_associado').delete().eq('associado_id', associadoId));
+
+      // 7. Contratos gerados — FK RESTRICT em associado_id; contract_status_logs tem RESTRICT em contract_id
+      const { data: contractsData } = await supabase
+        .from('generated_contracts')
+        .select('id')
+        .eq('associado_id', associadoId);
+      const contractIds = (contractsData || []).map((c: any) => c.id);
+      if (contractIds.length > 0) {
+        await safe(supabase.from('contract_status_logs').delete().in('contract_id', contractIds));
+      }
+      await safe(supabase.from('generated_contracts').delete().eq('associado_id', associadoId));
+
+      // 8. Veículos (ativações já deletadas, RESTRICT liberado)
       await safe(supabase.from('veiculos').delete().eq('associado_id', associadoId));
 
-      // Por fim, o associado
+      // 9. Por fim, o associado
       const { error } = await supabase.from('associados').delete().eq('id', associadoId);
       if (error) throw error;
 
