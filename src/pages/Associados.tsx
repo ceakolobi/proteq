@@ -174,8 +174,8 @@ export default function Associados() {
       const associadoId = associadoToDelete.id;
 
       // Executa step de cascata e loga erro sem lançar exceção
-      const safe = async (promise: Promise<{ error: any }>) => {
-        const { error } = await promise;
+      const safe = async (builder: PromiseLike<{ error: any }>) => {
+        const { error } = await builder;
         if (error) console.warn('cascade step error:', error.message || error.code);
       };
 
