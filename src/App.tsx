@@ -35,6 +35,8 @@ import Configuracoes from "./pages/Configuracoes";
 import DocumentosContratos from "./pages/DocumentosContratos";
 import BeneficiosExtras from "./pages/BeneficiosExtras";
 import VistoriaPublica from "./pages/VistoriaPublica";
+import VistoriaRemota from "./pages/VistoriaRemota";
+import AssinarContrato from "./pages/AssinarContrato";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
 import AceitarCotacao from "./pages/AceitarCotacao";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
@@ -192,6 +194,8 @@ const App = () => (
                 {/* Rotas Públicas (sem autenticação) */}
                 <Route path="/segunda-via-boleto" element={<SegundaViaBoleto />} />
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
+                <Route path="/vistoria/:token" element={<VistoriaRemota />} />
+                <Route path="/assinar/:token" element={<AssinarContrato />} />
                 <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
                 <Route path="/aceitar/:token" element={<AceitarCotacao />} />
 

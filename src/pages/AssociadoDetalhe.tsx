@@ -49,6 +49,12 @@ import {
   CheckCircle2,
   Package,
   TrendingUp,
+  Link,
+  RotateCcw,
+  ShieldCheck,
+  ShieldAlert,
+  Signature,
+  Clock,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
 import type { AssociateStatus } from '@/types/database';
@@ -144,6 +150,15 @@ interface PropostaPendente {
   cota_nome: string;
 }
 
+interface VistoriaStatus {
+  id: string;
+  status: string;
+  token_acesso: string | null;
+  token_expires_at: string | null;
+  assinado_em: string | null;
+  contrato_url: string | null;
+}
+
 interface Contrato {
   id: string;
   contract_number: string | null;
@@ -233,6 +248,10 @@ export default function AssociadoDetalhe() {
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoVeiculo[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
 
+  // Vistoria remota
+  const [vistoriaAtual, setVistoriaAtual] = useState<VistoriaStatus | null>(null);
+  const [isEnviandoLink, setIsEnviandoLink] = useState(false);
+
   // Plano & Benefícios
   const [beneficiosAtual, setBeneficiosAtual] = useState<BeneficioAtual[]>([]);
   const [cotaAtualNome, setCotaAtualNome] = useState<string | null>(null);
@@ -309,6 +328,16 @@ export default function AssociadoDetalhe() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchVistoriaAtual = useCallback(async (associadoId: string) => {
+    const { data } = await supabase
+      .from('vistorias')
+      .select('id,status,token_acesso,token_expires_at,assinado_em,contrato_url')
+      .eq('associado_id', associadoId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    setVistoriaAtual((data?.[0] as VistoriaStatus) ?? null);
+  }, []);
+
   const fetchCotasDisponiveis = useCallback(async () => {
     const { data } = await supabase
       .from('cotas')
@@ -332,6 +361,84 @@ export default function AssociadoDetalhe() {
       case 'implemento_agricola':return cota.mensalidade_implemento_agricola;
       default:
         return cota.percentual_geral ? valorFipe * cota.percentual_geral / 100 : null;
+    }
+  };
+
+  const handleEnviarLinkVistoria = async () => {
+    if (!id || !veiculo) { toast.error('Associado ou veículo não carregado'); return; }
+    setIsEnviandoLink(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+      const { error: insertErr } = await supabase.from('vistorias').insert({
+        associado_id: id,
+        veiculo_id: veiculo.id,
+        cotacao_id: veiculo.cotacao_id ?? null,
+        status: 'pendente',
+        tipo_vistoria: 'pre_adesao',
+        canal_abertura: 'link_remoto',
+        token_acesso: token,
+        token_expires_at: expiresAt,
+        consultor_id: user.id,
+      } as never);
+      if (insertErr) throw insertErr;
+
+      // Notificar via edge function (WhatsApp + Email)
+      await supabase.functions.invoke('send-vistoria-link', {
+        body: {
+          token,
+          nome: formData.nome_completo,
+          celular: formData.whatsapp || formData.telefone,
+          email: formData.email,
+          placa: veiculo.placa,
+        },
+      });
+
+      await fetchVistoriaAtual(id);
+      toast.success('Link de vistoria enviado por WhatsApp e e-mail!');
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao enviar link de vistoria');
+    } finally {
+      setIsEnviandoLink(false);
+    }
+  };
+
+  const handleReenviarLink = async () => {
+    if (!id || !veiculo || !vistoriaAtual) return;
+    setIsEnviandoLink(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
+      await supabase.from('vistorias').update({
+        token_acesso: token,
+        token_expires_at: expiresAt,
+        status: 'pendente',
+      } as never).eq('id', vistoriaAtual.id);
+
+      await supabase.functions.invoke('send-vistoria-link', {
+        body: {
+          token,
+          nome: formData.nome_completo,
+          celular: formData.whatsapp || formData.telefone,
+          email: formData.email,
+          placa: veiculo.placa,
+        },
+      });
+
+      await fetchVistoriaAtual(id);
+      toast.success('Link reenviado com sucesso!');
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao reenviar link');
+    } finally {
+      setIsEnviandoLink(false);
     }
   };
 
@@ -450,6 +557,7 @@ export default function AssociadoDetalhe() {
 
         fetchDocumentos(id);
         fetchContratos(id);
+        fetchVistoriaAtual(id);
 
         const { data: veics } = await supabase
           .from('veiculos')
@@ -1229,7 +1337,43 @@ export default function AssociadoDetalhe() {
                 <ScrollText className="h-4 w-4 text-orange-600" />
                 Contratos
               </CardTitle>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {/* Vistoria status badge */}
+                {(() => {
+                  if (!vistoriaAtual) return null;
+                  const expired = vistoriaAtual.token_expires_at && new Date(vistoriaAtual.token_expires_at) < new Date();
+                  if (vistoriaAtual.assinado_em)
+                    return <Badge className="bg-green-100 text-green-800 border-green-300 border gap-1"><ShieldCheck className="h-3 w-3" />Contrato assinado ✓</Badge>;
+                  if (vistoriaAtual.status === 'aprovada')
+                    return <Badge className="bg-blue-100 text-blue-800 border-blue-300 border gap-1"><Signature className="h-3 w-3" />Aguardando assinatura</Badge>;
+                  if (vistoriaAtual.status === 'reprovada')
+                    return <Badge className="bg-red-100 text-red-800 border-red-300 border gap-1"><ShieldAlert className="h-3 w-3" />Vistoria reprovada</Badge>;
+                  if (vistoriaAtual.status === 'em_andamento')
+                    return <Badge className="bg-purple-100 text-purple-800 border-purple-300 border gap-1"><ShieldCheck className="h-3 w-3" />Vistoria enviada — em revisão</Badge>;
+                  if (expired)
+                    return <Badge className="bg-red-100 text-red-800 border-red-300 border gap-1"><AlertCircle className="h-3 w-3" />Link expirado</Badge>;
+                  return <Badge className="bg-amber-100 text-amber-800 border-amber-300 border gap-1"><Clock className="h-3 w-3" />Aguardando vistoria</Badge>;
+                })()}
+                {/* Enviar / Reenviar link */}
+                {(() => {
+                  const canSend = !vistoriaAtual || ['reprovada'].includes(vistoriaAtual.status) || (vistoriaAtual.token_expires_at && new Date(vistoriaAtual.token_expires_at) < new Date());
+                  const canResend = vistoriaAtual && ['pendente', 'agendada'].includes(vistoriaAtual.status) && vistoriaAtual.token_expires_at && new Date(vistoriaAtual.token_expires_at) < new Date();
+                  if (canSend)
+                    return (
+                      <Button size="sm" variant="outline" onClick={handleEnviarLinkVistoria} disabled={isEnviandoLink}>
+                        {isEnviandoLink ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Link className="h-4 w-4 mr-1.5" />}
+                        Enviar link de vistoria
+                      </Button>
+                    );
+                  if (canResend)
+                    return (
+                      <Button size="sm" variant="outline" onClick={handleReenviarLink} disabled={isEnviandoLink}>
+                        {isEnviandoLink ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-1.5" />}
+                        Reenviar link
+                      </Button>
+                    );
+                  return null;
+                })()}
                 <Button
                   size="sm"
                   variant="outline"

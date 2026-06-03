@@ -28,12 +28,20 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
-### 2026-06-03
+### 2026-06-03 (continuação)
 - Enriquecimento completo Vault Obsidian (12 arquivos _INICIO.md + CLAUDE.md)
 - Criados 5 arquivos em 09-Protecao-Veicular/
 - Criado AssociadoDetalhe.tsx — página /associados/:id com auto-save
 - Modificados App.tsx e Associados.tsx para nova rota
 - Reescrita ContractCard.tsx v2 — modelo oficial, PDF 2 páginas + regulamento
+- Seção "Plano & Benefícios" em /associados/:id — benefícios do plano atual + trocar de plano
+- Fluxo completo: Vistoria Remota + Assinatura Digital
+  - Migration: add colunas assinatura em vistorias
+  - Edge function: send-vistoria-link (Resend + Evolution API)
+  - Edge function: embed-assinatura (pdf-lib embeds assinatura no PDF)
+  - Página pública: /vistoria/:token (VistoriaRemota.tsx)
+  - Página pública: /assinar/:token (AssinarContrato.tsx)
+  - AssociadoDetalhe.tsx: botão "Enviar link de vistoria" + badge de status na seção Contratos
 
 ## Instrução para o Claude Code
 Ao final de cada sessão, atualize automaticamente a seção "Log de sessões" 
