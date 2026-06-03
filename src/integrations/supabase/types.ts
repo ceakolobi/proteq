@@ -1010,22 +1010,29 @@ export type Database = {
           aprovada_em: string | null
           aprovada_por: string | null
           associado_id: string | null
+          bairro: string | null
           carro_reserva_adicional: number | null
           carro_reserva_dias: number | null
           categoria: string | null
+          cep: string | null
           chassi: string | null
+          cidade_cliente: string | null
           cliente_email: string | null
           cliente_nome: string | null
           cliente_whatsapp: string | null
           codigo_fipe: string | null
           company_id: string | null
           consultor_id: string
+          contrato_gerado: boolean | null
           cor: string | null
           cota_id: string | null
           created_at: string
           created_by: string | null
+          data_nascimento: string | null
           data_valor_informado: string | null
           editado_por: string | null
+          endereco: string | null
+          estado: string | null
           id: string
           lead_id: string | null
           marca: string
@@ -1033,12 +1040,14 @@ export type Database = {
           metodo_valoracao: Database["public"]["Enums"]["metodo_valoracao"]
           modelo: string
           motivo_ajuste: string | null
+          numero: string | null
           observacoes: string | null
           participacao: number | null
           percentual_global: number | null
           percentual_individual: number | null
           perfil_editor: string | null
           placa: string | null
+          plano: string | null
           proposta_enviada_em: string | null
           proposta_enviada_por: string | null
           proposta_id: string | null
@@ -1049,10 +1058,12 @@ export type Database = {
           updated_at: string
           url_nota_fiscal: string | null
           usuario_informou_valor: string | null
+          valor_adesao: number | null
           valor_base: number | null
           valor_bem: number
           valor_final: number | null
           valor_fipe: number | null
+          veiculo_foto_url: string | null
           veiculo_id: string | null
         }
         Insert: {
@@ -1067,22 +1078,29 @@ export type Database = {
           aprovada_em?: string | null
           aprovada_por?: string | null
           associado_id?: string | null
+          bairro?: string | null
           carro_reserva_adicional?: number | null
           carro_reserva_dias?: number | null
           categoria?: string | null
+          cep?: string | null
           chassi?: string | null
+          cidade_cliente?: string | null
           cliente_email?: string | null
           cliente_nome?: string | null
           cliente_whatsapp?: string | null
           codigo_fipe?: string | null
           company_id?: string | null
           consultor_id: string
+          contrato_gerado?: boolean | null
           cor?: string | null
           cota_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           data_valor_informado?: string | null
           editado_por?: string | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
           lead_id?: string | null
           marca: string
@@ -1090,12 +1108,14 @@ export type Database = {
           metodo_valoracao?: Database["public"]["Enums"]["metodo_valoracao"]
           modelo: string
           motivo_ajuste?: string | null
+          numero?: string | null
           observacoes?: string | null
           participacao?: number | null
           percentual_global?: number | null
           percentual_individual?: number | null
           perfil_editor?: string | null
           placa?: string | null
+          plano?: string | null
           proposta_enviada_em?: string | null
           proposta_enviada_por?: string | null
           proposta_id?: string | null
@@ -1106,10 +1126,12 @@ export type Database = {
           updated_at?: string
           url_nota_fiscal?: string | null
           usuario_informou_valor?: string | null
+          valor_adesao?: number | null
           valor_base?: number | null
           valor_bem: number
           valor_final?: number | null
           valor_fipe?: number | null
+          veiculo_foto_url?: string | null
           veiculo_id?: string | null
         }
         Update: {
@@ -1124,22 +1146,29 @@ export type Database = {
           aprovada_em?: string | null
           aprovada_por?: string | null
           associado_id?: string | null
+          bairro?: string | null
           carro_reserva_adicional?: number | null
           carro_reserva_dias?: number | null
           categoria?: string | null
+          cep?: string | null
           chassi?: string | null
+          cidade_cliente?: string | null
           cliente_email?: string | null
           cliente_nome?: string | null
           cliente_whatsapp?: string | null
           codigo_fipe?: string | null
           company_id?: string | null
           consultor_id?: string
+          contrato_gerado?: boolean | null
           cor?: string | null
           cota_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           data_valor_informado?: string | null
           editado_por?: string | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
           lead_id?: string | null
           marca?: string
@@ -1147,12 +1176,14 @@ export type Database = {
           metodo_valoracao?: Database["public"]["Enums"]["metodo_valoracao"]
           modelo?: string
           motivo_ajuste?: string | null
+          numero?: string | null
           observacoes?: string | null
           participacao?: number | null
           percentual_global?: number | null
           percentual_individual?: number | null
           perfil_editor?: string | null
           placa?: string | null
+          plano?: string | null
           proposta_enviada_em?: string | null
           proposta_enviada_por?: string | null
           proposta_id?: string | null
@@ -1163,10 +1194,12 @@ export type Database = {
           updated_at?: string
           url_nota_fiscal?: string | null
           usuario_informou_valor?: string | null
+          valor_adesao?: number | null
           valor_base?: number | null
           valor_bem?: number
           valor_final?: number | null
           valor_fipe?: number | null
+          veiculo_foto_url?: string | null
           veiculo_id?: string | null
         }
         Relationships: [
@@ -2779,6 +2812,7 @@ export type Database = {
           cotacao_id: string | null
           created_at: string
           created_by: string | null
+          foto_url: string | null
           id: string
           lead_id: string | null
           marca: string
@@ -2816,6 +2850,7 @@ export type Database = {
           cotacao_id?: string | null
           created_at?: string
           created_by?: string | null
+          foto_url?: string | null
           id?: string
           lead_id?: string | null
           marca: string
@@ -2853,6 +2888,7 @@ export type Database = {
           cotacao_id?: string | null
           created_at?: string
           created_by?: string | null
+          foto_url?: string | null
           id?: string
           lead_id?: string | null
           marca?: string
