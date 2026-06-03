@@ -176,3 +176,24 @@ export async function mergePropostaComRegulamento(
   const out = await merged.save();
   return new Blob([out as BlobPart], { type: "application/pdf" });
 }
+
+/**
+ * Appends the internal regulation PDF to an existing PDF (as ArrayBuffer).
+ * The regulation is fetched from /regulamento-interno-harmony.pdf (public folder).
+ * If the file is not found, returns the original PDF unchanged.
+ */
+export async function appendRegulamento(pdfBytes: ArrayBuffer): Promise<Blob> {
+  const merged = await PDFDocument.load(pdfBytes);
+  try {
+    const res = await fetch("/regulamento-interno-harmony.pdf");
+    if (res.ok) {
+      const regDoc = await PDFDocument.load(await res.arrayBuffer());
+      const pages = await merged.copyPages(regDoc, regDoc.getPageIndices());
+      pages.forEach((p) => merged.addPage(p));
+    }
+  } catch {
+    // regulamento is optional — proceed without it
+  }
+  const out = await merged.save();
+  return new Blob([out as BlobPart], { type: "application/pdf" });
+}
