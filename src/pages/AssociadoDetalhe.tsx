@@ -44,6 +44,11 @@ import {
   Image,
   ChevronDown,
   ChevronUp,
+  Star,
+  RefreshCw,
+  CheckCircle2,
+  Package,
+  TrendingUp,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
 import type { AssociateStatus } from '@/types/database';
@@ -103,6 +108,40 @@ interface VeiculoInfo {
   modelo: string;
   placa: string;
   ano: number;
+  cotacao_id: string | null;
+  cota_id: string | null;
+  tipo: string;
+  mensalidade: number;
+  valor_fipe: number;
+}
+
+interface CotaDisponivel {
+  id: string;
+  cota_nome: string;
+  categoria: string | null;
+  ativo: boolean;
+  fipe_min: number;
+  fipe_max: number;
+  valor_carro: number | null;
+  valor_moto: number | null;
+  valor_camionete: number | null;
+  mensalidade_caminhao: number | null;
+  mensalidade_utilitario: number | null;
+  mensalidade_maquina_agricola: number | null;
+  mensalidade_maquina_industrial: number | null;
+  mensalidade_carreta: number | null;
+  mensalidade_implemento_agricola: number | null;
+  percentual_geral: number | null;
+}
+
+interface BeneficioAtual {
+  nome_snapshot: string;
+  valor_snapshot: number;
+}
+
+interface PropostaPendente {
+  cotacao_id: string;
+  cota_nome: string;
 }
 
 interface Contrato {
@@ -194,6 +233,15 @@ export default function AssociadoDetalhe() {
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoVeiculo[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
 
+  // Plano & Benefícios
+  const [beneficiosAtual, setBeneficiosAtual] = useState<BeneficioAtual[]>([]);
+  const [cotaAtualNome, setCotaAtualNome] = useState<string | null>(null);
+  const [cotasDisponiveis, setCotasDisponiveis] = useState<CotaDisponivel[]>([]);
+  const [cotaSelecionadaId, setCotaSelecionadaId] = useState<string | null>(null);
+  const [propostaPendente, setPropostaPendente] = useState<PropostaPendente | null>(null);
+  const [isLoadingPlano, setIsLoadingPlano] = useState(false);
+  const [isPropondoTroca, setIsPropondoTroca] = useState(false);
+
   const isDirty = JSON.stringify(formData) !== JSON.stringify(savedData);
 
   // ─── Fetch ─────────────────────────────────────────────────────────────────
@@ -218,6 +266,143 @@ export default function AssociadoDetalhe() {
       .eq('associado_id', associadoId).order('generated_at', { ascending: false });
     setContratos((data as Contrato[]) || []);
   }, []);
+
+  const fetchPlanoAtual = useCallback(async (v: VeiculoInfo) => {
+    setIsLoadingPlano(true);
+    try {
+      // Benefícios da cotação vinculada ao veículo
+      if (v.cotacao_id) {
+        const { data: bens } = await supabase
+          .from('cotacao_beneficios')
+          .select('nome_snapshot,valor_snapshot')
+          .eq('cotacao_id', v.cotacao_id);
+        setBeneficiosAtual((bens as BeneficioAtual[]) || []);
+      }
+      // Nome da cota atual
+      if (v.cota_id) {
+        const { data: cota } = await supabase
+          .from('cotas').select('cota_nome').eq('id', v.cota_id).single();
+        setCotaAtualNome((cota as any)?.cota_nome ?? null);
+      }
+      // Verificar proposta pendente
+      if (v.id) {
+        const { data: prop } = await supabase
+          .from('cotacoes')
+          .select('id,cota_id')
+          .eq('veiculo_id', v.id)
+          .eq('status', 'enviada')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (prop?.[0] && prop[0].cota_id !== v.cota_id) {
+          const { data: cotaProp } = await supabase
+            .from('cotas').select('cota_nome').eq('id', prop[0].cota_id).single();
+          setPropostaPendente({
+            cotacao_id: prop[0].id,
+            cota_nome: (cotaProp as any)?.cota_nome ?? 'Novo plano',
+          });
+        }
+      }
+      // Cotas disponíveis para troca
+      await fetchCotasDisponiveis();
+    } finally {
+      setIsLoadingPlano(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchCotasDisponiveis = useCallback(async () => {
+    const { data } = await supabase
+      .from('cotas')
+      .select('id,cota_nome,categoria,ativo,fipe_min,fipe_max,valor_carro,valor_moto,valor_camionete,mensalidade_caminhao,mensalidade_utilitario,mensalidade_maquina_agricola,mensalidade_maquina_industrial,mensalidade_carreta,mensalidade_implemento_agricola,percentual_geral')
+      .eq('ativo', true)
+      .order('cota_nome');
+    setCotasDisponiveis((data as CotaDisponivel[]) || []);
+  }, []);
+
+  const estimarMensalidade = (cota: CotaDisponivel, tipo: string, valorFipe: number): number | null => {
+    switch (tipo) {
+      case 'carro':             return cota.valor_carro;
+      case 'pickup':
+      case 'caminhonete':       return cota.valor_camionete;
+      case 'moto':              return cota.valor_moto;
+      case 'caminhao':          return cota.mensalidade_caminhao;
+      case 'utilitario':        return cota.mensalidade_utilitario;
+      case 'maquina_agricola':  return cota.mensalidade_maquina_agricola;
+      case 'maquina_industrial':return cota.mensalidade_maquina_industrial;
+      case 'carreta':           return cota.mensalidade_carreta;
+      case 'implemento_agricola':return cota.mensalidade_implemento_agricola;
+      default:
+        return cota.percentual_geral ? valorFipe * cota.percentual_geral / 100 : null;
+    }
+  };
+
+  const handleProporTroca = async () => {
+    if (!cotaSelecionadaId || !veiculo || !id) return;
+    setIsPropondoTroca(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const cotaEscolhida = cotasDisponiveis.find(c => c.id === cotaSelecionadaId);
+      if (!cotaEscolhida) throw new Error('Cota não encontrada');
+
+      const novaMensalidade = estimarMensalidade(cotaEscolhida, veiculo.tipo, veiculo.valor_fipe);
+
+      const { data: novaCotacao, error: cotErr } = await supabase
+        .from('cotacoes')
+        .insert({
+          associado_id: id,
+          veiculo_id: veiculo.id,
+          cota_id: cotaSelecionadaId,
+          status: 'enviada',
+          consultor_id: user.id,
+          marca: veiculo.marca,
+          modelo: veiculo.modelo,
+          placa: veiculo.placa,
+          ano_fabricacao: veiculo.ano,
+          tipo_bem: veiculo.tipo as any,
+          valor_bem: veiculo.valor_fipe,
+          valor_fipe: veiculo.valor_fipe,
+          mensalidade: novaMensalidade,
+          metodo_valoracao: 'fipe',
+          observacoes: `Proposta de troca de plano para: ${cotaEscolhida.cota_nome}`,
+        } as never)
+        .select('id')
+        .single();
+
+      if (cotErr) throw cotErr;
+
+      // Copiar benefícios da cotação atual para a nova
+      if (veiculo.cotacao_id && novaCotacao) {
+        const { data: bensAtuais } = await supabase
+          .from('cotacao_beneficios')
+          .select('beneficio_id,nome_snapshot,valor_snapshot')
+          .eq('cotacao_id', veiculo.cotacao_id);
+
+        if (bensAtuais?.length) {
+          await supabase.from('cotacao_beneficios').insert(
+            bensAtuais.map(b => ({
+              cotacao_id: (novaCotacao as any).id,
+              beneficio_id: b.beneficio_id,
+              nome_snapshot: b.nome_snapshot,
+              valor_snapshot: b.valor_snapshot,
+              selecionado_por: 'consultor',
+            }))
+          );
+        }
+      }
+
+      setPropostaPendente({
+        cotacao_id: (novaCotacao as any).id,
+        cota_nome: cotaEscolhida.cota_nome,
+      });
+      setCotaSelecionadaId(null);
+      toast.success(`Proposta de troca para "${cotaEscolhida.cota_nome}" criada com sucesso!`);
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao criar proposta');
+    } finally {
+      setIsPropondoTroca(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -267,11 +452,15 @@ export default function AssociadoDetalhe() {
         fetchContratos(id);
 
         const { data: veics } = await supabase
-          .from('veiculos').select('id,marca,modelo,placa,ano')
+          .from('veiculos')
+          .select('id,marca,modelo,placa,ano,cotacao_id,cota_id,tipo,mensalidade,valor_fipe')
           .eq('associado_id', id).order('created_at', { ascending: false }).limit(1);
         const v = (veics?.[0] as VeiculoInfo) ?? null;
         setVeiculo(v);
-        if (v) fetchDocsVeiculo(v.id);
+        if (v) {
+          fetchDocsVeiculo(v.id);
+          fetchPlanoAtual(v);
+        }
       } catch {
         toast.error('Erro ao carregar associado');
         navigate('/associados');
@@ -835,6 +1024,199 @@ export default function AssociadoDetalhe() {
                 </label>
                 <p className="text-xs text-muted-foreground">Formatos: JPG, PNG, WebP, PDF — máx. 10MB.</p>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Seção 5.5: Plano & Benefícios ── */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Package className="h-4 w-4 text-orange-600" />
+              Plano &amp; Benefícios
+              {propostaPendente && (
+                <Badge className="ml-2 bg-amber-100 text-amber-800 border-amber-300 border text-xs gap-1">
+                  <RefreshCw className="h-3 w-3" />
+                  Proposta pendente: {propostaPendente.cota_nome}
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {isLoadingPlano ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {/* PARTE 1 — Plano atual */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-orange-500" />
+                    Plano Atual
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
+                      <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
+                      <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Mensalidade</p>
+                      <p className="text-sm font-bold">
+                        {veiculo?.mensalidade
+                          ? veiculo.mensalidade.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                          : '—'}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Valor FIPE</p>
+                      <p className="text-sm font-bold">
+                        {veiculo?.valor_fipe
+                          ? veiculo.valor_fipe.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Benefícios do plano */}
+                  {beneficiosAtual.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {beneficiosAtual.map((b, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium leading-tight">{b.nome_snapshot}</p>
+                            {b.valor_snapshot > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                + {b.valor_snapshot.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {veiculo?.cotacao_id
+                        ? 'Nenhum benefício extra registrado neste plano.'
+                        : 'Sem cotação vinculada ao veículo.'}
+                    </p>
+                  )}
+                </div>
+
+                {/* PARTE 2 — Trocar de plano */}
+                {cotasDisponiveis.length > 0 && (
+                  <div className="space-y-3 pt-2 border-t">
+                    <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-blue-500" />
+                      Trocar de Plano
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Selecione um plano para ver a estimativa de mensalidade. A troca só é efetivada após aprovação.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {cotasDisponiveis.map(cota => {
+                        const isAtual = cota.id === veiculo?.cota_id;
+                        const isSelecionada = cota.id === cotaSelecionadaId;
+                        const estimativa = veiculo
+                          ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe)
+                          : null;
+
+                        return (
+                          <button
+                            key={cota.id}
+                            type="button"
+                            onClick={() => !isAtual && setCotaSelecionadaId(isSelecionada ? null : cota.id)}
+                            disabled={isAtual}
+                            className={[
+                              'text-left rounded-lg border p-3 transition-all w-full',
+                              isAtual
+                                ? 'border-orange-300 bg-orange-50 cursor-default'
+                                : isSelecionada
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                  : 'hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer',
+                            ].join(' ')}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold leading-tight truncate">
+                                  {cota.cota_nome}
+                                </p>
+                                {cota.categoria && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{cota.categoria}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  FIPE: {cota.fipe_min.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                  {' — '}
+                                  {cota.fipe_max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
+                              </div>
+                              {isAtual && (
+                                <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-300 border flex-shrink-0">
+                                  Atual
+                                </Badge>
+                              )}
+                              {isSelecionada && !isAtual && (
+                                <CheckCircle2 className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                              )}
+                            </div>
+                            {estimativa != null && (
+                              <p className={`text-sm font-bold mt-2 ${isSelecionada ? 'text-blue-700' : 'text-slate-700'}`}>
+                                {estimativa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
+                              </p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Preview e botão de proposta */}
+                    {cotaSelecionadaId && (() => {
+                      const cota = cotasDisponiveis.find(c => c.id === cotaSelecionadaId)!;
+                      const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
+                      return (
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                          <p className="text-sm font-semibold text-blue-900">
+                            Preview: {cota.cota_nome}
+                          </p>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs text-blue-600 mb-0.5">Mensalidade estimada</p>
+                              <p className="font-bold text-blue-900">
+                                {estimativa != null
+                                  ? estimativa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                  : 'A calcular'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-blue-600 mb-0.5">Mensalidade atual</p>
+                              <p className="font-bold text-slate-700">
+                                {veiculo?.mensalidade
+                                  ? veiculo.mensalidade.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                  : '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-blue-600">
+                            * Valor estimado com base no tipo de veículo e tabela FIPE. O valor final pode variar.
+                          </p>
+                          <Button
+                            onClick={handleProporTroca}
+                            disabled={isPropondoTroca}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            {isPropondoTroca
+                              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Criando proposta...</>
+                              : <><RefreshCw className="h-4 w-4 mr-2" />Propor troca de plano</>}
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
