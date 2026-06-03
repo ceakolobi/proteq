@@ -44,6 +44,7 @@ import Pagamentos from "./pages/financeiro/Pagamentos";
 import Inadimplencia from "./pages/financeiro/Inadimplencia";
 import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
+import AssociadoDetalhe from "./pages/AssociadoDetalhe";
 
 const queryClient = new QueryClient();
 
@@ -173,6 +174,7 @@ const App = () => (
                 <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
                 <Route path="/associados" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
                 <Route path="/associados/novo" element={<ProtectedRoute><Associados /></ProtectedRoute>} />
+                <Route path="/associados/:id" element={<ProtectedRoute><AssociadoDetalhe /></ProtectedRoute>} />
                 <Route path="/veiculos" element={<ProtectedRoute><Veiculos /></ProtectedRoute>} />
                 <Route path="/vistorias" element={<ProtectedRoute><Vistorias /></ProtectedRoute>} />
                 <Route path="/ativacoes" element={<ProtectedRoute><Ativacoes /></ProtectedRoute>} />

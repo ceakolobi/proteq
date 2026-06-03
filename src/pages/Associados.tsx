@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
@@ -72,7 +73,6 @@ import type { Associado, Regiao, AssociateStatus, VehicleType, Cota, Profile } f
 import { associateStatusLabels, vehicleTypeLabels } from '@/types/database';
 import { FipeRangeDetector, useFipeRange } from '@/components/FipeRangeDetector';
 import { AssociadoWizard } from '@/components/associado/wizard';
-import { AssociadoEditModal } from '@/components/associado/AssociadoEditModal';
 
 interface AssociadoWithDetails extends Associado {
   veiculos_count?: number;
@@ -92,6 +92,7 @@ interface VeiculoForm {
 type WizardStep = 'associado' | 'veiculo' | 'complete';
 
 export default function Associados() {
+  const navigate = useNavigate();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   
@@ -123,7 +124,6 @@ export default function Associados() {
   
   // Estado do novo wizard moderno
   const [isNewWizardOpen, setIsNewWizardOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   // Wizard state for new associado flow (legado - para edição)
   const [wizardStep, setWizardStep] = useState<WizardStep>('associado');
@@ -361,8 +361,7 @@ export default function Associados() {
   };
 
   const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
-    setSelectedAssociado(associado);
-    setIsEditModalOpen(true);
+    navigate('/associados/' + associado.id);
   };
 
   const handleOpenVeiculoDialog = (associado: AssociadoWithDetails) => {
@@ -1365,15 +1364,6 @@ export default function Associados() {
           open={isNewWizardOpen}
           onOpenChange={setIsNewWizardOpen}
           onSuccess={fetchAssociados}
-        />
-
-        {/* Modal de Edição Completo */}
-        <AssociadoEditModal
-          open={isEditModalOpen}
-          onOpenChange={setIsEditModalOpen}
-          associado={selectedAssociado}
-          onSuccess={fetchAssociados}
-          canEditStatus={canEditAll && !isConsultor}
         />
 
         {/* Confirmação de Exclusão de Cliente */}
