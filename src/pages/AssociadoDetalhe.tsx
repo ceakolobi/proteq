@@ -42,7 +42,10 @@ import {
   Heart,
   Building2,
   Image,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+import ContractCard from '@/components/associado/ContractCard';
 import type { AssociateStatus } from '@/types/database';
 import {
   ESTADO_CIVIL_OPTIONS,
@@ -184,6 +187,7 @@ export default function AssociadoDetalhe() {
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [uploadingVeicDoc, setUploadingVeicDoc] = useState(false);
   const [isGeneratingContract, setIsGeneratingContract] = useState(false);
+  const [showContractPreview, setShowContractPreview] = useState(false);
 
   const [documentos, setDocumentos] = useState<DocumentoAssociado[]>([]);
   const [veiculo, setVeiculo] = useState<VeiculoInfo | null>(null);
@@ -838,33 +842,58 @@ export default function AssociadoDetalhe() {
         {/* ── Seção 6: Contratos ── */}
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <ScrollText className="h-4 w-4 text-orange-600" />
-                Contratos Gerados
+                Contratos
               </CardTitle>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleGerarContrato}
-                disabled={isGeneratingContract || isSaving}
-              >
-                {isGeneratingContract
-                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
-                  : <><Send className="h-4 w-4 mr-2" />Gerar Contrato PDF</>}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowContractPreview(v => !v)}
+                >
+                  {showContractPreview
+                    ? <><ChevronUp className="h-4 w-4 mr-1.5" />Fechar Visualização</>
+                    : <><Eye className="h-4 w-4 mr-1.5" />Visualizar Contrato</>}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGerarContrato}
+                  disabled={isGeneratingContract || isSaving}
+                >
+                  {isGeneratingContract
+                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
+                    : <><Send className="h-4 w-4 mr-2" />Via Servidor</>}
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
-            {contratos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum contrato gerado ainda.</p>
-            ) : (
+          <CardContent className="space-y-4">
+            {/* Preview visual do contrato */}
+            {showContractPreview && id && (
+              <div className="border rounded-lg overflow-x-auto bg-gray-50 p-2">
+                <ContractCard
+                  associadoId={id}
+                  onPdfGenerated={() => id && fetchContratos(id)}
+                />
+              </div>
+            )}
+
+            {/* Histórico de contratos gerados pelo servidor */}
+            {contratos.length === 0 && !showContractPreview ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum contrato gerado ainda. Clique em "Visualizar Contrato" para criar um PDF visual.
+              </p>
+            ) : contratos.length > 0 ? (
               <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Histórico (servidor)</p>
                 {contratos.map(c => (
                   <div key={c.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="space-y-0.5">
                       <p className="text-sm font-medium">
-                        Contrato {c.contract_number ? `#${c.contract_number}` : ''}
+                        Contrato {c.contract_number ? `#${c.contract_number}` : '(sem número)'}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {c.generated_at
@@ -882,7 +911,7 @@ export default function AssociadoDetalhe() {
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
 
