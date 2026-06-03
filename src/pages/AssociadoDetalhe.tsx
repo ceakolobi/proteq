@@ -55,6 +55,9 @@ import {
   ShieldAlert,
   Signature,
   Clock,
+  Sparkles,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
 import type { AssociateStatus } from '@/types/database';
@@ -150,6 +153,21 @@ interface PropostaPendente {
   cota_nome: string;
 }
 
+interface BeneficioExtra {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  valor_mensal: number;
+  icone: string | null;
+  ativo: boolean;
+}
+
+interface AssociadoBeneficioExtra {
+  id: string;
+  beneficio_id: string;
+  ativo: boolean;
+}
+
 interface VistoriaStatus {
   id: string;
   status: string;
@@ -225,7 +243,7 @@ const maskCEP = (v: string) =>
 export default function AssociadoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdminPrincipal, hasRole } = useAuth();
+  const { isAdminPrincipal, hasRole, profile } = useAuth();
   const { regioes, isLoading: regioesLoading } = useReferenceData({ loadRegioes: true });
 
   const canChangeRegiao = isAdminPrincipal || hasRole('admin_nivel_basico');
@@ -253,6 +271,7 @@ export default function AssociadoDetalhe() {
   const [isEnviandoLink, setIsEnviandoLink] = useState(false);
 
   // Plano & Benefícios
+  const [showTrocarPlano, setShowTrocarPlano] = useState(false);
   const [beneficiosAtual, setBeneficiosAtual] = useState<BeneficioAtual[]>([]);
   const [cotaAtualNome, setCotaAtualNome] = useState<string | null>(null);
   const [cotasDisponiveis, setCotasDisponiveis] = useState<CotaDisponivel[]>([]);
@@ -260,6 +279,11 @@ export default function AssociadoDetalhe() {
   const [propostaPendente, setPropostaPendente] = useState<PropostaPendente | null>(null);
   const [isLoadingPlano, setIsLoadingPlano] = useState(false);
   const [isPropondoTroca, setIsPropondoTroca] = useState(false);
+
+  // Benefícios extras
+  const [beneficiosExtras, setBeneficiosExtras] = useState<BeneficioExtra[]>([]);
+  const [beneficiosAssociado, setBeneficiosAssociado] = useState<AssociadoBeneficioExtra[]>([]);
+  const [isTogglingBeneficio, setIsTogglingBeneficio] = useState<string | null>(null);
 
   const isDirty = JSON.stringify(formData) !== JSON.stringify(savedData);
 
@@ -323,6 +347,8 @@ export default function AssociadoDetalhe() {
       }
       // Cotas disponíveis para troca
       await fetchCotasDisponiveis();
+      // Benefícios extras disponíveis e os do associado
+      await fetchBeneficiosExtras(v.tipo);
     } finally {
       setIsLoadingPlano(false);
     }
@@ -346,6 +372,63 @@ export default function AssociadoDetalhe() {
       .order('cota_nome');
     setCotasDisponiveis((data as CotaDisponivel[]) || []);
   }, []);
+
+  const fetchBeneficiosExtras = useCallback(async (tipoVeiculo: string) => {
+    let query = supabase
+      .from('beneficios_extras')
+      .select('id,nome,descricao,valor_mensal,icone,ativo')
+      .eq('ativo', true)
+      .order('ordem');
+
+    // Filter by vehicle type
+    if (tipoVeiculo === 'carro') query = query.eq('aplica_carro', true);
+    else if (tipoVeiculo === 'moto') query = query.eq('aplica_moto', true);
+    else if (['pickup', 'caminhonete'].includes(tipoVeiculo)) query = query.eq('aplica_caminhonete', true);
+    // caminhao, maquina_agricola, etc. → show all active
+
+    const { data } = await query;
+    setBeneficiosExtras((data as BeneficioExtra[]) || []);
+  }, []);
+
+  const fetchBeneficiosAssociado = useCallback(async (associadoId: string) => {
+    const { data, error } = await supabase
+      .from('associado_beneficios_extras' as any)
+      .select('id,beneficio_id,ativo')
+      .eq('associado_id', associadoId)
+      .eq('ativo', true);
+    if (!error) setBeneficiosAssociado((data as AssociadoBeneficioExtra[]) || []);
+  }, []);
+
+  const handleToggleBeneficio = async (beneficioId: string) => {
+    if (!id) return;
+    setIsTogglingBeneficio(beneficioId);
+    try {
+      const existing = beneficiosAssociado.find(b => b.beneficio_id === beneficioId);
+      if (existing) {
+        // Remove: delete the row
+        await supabase
+          .from('associado_beneficios_extras' as any)
+          .delete()
+          .eq('id', existing.id);
+        setBeneficiosAssociado(prev => prev.filter(b => b.beneficio_id !== beneficioId));
+        toast.success('Benefício removido');
+      } else {
+        // Add: upsert
+        const { data, error } = await supabase
+          .from('associado_beneficios_extras' as any)
+          .upsert({ associado_id: id, beneficio_id: beneficioId, ativo: true }, { onConflict: 'associado_id,beneficio_id' })
+          .select('id,beneficio_id,ativo')
+          .single();
+        if (error) throw error;
+        setBeneficiosAssociado(prev => [...prev, data as AssociadoBeneficioExtra]);
+        toast.success('Benefício adicionado');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao atualizar benefício');
+    } finally {
+      setIsTogglingBeneficio(null);
+    }
+  };
 
   const estimarMensalidade = (cota: CotaDisponivel, tipo: string, valorFipe: number): number | null => {
     switch (tipo) {
@@ -568,6 +651,7 @@ export default function AssociadoDetalhe() {
         if (v) {
           fetchDocsVeiculo(v.id);
           fetchPlanoAtual(v);
+          fetchBeneficiosAssociado(id);
         }
       } catch {
         toast.error('Erro ao carregar associado');
@@ -1156,175 +1240,232 @@ export default function AssociadoDetalhe() {
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <>
-                {/* PARTE 1 — Plano atual */}
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <Star className="h-4 w-4 text-orange-500" />
-                    Plano Atual
-                  </p>
+              {(() => {
+                const extrasAtivos = beneficiosAssociado.filter(b => b.ativo);
+                const totalExtras = extrasAtivos.reduce((sum, ab) => {
+                  const extra = beneficiosExtras.find(e => e.id === ab.beneficio_id);
+                  return sum + (extra?.valor_mensal ?? 0);
+                }, 0);
+                const mensalidadeBase = veiculo?.mensalidade ?? 0;
+                const mensalidadeTotal = mensalidadeBase + totalExtras;
+                const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
-                      <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
-                      <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
-                    </div>
-                    <div className="rounded-lg border p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Mensalidade</p>
-                      <p className="text-sm font-bold">
-                        {veiculo?.mensalidade
-                          ? veiculo.mensalidade.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                          : '—'}
+                return (
+                  <>
+                    {/* ── Plano atual + resumo financeiro ── */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <Star className="h-4 w-4 text-orange-500" />
+                        Plano Atual
                       </p>
-                    </div>
-                    <div className="rounded-lg border p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Valor FIPE</p>
-                      <p className="text-sm font-bold">
-                        {veiculo?.valor_fipe
-                          ? veiculo.valor_fipe.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                          : '—'}
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Benefícios do plano */}
-                  {beneficiosAtual.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {beneficiosAtual.map((b, i) => (
-                        <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border">
-                          <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm font-medium leading-tight">{b.nome_snapshot}</p>
-                            {b.valor_snapshot > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                + {b.valor_snapshot.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
-                              </p>
-                            )}
-                          </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
+                          <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
+                          <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {veiculo?.cotacao_id
-                        ? 'Nenhum benefício extra registrado neste plano.'
-                        : 'Sem cotação vinculada ao veículo.'}
-                    </p>
-                  )}
-                </div>
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs text-muted-foreground mb-1">Mensalidade base</p>
+                          <p className="text-sm font-bold">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+                        </div>
+                        <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
+                          <p className="text-xs text-muted-foreground mb-1">Total c/ extras</p>
+                          <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
+                            {mensalidadeBase ? fmtBRL(mensalidadeTotal) : '—'}
+                          </p>
+                          {totalExtras > 0 && (
+                            <p className="text-xs text-green-600 mt-0.5">+ {fmtBRL(totalExtras)} em extras</p>
+                          )}
+                        </div>
+                      </div>
 
-                {/* PARTE 2 — Trocar de plano */}
-                {cotasDisponiveis.length > 0 && (
-                  <div className="space-y-3 pt-2 border-t">
-                    <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-blue-500" />
-                      Trocar de Plano
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Selecione um plano para ver a estimativa de mensalidade. A troca só é efetivada após aprovação.
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {cotasDisponiveis.map(cota => {
-                        const isAtual = cota.id === veiculo?.cota_id;
-                        const isSelecionada = cota.id === cotaSelecionadaId;
-                        const estimativa = veiculo
-                          ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe)
-                          : null;
-
-                        return (
-                          <button
-                            key={cota.id}
-                            type="button"
-                            onClick={() => !isAtual && setCotaSelecionadaId(isSelecionada ? null : cota.id)}
-                            disabled={isAtual}
-                            className={[
-                              'text-left rounded-lg border p-3 transition-all w-full',
-                              isAtual
-                                ? 'border-orange-300 bg-orange-50 cursor-default'
-                                : isSelecionada
-                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                                  : 'hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer',
-                            ].join(' ')}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold leading-tight truncate">
-                                  {cota.cota_nome}
-                                </p>
-                                {cota.categoria && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">{cota.categoria}</p>
+                      {/* Coberturas incluídas no plano */}
+                      {beneficiosAtual.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {beneficiosAtual.map((b, i) => (
+                            <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border">
+                              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium leading-tight">{b.nome_snapshot}</p>
+                                {b.valor_snapshot > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    + {fmtBRL(b.valor_snapshot)}/mês
+                                  </p>
                                 )}
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  FIPE: {cota.fipe_min.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                  {' — '}
-                                  {cota.fipe_max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                                </p>
                               </div>
-                              {isAtual && (
-                                <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-300 border flex-shrink-0">
-                                  Atual
-                                </Badge>
-                              )}
-                              {isSelecionada && !isAtual && (
-                                <CheckCircle2 className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                              )}
                             </div>
-                            {estimativa != null && (
-                              <p className={`text-sm font-bold mt-2 ${isSelecionada ? 'text-blue-700' : 'text-slate-700'}`}>
-                                {estimativa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
-                              </p>
-                            )}
-                          </button>
-                        );
-                      })}
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {veiculo?.cotacao_id
+                            ? 'Nenhum benefício registrado na cotação vinculada.'
+                            : 'Sem cotação vinculada ao veículo.'}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Preview e botão de proposta */}
-                    {cotaSelecionadaId && (() => {
-                      const cota = cotasDisponiveis.find(c => c.id === cotaSelecionadaId)!;
-                      const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
-                      return (
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
-                          <p className="text-sm font-semibold text-blue-900">
-                            Preview: {cota.cota_nome}
-                          </p>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <p className="text-xs text-blue-600 mb-0.5">Mensalidade estimada</p>
-                              <p className="font-bold text-blue-900">
-                                {estimativa != null
-                                  ? estimativa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                                  : 'A calcular'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-blue-600 mb-0.5">Mensalidade atual</p>
-                              <p className="font-bold text-slate-700">
-                                {veiculo?.mensalidade
-                                  ? veiculo.mensalidade.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                                  : '—'}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-blue-600">
-                            * Valor estimado com base no tipo de veículo e tabela FIPE. O valor final pode variar.
-                          </p>
-                          <Button
-                            onClick={handleProporTroca}
-                            disabled={isPropondoTroca}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            {isPropondoTroca
-                              ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Criando proposta...</>
-                              : <><RefreshCw className="h-4 w-4 mr-2" />Propor troca de plano</>}
-                          </Button>
+                    {/* ── Benefícios extras disponíveis ── */}
+                    {beneficiosExtras.length > 0 && (
+                      <div className="space-y-3 pt-2 border-t">
+                        <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-amber-500" />
+                          Benefícios Extras
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {beneficiosExtras.map(extra => {
+                            const isAtivo = extrasAtivos.some(b => b.beneficio_id === extra.id);
+                            const isLoading = isTogglingBeneficio === extra.id;
+                            return (
+                              <div
+                                key={extra.id}
+                                className={`rounded-lg border p-3 transition-all ${isAtivo ? 'border-green-300 bg-green-50' : 'border-border'}`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold leading-tight">{extra.nome}</p>
+                                    {extra.descricao && (
+                                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{extra.descricao}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    <Badge className="bg-orange-100 text-orange-700 border-orange-300 border text-xs">
+                                      + {fmtBRL(extra.valor_mensal)}/mês
+                                    </Badge>
+                                    <Button
+                                      size="sm"
+                                      variant={isAtivo ? 'outline' : 'default'}
+                                      onClick={() => handleToggleBeneficio(extra.id)}
+                                      disabled={isLoading}
+                                      className={`h-7 px-2 text-xs ${isAtivo ? 'border-green-400 text-green-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600' : 'bg-orange-600 hover:bg-orange-700 text-white border-0'}`}
+                                    >
+                                      {isLoading
+                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                        : isAtivo
+                                          ? <><Minus className="h-3 w-3 mr-1" />Remover</>
+                                          : <><Plus className="h-3 w-3 mr-1" />Adicionar</>}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </>
+                      </div>
+                    )}
+
+                    {/* ── Accordion: Trocar de plano ── */}
+                    {cotasDisponiveis.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <button
+                          type="button"
+                          onClick={() => setShowTrocarPlano(v => !v)}
+                          className="w-full flex items-center justify-between py-2 px-1 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors rounded"
+                        >
+                          <span className="flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-blue-500" />
+                            Trocar de Plano
+                          </span>
+                          {showTrocarPlano
+                            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        </button>
+
+                        {showTrocarPlano && (
+                          <div className="mt-3 space-y-3">
+                            <p className="text-xs text-muted-foreground">
+                              Selecione um plano para ver a estimativa de mensalidade. A troca só é efetivada após aprovação.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {cotasDisponiveis.map(cota => {
+                                const isAtual = cota.id === veiculo?.cota_id;
+                                const isSelecionada = cota.id === cotaSelecionadaId;
+                                const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
+                                return (
+                                  <button
+                                    key={cota.id}
+                                    type="button"
+                                    onClick={() => !isAtual && setCotaSelecionadaId(isSelecionada ? null : cota.id)}
+                                    disabled={isAtual}
+                                    className={[
+                                      'text-left rounded-lg border p-3 transition-all w-full',
+                                      isAtual
+                                        ? 'border-orange-300 bg-orange-50 cursor-default'
+                                        : isSelecionada
+                                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                          : 'hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer',
+                                    ].join(' ')}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-semibold leading-tight truncate">{cota.cota_nome}</p>
+                                        {cota.categoria && (
+                                          <p className="text-xs text-muted-foreground mt-0.5">{cota.categoria}</p>
+                                        )}
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          FIPE: {fmtBRL(cota.fipe_min)} — {fmtBRL(cota.fipe_max)}
+                                        </p>
+                                      </div>
+                                      {isAtual && (
+                                        <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-300 border flex-shrink-0">Atual</Badge>
+                                      )}
+                                      {isSelecionada && !isAtual && (
+                                        <CheckCircle2 className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                                      )}
+                                    </div>
+                                    {estimativa != null && (
+                                      <p className={`text-sm font-bold mt-2 ${isSelecionada ? 'text-blue-700' : 'text-slate-700'}`}>
+                                        {fmtBRL(estimativa)}/mês
+                                      </p>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {cotaSelecionadaId && (() => {
+                              const cota = cotasDisponiveis.find(c => c.id === cotaSelecionadaId)!;
+                              const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
+                              return (
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                                  <p className="text-sm font-semibold text-blue-900">Preview: {cota.cota_nome}</p>
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                      <p className="text-xs text-blue-600 mb-0.5">Mensalidade estimada</p>
+                                      <p className="font-bold text-blue-900">
+                                        {estimativa != null ? fmtBRL(estimativa) : 'A calcular'}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-blue-600 mb-0.5">Mensalidade atual</p>
+                                      <p className="font-bold text-slate-700">
+                                        {mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-blue-600">
+                                    * Valor estimado com base no tipo de veículo e tabela FIPE. O valor final pode variar.
+                                  </p>
+                                  <Button
+                                    onClick={handleProporTroca}
+                                    disabled={isPropondoTroca}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                  >
+                                    {isPropondoTroca
+                                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Criando proposta...</>
+                                      : <><RefreshCw className="h-4 w-4 mr-2" />Propor troca de plano</>}
+                                  </Button>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             )}
           </CardContent>
         </Card>
