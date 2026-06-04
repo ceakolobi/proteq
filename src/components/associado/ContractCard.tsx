@@ -62,6 +62,11 @@ interface Beneficio {
   valor_snapshot: number;
 }
 
+interface BeneficioExtraContrato {
+  nome: string;
+  valor_mensal: number;
+}
+
 interface CotacaoInfo {
   id: string;
   mensalidade: number | null;
@@ -212,6 +217,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
     const [veiculo, setVeiculo] = useState<Veiculo | null>(null);
     const [cota, setCota] = useState<Cota | null>(null);
     const [beneficios, setBeneficios] = useState<Beneficio[]>([]);
+    const [beneficiosExtras, setBeneficiosExtras] = useState<BeneficioExtraContrato[]>([]);
     const [cotacao, setCotacao] = useState<CotacaoInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
@@ -256,6 +262,19 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
               .from('cotacao_beneficios').select('nome_snapshot,valor_snapshot')
               .eq('cotacao_id', cot.id);
             setBeneficios((bens as Beneficio[]) || []);
+          }
+
+          // Benefícios extras contratados pelo associado
+          const { data: extrasData } = await supabase
+            .from('associado_beneficios_extras' as any)
+            .select('beneficios_extras(nome,valor_mensal)')
+            .eq('associado_id', associadoId)
+            .eq('ativo', true);
+          if (extrasData) {
+            const extras = (extrasData as any[])
+              .map((row: any) => row.beneficios_extras)
+              .filter(Boolean) as BeneficioExtraContrato[];
+            setBeneficiosExtras(extras);
           }
         } catch {
           toast.error('Erro ao carregar dados do contrato');
@@ -357,7 +376,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
     const cnpj = settings.cnpj || null;
     const diaVenc = associado.dia_vencimento;
 
-    const beneficiosList: Beneficio[] = beneficios.length > 0
+    const beneficiosBase: Beneficio[] = beneficios.length > 0
       ? beneficios
       : [
           { nome_snapshot: 'Perda Total por Roubo/Furto', valor_snapshot: 0 },
@@ -368,7 +387,15 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
           { nome_snapshot: 'Rastreamento Veicular', valor_snapshot: 0 },
         ];
 
-    // Chunk beneficios into pairs for 2-column table
+    // Merge extras contratados into the unified list
+    const extrasComobeneficio: Beneficio[] = beneficiosExtras.map(e => ({
+      nome_snapshot: e.nome,
+      valor_snapshot: e.valor_mensal,
+    }));
+    const beneficiosList = [...beneficiosBase, ...extrasComobeneficio];
+    const totalExtrasValor = extrasComobeneficio.reduce((s, b) => s + b.valor_snapshot, 0);
+
+    // Chunk into pairs for 2-column table
     const benefPairs: Beneficio[][] = [];
     for (let i = 0; i < beneficiosList.length; i += 2) {
       benefPairs.push(beneficiosList.slice(i, i + 2));
@@ -552,6 +579,20 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
                   {pair.length === 1 && <td style={{ ...S.cell, width: '50%' }} />}
                 </tr>
               ))}
+              {totalExtrasValor > 0 && (
+                <tr>
+                  <td colSpan={2} style={{ border: '1px solid #d1d5db', padding: '6px 10px', backgroundColor: '#fff7ed' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 10, color: '#9a3412', fontStyle: 'italic' }}>
+                        * Inclui benefícios extras contratados
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>
+                        + {fmtMoney(totalExtrasValor)}/mês em extras
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 

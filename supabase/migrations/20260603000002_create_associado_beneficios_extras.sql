@@ -7,12 +7,15 @@ CREATE TABLE IF NOT EXISTS public.associado_beneficios_extras (
   UNIQUE (associado_id, beneficio_id)
 );
 
--- RLS: same user/company isolation pattern as the rest
 ALTER TABLE public.associado_beneficios_extras ENABLE ROW LEVEL SECURITY;
+
+-- Authenticated users can manage benefits — uses auth.uid() per convention
+DROP POLICY IF EXISTS "Authenticated users can manage associado_beneficios_extras"
+  ON public.associado_beneficios_extras;
 
 CREATE POLICY "Authenticated users can manage associado_beneficios_extras"
   ON public.associado_beneficios_extras
   FOR ALL
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);

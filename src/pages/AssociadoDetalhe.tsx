@@ -14,6 +14,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -59,6 +65,7 @@ import {
   Sparkles,
   Plus,
   Minus,
+  Info,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
 import type { AssociateStatus } from '@/types/database';
@@ -267,6 +274,12 @@ export default function AssociadoDetalhe() {
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoVeiculo[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
 
+  // Email modal
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailContratoUrl, setEmailContratoUrl] = useState('');
+
   // Documentos accordion
   const [openDocs, setOpenDocs] = useState(false);
   const [fotosVistoria, setFotosVistoria] = useState<string[]>([]);
@@ -454,6 +467,32 @@ export default function AssociadoDetalhe() {
       case 'implemento_agricola':return cota.mensalidade_implemento_agricola;
       default:
         return cota.percentual_geral ? valorFipe * cota.percentual_geral / 100 : null;
+    }
+  };
+
+  const handleAbrirEmailModal = (url?: string) => {
+    setEmailInput(formData.email || '');
+    setEmailContratoUrl(url || contratos[0]?.pdf_path || '');
+    setShowEmailModal(true);
+  };
+
+  const handleEnviarEmail = async () => {
+    if (!id || !emailInput.trim()) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.trim())) {
+      toast.error('Email inválido'); return;
+    }
+    setIsSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-contract-email', {
+        body: { associado_id: id, contrato_url: emailContratoUrl, email: emailInput.trim() },
+      });
+      if (error) throw error;
+      toast.success('Contrato enviado por email!');
+      setShowEmailModal(false);
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao enviar email');
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -1126,9 +1165,9 @@ export default function AssociadoDetalhe() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="h-4 w-4 text-orange-600" />
                     Documentos &amp; Fotos
-                    {(documentos.length > 0 || fotosVistoria.length > 0) && (
+                    {(documentos.length > 0 || fotosVistoria.length > 0 || contratos.length > 0) && (
                       <Badge variant="secondary" className="text-xs ml-1">
-                        {documentos.length + fotosVistoria.length}
+                        {documentos.length + fotosVistoria.length + contratos.length}
                       </Badge>
                     )}
                   </CardTitle>
@@ -1214,7 +1253,44 @@ export default function AssociadoDetalhe() {
                   <p className="text-xs text-muted-foreground">Formatos: JPG, PNG, WebP, PDF — máx. 10MB.</p>
                 </div>
 
-                {/* ── Sub-seção B: Fotos da Vistoria ── */}
+                {/* ── Sub-seção B: Contratos Gerados ── */}
+                {contratos.length > 0 && (
+                  <div className="space-y-2 pt-3 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <ScrollText className="h-3.5 w-3.5 text-orange-500" />
+                      Contratos Gerados
+                    </p>
+                    <div className="space-y-2">
+                      {contratos.map(c => (
+                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30 text-sm">
+                          <div>
+                            <p className="font-medium">
+                              {c.contract_number ? `Contrato #${c.contract_number}` : 'Contrato'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {c.generated_at ? new Date(c.generated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                              {c.status ? ` · ${c.status}` : ''}
+                            </p>
+                          </div>
+                          <div className="flex gap-1.5">
+                            {c.pdf_path && (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => handleDownloadContrato(c)}>
+                                  <Eye className="h-3.5 w-3.5 mr-1" />Ver
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => handleAbrirEmailModal(c.pdf_path || '')}>
+                                  <Mail className="h-3.5 w-3.5 mr-1" />Email
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Sub-seção C: Fotos da Vistoria ── */}
                 {fotosVistoria.length > 0 && (
                   <div className="space-y-3 pt-3 border-t">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
@@ -1398,13 +1474,29 @@ export default function AssociadoDetalhe() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleGerarContrato}
-                  disabled={isGeneratingContract || isSaving}
+                  onClick={() => handleAbrirEmailModal()}
+                  disabled={contratos.length === 0 && !showContractPreview}
                 >
-                  {isGeneratingContract
-                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
-                    : <><Send className="h-4 w-4 mr-2" />Via Servidor</>}
+                  <Mail className="h-4 w-4 mr-1.5" />
+                  Enviar por Email
                 </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleGerarContrato}
+                      disabled={isGeneratingContract || isSaving}
+                    >
+                      {isGeneratingContract
+                        ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
+                        : <><Send className="h-4 w-4 mr-2" />Via Servidor</>}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Gera o contrato diretamente pelo servidor usando o template configurado</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </CardHeader>
@@ -1452,6 +1544,57 @@ export default function AssociadoDetalhe() {
             ) : null}
           </CardContent>
         </Card>
+
+        {/* ── Modal: Enviar contrato por email ── */}
+        <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-orange-600" />
+                Enviar Contrato por Email
+              </DialogTitle>
+              <DialogDescription>
+                O link do contrato será enviado para o email informado abaixo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label>Email do destinatário</Label>
+                <Input
+                  type="email"
+                  value={emailInput}
+                  onChange={e => setEmailInput(e.target.value)}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              {contratos.length > 1 && (
+                <div className="space-y-1.5">
+                  <Label>Contrato</Label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                    value={emailContratoUrl}
+                    onChange={e => setEmailContratoUrl(e.target.value)}
+                  >
+                    {contratos.map(c => (
+                      <option key={c.id} value={c.pdf_path || ''}>
+                        {c.contract_number ? `#${c.contract_number}` : 'Contrato'}{' '}
+                        {c.generated_at ? `· ${new Date(c.generated_at).toLocaleDateString('pt-BR')}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEmailModal(false)}>Cancelar</Button>
+              <Button onClick={handleEnviarEmail} disabled={isSendingEmail || !emailInput.trim()}>
+                {isSendingEmail
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando...</>
+                  : <><Mail className="h-4 w-4 mr-2" />Enviar</>}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* ── Sticky bottom save bar (mobile) ── */}
         <div className="sticky bottom-4 flex justify-end sm:hidden">
