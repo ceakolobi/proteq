@@ -413,12 +413,15 @@ export default function AssociadoDetalhe() {
     setBeneficiosExtras((data as BeneficioExtra[]) || []);
   }, []);
 
+  const TABLE_BENEFICIOS = 'associado_beneficios_extras';
+
   const fetchBeneficiosAssociado = useCallback(async (associadoId: string) => {
     const { data, error } = await supabase
-      .from('associado_beneficios_extras' as any)
+      .from(TABLE_BENEFICIOS as any)
       .select('id,beneficio_id,ativo')
       .eq('associado_id', associadoId)
       .eq('ativo', true);
+    // Ignore "table not found" silently — will surface on toggle attempt
     if (!error) setBeneficiosAssociado((data as AssociadoBeneficioExtra[]) || []);
   }, []);
 
@@ -427,27 +430,57 @@ export default function AssociadoDetalhe() {
     setIsTogglingBeneficio(beneficioId);
     try {
       const existing = beneficiosAssociado.find(b => b.beneficio_id === beneficioId);
+
       if (existing) {
-        // Remove: delete the row
-        await supabase
-          .from('associado_beneficios_extras' as any)
+        // ── Remove ────────────────────────────────────────────────────────────
+        const { error } = await supabase
+          .from(TABLE_BENEFICIOS as any)
           .delete()
           .eq('id', existing.id);
-        setBeneficiosAssociado(prev => prev.filter(b => b.beneficio_id !== beneficioId));
+
+        if (error) {
+          if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
+            toast.error('Tabela não criada no banco. Execute a migration no Supabase Dashboard primeiro.');
+          } else {
+            toast.error(`Erro ao remover: ${error.message}`);
+          }
+          return;
+        }
         toast.success('Benefício removido');
       } else {
-        // Add: upsert
-        const { data, error } = await supabase
-          .from('associado_beneficios_extras' as any)
-          .upsert({ associado_id: id, beneficio_id: beneficioId, ativo: true }, { onConflict: 'associado_id,beneficio_id' })
-          .select('id,beneficio_id,ativo')
-          .single();
-        if (error) throw error;
-        setBeneficiosAssociado(prev => [...prev, data as AssociadoBeneficioExtra]);
+        // ── Add: insert, ignorar conflito de chave duplicada ─────────────────
+        const { error } = await supabase
+          .from(TABLE_BENEFICIOS as any)
+          .insert({ associado_id: id, beneficio_id: beneficioId, ativo: true });
+
+        if (error) {
+          if (error.message?.includes('relation') || error.message?.includes('does not exist') || (error as any).code === '42P01') {
+            toast.error(
+              'A tabela associado_beneficios_extras não existe no banco. ' +
+              'Aplique a migration no Supabase Dashboard (SQL Editor) e tente novamente.',
+              { duration: 8000 }
+            );
+          } else if ((error as any).code === '23505') {
+            // Já existe mas ativo=false — reativar
+            const { error: updErr } = await supabase
+              .from(TABLE_BENEFICIOS as any)
+              .update({ ativo: true })
+              .eq('associado_id', id)
+              .eq('beneficio_id', beneficioId);
+            if (updErr) { toast.error(`Erro ao ativar: ${updErr.message}`); return; }
+            toast.success('Benefício reativado');
+          } else {
+            toast.error(`Erro ao adicionar: ${error.message}`);
+          }
+          return;
+        }
         toast.success('Benefício adicionado');
       }
+
+      // ── Sempre refetch do banco após qualquer mutação ─────────────────────
+      await fetchBeneficiosAssociado(id);
     } catch (e: any) {
-      toast.error(e?.message || 'Erro ao atualizar benefício');
+      toast.error(e?.message || 'Erro inesperado ao atualizar benefício');
     } finally {
       setIsTogglingBeneficio(null);
     }
