@@ -269,11 +269,11 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
 
           // Fonte 1: cotacao_beneficios com is_extra=true
           if (cot?.id) {
-            const { data: cotExtras } = await supabase
-              .from('cotacao_beneficios')
+            const { data: cotExtras } = await (supabase
+              .from('cotacao_beneficios') as any)
               .select('nome_snapshot,valor_snapshot')
               .eq('cotacao_id', cot.id)
-              .eq('is_extra' as any, true);
+              .eq('is_extra', true);
             if (cotExtras) {
               (cotExtras as any[]).forEach(r => {
                 if (!mergedExtras.find(e => e.nome === r.nome_snapshot)) {
