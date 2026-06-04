@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -266,6 +267,11 @@ export default function AssociadoDetalhe() {
   const [docsVeiculo, setDocsVeiculo] = useState<DocumentoVeiculo[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
 
+  // Documentos accordion
+  const [openDocs, setOpenDocs] = useState(false);
+  const [fotosVistoria, setFotosVistoria] = useState<string[]>([]);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   // Vistoria remota
   const [vistoriaAtual, setVistoriaAtual] = useState<VistoriaStatus | null>(null);
   const [isEnviandoLink, setIsEnviandoLink] = useState(false);
@@ -357,11 +363,15 @@ export default function AssociadoDetalhe() {
   const fetchVistoriaAtual = useCallback(async (associadoId: string) => {
     const { data } = await supabase
       .from('vistorias')
-      .select('id,status,token_acesso,token_expires_at,assinado_em,contrato_url')
+      .select('id,status,token_acesso,token_expires_at,assinado_em,contrato_url,fotos')
       .eq('associado_id', associadoId)
       .order('created_at', { ascending: false })
       .limit(1);
-    setVistoriaAtual((data?.[0] as VistoriaStatus) ?? null);
+    const v = data?.[0] as (VistoriaStatus & { fotos?: string[] }) ?? null;
+    setVistoriaAtual(v);
+    if (v?.status === 'aprovada' && Array.isArray(v.fotos)) {
+      setFotosVistoria(v.fotos);
+    }
   }, []);
 
   const fetchCotasDisponiveis = useCallback(async () => {
@@ -1107,55 +1117,145 @@ export default function AssociadoDetalhe() {
           </CardContent>
         </Card>
 
-        {/* ── Seção 4: Documentos ── */}
+        {/* ── Seção 4: Documentos & Fotos (accordion) ── */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-orange-600" />
-              Documentos do Associado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {DOCUMENT_TYPES.map(docType => {
-                const docs = getDocByTipo(docType.tipo);
-                return (
-                  <div key={docType.tipo} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="font-medium">{docType.label}</Label>
-                      {docs.length > 0 && <Badge variant="outline" className="text-xs">{docs.length} arquivo(s)</Badge>}
-                    </div>
-                    {docs.map(doc => (
-                      <div key={doc.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
-                        <span className="truncate flex-1 mr-2">{doc.nome_arquivo}</span>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(doc.url, '_blank')}>
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteDocumento(doc)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+          <Collapsible open={openDocs} onOpenChange={setOpenDocs}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-lg select-none">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-orange-600" />
+                    Documentos &amp; Fotos
+                    {(documentos.length > 0 || fotosVistoria.length > 0) && (
+                      <Badge variant="secondary" className="text-xs ml-1">
+                        {documentos.length + fotosVistoria.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  {openDocs
+                    ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <CardContent className="space-y-5 pt-0">
+                {/* ── Sub-seção A: Documentos do Associado ── */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Documentos do Associado
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {DOCUMENT_TYPES.map(docType => {
+                      const docs = getDocByTipo(docType.tipo);
+                      const isImage = (url: string) => /\.(jpg|jpeg|png|webp|gif)$/i.test(url);
+                      return (
+                        <div key={docType.tipo} className="border rounded-lg p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="font-medium text-sm">{docType.label}</Label>
+                            {docs.length > 0 && (
+                              <Badge variant="outline" className="text-xs">{docs.length}</Badge>
+                            )}
+                          </div>
+
+                          {/* Thumbnails grid */}
+                          {docs.length > 0 && (
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {docs.map(doc => (
+                                <div key={doc.id} className="relative group aspect-square rounded-md overflow-hidden border bg-muted/30">
+                                  {isImage(doc.url) ? (
+                                    <img
+                                      src={doc.url}
+                                      alt={doc.nome_arquivo}
+                                      className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => setLightboxUrl(doc.url)}
+                                    />
+                                  ) : (
+                                    <button
+                                      className="w-full h-full flex flex-col items-center justify-center gap-1 hover:bg-muted/60 transition-colors"
+                                      onClick={() => window.open(doc.url, '_blank')}
+                                    >
+                                      <FileText className="h-6 w-6 text-muted-foreground" />
+                                      <span className="text-xs text-muted-foreground text-center px-1 truncate w-full">
+                                        {doc.nome_arquivo}
+                                      </span>
+                                    </button>
+                                  )}
+                                  <button
+                                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleDeleteDocumento(doc)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Upload */}
+                          <label className="cursor-pointer block">
+                            <div className="flex items-center justify-center gap-2 p-2.5 border-2 border-dashed rounded-md hover:bg-muted/50 transition-colors">
+                              {uploadingDoc === docType.tipo
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <Upload className="h-4 w-4" />}
+                              <span className="text-xs text-muted-foreground">
+                                {uploadingDoc === docType.tipo ? 'Enviando...' : 'Enviar'}
+                              </span>
+                            </div>
+                            <input type="file" className="hidden" accept="image/*,application/pdf"
+                              disabled={uploadingDoc !== null}
+                              onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(docType.tipo, f); e.target.value = ''; }} />
+                          </label>
                         </div>
-                      </div>
-                    ))}
-                    <label className="cursor-pointer block">
-                      <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-md hover:bg-muted/50 transition-colors">
-                        {uploadingDoc === docType.tipo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                        <span className="text-sm text-muted-foreground">
-                          {uploadingDoc === docType.tipo ? 'Enviando...' : 'Enviar documento'}
-                        </span>
-                      </div>
-                      <input type="file" className="hidden" accept="image/*,application/pdf"
-                        disabled={uploadingDoc !== null}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(docType.tipo, f); e.target.value = ''; }} />
-                    </label>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground mt-3">Formatos: JPG, PNG, WebP, PDF — máx. 10MB.</p>
-          </CardContent>
+                  <p className="text-xs text-muted-foreground">Formatos: JPG, PNG, WebP, PDF — máx. 10MB.</p>
+                </div>
+
+                {/* ── Sub-seção B: Fotos da Vistoria ── */}
+                {fotosVistoria.length > 0 && (
+                  <div className="space-y-3 pt-3 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      Fotos da Vistoria
+                      <Badge className="bg-green-100 text-green-800 border-green-200 border text-xs">Aprovada</Badge>
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {fotosVistoria.map((url, i) => (
+                        <div key={i} className="aspect-square rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setLightboxUrl(url)}>
+                          <img src={url} alt={`Foto vistoria ${i + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
         </Card>
+
+        {/* ── Lightbox ── */}
+        {lightboxUrl && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <img
+              src={lightboxUrl}
+              alt="Visualização"
+              className="max-w-full max-h-full rounded-lg shadow-2xl object-contain"
+              onClick={e => e.stopPropagation()}
+            />
+            <button
+              className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors"
+              onClick={() => setLightboxUrl(null)}
+            >
+              <Eye className="h-5 w-5" />
+            </button>
+          </div>
+        )}
 
         {/* ── Seção 5: Veículo ── */}
         <Card>
@@ -1221,254 +1321,25 @@ export default function AssociadoDetalhe() {
         </Card>
 
         {/* ── Seção 5.5: Plano & Benefícios ── */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4 text-orange-600" />
-              Plano &amp; Benefícios
-              {propostaPendente && (
-                <Badge className="ml-2 bg-amber-100 text-amber-800 border-amber-300 border text-xs gap-1">
-                  <RefreshCw className="h-3 w-3" />
-                  Proposta pendente: {propostaPendente.cota_nome}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {isLoadingPlano ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              {(() => {
-                const extrasAtivos = beneficiosAssociado.filter(b => b.ativo);
-                const totalExtras = extrasAtivos.reduce((sum, ab) => {
-                  const extra = beneficiosExtras.find(e => e.id === ab.beneficio_id);
-                  return sum + (extra?.valor_mensal ?? 0);
-                }, 0);
-                const mensalidadeBase = veiculo?.mensalidade ?? 0;
-                const mensalidadeTotal = mensalidadeBase + totalExtras;
-                const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-                return (
-                  <>
-                    {/* ── Plano atual + resumo financeiro ── */}
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                        <Star className="h-4 w-4 text-orange-500" />
-                        Plano Atual
-                      </p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
-                          <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
-                          <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
-                        </div>
-                        <div className="rounded-lg border p-3">
-                          <p className="text-xs text-muted-foreground mb-1">Mensalidade base</p>
-                          <p className="text-sm font-bold">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
-                        </div>
-                        <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
-                          <p className="text-xs text-muted-foreground mb-1">Total c/ extras</p>
-                          <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
-                            {mensalidadeBase ? fmtBRL(mensalidadeTotal) : '—'}
-                          </p>
-                          {totalExtras > 0 && (
-                            <p className="text-xs text-green-600 mt-0.5">+ {fmtBRL(totalExtras)} em extras</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Coberturas incluídas no plano */}
-                      {beneficiosAtual.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {beneficiosAtual.map((b, i) => (
-                            <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border">
-                              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-sm font-medium leading-tight">{b.nome_snapshot}</p>
-                                {b.valor_snapshot > 0 && (
-                                  <p className="text-xs text-muted-foreground">
-                                    + {fmtBRL(b.valor_snapshot)}/mês
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          {veiculo?.cotacao_id
-                            ? 'Nenhum benefício registrado na cotação vinculada.'
-                            : 'Sem cotação vinculada ao veículo.'}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* ── Benefícios extras disponíveis ── */}
-                    {beneficiosExtras.length > 0 && (
-                      <div className="space-y-3 pt-2 border-t">
-                        <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-amber-500" />
-                          Benefícios Extras
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {beneficiosExtras.map(extra => {
-                            const isAtivo = extrasAtivos.some(b => b.beneficio_id === extra.id);
-                            const isLoading = isTogglingBeneficio === extra.id;
-                            return (
-                              <div
-                                key={extra.id}
-                                className={`rounded-lg border p-3 transition-all ${isAtivo ? 'border-green-300 bg-green-50' : 'border-border'}`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold leading-tight">{extra.nome}</p>
-                                    {extra.descricao && (
-                                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{extra.descricao}</p>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                    <Badge className="bg-orange-100 text-orange-700 border-orange-300 border text-xs">
-                                      + {fmtBRL(extra.valor_mensal)}/mês
-                                    </Badge>
-                                    <Button
-                                      size="sm"
-                                      variant={isAtivo ? 'outline' : 'default'}
-                                      onClick={() => handleToggleBeneficio(extra.id)}
-                                      disabled={isLoading}
-                                      className={`h-7 px-2 text-xs ${isAtivo ? 'border-green-400 text-green-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600' : 'bg-orange-600 hover:bg-orange-700 text-white border-0'}`}
-                                    >
-                                      {isLoading
-                                        ? <Loader2 className="h-3 w-3 animate-spin" />
-                                        : isAtivo
-                                          ? <><Minus className="h-3 w-3 mr-1" />Remover</>
-                                          : <><Plus className="h-3 w-3 mr-1" />Adicionar</>}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── Accordion: Trocar de plano ── */}
-                    {cotasDisponiveis.length > 0 && (
-                      <div className="pt-2 border-t">
-                        <button
-                          type="button"
-                          onClick={() => setShowTrocarPlano(v => !v)}
-                          className="w-full flex items-center justify-between py-2 px-1 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors rounded"
-                        >
-                          <span className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-blue-500" />
-                            Trocar de Plano
-                          </span>
-                          {showTrocarPlano
-                            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                        </button>
-
-                        {showTrocarPlano && (
-                          <div className="mt-3 space-y-3">
-                            <p className="text-xs text-muted-foreground">
-                              Selecione um plano para ver a estimativa de mensalidade. A troca só é efetivada após aprovação.
-                            </p>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {cotasDisponiveis.map(cota => {
-                                const isAtual = cota.id === veiculo?.cota_id;
-                                const isSelecionada = cota.id === cotaSelecionadaId;
-                                const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
-                                return (
-                                  <button
-                                    key={cota.id}
-                                    type="button"
-                                    onClick={() => !isAtual && setCotaSelecionadaId(isSelecionada ? null : cota.id)}
-                                    disabled={isAtual}
-                                    className={[
-                                      'text-left rounded-lg border p-3 transition-all w-full',
-                                      isAtual
-                                        ? 'border-orange-300 bg-orange-50 cursor-default'
-                                        : isSelecionada
-                                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                                          : 'hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer',
-                                    ].join(' ')}
-                                  >
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="min-w-0">
-                                        <p className="text-sm font-semibold leading-tight truncate">{cota.cota_nome}</p>
-                                        {cota.categoria && (
-                                          <p className="text-xs text-muted-foreground mt-0.5">{cota.categoria}</p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          FIPE: {fmtBRL(cota.fipe_min)} — {fmtBRL(cota.fipe_max)}
-                                        </p>
-                                      </div>
-                                      {isAtual && (
-                                        <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-300 border flex-shrink-0">Atual</Badge>
-                                      )}
-                                      {isSelecionada && !isAtual && (
-                                        <CheckCircle2 className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                                      )}
-                                    </div>
-                                    {estimativa != null && (
-                                      <p className={`text-sm font-bold mt-2 ${isSelecionada ? 'text-blue-700' : 'text-slate-700'}`}>
-                                        {fmtBRL(estimativa)}/mês
-                                      </p>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-
-                            {cotaSelecionadaId && (() => {
-                              const cota = cotasDisponiveis.find(c => c.id === cotaSelecionadaId)!;
-                              const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
-                              return (
-                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
-                                  <p className="text-sm font-semibold text-blue-900">Preview: {cota.cota_nome}</p>
-                                  <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                      <p className="text-xs text-blue-600 mb-0.5">Mensalidade estimada</p>
-                                      <p className="font-bold text-blue-900">
-                                        {estimativa != null ? fmtBRL(estimativa) : 'A calcular'}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-blue-600 mb-0.5">Mensalidade atual</p>
-                                      <p className="font-bold text-slate-700">
-                                        {mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <p className="text-xs text-blue-600">
-                                    * Valor estimado com base no tipo de veículo e tabela FIPE. O valor final pode variar.
-                                  </p>
-                                  <Button
-                                    onClick={handleProporTroca}
-                                    disabled={isPropondoTroca}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                  >
-                                    {isPropondoTroca
-                                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Criando proposta...</>
-                                      : <><RefreshCw className="h-4 w-4 mr-2" />Propor troca de plano</>}
-                                  </Button>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            )}
-          </CardContent>
-        </Card>
+        <PlanosBeneficios
+          isLoading={isLoadingPlano}
+          cotaAtualNome={cotaAtualNome}
+          veiculo={veiculo}
+          beneficiosAtual={beneficiosAtual}
+          beneficiosExtras={beneficiosExtras}
+          beneficiosAssociado={beneficiosAssociado}
+          cotasDisponiveis={cotasDisponiveis}
+          cotaSelecionadaId={cotaSelecionadaId}
+          setCotaSelecionadaId={setCotaSelecionadaId}
+          propostaPendente={propostaPendente}
+          showTrocarPlano={showTrocarPlano}
+          setShowTrocarPlano={setShowTrocarPlano}
+          isTogglingBeneficio={isTogglingBeneficio}
+          isPropondoTroca={isPropondoTroca}
+          onToggleBeneficio={handleToggleBeneficio}
+          onProporTroca={handleProporTroca}
+          estimarMensalidade={estimarMensalidade}
+        />
 
         {/* ── Seção 6: Contratos ── */}
         <Card>
@@ -1596,5 +1467,261 @@ export default function AssociadoDetalhe() {
 
       </div>
     </DashboardLayout>
+  );
+}
+
+// ─── PlanosBeneficios sub-component ────────────────────────────────────────────
+// Extracted to avoid JSX ternary / IIFE syntax issues
+
+interface PlanosBeneficiosProps {
+  isLoading: boolean;
+  cotaAtualNome: string | null;
+  veiculo: VeiculoInfo | null;
+  beneficiosAtual: BeneficioAtual[];
+  beneficiosExtras: BeneficioExtra[];
+  beneficiosAssociado: AssociadoBeneficioExtra[];
+  cotasDisponiveis: CotaDisponivel[];
+  cotaSelecionadaId: string | null;
+  setCotaSelecionadaId: (id: string | null) => void;
+  propostaPendente: PropostaPendente | null;
+  showTrocarPlano: boolean;
+  setShowTrocarPlano: (fn: (v: boolean) => boolean) => void;
+  isTogglingBeneficio: string | null;
+  isPropondoTroca: boolean;
+  onToggleBeneficio: (id: string) => void;
+  onProporTroca: () => void;
+  estimarMensalidade: (cota: CotaDisponivel, tipo: string, valorFipe: number) => number | null;
+}
+
+function PlanosBeneficios({
+  isLoading, cotaAtualNome, veiculo, beneficiosAtual, beneficiosExtras,
+  beneficiosAssociado, cotasDisponiveis, cotaSelecionadaId, setCotaSelecionadaId,
+  propostaPendente, showTrocarPlano, setShowTrocarPlano, isTogglingBeneficio,
+  isPropondoTroca, onToggleBeneficio, onProporTroca, estimarMensalidade,
+}: PlanosBeneficiosProps) {
+  const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const extrasAtivos = beneficiosAssociado.filter(b => b.ativo);
+  const totalExtras = extrasAtivos.reduce((sum, ab) => {
+    const extra = beneficiosExtras.find(e => e.id === ab.beneficio_id);
+    return sum + (extra?.valor_mensal ?? 0);
+  }, 0);
+  const mensalidadeBase = veiculo?.mensalidade ?? 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Package className="h-4 w-4 text-orange-600" />
+          Plano &amp; Benefícios
+          {propostaPendente && (
+            <Badge className="ml-2 bg-amber-100 text-amber-800 border-amber-300 border text-xs gap-1">
+              <RefreshCw className="h-3 w-3" />
+              Proposta pendente: {propostaPendente.cota_nome}
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            {/* ── Resumo financeiro ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
+                <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
+                <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground mb-1">Mensalidade base</p>
+                <p className="text-sm font-bold">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+              </div>
+              <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
+                <p className="text-xs text-muted-foreground mb-1">Total c/ extras</p>
+                <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
+                  {mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}
+                </p>
+                {totalExtras > 0 && (
+                  <p className="text-xs text-green-600 mt-0.5">+ {fmtBRL(totalExtras)} em extras</p>
+                )}
+              </div>
+            </div>
+
+            {/* ── Coberturas incluídas ── */}
+            {beneficiosAtual.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <Star className="h-3.5 w-3.5 text-orange-500" />
+                  Coberturas Incluídas
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {beneficiosAtual.map((b, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium leading-tight">{b.nome_snapshot}</p>
+                        {b.valor_snapshot > 0 && (
+                          <p className="text-xs text-muted-foreground">+ {fmtBRL(b.valor_snapshot)}/mês</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {veiculo?.cotacao_id ? 'Nenhuma cobertura registrada na cotação.' : 'Sem cotação vinculada ao veículo.'}
+              </p>
+            )}
+
+            {/* ── Benefícios extras ── */}
+            {beneficiosExtras.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  Benefícios Extras
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {beneficiosExtras.map(extra => {
+                    const isAtivo = extrasAtivos.some(b => b.beneficio_id === extra.id);
+                    const isToggling = isTogglingBeneficio === extra.id;
+                    return (
+                      <div
+                        key={extra.id}
+                        className={`rounded-lg border p-3 transition-all ${isAtivo ? 'border-green-300 bg-green-50' : 'border-border'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold leading-tight">{extra.nome}</p>
+                            {extra.descricao && (
+                              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{extra.descricao}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-300 border text-xs">
+                              + {fmtBRL(extra.valor_mensal)}/mês
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant={isAtivo ? 'outline' : 'default'}
+                              onClick={() => onToggleBeneficio(extra.id)}
+                              disabled={isToggling}
+                              className={`h-7 px-2 text-xs ${isAtivo ? 'border-green-400 text-green-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600' : 'bg-orange-600 hover:bg-orange-700 text-white border-0'}`}
+                            >
+                              {isToggling
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : isAtivo
+                                  ? <><Minus className="h-3 w-3 mr-1" />Remover</>
+                                  : <><Plus className="h-3 w-3 mr-1" />Adicionar</>}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Trocar de plano (Collapsible) ── */}
+            {cotasDisponiveis.length > 0 && (
+              <Collapsible
+                open={showTrocarPlano}
+                onOpenChange={() => setShowTrocarPlano(v => !v)}
+                className="pt-2 border-t"
+              >
+                <CollapsibleTrigger className="w-full flex items-center justify-between py-2 px-1 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors rounded">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    Trocar de Plano
+                  </span>
+                  {showTrocarPlano
+                    ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="mt-3 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Selecione um plano para ver a estimativa. A troca só é efetivada após aprovação.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {cotasDisponiveis.map(cota => {
+                      const isAtual = cota.id === veiculo?.cota_id;
+                      const isSelecionada = cota.id === cotaSelecionadaId;
+                      const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
+                      return (
+                        <button
+                          key={cota.id}
+                          type="button"
+                          onClick={() => !isAtual && setCotaSelecionadaId(isSelecionada ? null : cota.id)}
+                          disabled={isAtual}
+                          className={[
+                            'text-left rounded-lg border p-3 transition-all w-full',
+                            isAtual ? 'border-orange-300 bg-orange-50 cursor-default'
+                              : isSelecionada ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                              : 'hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold leading-tight truncate">{cota.cota_nome}</p>
+                              {cota.categoria && <p className="text-xs text-muted-foreground mt-0.5">{cota.categoria}</p>}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                FIPE: {fmtBRL(cota.fipe_min)} — {fmtBRL(cota.fipe_max)}
+                              </p>
+                            </div>
+                            {isAtual && <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-300 border flex-shrink-0">Atual</Badge>}
+                            {isSelecionada && !isAtual && <CheckCircle2 className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />}
+                          </div>
+                          {estimativa != null && (
+                            <p className={`text-sm font-bold mt-2 ${isSelecionada ? 'text-blue-700' : 'text-slate-700'}`}>
+                              {fmtBRL(estimativa)}/mês
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {cotaSelecionadaId && (() => {
+                    const cota = cotasDisponiveis.find(c => c.id === cotaSelecionadaId);
+                    if (!cota) return null;
+                    const estimativa = veiculo ? estimarMensalidade(cota, veiculo.tipo, veiculo.valor_fipe) : null;
+                    return (
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                        <p className="text-sm font-semibold text-blue-900">Preview: {cota.cota_nome}</p>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-blue-600 mb-0.5">Mensalidade estimada</p>
+                            <p className="font-bold text-blue-900">{estimativa != null ? fmtBRL(estimativa) : 'A calcular'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-blue-600 mb-0.5">Mensalidade atual</p>
+                            <p className="font-bold text-slate-700">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-blue-600">* Valor estimado com base no tipo de veículo e tabela FIPE.</p>
+                        <Button
+                          onClick={onProporTroca}
+                          disabled={isPropondoTroca}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {isPropondoTroca
+                            ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Criando proposta...</>
+                            : <><RefreshCw className="h-4 w-4 mr-2" />Propor troca de plano</>}
+                        </Button>
+                      </div>
+                    );
+                  })()}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
