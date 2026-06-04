@@ -258,6 +258,58 @@ export type Database = {
           },
         ]
       }
+      associado_beneficios_extras: {
+        Row: {
+          associado_id: string | null
+          ativo: boolean | null
+          beneficio_id: string | null
+          created_at: string | null
+          id: string
+          nome_snapshot: string | null
+          valor_snapshot: number | null
+        }
+        Insert: {
+          associado_id?: string | null
+          ativo?: boolean | null
+          beneficio_id?: string | null
+          created_at?: string | null
+          id?: string
+          nome_snapshot?: string | null
+          valor_snapshot?: number | null
+        }
+        Update: {
+          associado_id?: string | null
+          ativo?: boolean | null
+          beneficio_id?: string | null
+          created_at?: string | null
+          id?: string
+          nome_snapshot?: string | null
+          valor_snapshot?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "associado_beneficios_extras_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associado_beneficios_extras_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associado_beneficios_extras_beneficio_id_fkey"
+            columns: ["beneficio_id"]
+            isOneToOne: false
+            referencedRelation: "beneficios_extras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       associados: {
         Row: {
           bairro: string | null
