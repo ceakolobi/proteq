@@ -170,10 +170,11 @@ interface BeneficioExtra {
   ativo: boolean;
 }
 
-interface AssociadoBeneficioExtra {
+// Represents a row in cotacao_beneficios where is_extra = true
+interface ExtraAtivo {
   id: string;
-  beneficio_id: string;
-  ativo: boolean;
+  nome_snapshot: string;
+  valor_snapshot: number;
 }
 
 interface VistoriaStatus {
@@ -301,7 +302,7 @@ export default function AssociadoDetalhe() {
 
   // Benefícios extras
   const [beneficiosExtras, setBeneficiosExtras] = useState<BeneficioExtra[]>([]);
-  const [beneficiosAssociado, setBeneficiosAssociado] = useState<AssociadoBeneficioExtra[]>([]);
+  const [extrasAtivos, setExtrasAtivos] = useState<ExtraAtivo[]>([]);
   const [isTogglingBeneficio, setIsTogglingBeneficio] = useState<string | null>(null);
 
   const isDirty = JSON.stringify(formData) !== JSON.stringify(savedData);
@@ -366,8 +367,10 @@ export default function AssociadoDetalhe() {
       }
       // Cotas disponíveis para troca
       await fetchCotasDisponiveis();
-      // Benefícios extras disponíveis e os do associado
+      // Benefícios extras disponíveis para este tipo de veículo
       await fetchBeneficiosExtras(v.tipo);
+      // Extras já contratados (linhas is_extra=true na cotação ativa)
+      if (v.cotacao_id) await fetchExtrasAtivos(v.cotacao_id);
     } finally {
       setIsLoadingPlano(false);
     }
@@ -413,74 +416,63 @@ export default function AssociadoDetalhe() {
     setBeneficiosExtras((data as BeneficioExtra[]) || []);
   }, []);
 
-  const TABLE_BENEFICIOS = 'associado_beneficios_extras';
-
-  const fetchBeneficiosAssociado = useCallback(async (associadoId: string) => {
+  const fetchExtrasAtivos = useCallback(async (cotacaoId: string) => {
     const { data, error } = await supabase
-      .from(TABLE_BENEFICIOS as any)
-      .select('id,beneficio_id,ativo')
-      .eq('associado_id', associadoId)
-      .eq('ativo', true);
-    // Ignore "table not found" silently — will surface on toggle attempt
-    if (!error) setBeneficiosAssociado((data as AssociadoBeneficioExtra[]) || []);
+      .from('cotacao_beneficios')
+      .select('id,nome_snapshot,valor_snapshot')
+      .eq('cotacao_id', cotacaoId)
+      .eq('is_extra' as any, true);
+    if (!error) setExtrasAtivos((data as ExtraAtivo[]) || []);
   }, []);
 
-  const handleToggleBeneficio = async (beneficioId: string) => {
-    if (!id) return;
-    setIsTogglingBeneficio(beneficioId);
+  const handleToggleBeneficio = async (extra: BeneficioExtra) => {
+    if (!veiculo?.cotacao_id) {
+      toast.error('Associado não possui cotação ativa. Crie uma cotação primeiro.');
+      return;
+    }
+    const cotacaoId = veiculo.cotacao_id;
+    setIsTogglingBeneficio(extra.id);
     try {
-      const existing = beneficiosAssociado.find(b => b.beneficio_id === beneficioId);
+      const existing = extrasAtivos.find(e => e.nome_snapshot === extra.nome);
 
       if (existing) {
-        // ── Remove ────────────────────────────────────────────────────────────
+        // ── Remover ───────────────────────────────────────────────────────────
         const { error } = await supabase
-          .from(TABLE_BENEFICIOS as any)
+          .from('cotacao_beneficios')
           .delete()
           .eq('id', existing.id);
-
-        if (error) {
-          if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
-            toast.error('Tabela não criada no banco. Execute a migration no Supabase Dashboard primeiro.');
-          } else {
-            toast.error(`Erro ao remover: ${error.message}`);
-          }
-          return;
-        }
-        toast.success('Benefício removido');
+        if (error) throw error;
+        toast.success(`"${extra.nome}" removido`);
       } else {
-        // ── Add: insert, ignorar conflito de chave duplicada ─────────────────
+        // ── Adicionar ─────────────────────────────────────────────────────────
         const { error } = await supabase
-          .from(TABLE_BENEFICIOS as any)
-          .insert({ associado_id: id, beneficio_id: beneficioId, ativo: true });
-
+          .from('cotacao_beneficios')
+          .insert({
+            cotacao_id: cotacaoId,
+            beneficio_id: extra.id,
+            nome_snapshot: extra.nome,
+            valor_snapshot: extra.valor_mensal,
+            selecionado_por: 'consultor',
+            is_extra: true,
+          } as any);
         if (error) {
-          if (error.message?.includes('relation') || error.message?.includes('does not exist') || (error as any).code === '42P01') {
+          if ((error as any).code === '42703') {
             toast.error(
-              'A tabela associado_beneficios_extras não existe no banco. ' +
-              'Aplique a migration no Supabase Dashboard (SQL Editor) e tente novamente.',
+              'Coluna is_extra não existe ainda. Execute a migration no Supabase Dashboard.',
               { duration: 8000 }
             );
-          } else if ((error as any).code === '23505') {
-            // Já existe mas ativo=false — reativar
-            const { error: updErr } = await supabase
-              .from(TABLE_BENEFICIOS as any)
-              .update({ ativo: true })
-              .eq('associado_id', id)
-              .eq('beneficio_id', beneficioId);
-            if (updErr) { toast.error(`Erro ao ativar: ${updErr.message}`); return; }
-            toast.success('Benefício reativado');
           } else {
-            toast.error(`Erro ao adicionar: ${error.message}`);
+            throw error;
           }
           return;
         }
-        toast.success('Benefício adicionado');
+        toast.success(`"${extra.nome}" adicionado`);
       }
 
-      // ── Sempre refetch do banco após qualquer mutação ─────────────────────
-      await fetchBeneficiosAssociado(id);
+      // Sempre refetch para refletir estado real do banco
+      await fetchExtrasAtivos(cotacaoId);
     } catch (e: any) {
-      toast.error(e?.message || 'Erro inesperado ao atualizar benefício');
+      toast.error(e?.message || 'Erro ao atualizar benefício');
     } finally {
       setIsTogglingBeneficio(null);
     }
@@ -732,8 +724,7 @@ export default function AssociadoDetalhe() {
         setVeiculo(v);
         if (v) {
           fetchDocsVeiculo(v.id);
-          fetchPlanoAtual(v);
-          fetchBeneficiosAssociado(id);
+          fetchPlanoAtual(v); // fetchExtrasAtivos chamado dentro de fetchPlanoAtual
         }
       } catch {
         toast.error('Erro ao carregar associado');
@@ -1436,7 +1427,7 @@ export default function AssociadoDetalhe() {
           veiculo={veiculo}
           beneficiosAtual={beneficiosAtual}
           beneficiosExtras={beneficiosExtras}
-          beneficiosAssociado={beneficiosAssociado}
+          extrasAtivos={extrasAtivos}
           cotasDisponiveis={cotasDisponiveis}
           cotaSelecionadaId={cotaSelecionadaId}
           setCotaSelecionadaId={setCotaSelecionadaId}
@@ -1655,7 +1646,7 @@ interface PlanosBeneficiosProps {
   veiculo: VeiculoInfo | null;
   beneficiosAtual: BeneficioAtual[];
   beneficiosExtras: BeneficioExtra[];
-  beneficiosAssociado: AssociadoBeneficioExtra[];
+  extrasAtivos: ExtraAtivo[];
   cotasDisponiveis: CotaDisponivel[];
   cotaSelecionadaId: string | null;
   setCotaSelecionadaId: (id: string | null) => void;
@@ -1664,23 +1655,20 @@ interface PlanosBeneficiosProps {
   setShowTrocarPlano: (fn: (v: boolean) => boolean) => void;
   isTogglingBeneficio: string | null;
   isPropondoTroca: boolean;
-  onToggleBeneficio: (id: string) => void;
+  onToggleBeneficio: (extra: BeneficioExtra) => void;
   onProporTroca: () => void;
   estimarMensalidade: (cota: CotaDisponivel, tipo: string, valorFipe: number) => number | null;
 }
 
 function PlanosBeneficios({
   isLoading, cotaAtualNome, veiculo, beneficiosAtual, beneficiosExtras,
-  beneficiosAssociado, cotasDisponiveis, cotaSelecionadaId, setCotaSelecionadaId,
+  extrasAtivos, cotasDisponiveis, cotaSelecionadaId, setCotaSelecionadaId,
   propostaPendente, showTrocarPlano, setShowTrocarPlano, isTogglingBeneficio,
   isPropondoTroca, onToggleBeneficio, onProporTroca, estimarMensalidade,
 }: PlanosBeneficiosProps) {
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  const extrasAtivos = beneficiosAssociado.filter(b => b.ativo);
-  const totalExtras = extrasAtivos.reduce((sum, ab) => {
-    const extra = beneficiosExtras.find(e => e.id === ab.beneficio_id);
-    return sum + (extra?.valor_mensal ?? 0);
-  }, 0);
+  // Total extras = soma dos valor_snapshot das linhas is_extra=true na cotação
+  const totalExtras = extrasAtivos.reduce((sum, e) => sum + e.valor_snapshot, 0);
   const mensalidadeBase = veiculo?.mensalidade ?? 0;
 
   return (
@@ -1761,7 +1749,8 @@ function PlanosBeneficios({
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {beneficiosExtras.map(extra => {
-                    const isAtivo = extrasAtivos.some(b => b.beneficio_id === extra.id);
+                    // Match by nome_snapshot (o que foi salvo na cotação)
+                    const isAtivo = extrasAtivos.some(e => e.nome_snapshot === extra.nome);
                     const isToggling = isTogglingBeneficio === extra.id;
                     return (
                       <div
@@ -1782,7 +1771,7 @@ function PlanosBeneficios({
                             <Button
                               size="sm"
                               variant={isAtivo ? 'outline' : 'default'}
-                              onClick={() => onToggleBeneficio(extra.id)}
+                              onClick={() => onToggleBeneficio(extra)}
                               disabled={isToggling}
                               className={`h-7 px-2 text-xs ${isAtivo ? 'border-green-400 text-green-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600' : 'bg-orange-600 hover:bg-orange-700 text-white border-0'}`}
                             >

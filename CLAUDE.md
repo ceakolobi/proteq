@@ -21,6 +21,7 @@
 - Respostas sempre em português do Brasil
 
 ## Pendências em aberto
+- [ ] Aplicar `20260604000001_beneficios_extras_via_cotacao.sql` no Supabase Dashboard prod
 - [ ] Migration fotos/contratos aplicar em produção (sbtfhtllzpurjprivqoi)
 - [ ] Auth real Supabase no app mobile (ainda usa sessionStorage)
 - [ ] Meta Ads — primeira campanha ainda não lançada
