@@ -422,11 +422,11 @@ export default function AssociadoDetalhe() {
 
     // ── Fonte 1: cotacao_beneficios (is_extra=true) ────────────────────────
     if (cotacaoId) {
-      const { data } = await supabase
-        .from('cotacao_beneficios')
+      const { data } = await (supabase
+        .from('cotacao_beneficios') as any)
         .select('id,nome_snapshot,valor_snapshot')
         .eq('cotacao_id', cotacaoId)
-        .eq('is_extra' as any, true);
+        .eq('is_extra', true);
       if (data) {
         results.push(...(data as any[]).map(r => ({
           id: r.id,
