@@ -264,18 +264,41 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
             setBeneficios((bens as Beneficio[]) || []);
           }
 
-          // Benefícios extras contratados pelo associado
-          const { data: extrasData } = await supabase
+          // Benefícios extras: cotacao_beneficios (is_extra=true) + associado_beneficios_extras
+          const mergedExtras: BeneficioExtraContrato[] = [];
+
+          // Fonte 1: cotacao_beneficios com is_extra=true
+          if (cot?.id) {
+            const { data: cotExtras } = await supabase
+              .from('cotacao_beneficios')
+              .select('nome_snapshot,valor_snapshot')
+              .eq('cotacao_id', cot.id)
+              .eq('is_extra' as any, true);
+            if (cotExtras) {
+              (cotExtras as any[]).forEach(r => {
+                if (!mergedExtras.find(e => e.nome === r.nome_snapshot)) {
+                  mergedExtras.push({ nome: r.nome_snapshot, valor_mensal: r.valor_snapshot ?? 0 });
+                }
+              });
+            }
+          }
+
+          // Fonte 2: associado_beneficios_extras (fallback sem cotação)
+          const { data: assocExtras } = await supabase
             .from('associado_beneficios_extras' as any)
-            .select('beneficios_extras(nome,valor_mensal)')
+            .select('valor_snapshot,beneficios_extras(nome)')
             .eq('associado_id', associadoId)
             .eq('ativo', true);
-          if (extrasData) {
-            const extras = (extrasData as any[])
-              .map((row: any) => row.beneficios_extras)
-              .filter(Boolean) as BeneficioExtraContrato[];
-            setBeneficiosExtras(extras);
+          if (assocExtras) {
+            (assocExtras as any[]).forEach(r => {
+              const nome = r.beneficios_extras?.nome;
+              if (nome && !mergedExtras.find(e => e.nome === nome)) {
+                mergedExtras.push({ nome, valor_mensal: r.valor_snapshot ?? 0 });
+              }
+            });
           }
+
+          setBeneficiosExtras(mergedExtras);
         } catch {
           toast.error('Erro ao carregar dados do contrato');
         } finally {

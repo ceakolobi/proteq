@@ -170,11 +170,12 @@ interface BeneficioExtra {
   ativo: boolean;
 }
 
-// Represents a row in cotacao_beneficios where is_extra = true
+// A benefício extra que está ativo — pode vir de duas fontes
 interface ExtraAtivo {
   id: string;
   nome_snapshot: string;
   valor_snapshot: number;
+  source: 'cotacao' | 'associado'; // which table to DELETE from
 }
 
 interface VistoriaStatus {
@@ -369,8 +370,8 @@ export default function AssociadoDetalhe() {
       await fetchCotasDisponiveis();
       // Benefícios extras disponíveis para este tipo de veículo
       await fetchBeneficiosExtras(v.tipo);
-      // Extras já contratados (linhas is_extra=true na cotação ativa)
-      if (v.cotacao_id) await fetchExtrasAtivos(v.cotacao_id);
+      // Extras ativos: cotacao_beneficios (is_extra=true) + associado_beneficios_extras
+      await fetchExtrasAtivos(v.cotacao_id, /* associadoId */ id ?? '');
     } finally {
       setIsLoadingPlano(false);
     }
@@ -416,61 +417,115 @@ export default function AssociadoDetalhe() {
     setBeneficiosExtras((data as BeneficioExtra[]) || []);
   }, []);
 
-  const fetchExtrasAtivos = useCallback(async (cotacaoId: string) => {
-    const { data, error } = await supabase
-      .from('cotacao_beneficios')
-      .select('id,nome_snapshot,valor_snapshot')
-      .eq('cotacao_id', cotacaoId)
-      .eq('is_extra' as any, true);
-    if (!error) setExtrasAtivos((data as ExtraAtivo[]) || []);
+  const fetchExtrasAtivos = useCallback(async (cotacaoId: string | null, associadoId: string) => {
+    const results: ExtraAtivo[] = [];
+
+    // ── Fonte 1: cotacao_beneficios (is_extra=true) ────────────────────────
+    if (cotacaoId) {
+      const { data } = await supabase
+        .from('cotacao_beneficios')
+        .select('id,nome_snapshot,valor_snapshot')
+        .eq('cotacao_id', cotacaoId)
+        .eq('is_extra' as any, true);
+      if (data) {
+        results.push(...(data as any[]).map(r => ({
+          id: r.id,
+          nome_snapshot: r.nome_snapshot,
+          valor_snapshot: r.valor_snapshot,
+          source: 'cotacao' as const,
+        })));
+      }
+    }
+
+    // ── Fonte 2: associado_beneficios_extras (fallback sem cotação) ────────
+    if (associadoId) {
+      const { data } = await supabase
+        .from('associado_beneficios_extras' as any)
+        .select('id,valor_snapshot,beneficios_extras(nome)')
+        .eq('associado_id', associadoId)
+        .eq('ativo', true);
+      if (data) {
+        (data as any[]).forEach(r => {
+          const nome = r.beneficios_extras?.nome;
+          if (nome && !results.find(e => e.nome_snapshot === nome)) {
+            results.push({
+              id: r.id,
+              nome_snapshot: nome,
+              valor_snapshot: r.valor_snapshot ?? 0,
+              source: 'associado',
+            });
+          }
+        });
+      }
+    }
+
+    setExtrasAtivos(results);
   }, []);
 
   const handleToggleBeneficio = async (extra: BeneficioExtra) => {
-    if (!veiculo?.cotacao_id) {
-      toast.error('Associado não possui cotação ativa. Crie uma cotação primeiro.');
-      return;
-    }
-    const cotacaoId = veiculo.cotacao_id;
+    if (!id) return;
+    const cotacaoId = veiculo?.cotacao_id ?? null;
     setIsTogglingBeneficio(extra.id);
     try {
       const existing = extrasAtivos.find(e => e.nome_snapshot === extra.nome);
 
       if (existing) {
-        // ── Remover ───────────────────────────────────────────────────────────
+        // ── Remover: usa a tabela de origem ───────────────────────────────────
+        const table = existing.source === 'cotacao' ? 'cotacao_beneficios' : 'associado_beneficios_extras';
         const { error } = await supabase
-          .from('cotacao_beneficios')
+          .from(table as any)
           .delete()
           .eq('id', existing.id);
         if (error) throw error;
         toast.success(`"${extra.nome}" removido`);
-      } else {
-        // ── Adicionar ─────────────────────────────────────────────────────────
-        const { error } = await supabase
-          .from('cotacao_beneficios')
-          .insert({
-            cotacao_id: cotacaoId,
-            beneficio_id: extra.id,
-            nome_snapshot: extra.nome,
-            valor_snapshot: extra.valor_mensal,
-            selecionado_por: 'consultor',
-            is_extra: true,
-          } as any);
+      } else if (cotacaoId) {
+        // ── Adicionar via cotação ─────────────────────────────────────────────
+        const { error } = await supabase.from('cotacao_beneficios').insert({
+          cotacao_id: cotacaoId,
+          beneficio_id: extra.id,
+          nome_snapshot: extra.nome,
+          valor_snapshot: extra.valor_mensal,
+          selecionado_por: 'consultor',
+          is_extra: true,
+        } as any);
         if (error) {
           if ((error as any).code === '42703') {
-            toast.error(
-              'Coluna is_extra não existe ainda. Execute a migration no Supabase Dashboard.',
-              { duration: 8000 }
-            );
+            toast.error('Coluna is_extra não existe. Execute a migration no Supabase Dashboard.', { duration: 8000 });
           } else {
             throw error;
           }
           return;
         }
         toast.success(`"${extra.nome}" adicionado`);
+      } else {
+        // ── Adicionar via associado (sem cotação) ─────────────────────────────
+        const { error } = await supabase
+          .from('associado_beneficios_extras' as any)
+          .insert({
+            associado_id: id,
+            beneficio_id: extra.id,
+            ativo: true,
+            valor_snapshot: extra.valor_mensal,
+          });
+        if (error) {
+          if ((error as any).code === '42P01') {
+            toast.error('Tabela não existe. Execute a migration no Supabase Dashboard.', { duration: 8000 });
+          } else if ((error as any).code === '23505') {
+            // Já existe inativo — reativar
+            await supabase
+              .from('associado_beneficios_extras' as any)
+              .update({ ativo: true, valor_snapshot: extra.valor_mensal })
+              .eq('associado_id', id)
+              .eq('beneficio_id', extra.id);
+          } else {
+            throw error;
+          }
+        }
+        toast.success(`"${extra.nome}" adicionado`);
       }
 
-      // Sempre refetch para refletir estado real do banco
-      await fetchExtrasAtivos(cotacaoId);
+      // Sempre refetch do banco
+      await fetchExtrasAtivos(cotacaoId, id);
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao atualizar benefício');
     } finally {
@@ -1424,6 +1479,7 @@ export default function AssociadoDetalhe() {
         <PlanosBeneficios
           isLoading={isLoadingPlano}
           cotaAtualNome={cotaAtualNome}
+          temCotacao={!!veiculo?.cotacao_id}
           veiculo={veiculo}
           beneficiosAtual={beneficiosAtual}
           beneficiosExtras={beneficiosExtras}
@@ -1643,6 +1699,7 @@ export default function AssociadoDetalhe() {
 interface PlanosBeneficiosProps {
   isLoading: boolean;
   cotaAtualNome: string | null;
+  temCotacao: boolean;
   veiculo: VeiculoInfo | null;
   beneficiosAtual: BeneficioAtual[];
   beneficiosExtras: BeneficioExtra[];
@@ -1661,13 +1718,12 @@ interface PlanosBeneficiosProps {
 }
 
 function PlanosBeneficios({
-  isLoading, cotaAtualNome, veiculo, beneficiosAtual, beneficiosExtras,
+  isLoading, cotaAtualNome, temCotacao, veiculo, beneficiosAtual, beneficiosExtras,
   extrasAtivos, cotasDisponiveis, cotaSelecionadaId, setCotaSelecionadaId,
   propostaPendente, showTrocarPlano, setShowTrocarPlano, isTogglingBeneficio,
   isPropondoTroca, onToggleBeneficio, onProporTroca, estimarMensalidade,
 }: PlanosBeneficiosProps) {
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  // Total extras = soma dos valor_snapshot das linhas is_extra=true na cotação
   const totalExtras = extrasAtivos.reduce((sum, e) => sum + e.valor_snapshot, 0);
   const mensalidadeBase = veiculo?.mensalidade ?? 0;
 
@@ -1693,25 +1749,46 @@ function PlanosBeneficios({
         ) : (
           <>
             {/* ── Resumo financeiro ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
-                <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
-                <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
+            {temCotacao ? (
+              // COM cotação: plano + base + total
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border bg-orange-50 border-orange-200 p-3">
+                  <p className="text-xs text-orange-700 font-medium mb-1">Plano contratado</p>
+                  <p className="text-sm font-bold text-orange-900">{cotaAtualNome ?? 'Não informado'}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Mensalidade base</p>
+                  <p className="text-sm font-bold">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+                </div>
+                <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
+                  <p className="text-xs text-muted-foreground mb-1">Total c/ extras</p>
+                  <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
+                    {mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}
+                  </p>
+                  {totalExtras > 0 && (
+                    <p className="text-xs text-green-600 mt-0.5">+ {fmtBRL(totalExtras)} em extras</p>
+                  )}
+                </div>
               </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground mb-1">Mensalidade base</p>
-                <p className="text-sm font-bold">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+            ) : (
+              // SEM cotação: só mostra os extras diretos
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs text-amber-700 font-medium mb-1">Situação</p>
+                  <p className="text-sm font-semibold text-amber-900">Sem cotação ativa</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Benefícios extras salvos diretamente no associado</p>
+                </div>
+                <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
+                  <p className="text-xs text-muted-foreground mb-1">Extras contratados</p>
+                  <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+                    {totalExtras > 0 ? `${fmtBRL(totalExtras)}/mês` : 'Nenhum'}
+                  </p>
+                  {totalExtras > 0 && (
+                    <p className="text-xs text-green-600 mt-0.5">{extrasAtivos.length} benefício(s) ativo(s)</p>
+                  )}
+                </div>
               </div>
-              <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
-                <p className="text-xs text-muted-foreground mb-1">Total c/ extras</p>
-                <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
-                  {mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}
-                </p>
-                {totalExtras > 0 && (
-                  <p className="text-xs text-green-600 mt-0.5">+ {fmtBRL(totalExtras)} em extras</p>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* ── Coberturas incluídas ── */}
             {beneficiosAtual.length > 0 ? (
