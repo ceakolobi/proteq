@@ -265,30 +265,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
             setBeneficios((bens as Beneficio[]) || []);
           }
 
-<<<<<<< HEAD
           // Benefícios EXTRAS contratados pelo associado (PROBLEMA 5-B)
-=======
-          // Benefícios extras: cotacao_beneficios (is_extra=true) + associado_beneficios_extras
-          const mergedExtras: BeneficioExtraContrato[] = [];
-
-          // Fonte 1: cotacao_beneficios com is_extra=true
-          if (cot?.id) {
-            const { data: cotExtras } = await (supabase
-              .from('cotacao_beneficios') as any)
-              .select('nome_snapshot,valor_snapshot')
-              .eq('cotacao_id', cot.id)
-              .eq('is_extra', true);
-            if (cotExtras) {
-              (cotExtras as any[]).forEach(r => {
-                if (!mergedExtras.find(e => e.nome === r.nome_snapshot)) {
-                  mergedExtras.push({ nome: r.nome_snapshot, valor_mensal: r.valor_snapshot ?? 0 });
-                }
-              });
-            }
-          }
-
-          // Fonte 2: associado_beneficios_extras (fallback sem cotação)
->>>>>>> 2ca6c16f5441461c71d840e4b0806eb241d13310
           const { data: assocExtras } = await supabase
             .from('associado_beneficios_extras' as any)
             .select('nome_snapshot,valor_snapshot,beneficios_extras(nome)')
