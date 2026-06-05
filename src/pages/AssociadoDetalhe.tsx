@@ -1758,7 +1758,7 @@ function PlanosBeneficios({
                     )}
                   </div>
                   <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
-                    <p className="text-xs text-muted-foreground mb-1">Total c/ extras</p>
+                    <p className="text-xs text-muted-foreground mb-1">Total mensal</p>
                     <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
                       {mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}
                     </p>
@@ -1814,12 +1814,37 @@ function PlanosBeneficios({
               </p>
             )}
 
-            {/* ── Benefícios extras ── */}
+            {/* ── Benefícios Adicionais Contratados ── */}
+            <div className="space-y-2 pt-2 border-t">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                Benefícios Adicionais Contratados
+              </p>
+              {extrasAtivos.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">Nenhum benefício extra contratado</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {extrasAtivos.map(e => (
+                    <div key={e.id} className="flex items-center gap-2 p-2 rounded-md bg-green-50 border border-green-200">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium leading-tight">{e.nome_snapshot}</p>
+                        {e.valor_snapshot > 0 && (
+                          <p className="text-xs text-muted-foreground">+ {fmtBRL(e.valor_snapshot)}/mês</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Catálogo de extras disponíveis ── */}
             {beneficiosExtras.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                  Benefícios Extras
+                  Benefícios Extras Disponíveis
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {beneficiosExtras.map(extra => {
