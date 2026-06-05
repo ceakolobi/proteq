@@ -1693,7 +1693,7 @@ function PlanosBeneficios({
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const totalExtras = extrasAtivos.reduce((sum, e) => sum + (e.valor_snapshot ?? 0), 0);
   // PROBLEMA 1 — mensalidade vem da cotação, não do veículo
-  const mensalidadeBase = cotacaoInfo?.mensalidade ?? 0;
+  const mensalidadeBase = cotacaoInfo?.mensalidade ?? veiculo?.mensalidade ?? 0;
 
   return (
     <Card>
