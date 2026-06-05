@@ -258,6 +258,58 @@ export type Database = {
           },
         ]
       }
+      associado_beneficios_extras: {
+        Row: {
+          associado_id: string | null
+          ativo: boolean | null
+          beneficio_id: string | null
+          created_at: string | null
+          id: string
+          nome_snapshot: string | null
+          valor_snapshot: number | null
+        }
+        Insert: {
+          associado_id?: string | null
+          ativo?: boolean | null
+          beneficio_id?: string | null
+          created_at?: string | null
+          id?: string
+          nome_snapshot?: string | null
+          valor_snapshot?: number | null
+        }
+        Update: {
+          associado_id?: string | null
+          ativo?: boolean | null
+          beneficio_id?: string | null
+          created_at?: string | null
+          id?: string
+          nome_snapshot?: string | null
+          valor_snapshot?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "associado_beneficios_extras_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "associados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associado_beneficios_extras_associado_id_fkey"
+            columns: ["associado_id"]
+            isOneToOne: false
+            referencedRelation: "v_associados_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "associado_beneficios_extras_beneficio_id_fkey"
+            columns: ["beneficio_id"]
+            isOneToOne: false
+            referencedRelation: "beneficios_extras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       associados: {
         Row: {
           bairro: string | null
@@ -2965,11 +3017,16 @@ export type Database = {
       }
       vistorias: {
         Row: {
+          assinado_em: string | null
+          assinado_ip: string | null
+          assinado_user_agent: string | null
+          assinatura_url: string | null
           associado_id: string | null
           canal_abertura: string | null
           checklist: Json | null
           company_id: string | null
           consultor_id: string | null
+          contrato_url: string | null
           cotacao_id: string | null
           created_at: string
           created_by: string | null
@@ -2989,17 +3046,24 @@ export type Database = {
           status: Database["public"]["Enums"]["inspection_status"]
           tipo_vistoria: Database["public"]["Enums"]["tipo_vistoria"] | null
           token_acesso: string | null
+          token_assinatura: string | null
+          token_assinatura_expires_at: string | null
           token_expires_at: string | null
           updated_at: string
           veiculo_id: string
           vistoriador_id: string | null
         }
         Insert: {
+          assinado_em?: string | null
+          assinado_ip?: string | null
+          assinado_user_agent?: string | null
+          assinatura_url?: string | null
           associado_id?: string | null
           canal_abertura?: string | null
           checklist?: Json | null
           company_id?: string | null
           consultor_id?: string | null
+          contrato_url?: string | null
           cotacao_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3019,17 +3083,24 @@ export type Database = {
           status?: Database["public"]["Enums"]["inspection_status"]
           tipo_vistoria?: Database["public"]["Enums"]["tipo_vistoria"] | null
           token_acesso?: string | null
+          token_assinatura?: string | null
+          token_assinatura_expires_at?: string | null
           token_expires_at?: string | null
           updated_at?: string
           veiculo_id: string
           vistoriador_id?: string | null
         }
         Update: {
+          assinado_em?: string | null
+          assinado_ip?: string | null
+          assinado_user_agent?: string | null
+          assinatura_url?: string | null
           associado_id?: string | null
           canal_abertura?: string | null
           checklist?: Json | null
           company_id?: string | null
           consultor_id?: string | null
+          contrato_url?: string | null
           cotacao_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -3049,6 +3120,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["inspection_status"]
           tipo_vistoria?: Database["public"]["Enums"]["tipo_vistoria"] | null
           token_acesso?: string | null
+          token_assinatura?: string | null
+          token_assinatura_expires_at?: string | null
           token_expires_at?: string | null
           updated_at?: string
           veiculo_id?: string
@@ -3385,6 +3458,22 @@ export type Database = {
       get_user_company: { Args: { _user_id: string }; Returns: string }
       get_user_regiao: { Args: { _user_id: string }; Returns: string }
       get_user_sede: { Args: { _user_id: string }; Returns: string }
+      get_vistoria_by_token_assinatura: {
+        Args: { p_token: string }
+        Returns: {
+          assinado_em: string
+          associado_nome: string
+          contrato_url: string
+          id: string
+          status: string
+          token_assinatura: string
+          token_assinatura_expires_at: string
+          veiculo_ano: number
+          veiculo_marca: string
+          veiculo_modelo: string
+          veiculo_placa: string
+        }[]
+      }
       get_vistoria_publica_by_token: {
         Args: { p_token: string }
         Returns: {

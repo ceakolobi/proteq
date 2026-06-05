@@ -257,6 +257,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
           const cot = (cotacoes?.[0] as CotacaoInfo) ?? null;
           setCotacao(cot);
 
+          // Benefícios FIXOS da cotação (PROBLEMA 5-A)
           if (cot?.id) {
             const { data: bens } = await supabase
               .from('cotacao_beneficios').select('nome_snapshot,valor_snapshot')
@@ -264,16 +265,19 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
             setBeneficios((bens as Beneficio[]) || []);
           }
 
+<<<<<<< HEAD
+          // Benefícios EXTRAS contratados pelo associado (PROBLEMA 5-B)
+=======
           // Benefícios extras: cotacao_beneficios (is_extra=true) + associado_beneficios_extras
           const mergedExtras: BeneficioExtraContrato[] = [];
 
           // Fonte 1: cotacao_beneficios com is_extra=true
           if (cot?.id) {
-            const { data: cotExtras } = await supabase
-              .from('cotacao_beneficios')
+            const { data: cotExtras } = await (supabase
+              .from('cotacao_beneficios') as any)
               .select('nome_snapshot,valor_snapshot')
               .eq('cotacao_id', cot.id)
-              .eq('is_extra' as any, true);
+              .eq('is_extra', true);
             if (cotExtras) {
               (cotExtras as any[]).forEach(r => {
                 if (!mergedExtras.find(e => e.nome === r.nome_snapshot)) {
@@ -284,21 +288,20 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
           }
 
           // Fonte 2: associado_beneficios_extras (fallback sem cotação)
+>>>>>>> 2ca6c16f5441461c71d840e4b0806eb241d13310
           const { data: assocExtras } = await supabase
             .from('associado_beneficios_extras' as any)
-            .select('valor_snapshot,beneficios_extras(nome)')
+            .select('nome_snapshot,valor_snapshot,beneficios_extras(nome)')
             .eq('associado_id', associadoId)
             .eq('ativo', true);
-          if (assocExtras) {
-            (assocExtras as any[]).forEach(r => {
-              const nome = r.beneficios_extras?.nome;
-              if (nome && !mergedExtras.find(e => e.nome === nome)) {
-                mergedExtras.push({ nome, valor_mensal: r.valor_snapshot ?? 0 });
-              }
-            });
-          }
 
-          setBeneficiosExtras(mergedExtras);
+          if (assocExtras) {
+            const extras: BeneficioExtraContrato[] = (assocExtras as any[]).map(r => ({
+              nome: r.nome_snapshot || r.beneficios_extras?.nome || '',
+              valor_mensal: r.valor_snapshot ?? 0,
+            })).filter(e => e.nome);
+            setBeneficiosExtras(extras);
+          }
         } catch {
           toast.error('Erro ao carregar dados do contrato');
         } finally {
@@ -410,19 +413,20 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
           { nome_snapshot: 'Rastreamento Veicular', valor_snapshot: 0 },
         ];
 
-    // Merge extras contratados into the unified list
-    const extrasComobeneficio: Beneficio[] = beneficiosExtras.map(e => ({
-      nome_snapshot: e.nome,
-      valor_snapshot: e.valor_mensal,
-    }));
-    const beneficiosList = [...beneficiosBase, ...extrasComobeneficio];
-    const totalExtrasValor = extrasComobeneficio.reduce((s, b) => s + b.valor_snapshot, 0);
-
-    // Chunk into pairs for 2-column table
-    const benefPairs: Beneficio[][] = [];
-    for (let i = 0; i < beneficiosList.length; i += 2) {
-      benefPairs.push(beneficiosList.slice(i, i + 2));
+    // Benefícios base em pares (2 colunas)
+    const basePairs: Beneficio[][] = [];
+    for (let i = 0; i < beneficiosBase.length; i += 2) {
+      basePairs.push(beneficiosBase.slice(i, i + 2));
     }
+
+    // Extras em pares
+    const extrasPairs: BeneficioExtraContrato[][] = [];
+    for (let i = 0; i < beneficiosExtras.length; i += 2) {
+      extrasPairs.push(beneficiosExtras.slice(i, i + 2));
+    }
+
+    const totalExtrasValor = beneficiosExtras.reduce((s, e) => s + e.valor_mensal, 0);
+    const mensalidadeContrato = cotacao?.mensalidade ?? veiculo?.mensalidade ?? null;
 
     const pageStyle: React.CSSProperties = {
       width: 794,
@@ -574,50 +578,88 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
             </tbody>
           </table>
 
-          {/* ── BENEFÍCIOS INCLUSOS ── */}
+          {/* ── BENEFÍCIOS INCLUSOS (base) ── PROBLEMA 5-A */}
           <table style={S.table}>
             <thead>
               <tr>
-                <th colSpan={2} style={S.orangeTh}>Benefícios Inclusos</th>
+                <th colSpan={2} style={S.orangeTh}>Coberturas Incluídas no Plano</th>
               </tr>
             </thead>
             <tbody>
-              {benefPairs.map((pair, i) => (
+              {basePairs.map((pair, i) => (
                 <tr key={i}>
                   {pair.map((b, j) => (
                     <td key={j} style={{ ...S.cell, width: '50%' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                         <span style={{ color: '#F97316', fontWeight: 800, flexShrink: 0, fontSize: 13 }}>✓</span>
-                        <div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{b.nome_snapshot}</div>
-                          {b.valor_snapshot > 0 && (
-                            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>
-                              + {fmtMoney(b.valor_snapshot)}/mês
-                            </div>
-                          )}
-                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{b.nome_snapshot}</div>
                       </div>
                     </td>
                   ))}
                   {pair.length === 1 && <td style={{ ...S.cell, width: '50%' }} />}
                 </tr>
               ))}
-              {totalExtrasValor > 0 && (
+            </tbody>
+          </table>
+
+          {/* ── BENEFÍCIOS ADICIONAIS (extras) ── PROBLEMA 5-B */}
+          {beneficiosExtras.length > 0 && (
+            <table style={S.table}>
+              <thead>
                 <tr>
-                  <td colSpan={2} style={{ border: '1px solid #d1d5db', padding: '6px 10px', backgroundColor: '#fff7ed' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, color: '#9a3412', fontStyle: 'italic' }}>
-                        * Inclui benefícios extras contratados
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c' }}>
-                        + {fmtMoney(totalExtrasValor)}/mês em extras
-                      </span>
+                  <th colSpan={2} style={{ ...S.orangeTh, backgroundColor: '#1e3a5f' }}>Benefícios Adicionais Contratados</th>
+                </tr>
+              </thead>
+              <tbody>
+                {extrasPairs.map((pair, i) => (
+                  <tr key={i}>
+                    {pair.map((b, j) => (
+                      <td key={j} style={{ ...S.cell, width: '50%' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <span style={{ color: '#1e3a5f', fontWeight: 800, flexShrink: 0, fontSize: 13 }}>✓</span>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#111827' }}>{b.nome}</div>
+                            {b.valor_mensal > 0 && (
+                              <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>
+                                + {fmtMoney(b.valor_mensal)}/mês
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    ))}
+                    {pair.length === 1 && <td style={{ ...S.cell, width: '50%' }} />}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* ── RODAPÉ FINANCEIRO ── PROBLEMA 5-C */}
+          {mensalidadeContrato != null && (
+            <table style={{ ...S.table, marginBottom: 16 }}>
+              <tbody>
+                <tr>
+                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '40%' }}>
+                    <div style={{ fontSize: 10, color: '#6b7280' }}>Mensalidade base</div>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>{fmtMoney(mensalidadeContrato)}</div>
+                  </td>
+                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '30%' }}>
+                    <div style={{ fontSize: 10, color: '#6b7280' }}>Benefícios extras</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: totalExtrasValor > 0 ? '#ea580c' : '#6b7280' }}>
+                      {totalExtrasValor > 0 ? `+ ${fmtMoney(totalExtrasValor)}` : 'Nenhum'}
+                    </div>
+                  </td>
+                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '30%', backgroundColor: '#fff7ed' }}>
+                    <div style={{ fontSize: 10, color: '#9a3412', fontWeight: 600 }}>Total mensal</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#ea580c' }}>
+                      {fmtMoney(mensalidadeContrato + totalExtrasValor)}
                     </div>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          )}
 
           {/* ── DECLARAÇÃO ── */}
           <div style={{ border: '1px solid #d1d5db', padding: '12px 14px', marginBottom: 20, borderRadius: 2 }}>
