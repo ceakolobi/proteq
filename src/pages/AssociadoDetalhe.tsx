@@ -1814,31 +1814,6 @@ function PlanosBeneficios({
               </p>
             )}
 
-            {/* ── Benefícios Adicionais Contratados ── */}
-            <div className="space-y-2 pt-2 border-t">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                Benefícios Adicionais Contratados
-              </p>
-              {extrasAtivos.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Nenhum benefício extra contratado</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {extrasAtivos.map(e => (
-                    <div key={e.id} className="flex items-center gap-2 p-2 rounded-md bg-green-50 border border-green-200">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium leading-tight">{e.nome_snapshot}</p>
-                        {e.valor_snapshot > 0 && (
-                          <p className="text-xs text-muted-foreground">+ {fmtBRL(e.valor_snapshot)}/mês</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* ── Catálogo de extras disponíveis ── */}
             {beneficiosExtras.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
@@ -1888,6 +1863,49 @@ function PlanosBeneficios({
                 </div>
               </div>
             )}
+
+            {/* ── Resumo financeiro ── */}
+            <div className="rounded-xl border border-slate-700 bg-slate-900 overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-800 border-b border-slate-700">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-300 flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                  Benefícios Adicionais Contratados
+                </p>
+              </div>
+              <div className="px-4 py-3 space-y-1.5 min-h-[44px]">
+                {extrasAtivos.length === 0 ? (
+                  <p className="text-sm text-slate-400 italic">Nenhum benefício extra contratado</p>
+                ) : (
+                  extrasAtivos.map(e => (
+                    <div key={e.id} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                        <p className="text-sm text-slate-100">{e.nome_snapshot}</p>
+                      </div>
+                      {e.valor_snapshot > 0 && (
+                        <p className="text-sm text-green-400 font-medium whitespace-nowrap">+ {fmtBRL(e.valor_snapshot)}/mês</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="grid grid-cols-3 border-t border-slate-700">
+                <div className="px-4 py-3 border-r border-slate-700">
+                  <p className="text-xs text-slate-400 mb-0.5">Mensalidade base</p>
+                  <p className="text-sm font-bold text-slate-100">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+                </div>
+                <div className="px-4 py-3 border-r border-slate-700">
+                  <p className="text-xs text-slate-400 mb-0.5">Benefícios extras</p>
+                  <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                    {totalExtras > 0 ? `+ ${fmtBRL(totalExtras)}` : '—'}
+                  </p>
+                </div>
+                <div className="px-4 py-3 bg-slate-800">
+                  <p className="text-xs text-slate-400 mb-0.5">Total mensal</p>
+                  <p className="text-sm font-bold text-orange-400">{mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}</p>
+                </div>
+              </div>
+            </div>
 
             {/* ── Trocar de plano (Collapsible) ── */}
             {cotasDisponiveis.length > 0 && (
