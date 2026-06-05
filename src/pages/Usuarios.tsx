@@ -46,7 +46,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
-import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface UserWithRole extends Profile {
   roles: AppRole[];
@@ -101,6 +111,7 @@ export default function Usuarios() {
     regiao_id: '',
   });
   const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
 
   const fetchData = async () => {
     if (!isAllowed) return;
@@ -163,9 +174,39 @@ export default function Usuarios() {
     );
   }
 
-  // Verificar se é admin principal protegido
+  // Admin protegido: nunca pode ser excluído
   const isProtectedAdmin = (user: Profile) => {
-    return user.is_admin_principal || user.email === 'admin@system.com';
+    return user.is_admin_principal
+      || user.email === 'admin@system.com'
+      || user.email === 'kolobi2013cf@gmail.com';
+  };
+
+  const canDeleteUser = (targetUser: Profile) => {
+    if (isProtectedAdmin(targetUser)) return false;
+    if (isAdminPrincipal) return true;
+    if (currentUserRoles.includes('gerente')) {
+      const targetRoles = getRoles(targetUser.id) as AppRole[];
+      const isConsultor = targetRoles.includes('consultor_vendas');
+      const sameRegion = profile?.regiao_id && targetUser.regiao_id === profile.regiao_id;
+      return isConsultor && !!sameRegion;
+    }
+    return false;
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ ativo: false })
+        .eq('id', userToDelete.id);
+      if (error) throw error;
+      toast({ title: 'Usuário desativado', description: `${userToDelete.nome_completo} foi desativado com sucesso.` });
+      setUserToDelete(null);
+      fetchData();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro ao excluir', description: error.message || 'Não foi possível desativar o usuário.' });
+    }
   };
 
   // Usar funções centralizadas de permissão
@@ -577,15 +618,27 @@ export default function Usuarios() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {canManage && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenDialog({ ...user, roles: userRoles })}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <div className="flex items-center justify-end gap-1">
+                              {canManage && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenDialog({ ...user, roles: userRoles })}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDeleteUser(user) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setUserToDelete(user)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -890,6 +943,29 @@ export default function Usuarios() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Confirmação de exclusão */}
+      <AlertDialog open={!!userToDelete} onOpenChange={open => { if (!open) setUserToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{userToDelete?.nome_completo}</strong>?
+              <br />
+              O usuário será desativado e não poderá mais acessar o sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-white"
+              onClick={handleDeleteUser}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
