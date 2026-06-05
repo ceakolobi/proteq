@@ -1864,45 +1864,50 @@ function PlanosBeneficios({
               </div>
             )}
 
-            {/* ── Resumo financeiro ── */}
+            {/* ── Resumo financeiro completo ── */}
             <div className="rounded-xl border border-slate-700 bg-slate-900 overflow-hidden">
               <div className="px-4 py-2.5 bg-slate-800 border-b border-slate-700">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-300 flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                  Benefícios Adicionais Contratados
+                  <TrendingUp className="h-3.5 w-3.5 text-orange-400" />
+                  Resumo Financeiro
                 </p>
               </div>
-              <div className="px-4 py-3 space-y-1.5 min-h-[44px]">
-                {extrasAtivos.length === 0 ? (
-                  <p className="text-sm text-slate-400 italic">Nenhum benefício extra contratado</p>
-                ) : (
-                  extrasAtivos.map(e => (
-                    <div key={e.id} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
-                        <p className="text-sm text-slate-100">{e.nome_snapshot}</p>
-                      </div>
-                      {e.valor_snapshot > 0 && (
-                        <p className="text-sm text-green-400 font-medium whitespace-nowrap">+ {fmtBRL(e.valor_snapshot)}/mês</p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="grid grid-cols-3 border-t border-slate-700">
-                <div className="px-4 py-3 border-r border-slate-700">
-                  <p className="text-xs text-slate-400 mb-0.5">Mensalidade base</p>
-                  <p className="text-sm font-bold text-slate-100">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+              <div className="divide-y divide-slate-700/50">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <p className="text-sm text-slate-400">Valor FIPE</p>
+                  <p className="text-sm font-semibold text-slate-100">{veiculo?.valor_fipe ? fmtBRL(veiculo.valor_fipe) : '—'}</p>
                 </div>
-                <div className="px-4 py-3 border-r border-slate-700">
-                  <p className="text-xs text-slate-400 mb-0.5">Benefícios extras</p>
-                  <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <p className="text-sm text-slate-400">Mensalidade base</p>
+                  <p className="text-sm font-semibold text-slate-100">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <p className="text-sm text-slate-400">Benefícios extras</p>
+                  <p className={`text-sm font-semibold ${totalExtras > 0 ? 'text-green-400' : 'text-slate-500'}`}>
                     {totalExtras > 0 ? `+ ${fmtBRL(totalExtras)}` : '—'}
                   </p>
                 </div>
-                <div className="px-4 py-3 bg-slate-800">
-                  <p className="text-xs text-slate-400 mb-0.5">Total mensal</p>
-                  <p className="text-sm font-bold text-orange-400">{mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}</p>
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-800">
+                  <p className="text-sm font-bold text-slate-200">Total mensal</p>
+                  <p className="text-lg font-bold text-orange-400">{mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 border-t border-slate-700 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">Cota de participação</p>
+                  <p className="text-xs text-slate-300">{cotacaoInfo?.participacao != null ? `${cotacaoInfo.participacao}%` : '7%'} do valor FIPE</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">Valor mínimo</p>
+                  <p className="text-xs text-slate-300">{fmtBRL(1800)}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500">Valor calculado</p>
+                  <p className="text-xs font-semibold text-slate-200">
+                    {veiculo?.valor_fipe
+                      ? fmtBRL(Math.max(veiculo.valor_fipe * (cotacaoInfo?.participacao ?? 7) / 100, 1800))
+                      : '—'}
+                  </p>
                 </div>
               </div>
             </div>
