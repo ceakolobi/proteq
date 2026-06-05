@@ -21,7 +21,7 @@
 - Respostas sempre em português do Brasil
 
 ## Pendências em aberto
-- [ ] Aplicar `20260604000001_beneficios_extras_via_cotacao.sql` no Supabase Dashboard prod
+- [ ] PWA não abre no iPhone — pendente investigar
 - [ ] Migration fotos/contratos aplicar em produção (sbtfhtllzpurjprivqoi)
 - [ ] Auth real Supabase no app mobile (ainda usa sessionStorage)
 - [ ] Meta Ads — primeira campanha ainda não lançada
@@ -29,6 +29,18 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+### 2026-06-05
+- Criada tabela associado_beneficios_extras no Supabase
+- Benefícios extras funcionando: adicionar/remover com upsert
+- Resumo financeiro completo na área do associado:
+  Valor FIPE, Mensalidade base, Benefícios extras, Total mensal
+- Cota de participação visível na área do associado
+- Benefícios extras aparecem no contrato gerado
+- Conflitos de merge resolvidos em ContractCard.tsx e AssociadoDetalhe.tsx
+- Seção "Trocar de Plano" recolhida em accordion
+- Fix: mensalidade base agora busca em cascata (cotacoes → veiculos.mensalidade)
+- [ ] PWA não abre no iPhone — pendente investigar
+
 ### 2026-06-03 (continuação)
 - Enriquecimento completo Vault Obsidian (12 arquivos _INICIO.md + CLAUDE.md)
 - Criados 5 arquivos em 09-Protecao-Veicular/
