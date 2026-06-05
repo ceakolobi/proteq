@@ -436,7 +436,7 @@ export default function AssociadoDetalhe() {
     setBeneficiosExtras((data as BeneficioExtra[]) || []);
   }, []);
 
-  // Sempre busca de associado_beneficios_extras (fonte única e simples)
+  // Sempre busca de associado_beneficios_extras (fonte única)
   const fetchExtrasAtivos = useCallback(async (associadoId: string) => {
     if (!associadoId) return;
     const { data, error } = await supabase
