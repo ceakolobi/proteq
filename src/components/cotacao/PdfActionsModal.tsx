@@ -35,6 +35,7 @@ interface PdfActionsModalProps {
   mensalidade?: string;
   cotacaoId?: string;
   empresaNome?: string;
+  beneficiosExtras?: { nome_snapshot: string; valor_snapshot: number }[];
 }
 
 export const PdfActionsModal = ({
@@ -51,6 +52,7 @@ export const PdfActionsModal = ({
   mensalidade = "",
   cotacaoId,
   empresaNome = "Proteção Veicular",
+  beneficiosExtras = [],
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -143,6 +145,18 @@ export const PdfActionsModal = ({
       ? `*Mensalidade Base:* apenas *${mensalidade}/mês*`
       : `*Mensalidade Base:* condições no PDF anexo`;
 
+    const formatBRL = (v: number) =>
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+    const extrasSecao = beneficiosExtras.length > 0
+      ? `━━━━━━━━━━━━━━━
+➕ *BENEFÍCIOS EXTRAS ADICIONADOS*
+━━━━━━━━━━━━━━━
+${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snapshot)}/mês`).join('\n')}
+
+`
+      : '';
+
     const mensagem = `${siteUrl}
 
 *Olá, ${nomePrimeiro}!* Tudo bem?
@@ -153,19 +167,17 @@ Aqui é da *${empresaNome}*. Conforme conversamos, preparei a sua proposta de pr
 📋 *RESUMO DA SUA COTAÇÃO*
 ━━━━━━━━━━━━━━━${veiculoLinha}
 
-🔒 *COBERTURA INTEGRAL (Plano Base):*
-• Roubo, Furto, Colisão e Incêndio (100% FIPE)
-• Proteção contra Terceiros
-• Fenômenos da Natureza (Granizo, Enchentes, etc.)
-• Assistência 24h Padrão (Guincho, Chaveiro, Bateria)
+🔒 *BENEFÍCIOS INCLUSOS NO PLANO:*
+• Carro Reserva (30 dias inclusos)
+• Guincho 500 km (250 ida e volta)
+• Vidros — cobertura de para-brisa
+• Chaveiro 24h
+• Pane Elétrica — assistência inclusa
+• Pane Mecânica — assistência inclusa
+• Pane Seca — combustível incluso
+• Eventos da Natureza — proteção completa
 
-━━━━━━━━━━━━━━━
-⚡ *OPCIONAIS DISPONÍVEIS*
-━━━━━━━━━━━━━━━
-🚗 *Carro Reserva:* +30 dias (R$ 39,90) ou +90 dias (R$ 59,90)
-🛠️ *Clube de Benefícios:* descontos em oficinas, guincho expandido e assistência 24h ampliada
-
-━━━━━━━━━━━━━━━
+${extrasSecao}━━━━━━━━━━━━━━━
 💰 *INVESTIMENTO*
 ━━━━━━━━━━━━━━━
 ${mensalidadeLinha}
@@ -179,8 +191,7 @@ ${mensalidadeLinha}
 📲 *Como deseja prosseguir?*
 ━━━━━━━━━━━━━━━
 1️⃣ Fechar o *Plano Base* agora
-2️⃣ Incluir *opcionais* (me diga quais!)
-3️⃣ Tirar *dúvidas* com um consultor
+2️⃣ Tirar *dúvidas* com um consultor
 
 ⏳ *Validade da proposta:* ${validadeDias} dias
 🤝 _${empresaNome} — Proteção Veicular_`;

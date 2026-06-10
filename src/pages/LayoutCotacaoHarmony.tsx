@@ -161,6 +161,7 @@ export default function LayoutCotacaoHarmony() {
   
   const [condicoes, setCondicoes] = useState("");
   const [condicoesInitialized, setCondicoesInitialized] = useState(false);
+  const [beneficiosExtras, setBeneficiosExtras] = useState<{ nome_snapshot: string; valor_snapshot: number }[]>([]);
   
   // Determinar logos baseado nas configurações
   const logoColorida = settings.modo_white_label && settings.empresa_logo 
@@ -298,6 +299,14 @@ export default function LayoutCotacaoHarmony() {
 
         if (cotacaoData.observacoes) {
           setCondicoes(prev => prev + "\n\nObservações: " + cotacaoData.observacoes);
+        }
+
+        const { data: extrasData } = await supabase
+          .from("cotacao_beneficios")
+          .select("nome_snapshot, valor_snapshot")
+          .eq("cotacao_id", cotacaoId);
+        if (extrasData && extrasData.length > 0) {
+          setBeneficiosExtras(extrasData);
         }
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -842,6 +851,22 @@ export default function LayoutCotacaoHarmony() {
                   );
                 })}
               </div>
+
+              {beneficiosExtras.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-[hsl(25,95%,90%)]">
+                  <h3 className="text-lg font-bold text-[hsl(25,95%,40%)] mb-4">
+                    ➕ Benefícios Extras Adicionados
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {beneficiosExtras.map((b, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-[hsl(142,71%,97%)] rounded-xl border border-[hsl(142,71%,85%)]">
+                        <span className="font-medium text-sm text-[hsl(25,30%,25%)]">✔ {b.nome_snapshot}</span>
+                        <span className="text-sm font-semibold text-[hsl(142,71%,35%)]">+ {formatCurrency(b.valor_snapshot)}/mês</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -1096,6 +1121,7 @@ export default function LayoutCotacaoHarmony() {
         modelo={cotacao?.modelo || ""}
         mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
         cotacaoId={cotacao?.id}
+        beneficiosExtras={beneficiosExtras}
       />
 
       {/* Modal de Seleção de Capa */}

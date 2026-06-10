@@ -93,6 +93,7 @@ export function ResultadoCotacao({
   const pdfRef = useRef<HTMLDivElement>(null);
   const pdfViewRef = useRef<HTMLDivElement>(null);
   const [loadingAction, setLoadingAction] = useState<null | 'pdf' | 'email' | 'whatsapp'>(null);
+  const [selectedBenefitObjs, setSelectedBenefitObjs] = useState<BeneficioExtra[]>([]);
   const { toast } = useToast();
 
 
@@ -300,12 +301,19 @@ export function ResultadoCotacao({
 
       const nomeCliente = dadosPessoais.nome?.split(' ')[0] || 'cliente';
       const modelo = `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`;
+      const beneficiosFixosTexto = beneficiosIcons.map(b => `• ${b.titulo} — ${b.descricao}`).join('\n');
+      const extrasTexto = selectedBenefitObjs.length > 0
+        ? '\n\n➕ *Benefícios extras selecionados:*\n' +
+          selectedBenefitObjs.map(b => `• ${b.nome} (+ ${formatCurrency(Number(b.valor_mensal))})`).join('\n')
+        : '';
       const mensagem =
         `Olá ${nomeCliente}! 😊\n\n` +
         `Segue sua proposta de proteção veicular Harmony Agro:\n\n` +
         `🚗 Veículo: ${modelo} - ${dadosVeiculo.ano}\n` +
         `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n\n` +
-        `📄 Baixe sua proposta completa em PDF:\n${publicUrl}\n\n` +
+        `✅ *Benefícios inclusos no plano:*\n${beneficiosFixosTexto}` +
+        extrasTexto +
+        `\n\n📄 Baixe sua proposta completa em PDF:\n${publicUrl}\n\n` +
         `Proposta válida por 7 dias.`;
 
       const url = getWhatsAppUrl(telefone, mensagem);
@@ -447,7 +455,10 @@ export function ResultadoCotacao({
               <BeneficiosExtrasSelector
                 tipoBem={dadosVeiculo.tipo_bem}
                 selecionados={beneficiosSelecionadosIds}
-                onChange={onBeneficiosChange || (() => {})}
+                onChange={(ids, objs) => {
+                  setSelectedBenefitObjs(objs);
+                  (onBeneficiosChange || (() => {}))(ids, objs);
+                }}
               />
             </CardContent>
           </Card>
@@ -463,13 +474,21 @@ export function ResultadoCotacao({
             <div className="grid grid-cols-3 gap-3 mb-6">
               <Button
                 variant="outline"
-                className="flex-col h-auto py-4 gap-2 border-2 opacity-50 cursor-not-allowed"
-                disabled={true}
-                title="Opção temporariamente desabilitada"
+                className="flex-col h-auto py-4 gap-2 border-2 hover:border-primary/50"
+                onClick={handleWhatsAppPDF}
+                disabled={isLoading}
               >
-                <MessageCircle className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">WhatsApp</span>
-                <span className="text-[10px] text-muted-foreground">(em manutenção)</span>
+                {loadingAction === 'whatsapp' ? (
+                  <>
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                    <span className="text-xs">Gerando...</span>
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    <span className="text-xs">WhatsApp</span>
+                  </>
+                )}
               </Button>
 
               <Button
