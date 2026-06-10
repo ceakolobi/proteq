@@ -1,23 +1,30 @@
 import { MessageCircle } from 'lucide-react';
+import { useSettings } from '@/hooks/useSettings';
 
 interface WhatsAppFloatProps {
   phoneNumber?: string;
   message?: string;
 }
 
-export function WhatsAppFloat({ 
-  phoneNumber = '5500000000000', 
-  message = 'Olá! Vim pelo site e gostaria de mais informações sobre a proteção veicular.' 
+export function WhatsAppFloat({
+  phoneNumber,
+  message = 'Olá! Vim pelo site e gostaria de mais informações sobre a proteção veicular.'
 }: WhatsAppFloatProps) {
-  
+  const { settings } = useSettings();
+
   const handleClick = () => {
-    const formattedPhone = phoneNumber.replace(/\D/g, '');
+    const rawPhone = phoneNumber || settings.telefone || '';
+    let digits = rawPhone.replace(/\D/g, '').replace(/^0+/, '');
+    if (!digits.startsWith('55')) digits = '55' + digits;
+
+    if (!digits || digits === '55') return;
+
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
-    
-    const newWindow = window.open(whatsappUrl, '_blank');
+    const whatsappUrl = `https://wa.me/${digits}?text=${encodedMessage}`;
+
+    const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     if (!newWindow) {
-      window.location.assign(whatsappUrl);
+      navigator.clipboard?.writeText(whatsappUrl).catch(() => {});
     }
   };
 

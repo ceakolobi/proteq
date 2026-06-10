@@ -284,9 +284,6 @@ export function ResultadoCotacao({
       return;
     }
 
-    // Abre janela SINCRONAMENTE no clique para evitar bloqueio de popup
-    const waWindow = window.open('about:blank', '_blank');
-
     setLoadingAction('whatsapp');
     try {
       const result = await gerarPDF();
@@ -317,16 +314,18 @@ export function ResultadoCotacao({
         `Proposta válida por 7 dias.`;
 
       const url = getWhatsAppUrl(telefone, mensagem);
-
-      if (waWindow && !waWindow.closed) {
-        waWindow.location.href = url;
-      } else {
-        window.location.href = url;
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        navigator.clipboard?.writeText(url).then(() => {
+          toast({ title: 'Pop-up bloqueado', description: 'Link do WhatsApp copiado — cole no navegador.' });
+        }).catch(() => {
+          toast({ title: 'Proposta gerada!', description: 'Abra o WhatsApp manualmente e cole o link.' });
+        });
+        return;
       }
 
       toast({ title: 'Proposta gerada!', description: 'Abrindo WhatsApp com o link do PDF.' });
     } catch (e: unknown) {
-      if (waWindow && !waWindow.closed) waWindow.close();
       console.error('[WhatsApp PDF] Erro:', e);
       toast({
         variant: 'destructive',

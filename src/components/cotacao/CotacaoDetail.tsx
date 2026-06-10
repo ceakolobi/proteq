@@ -325,12 +325,10 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
     }
   };
 
-  // Formatar número para WhatsApp
   const formatWhatsappNumber = (numero: string): string => {
-    let digits = numero.replace(/\D/g, "");
-    if (!digits.startsWith("55") && digits.length <= 11) {
-      digits = "55" + digits;
-    }
+    let digits = numero.replace(/\D/g, '');
+    digits = digits.replace(/^0+/, '');
+    if (!digits.startsWith('55')) digits = '55' + digits;
     return digits;
   };
 
@@ -425,11 +423,14 @@ _(abra o link para visualizar todos os detalhes e aceitar online)_
 🤝 _Conte com a gente!_`;
 
     const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
-    const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    const opened = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
     if (!opened) {
-      // Fallback quando o navegador bloqueia pop-ups
-      window.location.assign(whatsappUrl);
+      navigator.clipboard?.writeText(whatsappUrl).then(() => {
+        toast.info('Pop-up bloqueado. Link copiado — cole no navegador para abrir.');
+      }).catch(() => {
+        toast.info('Permita pop-ups nas configurações do navegador.');
+      });
       return;
     }
 

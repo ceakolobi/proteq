@@ -117,14 +117,9 @@ export const PdfActionsModal = ({
 
   // Formatar número para WhatsApp (apenas dígitos, com código do país)
   const formatWhatsappNumber = (numero: string): string => {
-    // Remove tudo exceto dígitos
-    let digits = numero.replace(/\D/g, "");
-    
-    // Se não começar com 55, adiciona o código do Brasil
-    if (!digits.startsWith("55") && digits.length <= 11) {
-      digits = "55" + digits;
-    }
-    
+    let digits = numero.replace(/\D/g, '');
+    digits = digits.replace(/^0+/, '');
+    if (!digits.startsWith('55')) digits = '55' + digits;
     return digits;
   };
 
