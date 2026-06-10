@@ -36,6 +36,7 @@ interface PdfActionsModalProps {
   cotacaoId?: string;
   empresaNome?: string;
   beneficiosExtras?: { nome_snapshot: string; valor_snapshot: number }[];
+  valorAdesao?: number;
 }
 
 export const PdfActionsModal = ({
@@ -53,6 +54,7 @@ export const PdfActionsModal = ({
   cotacaoId,
   empresaNome = "Proteção Veicular",
   beneficiosExtras = [],
+  valorAdesao = 0,
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -148,6 +150,10 @@ export const PdfActionsModal = ({
     const formatBRL = (v: number) =>
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
+    const adesaoLinha = valorAdesao > 0
+      ? `\n💳 *Taxa de adesão:* ${formatBRL(valorAdesao)} (pagamento único)`
+      : '';
+
     const extrasSecao = beneficiosExtras.length > 0
       ? `━━━━━━━━━━━━━━━
 ➕ *BENEFÍCIOS EXTRAS ADICIONADOS*
@@ -180,7 +186,7 @@ Aqui é da *${empresaNome}*. Conforme conversamos, preparei a sua proposta de pr
 ${extrasSecao}━━━━━━━━━━━━━━━
 💰 *INVESTIMENTO*
 ━━━━━━━━━━━━━━━
-${mensalidadeLinha}
+${mensalidadeLinha}${adesaoLinha}
 
 🎁 *1ª mensalidade GRÁTIS*
 ✅ *SEM* taxa de adesão  ✅ *SEM* análise de condutor  ✅ *SEM* consulta SPC/Serasa

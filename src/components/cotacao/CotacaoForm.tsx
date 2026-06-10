@@ -97,6 +97,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     observacoes: '',
     ajuste_individual_valor: 0, // Ajuste em R$ pelo gestor
     motivo_ajuste: '',
+    valor_adesao: 0,
   });
   
   const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
@@ -380,9 +381,10 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         motivo_ajuste: formData.motivo_ajuste || null,
         carro_reserva_dias: formData.carro_reserva_extra === 'nenhum' ? 15 : 
                            formData.carro_reserva_extra === '30dias' ? 45 : 105,
-        carro_reserva_adicional: formData.carro_reserva_extra === 'nenhum' ? 0 : 
+        carro_reserva_adicional: formData.carro_reserva_extra === 'nenhum' ? 0 :
                                  formData.carro_reserva_extra === '30dias' ? 39.90 : 59.90,
         observacoes: formData.observacoes || null,
+        valor_adesao: formData.valor_adesao || 0,
       };
       
       const { data: novaCotacao, error } = await supabase
@@ -779,6 +781,37 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                       setBeneficiosSelecionadosObjs(objs);
                     }}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5" />
+                    Valor de Adesão (R$)
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={350}
+                      step={0.01}
+                      placeholder="0,00"
+                      className="pl-10"
+                      value={formData.valor_adesao || ''}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value) || 0;
+                        if (v > 350) {
+                          toast.error('Valor de adesão não pode ultrapassar R$ 350,00');
+                          return;
+                        }
+                        setFormData(prev => ({ ...prev, valor_adesao: v }));
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Máximo R$ 350,00 — deixe 0 para não cobrar</p>
+                  {formData.valor_adesao > 350 && (
+                    <p className="text-xs text-destructive">Valor de adesão não pode ultrapassar R$ 350,00</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

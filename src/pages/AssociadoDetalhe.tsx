@@ -181,6 +181,7 @@ interface CotacaoPlanoInfo {
   id: string;
   mensalidade: number | null;
   participacao: number | null;
+  valor_adesao: number | null;
 }
 
 interface VistoriaStatus {
@@ -345,7 +346,7 @@ export default function AssociadoDetalhe() {
       if (v.cotacao_id) {
         const { data: cot } = await supabase
           .from('cotacoes')
-          .select('id,mensalidade,participacao')
+          .select('id,mensalidade,participacao,valor_adesao')
           .eq('id', v.cotacao_id)
           .single();
         setCotacaoInfo(cot as CotacaoPlanoInfo ?? null);
@@ -1741,6 +1742,13 @@ function PlanosBeneficios({
                     <p className="text-xs text-muted-foreground mb-1">Mensalidade base</p>
                     <p className="text-sm font-bold">{mensalidadeBase ? fmtBRL(mensalidadeBase) : '—'}</p>
                   </div>
+                  {cotacaoInfo?.valor_adesao != null && cotacaoInfo.valor_adesao > 0 && (
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Taxa de Adesão</p>
+                      <p className="text-sm font-bold text-orange-600">{fmtBRL(cotacaoInfo.valor_adesao)}</p>
+                      <p className="text-xs text-muted-foreground">pagamento único</p>
+                    </div>
+                  )}
                   <div className="rounded-lg border p-3">
                     <p className="text-xs text-muted-foreground mb-1">Participação (sinistro)</p>
                     {cotacaoInfo?.participacao != null ? (
@@ -1887,6 +1895,15 @@ function PlanosBeneficios({
                     {totalExtras > 0 ? `+ ${fmtBRL(totalExtras)}` : '—'}
                   </p>
                 </div>
+                {cotacaoInfo?.valor_adesao != null && cotacaoInfo.valor_adesao > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2.5">
+                    <div>
+                      <p className="text-sm text-slate-400">Taxa de Adesão</p>
+                      <p className="text-xs text-slate-500">pagamento único</p>
+                    </div>
+                    <p className="text-sm font-semibold text-orange-400">{fmtBRL(cotacaoInfo.valor_adesao)}</p>
+                  </div>
+                )}
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-800">
                   <p className="text-sm font-bold text-slate-200">Total mensal</p>
                   <p className="text-lg font-bold text-orange-400">{mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}</p>

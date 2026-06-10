@@ -73,6 +73,7 @@ interface CotacaoInfo {
   participacao: number | null;
   plano: string | null;
   contrato_gerado: boolean | null;
+  valor_adesao: number | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -250,7 +251,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
           }
 
           const { data: cotacoes } = await supabase
-            .from('cotacoes').select('id,mensalidade,participacao,plano,contrato_gerado')
+            .from('cotacoes').select('id,mensalidade,participacao,plano,contrato_gerado,valor_adesao')
             .eq('associado_id', associadoId)
             .order('created_at', { ascending: false }).limit(1);
 
@@ -612,22 +613,29 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
             </table>
           )}
 
-          {/* ── RODAPÉ FINANCEIRO ── PROBLEMA 5-C */}
+          {/* ── RODAPÉ FINANCEIRO ── */}
           {mensalidadeContrato != null && (
             <table style={{ ...S.table, marginBottom: 16 }}>
               <tbody>
                 <tr>
-                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '40%' }}>
+                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: cotacao?.valor_adesao && cotacao.valor_adesao > 0 ? '30%' : '40%' }}>
                     <div style={{ fontSize: 10, color: '#6b7280' }}>Mensalidade base</div>
                     <div style={{ fontSize: 12, fontWeight: 600 }}>{fmtMoney(mensalidadeContrato)}</div>
                   </td>
-                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '30%' }}>
+                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: cotacao?.valor_adesao && cotacao.valor_adesao > 0 ? '30%' : '30%' }}>
                     <div style={{ fontSize: 10, color: '#6b7280' }}>Benefícios extras</div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: totalExtrasValor > 0 ? '#ea580c' : '#6b7280' }}>
                       {totalExtrasValor > 0 ? `+ ${fmtMoney(totalExtrasValor)}` : 'Nenhum'}
                     </div>
                   </td>
-                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '30%', backgroundColor: '#fff7ed' }}>
+                  {cotacao?.valor_adesao != null && cotacao.valor_adesao > 0 && (
+                    <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '20%' }}>
+                      <div style={{ fontSize: 10, color: '#6b7280' }}>Taxa de Adesão</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#ea580c' }}>{fmtMoney(cotacao.valor_adesao)}</div>
+                      <div style={{ fontSize: 9, color: '#9ca3af' }}>pagamento único</div>
+                    </td>
+                  )}
+                  <td style={{ border: '1px solid #d1d5db', padding: '6px 10px', width: '20%', backgroundColor: '#fff7ed' }}>
                     <div style={{ fontSize: 10, color: '#9a3412', fontWeight: 600 }}>Total mensal</div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#ea580c' }}>
                       {fmtMoney(mensalidadeContrato + totalExtrasValor)}

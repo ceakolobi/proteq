@@ -403,9 +403,8 @@ _Escolha o que faz mais sentido para o seu dia a dia:_
 
 *Mensalidade Base:* apenas *${mensalidadeFmt}/mês*
 _(opcionais escolhidos são somados à mensalidade)_
-
-🎁 *1ª mensalidade GRÁTIS*
-✅ *SEM* taxa de adesão
+${(cotacao as any).valor_adesao > 0 ? `\n💳 *Taxa de Adesão:* ${formatCurrency((cotacao as any).valor_adesao)} (pagamento único)` : '\n🎁 *1ª mensalidade GRÁTIS*\n✅ *SEM* taxa de adesão'}
+✅ *SEM* análise de condutor
 ✅ *SEM* análise de condutor
 ✅ *SEM* consulta SPC/Serasa
 
@@ -730,6 +729,16 @@ _Proteção Veicular_`;
               <span className="text-muted-foreground">Carro Reserva:</span>
               <span>{cotacao.carro_reserva_dias} dias</span>
             </div>
+            {(cotacao as any).valor_adesao != null && (cotacao as any).valor_adesao > 0 && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Taxa de Adesão:</span>
+                  <span className="font-semibold text-primary">{formatCurrency((cotacao as any).valor_adesao)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Pagamento único</p>
+              </>
+            )}
             
             {/* Cláusula COTA 01 - Valor Mínimo de Participação */}
             {cotacao.cota_nome && isCota01(cotacao.cota_nome) && (
