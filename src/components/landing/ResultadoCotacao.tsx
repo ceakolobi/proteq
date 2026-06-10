@@ -395,16 +395,6 @@ export function ResultadoCotacao({
                 <p className="text-xs text-muted-foreground mt-1">por mês</p>
               </div>
 
-              {/* Taxa de adesão */}
-              <div className="mt-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Taxa de Adesão</p>
-                    <p className="text-xs text-muted-foreground">Pagamento único</p>
-                  </div>
-                  <p className="text-xl font-bold text-primary">R$ 50</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
