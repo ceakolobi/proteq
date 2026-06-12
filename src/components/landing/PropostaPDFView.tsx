@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { useBeneficiosExtrasAtivos } from '@/hooks/useBeneficiosExtras';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
+import { CATEGORIAS_BENEFICIOS } from '@/constants/beneficios';
 
 interface Props {
   dadosPessoais: DadosPessoais;
@@ -13,17 +14,6 @@ interface Props {
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-
-const beneficiosInclusos = [
-  { titulo: 'Proteção Total', descricao: 'Roubo e furto' },
-  { titulo: 'Assistência 24h', descricao: 'Suporte integral' },
-  { titulo: 'Rastreamento', descricao: 'Tempo real' },
-  { titulo: '100% FIPE', descricao: 'Indenização total' },
-  { titulo: 'Guincho', descricao: '500 km (250 ida e volta)' },
-  { titulo: 'Carro Reserva', descricao: '30 dias inclusos' },
-  { titulo: 'Chaveiro 24h', descricao: 'Gratuito' },
-  { titulo: 'Pane Elétrica', descricao: 'Assistência inclusa' },
-];
 
 export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function PropostaPDFView(
   { dadosPessoais, dadosVeiculo, cotacao, beneficiosSelecionadosIds = [], valorAdesao = 0 },
@@ -145,30 +135,30 @@ export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function Propos
 
         {/* Benefits grid */}
         <div style={{ flex: 1, border, borderRadius: '8px', padding: '16px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 4px', color: text.primary }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 12px', color: text.primary }}>
             Benefícios Inclusos
           </h2>
-          <p style={{ fontSize: '11px', color: text.secondary, margin: '0 0 12px' }}>
-            Tudo o que você precisa para proteger seu veículo
-          </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-            {beneficiosInclusos.map((b, i) => (
+            {CATEGORIAS_BENEFICIOS.map((cat, i) => (
               <div
                 key={i}
                 style={{
                   border,
                   borderRadius: '6px',
                   padding: '10px',
-                  fontSize: '12px',
+                  fontSize: '11px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: text.brand, fontWeight: 'bold' }}>✔</span>
-                  <strong>{b.titulo}</strong>
+                <div style={{ fontWeight: 700, marginBottom: '5px', fontSize: '11px', color: text.primary }}>
+                  {cat.emoji} {cat.titulo}
                 </div>
-                <p style={{ margin: '2px 0 0 18px', fontSize: '11px', color: text.secondary }}>
-                  {b.descricao}
-                </p>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                  {cat.itens.map((item, j) => (
+                    <li key={j} style={{ color: text.secondary, paddingLeft: '6px', marginBottom: '2px', lineHeight: 1.4 }}>
+                      • {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>

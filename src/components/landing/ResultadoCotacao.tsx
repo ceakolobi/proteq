@@ -9,16 +9,10 @@ import {
   Mail,
   FileText,
   Shield,
-  Headphones,
-  MapPin,
-  Percent,
-  Truck,
-  Car,
-  Key,
-  Zap,
   Sparkles,
   Loader2,
 } from 'lucide-react';
+import { CATEGORIAS_BENEFICIOS, BENEFICIOS_WHATSAPP } from '@/constants/beneficios';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
 import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
@@ -133,16 +127,6 @@ export function ResultadoCotacao({
     );
   }
 
-  const beneficiosIcons = [
-    { icon: Shield, titulo: 'Proteção Total', descricao: 'Roubo e furto' },
-    { icon: Headphones, titulo: 'Assistência 24h', descricao: 'Suporte integral' },
-    { icon: MapPin, titulo: 'Rastreamento', descricao: 'Tempo real' },
-    { icon: Percent, titulo: '100% FIPE', descricao: 'Indenização total' },
-    { icon: Truck, titulo: 'Guincho', descricao: '500 km (250 ida e volta)' },
-    { icon: Car, titulo: 'Carro Reserva', descricao: '30 dias inclusos' },
-    { icon: Key, titulo: 'Chaveiro 24h', descricao: 'Gratuito' },
-    { icon: Zap, titulo: 'Pane Elétrica', descricao: 'Assistência inclusa' },
-  ];
 
   const filename = `proposta-${(dadosPessoais.nome || 'cliente').split(' ')[0].toLowerCase()}-${Date.now()}.pdf`;
 
@@ -298,7 +282,6 @@ export function ResultadoCotacao({
 
       const nomeCliente = dadosPessoais.nome?.split(' ')[0] || 'cliente';
       const modelo = `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`;
-      const beneficiosFixosTexto = beneficiosIcons.map(b => `• ${b.titulo} — ${b.descricao}`).join('\n');
       const extrasTexto = selectedBenefitObjs.length > 0
         ? '\n\n➕ *Benefícios extras selecionados:*\n' +
           selectedBenefitObjs.map(b => `• ${b.nome} (+ ${formatCurrency(Number(b.valor_mensal))})`).join('\n')
@@ -308,7 +291,7 @@ export function ResultadoCotacao({
         `Segue sua proposta de proteção veicular Harmony Agro:\n\n` +
         `🚗 Veículo: ${modelo} - ${dadosVeiculo.ano}\n` +
         `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n\n` +
-        `✅ *Benefícios inclusos no plano:*\n${beneficiosFixosTexto}` +
+        BENEFICIOS_WHATSAPP +
         extrasTexto +
         `\n\n📄 Baixe sua proposta completa em PDF:\n${publicUrl}\n\n` +
         `Proposta válida por 7 dias.`;
@@ -410,17 +393,20 @@ export function ResultadoCotacao({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {beneficiosIcons.map((beneficio, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col items-center text-center p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
-                      <beneficio.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="text-xs font-medium">{beneficio.titulo}</p>
-                    <p className="text-[10px] text-muted-foreground">{beneficio.descricao}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {CATEGORIAS_BENEFICIOS.map((cat, i) => (
+                  <div key={i} className="rounded-xl bg-muted/30 p-3">
+                    <p className="text-xs font-semibold mb-1.5 text-foreground">
+                      {cat.emoji} {cat.titulo}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {cat.itens.map((item, j) => (
+                        <li key={j} className="text-[10px] text-muted-foreground flex items-start gap-1">
+                          <span className="text-primary flex-shrink-0 mt-px">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 ))}
               </div>
