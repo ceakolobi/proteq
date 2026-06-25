@@ -327,11 +327,17 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
         const safeName = associado.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
         const fileName = `contrato_${safeName}_${Date.now()}.pdf`;
         const blobUrl = URL.createObjectURL(finalBlob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(blobUrl);
+        const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent) && !(window as any).MSStream;
+        if (isIOS) {
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+        } else {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(blobUrl);
+        }
 
         // Upload to Supabase Storage
         const storagePath = `contratos/${associadoId}/${fileName}`;

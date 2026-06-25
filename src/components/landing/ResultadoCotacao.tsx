@@ -214,13 +214,23 @@ export function ResultadoCotacao({
       const result = await gerarPDF();
       if (!result) return;
       const url = URL.createObjectURL(result.blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+
+      // iOS Safari não suporta o atributo `download` em <a> — o arquivo abre
+      // no viewer nativo. Usamos window.open e avisamos o usuário.
+      const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOS) {
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+        toast({ title: 'PDF gerado!', description: 'Use o botão Compartilhar do Safari para salvar o arquivo.' });
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     } catch (e: unknown) {
       toast({ variant: 'destructive', title: 'Erro ao gerar PDF', description: getErrorMessage(e) });
     } finally {
