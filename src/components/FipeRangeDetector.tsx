@@ -18,19 +18,24 @@ export function FipeRangeDetector({
 }: FipeRangeDetectorProps) {
   const detectedCota = useMemo(() => {
     if (valorFipe <= 0 || cotas.length === 0) return null;
-    
-    return cotas.find(
-      c => valorFipe >= c.fipe_min && valorFipe <= c.fipe_max && c.ativo
-    );
-  }, [valorFipe, cotas]);
+    const caminhoneteTypes = ['pickup','caminhao','utilitario','carreta','maquina_agricola','maquina_industrial','implemento_agricola'];
+    return cotas.find(c => {
+      if (!c.ativo || valorFipe < c.fipe_min || valorFipe > c.fipe_max) return false;
+      const ac = c as any;
+      if (tipoVeiculo === 'carro' && ac.aplica_carro === false) return false;
+      if (tipoVeiculo === 'moto' && ac.aplica_moto === false) return false;
+      if (caminhoneteTypes.includes(tipoVeiculo) && ac.aplica_caminhonete === false) return false;
+      return true;
+    });
+  }, [valorFipe, cotas, tipoVeiculo]);
 
   const mensalidadeInfo = useMemo(() => {
     if (!detectedCota) return { valorBase: 0, ajusteGeralValor: 0, valorFinal: 0 };
-    
+
     // Usar novo campo ajuste_geral_valor, com fallback para acrescimo_global (legado)
     const ajusteGeralValor = Number((detectedCota as any).ajuste_geral_valor) || Number((detectedCota as any).acrescimo_global) || 0;
     let valorBase = 0;
-    
+
     switch (tipoVeiculo) {
       case 'carro':
         valorBase = detectedCota.valor_carro || 0;
@@ -39,6 +44,12 @@ export function FipeRangeDetector({
         valorBase = detectedCota.valor_moto || 0;
         break;
       case 'pickup':
+      case 'caminhao':
+      case 'utilitario':
+      case 'carreta':
+      case 'maquina_agricola':
+      case 'maquina_industrial':
+      case 'implemento_agricola':
         valorBase = detectedCota.valor_camionete || 0;
         break;
       default:
@@ -125,19 +136,24 @@ export function FipeRangeDetector({
 export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas: Cota[]) {
   const detectedCota = useMemo(() => {
     if (valorFipe <= 0 || cotas.length === 0) return null;
-    
-    return cotas.find(
-      c => valorFipe >= c.fipe_min && valorFipe <= c.fipe_max && c.ativo
-    );
-  }, [valorFipe, cotas]);
+    const caminhoneteTypes = ['pickup','caminhao','utilitario','carreta','maquina_agricola','maquina_industrial','implemento_agricola'];
+    return cotas.find(c => {
+      if (!c.ativo || valorFipe < c.fipe_min || valorFipe > c.fipe_max) return false;
+      const ac = c as any;
+      if (tipoVeiculo === 'carro' && ac.aplica_carro === false) return false;
+      if (tipoVeiculo === 'moto' && ac.aplica_moto === false) return false;
+      if (caminhoneteTypes.includes(tipoVeiculo) && ac.aplica_caminhonete === false) return false;
+      return true;
+    });
+  }, [valorFipe, cotas, tipoVeiculo]);
 
   const mensalidade = useMemo(() => {
     if (!detectedCota) return 0;
-    
+
     // Usar novo campo ajuste_geral_valor, com fallback para acrescimo_global (legado)
     const ajusteGeralValor = Number((detectedCota as any).ajuste_geral_valor) || Number((detectedCota as any).acrescimo_global) || 0;
     let valorBase = 0;
-    
+
     switch (tipoVeiculo) {
       case 'carro':
         valorBase = detectedCota.valor_carro || 0;
@@ -146,12 +162,18 @@ export function useFipeRange(valorFipe: number, tipoVeiculo: VehicleType, cotas:
         valorBase = detectedCota.valor_moto || 0;
         break;
       case 'pickup':
+      case 'caminhao':
+      case 'utilitario':
+      case 'carreta':
+      case 'maquina_agricola':
+      case 'maquina_industrial':
+      case 'implemento_agricola':
         valorBase = detectedCota.valor_camionete || 0;
         break;
       default:
         valorBase = 0;
     }
-    
+
     // Fórmula única: valorFinal = valorBase + ajusteGeralValor
     return valorBase + ajusteGeralValor;
   }, [detectedCota, tipoVeiculo]);
