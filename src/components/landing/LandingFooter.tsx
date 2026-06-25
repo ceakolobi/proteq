@@ -1,4 +1,4 @@
-import { Shield, Mail, Phone, MapPin } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import logoHarmonyBrancaFull from '@/assets/logo-harmony-branca-full.png';
 
 export function LandingFooter() {
@@ -36,24 +36,6 @@ export function LandingFooter() {
             </ul>
           </div>
           
-          {/* Contact */}
-          <div>
-            <h4 className="font-semibold mb-4 text-secondary-foreground">Contato</h4>
-            <ul className="space-y-3 text-sm text-secondary-foreground/80">
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" />
-                <span>contato@harmonycrm.com.br</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-primary" />
-                <span>(00) 00000-0000</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                <span>Atendimento 100% digital</span>
-              </li>
-            </ul>
-          </div>
         </div>
         
         {/* Bottom */}
