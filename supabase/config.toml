@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.aceitar-cotacao]
 verify_jwt = false
+
+[functions.emily-contratar]
+verify_jwt = false
