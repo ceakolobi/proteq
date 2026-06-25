@@ -741,17 +741,6 @@ export default function LayoutCotacaoHarmony() {
                     </p>
                   </div>
                   
-                  {cotacao?.valor_adesao != null && cotacao.valor_adesao > 0 && (
-                    <div className="bg-[hsl(25,95%,97%)] border border-[hsl(25,95%,85%)] rounded-xl p-3 flex justify-between items-center">
-                      <div>
-                        <p className="text-xs text-[hsl(25,50%,40%)] font-medium uppercase tracking-wide">Taxa de Adesão</p>
-                        <p className="text-xs text-[hsl(25,50%,50%)]">Pagamento único</p>
-                      </div>
-                      <p className="font-bold text-[hsl(25,95%,40%)]">
-                        {formatCurrency(cotacao.valor_adesao)}
-                      </p>
-                    </div>
-                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-[hsl(142,71%,97%)] rounded-xl p-3 text-center">
@@ -761,9 +750,11 @@ export default function LayoutCotacaoHarmony() {
                     <div className="bg-[hsl(142,71%,97%)] rounded-xl p-3 text-center">
                       <p className="text-xs text-[hsl(142,50%,30%)] font-medium uppercase">Participação (7%)</p>
                       <p className="font-semibold text-[hsl(142,50%,25%)] mt-1">
-                        {cotacao?.participacao !== null && cotacao?.participacao !== undefined
+                        {cotacao?.participacao != null
                           ? formatCurrency(cotacao.participacao)
-                          : "7%"}
+                          : (cotacao?.valor_fipe ?? cotacao?.valor_bem)
+                            ? formatCurrency(((cotacao.valor_fipe ?? cotacao.valor_bem) as number) * 0.07)
+                            : "7%"}
                       </p>
                     </div>
                   </div>
@@ -1135,7 +1126,6 @@ export default function LayoutCotacaoHarmony() {
         mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
         cotacaoId={cotacao?.id}
         beneficiosExtras={beneficiosExtras}
-        valorAdesao={cotacao?.valor_adesao ?? 0}
       />
 
       {/* Modal de Seleção de Capa */}

@@ -7,6 +7,7 @@ import { useBrand } from '@/hooks/useBrand';
 import { useIsDemo } from '@/hooks/useIsDemo';
 import { MobileNavBar } from '@/components/pwa/MobileNavBar';
 import { DemoBanner } from '@/components/demo/DemoBanner';
+import { EmilyChat } from '@/components/emily/EmilyChat';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   PermissionModule, 
@@ -626,6 +627,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Mobile Bottom Navigation - Apenas em modo PWA/mobile */}
       {isPWAMode && <MobileNavBar />}
+
+      {/* Emily — Consultora IA flutuante (apenas desktop, esconde em PWA mobile) */}
+      {!isPWAMode && (
+        <EmilyChat
+          context="consultor"
+          onStartCotacao={() => navigate('/cotacoes')}
+        />
+      )}
     </div>
   );
 }

@@ -127,6 +127,19 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const isAceita = cotacao.status === 'aceita' || !!(cotacao as any).aceita_em;
   const canApprove = cotacao.status !== 'aprovado' && cotacao.status !== 'perdido' && canManage;
 
+  // Participação com fallback para cotações sem valor salvo no banco
+  const participacaoDisplay: number | null = (() => {
+    if (cotacao.participacao != null) return cotacao.participacao;
+    const valorRef = (cotacao.valor_fipe ?? cotacao.valor_bem) || 0;
+    if (valorRef <= 0) return null;
+    const calc = valorRef * 0.07;
+    if (cotacao.cota_nome && isCota01(cotacao.cota_nome)) {
+      const cat = getCategoriaByTipoVeiculo(cotacao.tipo_bem as VehicleType);
+      return Math.max(calc, PARTICIPACAO_MINIMA_COTA_01[cat]);
+    }
+    return calc;
+  })();
+
   // Marca cotação como aceita (CRM interno) — dispara vistoria automaticamente
   const handleMarcarAceita = async () => {
     if (!confirm('Confirma marcar esta cotação como ACEITA? Isso disparará o fluxo de vistoria.')) return;
@@ -401,7 +414,9 @@ _Escolha o que faz mais sentido para o seu dia a dia:_
 
 *Mensalidade Base:* apenas *${mensalidadeFmt}/mês*
 _(opcionais escolhidos são somados à mensalidade)_
-${(cotacao as any).valor_adesao > 0 ? `\n💳 *Taxa de Adesão:* ${formatCurrency((cotacao as any).valor_adesao)} (pagamento único)` : '\n🎁 *1ª mensalidade GRÁTIS*\n✅ *SEM* taxa de adesão'}
+
+🎁 *1ª mensalidade GRÁTIS*
+✅ *SEM* taxa de adesão
 ✅ *SEM* análise de condutor
 ✅ *SEM* análise de condutor
 ✅ *SEM* consulta SPC/Serasa
@@ -724,22 +739,12 @@ _Proteção Veicular_`;
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Participação (7%):</span>
-              <span>{formatCurrency(cotacao.participacao)}</span>
+              <span>{formatCurrency(participacaoDisplay)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Carro Reserva:</span>
               <span>{cotacao.carro_reserva_dias} dias</span>
             </div>
-            {(cotacao as any).valor_adesao != null && (cotacao as any).valor_adesao > 0 && (
-              <>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Taxa de Adesão:</span>
-                  <span className="font-semibold text-primary">{formatCurrency((cotacao as any).valor_adesao)}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Pagamento único</p>
-              </>
-            )}
             
             {/* Cláusula COTA 01 - Valor Mínimo de Participação */}
             {cotacao.cota_nome && isCota01(cotacao.cota_nome) && (

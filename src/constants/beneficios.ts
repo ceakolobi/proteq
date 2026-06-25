@@ -31,15 +31,6 @@ export const CATEGORIAS_BENEFICIOS: CategoriaBeneficio[] = [
     ],
   },
   {
-    emoji: '📍',
-    titulo: 'Rastreamento Veicular – Para veículos acima de R$ 90.000',
-    itens: [
-      'Monitoramento em tempo real',
-      'Localização do veículo',
-      'Auxílio na recuperação em caso de roubo ou furto',
-    ],
-  },
-  {
     emoji: '🚕',
     titulo: 'Benefícios para Motoristas de Aplicativo e Profissionais',
     itens: [

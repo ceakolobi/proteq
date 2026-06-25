@@ -9,14 +9,13 @@ interface Props {
   dadosVeiculo: DadosVeiculo;
   cotacao: ResultadoCotacaoPublica;
   beneficiosSelecionadosIds?: string[];
-  valorAdesao?: number;
 }
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function PropostaPDFView(
-  { dadosPessoais, dadosVeiculo, cotacao, beneficiosSelecionadosIds = [], valorAdesao = 0 },
+  { dadosPessoais, dadosVeiculo, cotacao, beneficiosSelecionadosIds = [] },
   ref,
 ) {
   const { data: beneficiosExtras = [] } = useBeneficiosExtrasAtivos(dadosVeiculo.tipo_bem);
@@ -110,26 +109,6 @@ export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function Propos
               </p>
               <p style={{ margin: 0, fontSize: '10px', color: text.secondary }}>por mês</p>
             </div>
-            {valorAdesao > 0 && (
-              <div
-                style={{
-                  marginTop: '14px',
-                  padding: '12px',
-                  background: '#fff7ed',
-                  border: `1px solid ${text.brand}33`,
-                  borderRadius: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 600 }}>Taxa de Adesão</p>
-                  <p style={{ margin: 0, fontSize: '10px', color: text.secondary }}>Pagamento único</p>
-                </div>
-                <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: text.brand }}>{formatBRL(valorAdesao)}</p>
-              </div>
-            )}
           </div>
         </div>
 

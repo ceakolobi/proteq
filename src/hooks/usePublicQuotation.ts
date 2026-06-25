@@ -87,7 +87,6 @@ export function usePublicQuotation() {
       beneficios: [
         'Proteção contra roubo e furto',
         'Assistência 24h',
-        'Rastreamento veicular',
         'Até 100% da FIPE',
         'Guincho 500 km (250 ida e volta)',
         '30 dias de carro reserva',
