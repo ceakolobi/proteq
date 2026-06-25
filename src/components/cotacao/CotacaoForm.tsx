@@ -553,15 +553,15 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   3. Dados do Veículo
                 </CardTitle>
                 <CardDescription>
-                  {placaStatus === 'found_fipe' 
-                    ? 'Dados preenchidos automaticamente' 
-                    : fipeBloqueado
-                    ? 'Dados preenchidos via FIPE'
+                  {placaStatus === 'found_fipe' || fipeBloqueado
+                    ? 'Dados preenchidos automaticamente via placa/FIPE'
+                    : (placaStatus === 'not_found' || placaStatus === 'error')
+                    ? 'Preencha os dados do veículo abaixo ou use a busca FIPE'
                     : 'Preencha manualmente ou busque na tabela FIPE'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {tipoTemFipe && !fipeBloqueado && (placaStatus === 'not_found' || placaStatus === 'idle') && (
+                {tipoTemFipe && !fipeBloqueado && (placaStatus === 'not_found' || placaStatus === 'idle' || placaStatus === 'error') && (
                   <FipeSelector
                     tipoBem={formData.tipo_bem as TipoBem}
                     onValorFound={handleFipeValorFound}

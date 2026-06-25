@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Search, CheckCircle2, AlertCircle, Car } from 'lucide-react';
+import { Loader2, Search, CheckCircle2, AlertCircle, Car, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -290,22 +290,52 @@ export default function PlacaLookup({
         </Button>
       </div>
 
-      {message && (
+      {/* Mensagem de status */}
+      {message && status !== 'error' && status !== 'not_found' && (
         <p className={cn(
           "text-sm",
           status === 'found_fipe' && "text-green-600 dark:text-green-400",
           status === 'found_no_fipe' && "text-yellow-600 dark:text-yellow-400",
-          status === 'not_found' && "text-muted-foreground",
           status === 'invalid' && "text-muted-foreground",
-          status === 'error' && "text-destructive",
         )}>
           {message}
         </p>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        Digite a placa e pressione Tab ou clique na lupa para consultar automaticamente
-      </p>
+      {/* Banner amigável quando placa falha */}
+      {(status === 'error' || status === 'not_found') && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2 dark:bg-amber-950/30 dark:border-amber-800">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+              {status === 'not_found'
+                ? 'Não encontramos sua placa. Preencha os dados manualmente abaixo 👇'
+                : 'Não foi possível consultar a placa. Preencha os dados manualmente abaixo 👇'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Dica + botão de modo manual */}
+      {status !== 'found_fipe' && status !== 'loading' && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            {status === 'idle'
+              ? 'Digite a placa e pressione Tab ou clique na lupa'
+              : 'Ou preencha os dados do veículo manualmente'}
+          </p>
+          {status !== 'error' && status !== 'not_found' && (
+            <button
+              type="button"
+              onClick={() => { updateStatus('not_found'); setMessage(''); }}
+              className="text-xs text-primary hover:underline flex items-center gap-1 ml-2 shrink-0"
+            >
+              <PenLine className="h-3 w-3" />
+              Preencher manualmente
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
