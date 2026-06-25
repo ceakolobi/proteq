@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { EmilyChat } from '@/components/emily/EmilyChat';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -409,7 +410,7 @@ export default function AssociadoDashboard() {
       </main>
 
       {/* Footer com cor azul escuro */}
-      <footer 
+      <footer
         className="py-6 px-4 text-center"
         style={{ backgroundColor: 'hsl(230, 70%, 18%)' }}
       >
@@ -417,6 +418,15 @@ export default function AssociadoDashboard() {
           © {new Date().getFullYear()} {brand?.name || 'Harmony Clube de Benefícios'}. Todos os direitos reservados.
         </p>
       </footer>
+
+      {/* Emily — Assistente do associado com acesso aos dados reais */}
+      {associado?.id && (
+        <EmilyChat
+          context="associado"
+          associadoId={associado.id}
+          userId={user?.id}
+        />
+      )}
     </div>
   );
 }

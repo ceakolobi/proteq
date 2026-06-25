@@ -628,10 +628,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Mobile Bottom Navigation - Apenas em modo PWA/mobile */}
       {isPWAMode && <MobileNavBar />}
 
-      {/* Emily — Consultora IA flutuante (apenas desktop, esconde em PWA mobile) */}
+      {/* Emily — Consultora IA flutuante
+          Visível apenas para roles com acesso ao CRM (não para associados nem vistoriadores) */}
       {!isPWAMode && (
+        isAdminPrincipal ||
+        roles?.some(r => ['admin_regional', 'financeiro', 'cadastro', 'consultor_vendas'].includes(r))
+      ) && (
         <EmilyChat
           context="consultor"
+          userId={user?.id}
+          consultorId={profile?.id}
+          isAdmin={isAdminPrincipal || roles?.includes('admin_regional')}
           onStartCotacao={() => navigate('/cotacoes')}
         />
       )}
