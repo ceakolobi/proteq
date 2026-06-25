@@ -1,10 +1,14 @@
 
 -- ============================================================
--- 1. adesao_links: lock down public access (table is unused)
+-- 1. adesao_links: lock down public access (only if table exists)
 -- ============================================================
-DROP POLICY IF EXISTS "Public access by token" ON public.adesao_links;
-DROP POLICY IF EXISTS "Public update by token" ON public.adesao_links;
-DROP POLICY IF EXISTS "Anon pode criar adesao_link publica" ON public.adesao_links;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='adesao_links') THEN
+    DROP POLICY IF EXISTS "Public access by token" ON public.adesao_links;
+    DROP POLICY IF EXISTS "Public update by token" ON public.adesao_links;
+    DROP POLICY IF EXISTS "Anon pode criar adesao_link publica" ON public.adesao_links;
+  END IF;
+END $$;
 
 -- ============================================================
 -- 2. termos_aceite: remove broad public SELECT, restrict UPDATE

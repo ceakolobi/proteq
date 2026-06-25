@@ -152,12 +152,19 @@ CREATE POLICY "authenticated_read_fipe_cache"
 ON public.fipe_cache FOR SELECT
 USING (auth.role() = 'authenticated');
 
--- Block policy for lead_interacoes
-DROP POLICY IF EXISTS "Block anonymous lead_interacoes" ON public.lead_interacoes;
-CREATE POLICY "require_authentication_lead_interacoes"
-ON public.lead_interacoes FOR ALL
-USING (auth.uid() IS NOT NULL)
-WITH CHECK (auth.uid() IS NOT NULL);
+-- Block policy for lead_interacoes (only if table exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'lead_interacoes') THEN
+    DROP POLICY IF EXISTS "Block anonymous lead_interacoes" ON public.lead_interacoes;
+    EXECUTE $policy$
+      CREATE POLICY "require_authentication_lead_interacoes"
+      ON public.lead_interacoes FOR ALL
+      USING (auth.uid() IS NOT NULL)
+      WITH CHECK (auth.uid() IS NOT NULL)
+    $policy$;
+  END IF;
+END $$;
 
 -- 9. CREATE VIEW FOR MASKED SENSITIVE DATA
 -- This view masks sensitive fields based on role

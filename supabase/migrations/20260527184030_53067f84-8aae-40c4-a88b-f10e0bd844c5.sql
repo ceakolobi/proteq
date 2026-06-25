@@ -184,6 +184,14 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Criar função se não existir antes do grant
+CREATE OR REPLACE FUNCTION public.check_lead_exists_by_phone(p_telefone text)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (SELECT 1 FROM public.leads WHERE telefone = p_telefone);
+$$;
+
 GRANT EXECUTE ON FUNCTION public.get_termo_by_token(uuid) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_cotacao_publica_by_token(uuid) TO anon;
 GRANT EXECUTE ON FUNCTION public.renovar_token_termo(uuid) TO anon;

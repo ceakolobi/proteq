@@ -17,16 +17,14 @@ FROM public.cotacoes c
 WHERE cc.cotacao_id = c.id
 AND cc.company_id IS NULL;
 
--- 3. LEAD_INTERACOES - Add company_id
-ALTER TABLE public.lead_interacoes 
-ADD COLUMN IF NOT EXISTS company_id uuid REFERENCES public.companies(id);
-
--- Update lead_interacoes with company from leads
-UPDATE public.lead_interacoes li
-SET company_id = l.company_id
-FROM public.leads l
-WHERE li.lead_id = l.id
-AND li.company_id IS NULL;
+-- 3. LEAD_INTERACOES - Add company_id (only if table exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'lead_interacoes') THEN
+    ALTER TABLE public.lead_interacoes ADD COLUMN IF NOT EXISTS company_id uuid REFERENCES public.companies(id);
+    UPDATE public.lead_interacoes li SET company_id = l.company_id FROM public.leads l WHERE li.lead_id = l.id AND li.company_id IS NULL;
+  END IF;
+END $$;
 
 -- 4. SETTINGS - Add company_id (for multi-tenant settings)
 ALTER TABLE public.settings 
@@ -99,9 +97,8 @@ ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES auth.users(id);
 ALTER TABLE public.cotacao_contatos 
 ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES auth.users(id);
 
--- Lead Interacoes
-ALTER TABLE public.lead_interacoes 
-ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES auth.users(id);
+-- Lead Interacoes (only if table exists)
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='lead_interacoes') THEN ALTER TABLE public.lead_interacoes ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES auth.users(id); END IF; END $$;
 
 -- Access Logs (already has user_id, but add created_by for consistency)
 ALTER TABLE public.access_logs 
@@ -122,12 +119,8 @@ ON public.cotacao_contatos FOR ALL
 USING (company_id = get_user_company(auth.uid()))
 WITH CHECK (company_id = get_user_company(auth.uid()));
 
--- Lead Interacoes - Add company isolation
-DROP POLICY IF EXISTS "Company isolation lead_interacoes" ON public.lead_interacoes;
-CREATE POLICY "company_isolation_lead_interacoes"
-ON public.lead_interacoes FOR ALL
-USING (company_id = get_user_company(auth.uid()))
-WITH CHECK (company_id = get_user_company(auth.uid()));
+-- Lead Interacoes - Add company isolation (only if table exists)
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='lead_interacoes') THEN DROP POLICY IF EXISTS "Company isolation lead_interacoes" ON public.lead_interacoes; EXECUTE $p$CREATE POLICY "company_isolation_lead_interacoes" ON public.lead_interacoes FOR ALL USING (company_id = get_user_company(auth.uid())) WITH CHECK (company_id = get_user_company(auth.uid()))$p$; END IF; END $$;
 
 -- User Roles - Add company isolation
 DROP POLICY IF EXISTS "Company isolation user_roles" ON public.user_roles;
@@ -231,7 +224,5 @@ CREATE TRIGGER set_created_by_cotacao_contatos
   BEFORE INSERT ON public.cotacao_contatos
   FOR EACH ROW EXECUTE FUNCTION set_created_by_and_company();
 
-DROP TRIGGER IF EXISTS set_created_by_lead_interacoes ON public.lead_interacoes;
-CREATE TRIGGER set_created_by_lead_interacoes
-  BEFORE INSERT ON public.lead_interacoes
-  FOR EACH ROW EXECUTE FUNCTION set_created_by_and_company();
+-- lead_interacoes trigger (only if table exists)
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='lead_interacoes') THEN DROP TRIGGER IF EXISTS set_created_by_lead_interacoes ON public.lead_interacoes; EXECUTE $t$CREATE TRIGGER set_created_by_lead_interacoes BEFORE INSERT ON public.lead_interacoes FOR EACH ROW EXECUTE FUNCTION set_created_by_and_company()$t$; END IF; END $$;

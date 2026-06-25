@@ -11,8 +11,7 @@ WITH CHECK (
   -- Apenas permite se os campos obrigatórios estiverem preenchidos
   nome IS NOT NULL AND
   telefone IS NOT NULL AND
-  consultor_id IS NOT NULL AND
-  origem = 'site'
+  consultor_id IS NOT NULL
 );
 
 -- Permitir que anon leia leads existentes apenas para verificar duplicatas (por telefone)

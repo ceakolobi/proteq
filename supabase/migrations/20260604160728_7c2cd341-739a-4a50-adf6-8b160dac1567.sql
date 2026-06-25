@@ -10,6 +10,7 @@ ALTER TABLE public.vistorias
 
 CREATE INDEX IF NOT EXISTS idx_vistorias_token_assinatura ON public.vistorias(token_assinatura);
 
+DROP FUNCTION IF EXISTS public.get_vistoria_by_token_assinatura(uuid);
 CREATE OR REPLACE FUNCTION public.get_vistoria_by_token_assinatura(p_token uuid)
 RETURNS TABLE (
   id uuid,
