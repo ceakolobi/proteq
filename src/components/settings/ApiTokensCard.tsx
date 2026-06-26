@@ -218,7 +218,7 @@ export function ApiTokensCard() {
     setIsDialogOpen(false);
   };
 
-  const apiBaseUrl = `https://sbtfhtllzpurjprivqoi.supabase.co/rest/v1`;
+  const apiBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1`;
 
   if (isLoading) {
     return (
