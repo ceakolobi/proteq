@@ -179,10 +179,15 @@ export default function Cotas() {
     setIsDialogOpen(true);
   };
 
-  // Filtered cotas based on category
-  const filteredCotas = categoriaFilter === 'TODAS' 
-    ? cotas 
-    : cotas.filter(c => c.categoria === categoriaFilter);
+  // Filtered cotas based on category — usa aplica_carro/moto/caminhonete (não o campo categoria legado)
+  const filteredCotas = categoriaFilter === 'TODAS'
+    ? cotas
+    : cotas.filter(c => {
+        if (categoriaFilter === 'CARRO')      return c.aplica_carro !== false;
+        if (categoriaFilter === 'MOTO')       return c.aplica_moto !== false;
+        if (categoriaFilter === 'CAMINHONETE') return c.aplica_caminhonete !== false;
+        return true;
+      });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
