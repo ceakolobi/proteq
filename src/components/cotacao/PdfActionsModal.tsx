@@ -188,12 +188,14 @@ ${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snaps
 `
       : '';
 
-    // Link amigável: usa /aceitar/{token} se disponível, senão URL curta /p/:id, senão URL do PDF
-    const propostaLink = aceiteToken
-      ? `${window.location.origin}/aceitar/${aceiteToken}`
-      : cotacaoId
+    // Prioridade: /p/:id sempre que cotacaoId existir; /aceitar/:token como alternativa; nunca URL do Supabase
+    const propostaLink = cotacaoId
       ? `https://harmonyclube.com.br/p/${cotacaoId}`
-      : pdfUrl || null;
+      : aceiteToken
+      ? `${window.location.origin}/aceitar/${aceiteToken}`
+      : null;
+
+    console.log('cotacaoId:', cotacaoId, 'aceiteToken:', aceiteToken, 'propostaLink:', propostaLink);
 
     const mensagem = `*🛡️ HARMONY CLUBE DE BENEFÍCIOS*
 Olá, ${nomePrimeiro}! 😊

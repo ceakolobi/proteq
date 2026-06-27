@@ -1127,7 +1127,7 @@ export default function LayoutCotacaoHarmony() {
         validadeDias={7}
         modelo={cotacao?.modelo || ""}
         mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
-        cotacaoId={cotacao?.id}
+        cotacaoId={cotacaoId || cotacao?.id}
         beneficiosExtras={beneficiosExtras}
         placa={cotacao?.placa || undefined}
         valorAdesao={cotacao?.valor_adesao ?? 0}
