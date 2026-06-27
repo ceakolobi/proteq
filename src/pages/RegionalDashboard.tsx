@@ -413,7 +413,7 @@ export default function RegionalDashboard() {
       if (error) throw error;
 
       const enriched: ComissaoRow[] = await Promise.all(
-        ((data as ComissaoRow[]) || []).map(async (c) => {
+        ((data as unknown as ComissaoRow[]) || []).map(async (c) => {
           const { data: assoc } = await supabase
             .from('associados').select('nome_completo').eq('id', c.associado_id).single();
           const { data: cons } = c.consultor_id
