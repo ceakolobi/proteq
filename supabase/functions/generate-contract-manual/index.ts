@@ -710,9 +710,22 @@ async function createSimplePdfBytes(title: string, text: string) {
   return await pdfDoc.save();
 }
 
+// Converte Uint8Array para base64 sem estourar a call stack (spread de arrays grandes falha)
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+  }
+  return btoa(binary);
+}
+
 async function sendEmailWithResend(params: { to: string; subject: string; html: string; pdfBytes: Uint8Array; filename: string }) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) throw new Error("RESEND_API_KEY não configurada");
+
+  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "noreply@resend.dev";
+  const fromName = "Harmony Clube de Benefícios";
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -721,14 +734,14 @@ async function sendEmailWithResend(params: { to: string; subject: string; html: 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Harmony <no-reply@harmony.local>",
+      from: `${fromName} <${fromEmail}>`,
       to: [params.to],
       subject: params.subject,
       html: params.html,
       attachments: [
         {
           filename: params.filename,
-          content: btoa(String.fromCharCode(...params.pdfBytes)),
+          content: uint8ArrayToBase64(params.pdfBytes),
           content_type: "application/pdf",
         },
       ],
@@ -983,12 +996,15 @@ Deno.serve(async (req) => {
     if (updErr) throw updErr;
 
     const shouldSendEmail = body.sendEmail ?? true;
+    let emailSent = false;
+    let emailWarning: string | null = null;
+
     if (shouldSendEmail && associado.email) {
       try {
         await sendEmailWithResend({
           to: associado.email,
-          subject: "Seu contrato foi gerado",
-          html: `<p>Olá, ${associado.nome_completo ?? ""}.</p><p>Segue em anexo o seu contrato.</p>`,
+          subject: "Seu contrato foi gerado — Harmony Clube de Benefícios",
+          html: `<p>Olá, ${associado.nome_completo ?? ""}.</p><p>Segue em anexo o seu contrato de proteção veicular.</p><p>Em caso de dúvidas, entre em contato conosco.</p>`,
           pdfBytes,
           filename: `contrato-${contractId}.pdf`,
         });
@@ -997,12 +1013,15 @@ Deno.serve(async (req) => {
           accepted_ip: ip,
           accepted_user_agent: userAgent,
         }).eq("id", contractId);
-      } catch (e) {
+        emailSent = true;
+      } catch (e: any) {
         console.error("email_error", e);
+        emailWarning = e?.message ?? "Erro ao enviar e-mail";
       }
     }
 
-    return new Response(JSON.stringify({ success: true, contractId, pdfPath }), {
+    // Contrato gerado com sucesso — sempre retorna 200 independente do email
+    return new Response(JSON.stringify({ success: true, contractId, pdfPath, emailSent, emailWarning }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -911,12 +911,16 @@ export default function AssociadoDetalhe() {
     if (!id) return;
     setIsGeneratingContract(true);
     try {
-      const { error } = await supabase.functions.invoke('generate-contract-manual', {
+      const { data, error } = await supabase.functions.invoke('generate-contract-manual', {
         body: { associadoId: id, veiculoId: veiculo?.id ?? null, sendEmail: true },
       });
       if (error) throw error;
-      toast.success('Contrato gerado e enviado por e-mail!');
       fetchContratos(id);
+      if (data?.emailSent === false) {
+        toast.warning('Contrato gerado! Email não enviado — verifique as configurações de email.');
+      } else {
+        toast.success('Contrato gerado e enviado por e-mail!');
+      }
     } catch (e: any) { toast.error(e?.message || 'Erro ao gerar contrato'); }
     finally { setIsGeneratingContract(false); }
   };
