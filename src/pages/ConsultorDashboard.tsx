@@ -212,7 +212,7 @@ export default function ConsultorDashboard() {
       if (error) throw error;
 
       const enriched: ComissaoConsultor[] = await Promise.all(
-        ((data as ComissaoConsultor[]) || []).map(async (c) => {
+        ((data as unknown as ComissaoConsultor[]) || []).map(async (c) => {
           const { data: assoc } = await supabase
             .from('associados').select('nome_completo').eq('id', c.associado_id).single();
           return { ...c, associado_nome: assoc?.nome_completo || 'N/A' };

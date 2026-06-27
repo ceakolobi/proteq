@@ -445,7 +445,7 @@ export default function AssociadoDetalhe() {
       .select('id,beneficio_id,nome_snapshot,valor_snapshot')
       .eq('associado_id', associadoId)
       .eq('ativo', true);
-    if (!error) setExtrasAtivos((data as ExtraAtivo[]) || []);
+    if (!error) setExtrasAtivos((data as unknown as ExtraAtivo[]) || []);
   }, []);
 
   const handleToggleBeneficio = async (extra: BeneficioExtra) => {
