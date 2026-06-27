@@ -79,6 +79,8 @@ interface CotacaoData {
   cliente_whatsapp: string | null;
   chassi: string | null;
   valor_adesao: number | null;
+  placa: string | null;
+  valor_base: number | null;
 }
 
 // Benefícios inclusos com ícones
@@ -1131,7 +1133,13 @@ export default function LayoutCotacaoHarmony() {
         beneficiosExtras={beneficiosExtras}
         placa={cotacao?.placa || undefined}
         valorAdesao={cotacao?.valor_adesao ?? 0}
-        participacao={cotacao?.participacao ?? undefined}
+        participacao={
+          cotacao?.participacao != null
+            ? cotacao.participacao
+            : cotacao != null
+            ? (cotacao.valor_fipe ?? cotacao.valor_bem) * 0.07
+            : undefined
+        }
         marcaAno={cotacao?.marca && cotacao?.modelo
           ? `${cotacao.marca} ${cotacao.modelo}${cotacao.ano_fabricacao ? ` (${cotacao.ano_fabricacao})` : ''}`
           : undefined}

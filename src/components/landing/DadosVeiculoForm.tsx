@@ -349,10 +349,19 @@ export function DadosVeiculoForm({ onSubmit, onBack, loading }: DadosVeiculoForm
     }
 
     const marcaAlvo = normalize(marcaNome);
+
+    // Match por palavras sig. (>= 2 chars) — resolve "VOLKSWAGEN" ↔ "VW - VolksWagen", "CHEVROLET" ↔ "GM - Chevrolet"
+    const wordMatch = (hay: string, needle: string) => {
+      const split = (s: string) => s.split(/[\s\-\/]+/).filter(w => w.length >= 2);
+      const wH = split(hay), wN = split(needle);
+      return wH.some(h => wN.some(n => h === n || h.includes(n) || n.includes(h)));
+    };
+
     const marcaMatch =
       marcasList.find((m) => normalize(m.nome) === marcaAlvo) ||
       marcasList.find((m) => normalize(m.nome).startsWith(marcaAlvo)) ||
-      marcasList.find((m) => marcaAlvo.startsWith(normalize(m.nome)));
+      marcasList.find((m) => marcaAlvo.startsWith(normalize(m.nome))) ||
+      marcasList.find((m) => wordMatch(normalize(m.nome), marcaAlvo));
     if (!marcaMatch) return;
     setSelectedMarcaId(marcaMatch.id);
 

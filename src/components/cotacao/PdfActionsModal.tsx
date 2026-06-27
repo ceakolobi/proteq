@@ -159,13 +159,14 @@ export const PdfActionsModal = ({
     // Financeiro detalhado
     const totalExtras = beneficiosExtras.reduce((s, b) => s + b.valor_snapshot, 0);
     const baseNum = mensalidadeBase ?? 0;
-    const totalNum = mensalidadeTotal ?? (baseNum + totalExtras);
+    // Total = mensalidade (inclui carro reserva) + benefícios extras selecionados
+    const effectiveTotal = (mensalidadeTotal ?? baseNum) + totalExtras;
 
     const linhasFinanceiro: string[] = [];
     if (baseNum > 0) linhasFinanceiro.push(`• Mensalidade base: *${formatBRL(baseNum)}/mês*`);
     if (totalExtras > 0) linhasFinanceiro.push(`• Extras adicionados: *+ ${formatBRL(totalExtras)}/mês*`);
     const totalLabel = (baseNum > 0 || totalExtras > 0)
-      ? `💰 *TOTAL: ${formatBRL(totalNum > 0 ? totalNum : (mensalidade ? 0 : 0))}/mês*`
+      ? `💰 *TOTAL: ${formatBRL(effectiveTotal)}/mês*`
       : mensalidade
         ? `💰 *Mensalidade: ${mensalidade}/mês*`
         : '💰 *Valores no PDF anexo*';
