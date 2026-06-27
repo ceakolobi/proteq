@@ -48,7 +48,7 @@ export function PagamentoSection({ chavePix, tipoChavePix, onBack, onConfirm }: 
             <div className="flex justify-center gap-6 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Lock className="h-3 w-3 text-primary" />
-                <span>Seguro</span>
+                <span>Protegido</span>
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3 text-primary" />

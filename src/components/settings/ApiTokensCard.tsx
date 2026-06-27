@@ -329,7 +329,7 @@ export function ApiTokensCard() {
                       </div>
                     </div>
                     <p className="text-sm text-destructive font-medium">
-                      ⚠️ Guarde este token em local seguro. Ele não será exibido novamente!
+                      ⚠️ Guarde este token em local protegido. Ele não será exibido novamente!
                     </p>
                   </div>
                 ) : (

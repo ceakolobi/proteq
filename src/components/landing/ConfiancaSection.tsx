@@ -3,7 +3,7 @@ import { Shield, Lock, Smartphone, UserX, Clock, Award } from 'lucide-react';
 const itensConfianca = [
   {
     icon: Lock,
-    titulo: 'Sistema seguro',
+    titulo: 'Plataforma protegida',
     descricao: 'Criptografia de ponta a ponta',
   },
   {

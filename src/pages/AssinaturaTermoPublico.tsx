@@ -89,7 +89,7 @@ export default function AssinaturaTermoPublico() {
     setTokenExpired(false);
 
     try {
-      // Buscar termo pelo token (via RPC seguro - exige conhecimento exato do token)
+      // Buscar termo pelo token (via RPC protegido - exige conhecimento exato do token)
       const { data: rows, error: fetchError } = await supabase
         .rpc('get_termo_by_token', { p_token: token });
 
@@ -160,7 +160,7 @@ export default function AssinaturaTermoPublico() {
     setIsRenewingToken(true);
     
     try {
-      // Renovar via RPC seguro (exige posse do token antigo)
+      // Renovar via RPC protegido (exige posse do token antigo)
       const { data: novoToken, error: updateError } = await supabase
         .rpc('renovar_token_termo', { p_old_token: termo.token_assinatura });
 

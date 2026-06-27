@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 const artigos = [
   {
     id: 1,
-    titulo: 'Como funciona a proteção veicular e por que ela é diferente de seguro',
-    resumo: 'Entenda as principais diferenças entre proteção veicular e seguro tradicional, e descubra qual opção é melhor para você.',
+    titulo: 'Como funciona a proteção veicular e por que ela é diferente de uma apólice tradicional',
+    resumo: 'Entenda as principais diferenças entre proteção veicular e apólice tradicional, e descubra qual opção é melhor para você.',
     categoria: 'Educativo',
     dataPublicacao: '2026-01-28',
     tempoLeitura: '5 min',
