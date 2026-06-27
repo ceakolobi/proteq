@@ -1126,6 +1126,14 @@ export default function LayoutCotacaoHarmony() {
         mensalidade={cotacao?.mensalidade ? formatCurrency(cotacao.mensalidade) : ""}
         cotacaoId={cotacao?.id}
         beneficiosExtras={beneficiosExtras}
+        placa={cotacao?.placa || undefined}
+        valorAdesao={cotacao?.valor_adesao ?? 0}
+        participacao={cotacao?.participacao ?? undefined}
+        marcaAno={cotacao?.marca && cotacao?.modelo
+          ? `${cotacao.marca} ${cotacao.modelo}${cotacao.ano_fabricacao ? ` (${cotacao.ano_fabricacao})` : ''}`
+          : undefined}
+        mensalidadeBase={cotacao?.valor_base ?? cotacao?.mensalidade ?? 0}
+        mensalidadeTotal={cotacao?.mensalidade ?? 0}
       />
 
       {/* Modal de Seleção de Capa */}

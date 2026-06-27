@@ -66,11 +66,28 @@ export default function AceitarCotacao() {
       setWhatsappCliente(data.cliente_whatsapp || null);
 
       toast({
-        title: "Cotação aceita! 🎉",
+        title: "Proposta aceita! 🎉",
         description: data.vistoria_url
           ? "Agora finalize com a vistoria do veículo."
           : "Em breve entraremos em contato.",
       });
+
+      // Abre WhatsApp com link da vistoria se tivermos número e link
+      if (data.vistoria_url && data.cliente_whatsapp) {
+        const digits = String(data.cliente_whatsapp).replace(/\D/g, '');
+        const numero = digits.startsWith('55') ? digits : `55${digits}`;
+        const msg = encodeURIComponent(
+          `Olá! Sua proposta de proteção veicular foi confirmada com sucesso! ✅\n\n` +
+          `*Próximo passo: Vistoria do Veículo*\n\n` +
+          `Acesse o link abaixo para iniciar a vistoria online do seu veículo:\n${data.vistoria_url}\n\n` +
+          `Em caso de dúvidas, estamos à disposição.\n\n` +
+          `🤝 _Proteção Veicular — Harmony_`
+        );
+        const opened = window.open(`https://wa.me/${numero}?text=${msg}`, '_blank', 'noopener,noreferrer');
+        if (!opened) {
+          navigator.clipboard?.writeText(`https://wa.me/${numero}?text=${msg}`).catch(() => {});
+        }
+      }
     } catch (err: any) {
       console.error(err);
       toast({
@@ -172,15 +189,34 @@ export default function AceitarCotacao() {
                 </div>
               </div>
               {vistoriaUrl && (
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={() => window.location.href = vistoriaUrl}
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  Iniciar vistoria online
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={() => window.location.href = vistoriaUrl}
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Iniciar vistoria online
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  {whatsappCliente && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-green-500 text-green-600 hover:bg-green-50"
+                      onClick={() => {
+                        const digits = whatsappCliente.replace(/\D/g, '');
+                        const numero = digits.startsWith('55') ? digits : `55${digits}`;
+                        const msg = encodeURIComponent(
+                          `Sua proposta foi aceita! ✅\n\nLink da vistoria:\n${vistoriaUrl}`
+                        );
+                        window.open(`https://wa.me/${numero}?text=${msg}`, '_blank', 'noopener,noreferrer');
+                      }}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Enviar link da vistoria por WhatsApp
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

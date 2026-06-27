@@ -36,6 +36,12 @@ interface PdfActionsModalProps {
   cotacaoId?: string;
   empresaNome?: string;
   beneficiosExtras?: { nome_snapshot: string; valor_snapshot: number }[];
+  placa?: string;
+  valorAdesao?: number;
+  participacao?: number;
+  marcaAno?: string;
+  mensalidadeBase?: number;
+  mensalidadeTotal?: number;
 }
 
 export const PdfActionsModal = ({
@@ -53,6 +59,12 @@ export const PdfActionsModal = ({
   cotacaoId,
   empresaNome = "Proteção Veicular",
   beneficiosExtras = [],
+  placa,
+  valorAdesao,
+  participacao,
+  marcaAno,
+  mensalidadeBase,
+  mensalidadeTotal,
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -133,62 +145,86 @@ export const PdfActionsModal = ({
     }
 
     const numeroFormatado = formatWhatsappNumber(whatsappNumero);
-    const nomePrimeiro = (clienteNome || '').split(' ')[0] || 'tudo bem';
-    const siteUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const veiculoLinha = modelo ? `\n• *Veículo:* ${modelo}` : '';
-    const mensalidadeLinha = mensalidade
-      ? `*Mensalidade Base:* apenas *${mensalidade}/mês*`
-      : `*Mensalidade Base:* condições no PDF anexo`;
+    const nomePrimeiro = (clienteNome || '').split(' ')[0] || 'cliente';
 
     const formatBRL = (v: number) =>
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
+    // Dados do veículo
+    const veiculoDesc = [marcaAno || modelo, placa ? `Placa: ${placa}` : ''].filter(Boolean).join(' · ');
+    const veiculoLinha = veiculoDesc ? `🚗 *Veículo:* ${veiculoDesc}` : modelo ? `🚗 *Veículo:* ${modelo}` : '';
+
+    // Financeiro detalhado
+    const totalExtras = beneficiosExtras.reduce((s, b) => s + b.valor_snapshot, 0);
+    const baseNum = mensalidadeBase ?? 0;
+    const totalNum = mensalidadeTotal ?? (baseNum + totalExtras);
+
+    const linhasFinanceiro: string[] = [];
+    if (baseNum > 0) linhasFinanceiro.push(`• Mensalidade base: *${formatBRL(baseNum)}/mês*`);
+    if (totalExtras > 0) linhasFinanceiro.push(`• Extras adicionados: *+ ${formatBRL(totalExtras)}/mês*`);
+    const totalLabel = (baseNum > 0 || totalExtras > 0)
+      ? `💰 *TOTAL: ${formatBRL(totalNum > 0 ? totalNum : (mensalidade ? 0 : 0))}/mês*`
+      : mensalidade
+        ? `💰 *Mensalidade: ${mensalidade}/mês*`
+        : '💰 *Valores no PDF anexo*';
+
+    const adesaoLinha = (valorAdesao ?? 0) > 0
+      ? `📌 Taxa de adesão: *${formatBRL(valorAdesao!)}* (pago uma única vez)`
+      : '✅ *Sem taxa de adesão*';
+
+    const participacaoLinha = participacao != null && participacao > 0
+      ? `📋 Cota de participação: *${formatBRL(participacao)}*`
+      : '';
+
+    // Extras
     const extrasSecao = beneficiosExtras.length > 0
       ? `━━━━━━━━━━━━━━━
-➕ *BENEFÍCIOS EXTRAS ADICIONADOS*
+➕ *BENEFÍCIOS EXTRAS*
 ━━━━━━━━━━━━━━━
 ${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snapshot)}/mês`).join('\n')}
 
 `
       : '';
 
-    const mensagem = `${siteUrl}
+    const mensagem = `*Olá, ${nomePrimeiro}!* 😊
 
-*Olá, ${nomePrimeiro}!* Tudo bem?
-
-Aqui é da *${empresaNome}*. Conforme conversamos, preparei a sua proposta de proteção veicular, com foco em segurança e o melhor custo-benefício.
+Aqui é da *${empresaNome}*. Sua proposta de proteção veicular está pronta!
 
 ━━━━━━━━━━━━━━━
-📋 *RESUMO DA SUA COTAÇÃO*
-━━━━━━━━━━━━━━━${veiculoLinha}
+📋 *DADOS DO VEÍCULO*
+━━━━━━━━━━━━━━━
+${veiculoLinha}
 
-🔒 *BENEFÍCIOS INCLUSOS NO PLANO:*
+━━━━━━━━━━━━━━━
+💰 *RESUMO FINANCEIRO*
+━━━━━━━━━━━━━━━
+${linhasFinanceiro.join('\n')}
+${totalLabel}
+${adesaoLinha}
+${participacaoLinha ? participacaoLinha + '\n' : ''}
+${extrasSecao}━━━━━━━━━━━━━━━
+🛡️ *BENEFÍCIOS INCLUSOS NO PLANO*
+━━━━━━━━━━━━━━━
 • Carro Reserva (30 dias inclusos)
 • Guincho 500 km (250 ida e volta)
-• Vidros — cobertura de para-brisa
+• Cobertura de vidros e para-brisa
 • Chaveiro 24h
 • Pane Elétrica — assistência inclusa
 • Pane Mecânica — assistência inclusa
 • Pane Seca — combustível incluso
-• Eventos da Natureza — proteção completa
+• Eventos da Natureza — cobertura completa
 
-${extrasSecao}━━━━━━━━━━━━━━━
-💰 *INVESTIMENTO*
-━━━━━━━━━━━━━━━
-${mensalidadeLinha}
+✅ Sem análise de condutor  ✅ Sem consulta SPC/Serasa
 
-🎁 *1ª mensalidade GRÁTIS*
-✅ *SEM* taxa de adesão  ✅ *SEM* análise de condutor  ✅ *SEM* consulta SPC/Serasa
-
-📄 ${pdfUrl ? `Proposta completa em PDF:\n${pdfUrl}` : "Estou lhe enviando o PDF com todos os detalhes."}
+📄 ${pdfUrl ? `Proposta completa:\n${pdfUrl}` : 'Estou enviando o PDF com todos os detalhes.'}
 
 ━━━━━━━━━━━━━━━
 📲 *Como deseja prosseguir?*
 ━━━━━━━━━━━━━━━
-1️⃣ Fechar o *Plano Base* agora
-2️⃣ Tirar *dúvidas* com um consultor
+1️⃣ Fechar o plano agora
+2️⃣ Tirar dúvidas com um consultor
 
-⏳ *Validade da proposta:* ${validadeDias} dias
+⏳ *Validade:* ${validadeDias} dias
 🤝 _${empresaNome} — Proteção Veicular_`;
 
     const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
@@ -424,9 +460,34 @@ ${mensalidadeLinha}
             )}
 
 
+            {/* WhatsApp */}
+            <div className="space-y-2 pt-2 border-t">
+              <Label htmlFor="whatsappNumero" className="text-sm font-semibold">
+                Enviar por WhatsApp
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="whatsappNumero"
+                  type="tel"
+                  placeholder="(00) 90000-0000"
+                  value={whatsappNumero}
+                  onChange={(e) => setWhatsappNumero(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleWhatsApp}
+                  variant="outline"
+                  className="border-green-500 text-green-600 hover:bg-green-50"
+                  title="Enviar por WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
             {/* E-mail */}
             <div className="space-y-2 pt-2 border-t">
-              <Label htmlFor="emailDestinatario" className="text-sm">
+              <Label htmlFor="emailDestinatario" className="text-sm font-semibold">
                 Enviar por E-mail
               </Label>
               <div className="flex gap-2">
