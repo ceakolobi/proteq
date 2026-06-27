@@ -189,15 +189,6 @@ ${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snaps
 `
       : '';
 
-    // Prioridade: /p/:id sempre que cotacaoId existir; /aceitar/:token como alternativa; nunca URL do Supabase
-    const propostaLink = cotacaoId
-      ? `https://harmonyclube.com.br/p/${cotacaoId}`
-      : aceiteToken
-      ? `${window.location.origin}/aceitar/${aceiteToken}`
-      : null;
-
-    console.log('cotacaoId:', cotacaoId, 'aceiteToken:', aceiteToken, 'propostaLink:', propostaLink);
-
     const mensagem = `*🛡️ HARMONY CLUBE DE BENEFÍCIOS*
 Olá, ${nomePrimeiro}! 😊
 
@@ -229,9 +220,7 @@ ${extrasSecao}━━━━━━━━━━━━━━━
 
 ✅ Sem análise de condutor  ✅ Sem consulta SPC/Serasa
 
-📄 ${propostaLink ? `Ver proposta e confirmar:\n${propostaLink}` : 'Proposta disponível em breve.'}
-
-⏳ *Validade:* ${validadeDias} dias
+⏳ Proposta válida por ${validadeDias} dias.
 🤝 _Harmony Clube de Benefícios — Proteção Veicular_`;
 
     const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
