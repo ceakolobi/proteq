@@ -42,6 +42,7 @@ interface PdfActionsModalProps {
   marcaAno?: string;
   mensalidadeBase?: number;
   mensalidadeTotal?: number;
+  aceiteToken?: string;
 }
 
 export const PdfActionsModal = ({
@@ -57,7 +58,7 @@ export const PdfActionsModal = ({
   modelo = "",
   mensalidade = "",
   cotacaoId,
-  empresaNome = "Proteção Veicular",
+  empresaNome = "Harmony Clube de Benefícios",
   beneficiosExtras = [],
   placa,
   valorAdesao,
@@ -65,6 +66,7 @@ export const PdfActionsModal = ({
   marcaAno,
   mensalidadeBase,
   mensalidadeTotal,
+  aceiteToken,
 }: PdfActionsModalProps) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -186,9 +188,16 @@ ${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snaps
 `
       : '';
 
-    const mensagem = `*Olá, ${nomePrimeiro}!* 😊
+    // Link amigável: usa /aceitar/{token} se disponível, senão URL pública do PDF
+    const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://harmonyclube.com.br';
+    const propostaLink = aceiteToken
+      ? `${siteOrigin}/aceitar/${aceiteToken}`
+      : pdfUrl || null;
 
-Aqui é da *${empresaNome}*. Sua proposta de proteção veicular está pronta!
+    const mensagem = `🛡️ *HARMONY CLUBE DE BENEFÍCIOS*
+Olá, ${nomePrimeiro}! 😊
+
+Segue sua proposta de proteção veicular:
 
 ━━━━━━━━━━━━━━━
 📋 *DADOS DO VEÍCULO*
@@ -216,16 +225,10 @@ ${extrasSecao}━━━━━━━━━━━━━━━
 
 ✅ Sem análise de condutor  ✅ Sem consulta SPC/Serasa
 
-📄 ${pdfUrl ? `Proposta completa:\n${pdfUrl}` : 'Estou enviando o PDF com todos os detalhes.'}
-
-━━━━━━━━━━━━━━━
-📲 *Como deseja prosseguir?*
-━━━━━━━━━━━━━━━
-1️⃣ Fechar o plano agora
-2️⃣ Tirar dúvidas com um consultor
+📄 ${propostaLink ? `Ver proposta e confirmar:\n${propostaLink}` : 'Proposta disponível em breve.'}
 
 ⏳ *Validade:* ${validadeDias} dias
-🤝 _${empresaNome} — Proteção Veicular_`;
+🤝 _Harmony Clube de Benefícios — Proteção Veicular_`;
 
     const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");

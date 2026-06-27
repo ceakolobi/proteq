@@ -175,7 +175,7 @@ export default function LayoutCotacaoHarmony() {
   // Nome da empresa para exibição
   const nomeEmpresa = settings.modo_white_label && settings.empresa_nome 
     ? settings.empresa_nome 
-    : "HARMONY AGRO";
+    : "HARMONY CLUBE DE BENEFÍCIOS";
   
   // Contatos da empresa
   const telefoneEmpresa = settings.telefone || "(00) 00000-0000";
@@ -1134,6 +1134,7 @@ export default function LayoutCotacaoHarmony() {
           : undefined}
         mensalidadeBase={cotacao?.valor_base ?? cotacao?.mensalidade ?? 0}
         mensalidadeTotal={cotacao?.mensalidade ?? 0}
+        aceiteToken={(cotacao as any)?.aceite_token || undefined}
       />
 
       {/* Modal de Seleção de Capa */}

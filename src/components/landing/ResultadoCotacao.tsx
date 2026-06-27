@@ -297,14 +297,16 @@ export function ResultadoCotacao({
           selectedBenefitObjs.map(b => `• ${b.nome} (+ ${formatCurrency(Number(b.valor_mensal))})`).join('\n')
         : '';
       const mensagem =
-        `Olá ${nomeCliente}! 😊\n\n` +
-        `Segue sua proposta de proteção veicular Harmony Agro:\n\n` +
+        `🛡️ *HARMONY CLUBE DE BENEFÍCIOS*\n` +
+        `Olá, ${nomeCliente}! 😊\n\n` +
+        `Segue sua proposta de proteção veicular:\n\n` +
         `🚗 Veículo: ${modelo} - ${dadosVeiculo.ano}\n` +
         `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n\n` +
         BENEFICIOS_WHATSAPP +
         extrasTexto +
-        `\n\n📄 Baixe sua proposta completa em PDF:\n${publicUrl}\n\n` +
-        `Proposta válida por 7 dias.`;
+        `\n\n📄 Proposta completa:\n${publicUrl}\n\n` +
+        `⏳ Proposta válida por 7 dias.\n` +
+        `🤝 _Harmony Clube de Benefícios — Proteção Veicular_`;
 
       const url = getWhatsAppUrl(telefone, mensagem);
       const opened = window.open(url, '_blank', 'noopener,noreferrer');
