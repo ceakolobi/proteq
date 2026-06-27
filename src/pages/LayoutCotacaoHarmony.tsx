@@ -516,6 +516,9 @@ export default function LayoutCotacaoHarmony() {
       const publicUrl = await uploadPdfToStorage(pdfBlob, filename);
       if (publicUrl) {
         setPdfUrl(publicUrl);
+        if (cotacaoId) {
+          await supabase.from("cotacoes").update({ pdf_url: publicUrl }).eq("id", cotacaoId);
+        }
       }
 
       setShowPdfActions(true);

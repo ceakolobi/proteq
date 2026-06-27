@@ -188,13 +188,14 @@ ${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snaps
 `
       : '';
 
-    // Link amigável: usa /aceitar/{token} se disponível, senão URL pública do PDF
-    const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://harmonyclube.com.br';
+    // Link amigável: usa /aceitar/{token} se disponível, senão URL curta /p/:id, senão URL do PDF
     const propostaLink = aceiteToken
-      ? `${siteOrigin}/aceitar/${aceiteToken}`
+      ? `${window.location.origin}/aceitar/${aceiteToken}`
+      : cotacaoId
+      ? `https://harmonyclube.com.br/p/${cotacaoId}`
       : pdfUrl || null;
 
-    const mensagem = `🛡️ *HARMONY CLUBE DE BENEFÍCIOS*
+    const mensagem = `*🛡️ HARMONY CLUBE DE BENEFÍCIOS*
 Olá, ${nomePrimeiro}! 😊
 
 Segue sua proposta de proteção veicular:

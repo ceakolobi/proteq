@@ -39,6 +39,7 @@ import VistoriaRemota from "./pages/VistoriaRemota";
 import AssinarContrato from "./pages/AssinarContrato";
 import AssinaturaTermoPublico from "./pages/AssinaturaTermoPublico";
 import AceitarCotacao from "./pages/AceitarCotacao";
+import PropostaRedirect from "./pages/PropostaRedirect";
 import SegundaViaBoleto from "./pages/SegundaViaBoleto";
 import FinanceiroDashboard from "./pages/financeiro/FinanceiroDashboard";
 import Mensalidades from "./pages/financeiro/Mensalidades";
@@ -198,6 +199,7 @@ const App = () => (
                 <Route path="/assinar/:token" element={<AssinarContrato />} />
                 <Route path="/assinatura-termo/:token" element={<AssinaturaTermoPublico />} />
                 <Route path="/aceitar/:token" element={<AceitarCotacao />} />
+                <Route path="/p/:id" element={<PropostaRedirect />} />
 
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />
