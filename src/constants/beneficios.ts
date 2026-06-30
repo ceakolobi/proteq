@@ -13,6 +13,7 @@ export const CATEGORIAS_BENEFICIOS: CategoriaBeneficio[] = [
       'Roubo e furto',
       'Incêndio (somente em caso de acidente)',
       'Perda total',
+      'Periféricos (vidros | faróis | retrovisor)',
       'Fenômenos da natureza (enchente, granizo, vendaval)',
     ],
   },

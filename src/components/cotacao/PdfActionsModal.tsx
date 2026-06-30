@@ -157,12 +157,8 @@ export const PdfActionsModal = ({
     const totalExtras = beneficiosExtras.reduce((s, b) => s + b.valor_snapshot, 0);
     const totalMensalidade = (mensalidadeTotal ?? mensalidadeBase ?? 0) + totalExtras;
 
-    const valorFipeLinha = valorFipe != null && valorFipe > 0
-      ? `\n💰 Valor FIPE: ${formatBRL(valorFipe)}`
-      : '';
-
-    const participacaoStr = participacao != null && participacao > 0
-      ? `\n🛡️ Cota de participação: ${formatBRL(participacao)}`
+    const cotaParticipacaoStr = valorFipe != null && valorFipe > 0
+      ? `\n📋 Cota de participação: ${formatBRL(valorFipe)}`
       : '';
 
     const extrasSecao = beneficiosExtras.length > 0
@@ -172,8 +168,8 @@ export const PdfActionsModal = ({
     const mensagem = `🛡️ HARMONY CLUBE DE BENEFÍCIOS
 Olá, ${nomePrimeiro}! 😊
 Segue sua proposta de proteção veicular:
-🚗 Veículo: ${veiculoDesc}${valorFipeLinha}
-💰 Mensalidade: ${formatBRL(totalMensalidade)}${participacaoStr}
+🚗 Veículo: ${veiculoDesc}
+💰 Mensalidade: ${formatBRL(totalMensalidade)}${cotaParticipacaoStr}
 
 ${BENEFICIOS_WHATSAPP}${extrasSecao}
 
