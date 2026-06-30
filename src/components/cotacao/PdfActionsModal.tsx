@@ -40,6 +40,7 @@ interface PdfActionsModalProps {
   valorAdesao?: number;
   participacao?: number;
   valorFipe?: number;
+  percentualParticipacao?: number;
   marcaAno?: string;
   mensalidadeBase?: number;
   mensalidadeTotal?: number;
@@ -65,6 +66,7 @@ export const PdfActionsModal = ({
   valorAdesao,
   participacao,
   valorFipe,
+  percentualParticipacao = 7,
   marcaAno,
   mensalidadeBase,
   mensalidadeTotal,
@@ -158,7 +160,7 @@ export const PdfActionsModal = ({
     const totalMensalidade = (mensalidadeTotal ?? mensalidadeBase ?? 0) + totalExtras;
 
     const cotaParticipacaoStr = valorFipe != null && valorFipe > 0
-      ? `\n📋 Cota de participação: ${formatBRL(valorFipe)}`
+      ? `\n📋 Cota de participação: ${percentualParticipacao}% · ${formatBRL(valorFipe * (percentualParticipacao / 100))} (FIPE: ${formatBRL(valorFipe)})`
       : '';
 
     const extrasSecao = beneficiosExtras.length > 0

@@ -753,7 +753,7 @@ export default function LayoutCotacaoHarmony() {
                       <p className="font-semibold text-[hsl(142,50%,25%)] mt-1">{formatValue(cotaNome)}</p>
                     </div>
                     <div className="bg-[hsl(142,71%,97%)] rounded-xl p-3 text-center">
-                      <p className="text-xs text-[hsl(142,50%,30%)] font-medium uppercase">Participação (7%)</p>
+                      <p className="text-xs text-[hsl(142,50%,30%)] font-medium uppercase">Participação</p>
                       <p className="font-semibold text-[hsl(142,50%,25%)] mt-1">
                         {cotacao?.participacao != null
                           ? formatCurrency(cotacao.participacao)
@@ -1144,6 +1144,13 @@ export default function LayoutCotacaoHarmony() {
           ? `${cotacao.marca} ${cotacao.modelo}${cotacao.ano_fabricacao ? ` (${cotacao.ano_fabricacao})` : ''}`
           : undefined}
         valorFipe={cotacao?.valor_fipe ?? cotacao?.valor_bem ?? 0}
+        percentualParticipacao={(() => {
+          const fipe = cotacao?.valor_fipe ?? cotacao?.valor_bem;
+          const part = cotacao?.participacao;
+          if (!fipe || !part) return 7;
+          const pct = Math.round((part / fipe) * 100);
+          return ([7, 10, 15] as const).includes(pct as 7 | 10 | 15) ? (pct as 7 | 10 | 15) : 7;
+        })()}
         mensalidadeBase={cotacao?.valor_base ?? cotacao?.mensalidade ?? 0}
         mensalidadeTotal={cotacao?.mensalidade ?? 0}
         aceiteToken={(cotacao as any)?.aceite_token || undefined}

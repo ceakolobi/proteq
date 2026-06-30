@@ -105,7 +105,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCalculating, setIsCalculating] = useState(false);
   const [resultado, setResultado] = useState<ResultadoCotacao | null>(null);
-  
+  const [percentualParticipacao, setPercentualParticipacao] = useState<7 | 10 | 15>(7);
+
   // Benefícios extras selecionados
   const [beneficiosSelecionadosIds, setBeneficiosSelecionadosIds] = useState<string[]>([]);
   const [beneficiosSelecionadosObjs, setBeneficiosSelecionadosObjs] = useState<BeneficioExtra[]>([]);
@@ -375,7 +376,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         ajuste_individual_valor: resultadoFinal.ajusteIndividualValor,
         valor_final: resultadoFinal.valorFinal,
         mensalidade: resultadoFinal.valorFinal,
-        participacao: resultadoFinal.participacao,
+        participacao: valorBem * (percentualParticipacao / 100),
         editado_por: formData.ajuste_individual_valor !== 0 ? user?.id : null,
         perfil_editor: formData.ajuste_individual_valor !== 0 ? perfilEditor : null,
         motivo_ajuste: formData.motivo_ajuste || null,
@@ -824,7 +825,35 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   />
                 </div>
 
-                <Button 
+                {(perfilEditor === 'ADMIN' || perfilEditor === 'GESTOR') && (
+                  <div className="space-y-2 p-3 bg-muted/40 rounded-lg border">
+                    <Label className="flex items-center gap-1 text-sm">
+                      <DollarSign className="w-3.5 h-3.5" />
+                      Percentual de Participação
+                    </Label>
+                    <Select
+                      value={String(percentualParticipacao)}
+                      onValueChange={(v) => {
+                        setPercentualParticipacao(Number(v) as 7 | 10 | 15);
+                        setResultado(null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">7%</SelectItem>
+                        <SelectItem value="10">10%</SelectItem>
+                        <SelectItem value="15">15%</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Aplica-se ao valor FIPE para calcular a cota de participação em caso de sinistro.
+                    </p>
+                  </div>
+                )}
+
+                <Button
                   onClick={handleCalcular} 
                   className="w-full" 
                   size="lg"
@@ -909,15 +938,14 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      Participação (7%)
-                      {resultado.aplicouValorMinimo && (
-                        <span className="text-xs text-primary ml-1">*mín.</span>
-                      )}
+                      Participação ({percentualParticipacao}%)
                     </p>
-                    <p className="font-semibold">{formatCurrency(resultado.participacao)}</p>
+                    <p className="font-semibold">
+                      {formatCurrency(parseValorBrasileiro(formData.valor_bem) * (percentualParticipacao / 100))}
+                    </p>
                   </div>
                 </div>
-                
+
                 {/* Alerta COTA 01 para resultado salvo */}
                 {resultado.ehCota01 && (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs">
@@ -1032,15 +1060,14 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   </div>
                   <div>
                     <p className="text-muted-foreground">
-                      Participação (7%)
-                      {previewResult.aplicouValorMinimo && (
-                        <span className="text-xs text-primary ml-1">*mínimo</span>
-                      )}
+                      Participação ({percentualParticipacao}%)
                     </p>
-                    <p className="font-medium">{formatCurrency(previewResult.participacao)}</p>
+                    <p className="font-medium">
+                      {formatCurrency(parseValorBrasileiro(formData.valor_bem) * (percentualParticipacao / 100))}
+                    </p>
                   </div>
                 </div>
-                
+
                 {/* Alerta COTA 01 - Valor Mínimo */}
                 {previewResult.ehCota01 && (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs">
