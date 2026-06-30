@@ -293,7 +293,7 @@ export function ResultadoCotacao({
         `Segue sua proposta de proteção veicular:\n` +
         `🚗 Veículo: ${modelo} ${dadosVeiculo.ano}\n` +
         `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n` +
-        `📋 Cota de participação: ${formatCurrency(cotacao.valorFipe)}\n\n` +
+        `📋 Cota de participação: 7% · ${formatCurrency(cotacao.participacao)} (FIPE: ${formatCurrency(cotacao.valorFipe)})\n\n` +
         BENEFICIOS_WHATSAPP +
         extrasSecao +
         `\n\n⏳ Proposta válida por 7 dias.\n` +
