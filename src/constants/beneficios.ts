@@ -31,24 +31,6 @@ export const CATEGORIAS_BENEFICIOS: CategoriaBeneficio[] = [
     ],
   },
   {
-    emoji: '🚕',
-    titulo: 'Benefícios para Motoristas de Aplicativo e Profissionais',
-    itens: [
-      'Cobertura para uso profissional',
-      'Auxílio por perda de renda (lucros cessantes)',
-      'Veículo reserva (quando disponível no regulamento)',
-    ],
-  },
-  {
-    emoji: '👨‍👩‍👧',
-    titulo: 'Tranquilidade para a Família',
-    itens: [
-      'Atendimento humanizado',
-      'Suporte em situações de emergência',
-      'Rede credenciada de oficinas',
-    ],
-  },
-  {
     emoji: '💰',
     titulo: 'Economia',
     itens: [
@@ -56,26 +38,6 @@ export const CATEGORIAS_BENEFICIOS: CategoriaBeneficio[] = [
       'Sem consulta ao SPC/Serasa',
       'Mensalidades acessíveis',
       'Melhor custo-benefício para muitos veículos',
-    ],
-  },
-  {
-    emoji: '📱',
-    titulo: 'Tecnologia e Facilidade',
-    itens: [
-      'Aplicativo do associado',
-      'Acompanhamento de ocorrências',
-      'Segunda via de boletos',
-      'Solicitação de assistência pelo celular',
-    ],
-  },
-  {
-    emoji: '🤝',
-    titulo: 'Benefícios Exclusivos',
-    itens: [
-      'Clube de vantagens',
-      'Descontos em parceiros',
-      'Descontos em pneus, oficinas e serviços automotivos',
-      'Campanhas promocionais e sorteios',
     ],
   },
 ];

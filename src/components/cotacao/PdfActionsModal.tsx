@@ -16,10 +16,10 @@ import {
   MessageCircle,
   Check,
   Loader2,
-  ExternalLink,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { BENEFICIOS_WHATSAPP } from "@/constants/beneficios";
 
 interface PdfActionsModalProps {
   isOpen: boolean;
@@ -39,6 +39,7 @@ interface PdfActionsModalProps {
   placa?: string;
   valorAdesao?: number;
   participacao?: number;
+  valorFipe?: number;
   marcaAno?: string;
   mensalidadeBase?: number;
   mensalidadeTotal?: number;
@@ -63,6 +64,7 @@ export const PdfActionsModal = ({
   placa,
   valorAdesao,
   participacao,
+  valorFipe,
   marcaAno,
   mensalidadeBase,
   mensalidadeTotal,
@@ -148,86 +150,40 @@ export const PdfActionsModal = ({
 
     const numeroFormatado = formatWhatsappNumber(whatsappNumero);
     const nomePrimeiro = (clienteNome || '').split(' ')[0] || 'cliente';
-
     const formatBRL = (v: number) =>
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
-    // Dados do veículo
-    const veiculoDesc = [marcaAno || modelo, placa ? `Placa: ${placa}` : ''].filter(Boolean).join(' · ');
-    const veiculoLinha = veiculoDesc ? `🚗 *Veículo:* ${veiculoDesc}` : modelo ? `🚗 *Veículo:* ${modelo}` : '';
-
-    // Financeiro detalhado
+    const veiculoDesc = marcaAno || modelo;
     const totalExtras = beneficiosExtras.reduce((s, b) => s + b.valor_snapshot, 0);
-    const baseNum = mensalidadeBase ?? 0;
-    // Total = mensalidade (inclui carro reserva) + benefícios extras selecionados
-    const effectiveTotal = (mensalidadeTotal ?? baseNum) + totalExtras;
+    const totalMensalidade = (mensalidadeTotal ?? mensalidadeBase ?? 0) + totalExtras;
 
-    const linhasFinanceiro: string[] = [];
-    if (baseNum > 0) linhasFinanceiro.push(`• Mensalidade base: *${formatBRL(baseNum)}/mês*`);
-    if (totalExtras > 0) linhasFinanceiro.push(`• Extras adicionados: *+ ${formatBRL(totalExtras)}/mês*`);
-    const totalLabel = (baseNum > 0 || totalExtras > 0)
-      ? `💰 *TOTAL: ${formatBRL(effectiveTotal)}/mês*`
-      : mensalidade
-        ? `💰 *Mensalidade: ${mensalidade}/mês*`
-        : '💰 *Valores no PDF anexo*';
-
-    const adesaoLinha = (valorAdesao ?? 0) > 0
-      ? `📌 Taxa de adesão: *${formatBRL(valorAdesao!)}* (pago uma única vez)`
-      : '✅ *Sem taxa de adesão*';
-
-    const participacaoLinha = participacao != null && participacao > 0
-      ? `📋 Cota de participação: *${formatBRL(participacao)}*`
+    const valorFipeLinha = valorFipe != null && valorFipe > 0
+      ? `\n💰 Valor FIPE: ${formatBRL(valorFipe)}`
       : '';
 
-    // Extras
+    const participacaoStr = participacao != null && participacao > 0
+      ? `\n🛡️ Cota de participação: ${formatBRL(participacao)}`
+      : '';
+
     const extrasSecao = beneficiosExtras.length > 0
-      ? `━━━━━━━━━━━━━━━
-➕ *BENEFÍCIOS EXTRAS*
-━━━━━━━━━━━━━━━
-${beneficiosExtras.map(b => `• ${b.nome_snapshot}: + ${formatBRL(b.valor_snapshot)}/mês`).join('\n')}
-
-`
+      ? `\n\n✨ *Benefícios Extras*\n${beneficiosExtras.map(b => `- ${b.nome_snapshot}`).join('\n')}`
       : '';
 
-    const mensagem = `*🛡️ HARMONY CLUBE DE BENEFÍCIOS*
+    const mensagem = `🛡️ HARMONY CLUBE DE BENEFÍCIOS
 Olá, ${nomePrimeiro}! 😊
-
 Segue sua proposta de proteção veicular:
+🚗 Veículo: ${veiculoDesc}${valorFipeLinha}
+💰 Mensalidade: ${formatBRL(totalMensalidade)}${participacaoStr}
 
-━━━━━━━━━━━━━━━
-📋 *DADOS DO VEÍCULO*
-━━━━━━━━━━━━━━━
-${veiculoLinha}
-
-━━━━━━━━━━━━━━━
-💰 *RESUMO FINANCEIRO*
-━━━━━━━━━━━━━━━
-${linhasFinanceiro.join('\n')}
-${totalLabel}
-${adesaoLinha}
-${participacaoLinha ? participacaoLinha + '\n' : ''}
-${extrasSecao}━━━━━━━━━━━━━━━
-🛡️ *BENEFÍCIOS INCLUSOS NO PLANO*
-━━━━━━━━━━━━━━━
-• Carro Reserva (30 dias inclusos)
-• Guincho 500 km (250 ida e volta)
-• Cobertura de vidros e para-brisa
-• Chaveiro 24h
-• Pane Elétrica — assistência inclusa
-• Pane Mecânica — assistência inclusa
-• Pane Seca — combustível incluso
-• Eventos da Natureza — cobertura completa
-
-✅ Sem análise de condutor  ✅ Sem consulta SPC/Serasa
+${BENEFICIOS_WHATSAPP}${extrasSecao}
 
 ⏳ Proposta válida por ${validadeDias} dias.
-🤝 _Harmony Clube de Benefícios — Proteção Veicular_`;
+🤝 Harmony Clube de Benefícios — Proteção Veicular`;
 
     const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 
     if (!opened) {
-      // Evita navegar a aba atual (isso parece "recarregar" o app). Em vez disso, copiamos o link.
       navigator.clipboard
         ?.writeText(whatsappUrl)
         .then(() => {

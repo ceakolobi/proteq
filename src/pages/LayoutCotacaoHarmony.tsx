@@ -1143,6 +1143,7 @@ export default function LayoutCotacaoHarmony() {
         marcaAno={cotacao?.marca && cotacao?.modelo
           ? `${cotacao.marca} ${cotacao.modelo}${cotacao.ano_fabricacao ? ` (${cotacao.ano_fabricacao})` : ''}`
           : undefined}
+        valorFipe={cotacao?.valor_fipe ?? cotacao?.valor_bem ?? 0}
         mensalidadeBase={cotacao?.valor_base ?? cotacao?.mensalidade ?? 0}
         mensalidadeTotal={cotacao?.mensalidade ?? 0}
         aceiteToken={(cotacao as any)?.aceite_token || undefined}

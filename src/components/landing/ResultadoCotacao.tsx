@@ -280,33 +280,25 @@ export function ResultadoCotacao({
 
     setLoadingAction('whatsapp');
     try {
-      const result = await gerarPDF();
-      if (!result) throw new Error('Falha ao gerar PDF');
-
-      const { data, error } = await supabase.functions.invoke('upload-proposta-publica', {
-        body: { filename, pdfBase64: result.base64 },
-      });
-      if (error) throw error;
-      const publicUrl = (data as { publicUrl?: string })?.publicUrl;
-      if (!publicUrl) throw new Error('URL pública não retornada');
-
       const nomeCliente = dadosPessoais.nome?.split(' ')[0] || 'cliente';
       const modelo = `${dadosVeiculo.marca} ${dadosVeiculo.modelo}`;
-      const extrasTexto = selectedBenefitObjs.length > 0
-        ? '\n\n➕ *Benefícios extras selecionados:*\n' +
-          selectedBenefitObjs.map(b => `• ${b.nome} (+ ${formatCurrency(Number(b.valor_mensal))})`).join('\n')
+
+      const extrasSecao = selectedBenefitObjs.length > 0
+        ? `\n\n✨ *Benefícios Extras*\n${selectedBenefitObjs.map(b => `- ${b.nome}`).join('\n')}`
         : '';
+
       const mensagem =
-        `🛡️ *HARMONY CLUBE DE BENEFÍCIOS*\n` +
-        `Olá, ${nomeCliente}! 😊\n\n` +
-        `Segue sua proposta de proteção veicular:\n\n` +
-        `🚗 Veículo: ${modelo} - ${dadosVeiculo.ano}\n` +
-        `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n\n` +
+        `🛡️ HARMONY CLUBE DE BENEFÍCIOS\n` +
+        `Olá, ${nomeCliente}! 😊\n` +
+        `Segue sua proposta de proteção veicular:\n` +
+        `🚗 Veículo: ${modelo} ${dadosVeiculo.ano}\n` +
+        `💰 Valor FIPE: ${formatCurrency(cotacao.valorFipe)}\n` +
+        `💰 Mensalidade: ${formatCurrency(cotacao.mensalidade)}\n` +
+        `🛡️ Cota de participação: ${formatCurrency(cotacao.participacao)}\n\n` +
         BENEFICIOS_WHATSAPP +
-        extrasTexto +
-        `\n\n📄 Proposta completa:\n${publicUrl}\n\n` +
-        `⏳ Proposta válida por 7 dias.\n` +
-        `🤝 _Harmony Clube de Benefícios — Proteção Veicular_`;
+        extrasSecao +
+        `\n\n⏳ Proposta válida por 7 dias.\n` +
+        `🤝 Harmony Clube de Benefícios — Proteção Veicular`;
 
       const url = getWhatsAppUrl(telefone, mensagem);
       const opened = window.open(url, '_blank', 'noopener,noreferrer');
@@ -314,17 +306,17 @@ export function ResultadoCotacao({
         navigator.clipboard?.writeText(url).then(() => {
           toast({ title: 'Pop-up bloqueado', description: 'Link do WhatsApp copiado — cole no navegador.' });
         }).catch(() => {
-          toast({ title: 'Proposta gerada!', description: 'Abra o WhatsApp manualmente e cole o link.' });
+          toast({ title: 'Proposta enviada!', description: 'Abra o WhatsApp manualmente e cole o link.' });
         });
         return;
       }
 
-      toast({ title: 'Proposta gerada!', description: 'Abrindo WhatsApp com o link do PDF.' });
+      toast({ title: 'Proposta enviada!', description: 'Abrindo WhatsApp.' });
     } catch (e: unknown) {
-      console.error('[WhatsApp PDF] Erro:', e);
+      console.error('[WhatsApp] Erro:', e);
       toast({
         variant: 'destructive',
-        title: 'Erro ao gerar proposta',
+        title: 'Erro ao enviar proposta',
         description: getErrorMessage(e),
       });
     } finally {
