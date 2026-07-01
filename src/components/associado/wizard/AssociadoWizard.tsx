@@ -616,7 +616,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             motivo_dispensa: `Migração de outra associação: ${associadoData.nome_associacao_anterior || 'Não informada'}. Data de saída: ${dataSaidaFormatada}`,
             dispensada_por: user.id,
             dispensada_em: new Date().toISOString(),
-            canal_abertura: 'migracao',
+            canal_abertura: 'link',
             observacoes: 'Vistoria dispensada automaticamente por migração de outra associação de proteção veicular.',
           });
 

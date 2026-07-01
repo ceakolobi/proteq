@@ -553,7 +553,7 @@ export default function AssociadoDetalhe() {
         cotacao_id: veiculo.cotacao_id ?? null,
         status: 'pendente',
         tipo_vistoria: 'pre_adesao',
-        canal_abertura: 'link_remoto',
+        canal_abertura: 'link',
         token_acesso: token,
         token_expires_at: expiresAt,
         consultor_id: user.id,
