@@ -288,7 +288,7 @@ export function ResultadoCotacao({
         : '';
 
       const mensagem =
-        `🛡️ HARMONY CLUBE DE BENEFÍCIOS\n` +
+        `🛡 HARMONY CLUBE DE BENEFÍCIOS\n` +
         `Olá, ${nomeCliente}! 😊\n` +
         `Segue sua proposta de proteção veicular:\n` +
         `🚗 Veículo: ${modelo} ${dadosVeiculo.ano}\n` +

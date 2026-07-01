@@ -167,7 +167,7 @@ export const PdfActionsModal = ({
       ? `\n\n✨ *Benefícios Extras*\n${beneficiosExtras.map(b => `- ${b.nome_snapshot}`).join('\n')}`
       : '';
 
-    const mensagem = `🛡️ HARMONY CLUBE DE BENEFÍCIOS
+    const mensagem = `🛡 HARMONY CLUBE DE BENEFÍCIOS
 Olá, ${nomePrimeiro}! 😊
 Segue sua proposta de proteção veicular:
 🚗 Veículo: ${veiculoDesc}

@@ -6,7 +6,7 @@ export interface CategoriaBeneficio {
 
 export const CATEGORIAS_BENEFICIOS: CategoriaBeneficio[] = [
   {
-    emoji: '🛡️',
+    emoji: '🛡',
     titulo: 'Proteção Completa',
     itens: [
       'Colisão',
