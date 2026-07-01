@@ -306,7 +306,7 @@ export function AssociadoEditModal({
       const { error } = await supabase.functions.invoke('generate-contract-manual', {
         body: { associadoId: associado.id, veiculoId: veiculo?.id ?? null, sendEmail: true },
       });
-      if (error) throw error;
+      if (error) { throw new Error((error as any)?.context?.error ?? error.message); }
       toast.success('Contrato gerado e enviado por e-mail!');
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao gerar contrato');

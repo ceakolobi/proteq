@@ -3,6 +3,54 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
+const DEFAULT_CONTRACT_MARKDOWN = `# CONTRATO DE ASSOCIAÇÃO
+
+## DADOS DO ASSOCIADO
+
+**Nome:** {{nome}}
+**CPF:** {{cpf}}
+**Data:** {{data}}
+
+## DADOS DO VEÍCULO
+
+**Modelo:** {{modelo}}
+**Placa:** {{placa}}
+**Ano:** {{ano}}
+**Plano:** {{plano}}
+**Mensalidade:** R$ {{mensalidade}}
+
+## CLÁUSULA 1 — OBJETO
+
+O presente Contrato de Associação tem por objeto a prestação, pela HARMONY CLUBE DE BENEFÍCIOS (CNPJ 39.583.767/0001-26), de serviços de proteção veicular ao ASSOCIADO identificado acima, nos termos e condições estabelecidos neste instrumento e no Regulamento Geral do Clube.
+
+## CLÁUSULA 2 — OBRIGAÇÕES DO ASSOCIADO
+
+O ASSOCIADO compromete-se a: (a) efetuar o pagamento pontual da mensalidade pactuada; (b) comunicar qualquer sinistro ou ocorrência com o veículo protegido no prazo de 24 horas; (c) manter seus dados cadastrais atualizados; (d) utilizar os serviços do Clube de boa-fé e dentro das condições previstas no Regulamento Geral.
+
+## CLÁUSULA 3 — OBRIGAÇÕES DO CLUBE
+
+O CLUBE compromete-se a: (a) prestar os serviços de proteção veicular descritos no Regulamento Geral; (b) atender o ASSOCIADO em caso de sinistro, conforme previsto no Regulamento; (c) manter o ASSOCIADO informado sobre alterações relevantes nas condições do Clube.
+
+## CLÁUSULA 4 — VIGÊNCIA
+
+O presente contrato entra em vigor na data de adesão e permanece válido por prazo indeterminado, podendo ser rescindido por qualquer das partes mediante aviso prévio de 30 (trinta) dias.
+
+## CLÁUSULA 5 — FORO
+
+As partes elegem o foro da comarca da sede do CLUBE para dirimir quaisquer controvérsias oriundas deste instrumento.
+
+---
+
+Ao aderir ao Clube, o ASSOCIADO declara ter lido e aceito integralmente todos os termos aqui dispostos e os do Regulamento Geral do Clube.
+
+**Data de Adesão:** {{data}}
+
+_____________________________
+Assinatura do Associado
+
+HARMONY CLUBE DE BENEFÍCIOS — CNPJ: 39.583.767/0001-26
+`;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -779,6 +827,7 @@ Deno.serve(async (req) => {
 
     const { data: authData, error: authErr } = await userClient.auth.getUser();
     if (authErr || !authData?.user) {
+      console.error("generate-contract-manual: falha de autenticação:", authErr?.message);
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -786,6 +835,7 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as GenerateContractManualBody;
+    console.log("generate-contract-manual: requisição recebida, associadoId:", body?.associadoId);
     if (!body?.associadoId) {
       return new Response(JSON.stringify({ error: "associadoId é obrigatório" }), {
         status: 400,
@@ -863,7 +913,8 @@ Deno.serve(async (req) => {
     const plano = cota?.cota_nome ?? "";
     const dataBR = new Date().toLocaleDateString("pt-BR");
 
-    // Template contrato padrão
+    // Template contrato — busca o ativo; se não existir, cria o padrão automaticamente
+    console.log("generate-contract-manual: buscando template para company_id", companyId);
     const { data: template, error: tplErr } = await adminClient
       .from("document_templates")
       .select("id, title")
@@ -873,28 +924,77 @@ Deno.serve(async (req) => {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (tplErr) throw tplErr;
-    if (!template) {
-      return new Response(JSON.stringify({ error: "Template de contrato não encontrado" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (tplErr) {
+      console.error("generate-contract-manual: erro ao buscar template:", JSON.stringify(tplErr));
+      throw tplErr;
     }
 
+    let templateId: string;
+    let contractTitle: string;
+
+    if (!template) {
+      console.log("generate-contract-manual: nenhum template ativo encontrado — criando template padrão");
+      const { data: newTpl, error: newTplErr } = await adminClient
+        .from("document_templates")
+        .insert({
+          company_id: companyId,
+          template_key: "contrato_padrao",
+          template_type: "contract",
+          title: "Contrato de Associação — Harmony Clube de Benefícios",
+          content_markdown: DEFAULT_CONTRACT_MARKDOWN,
+          is_active: true,
+          created_by: userId,
+          updated_by: userId,
+        })
+        .select("id, title")
+        .single();
+      if (newTplErr) {
+        if ((newTplErr as any)?.code === "23505") {
+          // Corrida: outro request criou o template simultaneamente — buscar o existente
+          const { data: existing } = await adminClient
+            .from("document_templates")
+            .select("id, title")
+            .eq("company_id", companyId)
+            .eq("template_key", "contrato_padrao")
+            .maybeSingle();
+          if (!existing) { console.error("generate-contract-manual: conflito ao criar template padrão:", JSON.stringify(newTplErr)); throw newTplErr; }
+          templateId = existing.id;
+          contractTitle = existing.title;
+        } else {
+          console.error("generate-contract-manual: erro ao criar template padrão:", JSON.stringify(newTplErr));
+          throw newTplErr;
+        }
+      } else {
+        templateId = newTpl.id;
+        contractTitle = newTpl.title;
+        console.log("generate-contract-manual: template padrão criado:", templateId);
+      }
+    } else {
+      templateId = template.id;
+      contractTitle = template.title;
+      console.log("generate-contract-manual: template encontrado:", templateId);
+    }
+
+    console.log("generate-contract-manual: buscando versão para template", templateId);
     const { data: version, error: verErr } = await adminClient
       .from("document_template_versions")
       .select("id, version, content_markdown")
-      .eq("template_id", template.id)
+      .eq("template_id", templateId)
       .order("version", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (verErr) throw verErr;
+    if (verErr) {
+      console.error("generate-contract-manual: erro ao buscar versão:", JSON.stringify(verErr));
+      throw verErr;
+    }
     if (!version) {
-      return new Response(JSON.stringify({ error: "Versão do template não encontrada" }), {
+      console.error("generate-contract-manual: versão não encontrada para template", templateId);
+      return new Response(JSON.stringify({ error: "Versão do template não encontrada. Acesse Configurações → Documentos para configurar o contrato." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("generate-contract-manual: versão encontrada:", version.id, "v" + version.version);
 
     const vars: Record<string, string> = {
       nome: associado.nome_completo ?? "",
@@ -909,8 +1009,9 @@ Deno.serve(async (req) => {
 
     const contentSnapshot = version.content_markdown;
     const renderedMarkdown = applyVariables(contentSnapshot, vars);
+    console.log("generate-contract-manual: gerando PDF...");
     let pdfBytes = await createContractPdfBytes({
-      title: template.title ?? "Contrato",
+      title: contractTitle ?? "Contrato",
       markdown: renderedMarkdown,
     });
 
@@ -962,6 +1063,18 @@ Deno.serve(async (req) => {
       // Continua sem capa se houver erro
     }
 
+    console.log("generate-contract-manual: salvando PDF no storage...");
+    const pdfPath = `contracts/${companyId}/${associado.id}/${crypto.randomUUID()}.pdf`;
+    const { error: uploadErr } = await adminClient.storage.from("termos-aceite").upload(pdfPath, pdfBytes, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+    if (uploadErr) {
+      console.error("generate-contract-manual: erro no upload:", JSON.stringify(uploadErr));
+      throw uploadErr;
+    }
+
+    console.log("generate-contract-manual: inserindo registro no banco...");
     const { data: inserted, error: insErr } = await adminClient
       .from("generated_contracts")
       .insert({
@@ -972,28 +1085,20 @@ Deno.serve(async (req) => {
         template_version_id: version.id,
         status: "gerado",
         content_markdown_snapshot: contentSnapshot,
-          rendered_text_snapshot: stripMarkdown(renderedMarkdown),
+        rendered_text_snapshot: stripMarkdown(renderedMarkdown),
         generated_by: userId,
         generated_ip: ip,
+        pdf_path: pdfPath,
       })
       .select("id")
       .single();
-    if (insErr) throw insErr;
+    if (insErr) {
+      console.error("generate-contract-manual: erro ao inserir contrato:", JSON.stringify(insErr));
+      throw insErr;
+    }
 
     const contractId = inserted.id;
-    const pdfPath = `contracts/${companyId}/${associado.id}/${contractId}.pdf`;
-
-    const { error: uploadErr } = await adminClient.storage.from("termos-aceite").upload(pdfPath, pdfBytes, {
-      contentType: "application/pdf",
-      upsert: true,
-    });
-    if (uploadErr) throw uploadErr;
-
-    const { error: updErr } = await adminClient
-      .from("generated_contracts")
-      .update({ pdf_path: pdfPath })
-      .eq("id", contractId);
-    if (updErr) throw updErr;
+    console.log("generate-contract-manual: contrato gerado com sucesso:", contractId);
 
     const shouldSendEmail = body.sendEmail ?? true;
     let emailSent = false;
@@ -1025,9 +1130,9 @@ Deno.serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
-    console.error("generate-contract-manual error", e);
-    return new Response(JSON.stringify({ error: (e as any)?.message ?? "Erro interno" }), {
+  } catch (e: any) {
+    console.error("generate-contract-manual error:", e?.message ?? e, JSON.stringify(e));
+    return new Response(JSON.stringify({ error: e?.message ?? "Erro interno ao gerar contrato" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

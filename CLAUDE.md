@@ -29,6 +29,16 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+### 2026-07-01
+- Fix: Edge Function `generate-contract-manual` retornava 400 sem template configurado
+- Causa raiz: função exigia template em `document_templates` mas nenhum estava cadastrado
+- Fix 1 (edge function): fallback automático — cria template padrão no banco se não existir
+- Fix 2 (edge function): PDF agora é salvo no storage ANTES do insert no banco (path incluído no insert diretamente)
+- Fix 3 (edge function): logging detalhado com `console.log`/`console.error` em cada etapa
+- Fix 4 (frontend): `handleGerarContrato` em AssociadoDetalhe.tsx e AssociadoEditModal.tsx agora extrai `error.context.error` para mostrar mensagem real ao usuário
+- Deploy: `sfobrbxzdbgjoxgjerus` — função reimplantada com sucesso
+- Projeto Supabase corrigido: `sfobrbxzdbgjoxgjerus` (diferente do prod no CLAUDE.md)
+
 ### 2026-06-05
 - Criada tabela associado_beneficios_extras no Supabase
 - Benefícios extras funcionando: adicionar/remover com upsert

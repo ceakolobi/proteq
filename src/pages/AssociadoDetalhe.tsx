@@ -914,7 +914,10 @@ export default function AssociadoDetalhe() {
       const { data, error } = await supabase.functions.invoke('generate-contract-manual', {
         body: { associadoId: id, veiculoId: veiculo?.id ?? null, sendEmail: true },
       });
-      if (error) throw error;
+      if (error) {
+        const errMsg = (error as any)?.context?.error ?? error.message;
+        throw new Error(errMsg);
+      }
       fetchContratos(id);
       if (data?.emailSent === false) {
         toast.warning('Contrato gerado! Email não enviado — verifique as configurações de email.');
