@@ -40,7 +40,6 @@ import {
   ExternalLink,
   Building2,
   Car,
-  Send,
   Image
 } from 'lucide-react';
 import type { AssociateStatus } from '@/types/database';
@@ -173,7 +172,6 @@ export function AssociadoEditModal({
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [uploadingVeicDoc, setUploadingVeicDoc] = useState(false);
-  const [isGeneratingContract, setIsGeneratingContract] = useState(false);
   const [activeTab, setActiveTab] = useState('dados');
   
   // Apenas Admin Principal e Admin Básico podem trocar a regional
@@ -299,21 +297,6 @@ export function AssociadoEditModal({
     }
   };
 
-  const handleGerarContrato = async () => {
-    if (!associado?.id) return;
-    setIsGeneratingContract(true);
-    try {
-      const { error } = await supabase.functions.invoke('generate-contract-manual', {
-        body: { associadoId: associado.id, veiculoId: veiculo?.id ?? null, sendEmail: true },
-      });
-      if (error) { throw new Error((error as any)?.context?.error ?? error.message); }
-      toast.success('Contrato gerado e enviado por e-mail!');
-    } catch (e: any) {
-      toast.error(e?.message || 'Erro ao gerar contrato');
-    } finally {
-      setIsGeneratingContract(false);
-    }
-  };
 
   const handleChange = (field: keyof AssociadoData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -1100,22 +1083,10 @@ export function AssociadoEditModal({
         </Tabs>
 
         <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
-          <Button
-            variant="secondary"
-            onClick={handleGerarContrato}
-            disabled={isGeneratingContract || isLoading}
-            className="sm:mr-auto"
-          >
-            {isGeneratingContract ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
-            ) : (
-              <><Send className="h-4 w-4 mr-2" />Gerar Contrato</>
-            )}
-          </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading || isGeneratingContract}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isLoading || isGeneratingContract}>
+          <Button onClick={handleSave} disabled={isLoading}>
             {isLoading ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
             ) : (

@@ -39,7 +39,6 @@ import {
   Upload,
   Eye,
   Trash2,
-  Send,
   Download,
   AlertCircle,
   Calendar,
@@ -274,7 +273,6 @@ export default function AssociadoDetalhe() {
   const [isSearchingCEP, setIsSearchingCEP] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [uploadingVeicDoc, setUploadingVeicDoc] = useState(false);
-  const [isGeneratingContract, setIsGeneratingContract] = useState(false);
   const [showContractPreview, setShowContractPreview] = useState(false);
 
   const [documentos, setDocumentos] = useState<DocumentoAssociado[]>([]);
@@ -907,26 +905,6 @@ export default function AssociadoDetalhe() {
     } catch (e: any) { toast.error(e?.message || 'Erro ao excluir'); }
   };
 
-  const handleGerarContrato = async () => {
-    if (!id) return;
-    setIsGeneratingContract(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-contract-manual', {
-        body: { associadoId: id, veiculoId: veiculo?.id ?? null, sendEmail: true },
-      });
-      if (error) {
-        const errMsg = (error as any)?.context?.error ?? error.message;
-        throw new Error(errMsg);
-      }
-      fetchContratos(id);
-      if (data?.emailSent === false) {
-        toast.warning('Contrato gerado! Email não enviado — verifique as configurações de email.');
-      } else {
-        toast.success('Contrato gerado e enviado por e-mail!');
-      }
-    } catch (e: any) { toast.error(e?.message || 'Erro ao gerar contrato'); }
-    finally { setIsGeneratingContract(false); }
-  };
 
   const handleDownloadContrato = async (contrato: Contrato) => {
     if (!contrato.pdf_path) { toast.error('PDF não disponível'); return; }
@@ -984,16 +962,7 @@ export default function AssociadoDetalhe() {
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
-            <Button
-              variant="outline"
-              onClick={handleGerarContrato}
-              disabled={isGeneratingContract || isSaving}
-            >
-              {isGeneratingContract
-                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
-                : <><Send className="h-4 w-4 mr-2" />Gerar Contrato</>}
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving || isGeneratingContract}>
+            <Button onClick={handleSave} disabled={isSaving}>
               {isSaving
                 ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
                 : 'Salvar'}
@@ -1532,23 +1501,6 @@ export default function AssociadoDetalhe() {
                   <Mail className="h-4 w-4 mr-1.5" />
                   Enviar por Email
                 </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleGerarContrato}
-                      disabled={isGeneratingContract || isSaving}
-                    >
-                      {isGeneratingContract
-                        ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
-                        : <><Send className="h-4 w-4 mr-2" />Via Servidor</>}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Gera o contrato diretamente pelo servidor usando o template configurado</p>
-                  </TooltipContent>
-                </Tooltip>
               </div>
             </div>
           </CardHeader>
