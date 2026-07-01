@@ -19,7 +19,7 @@ export type VehicleStatus = 'cadastrado' | 'aguardando_vistoria' | 'aprovado' | 
 
 export type ProposalStatus = 'rascunho' | 'enviada' | 'aceita' | 'recusada' | 'cancelada';
 
-export type InspectionStatus = 'pendente' | 'agendada' | 'em_andamento' | 'aprovada' | 'reprovada' | 'dispensada';
+export type InspectionStatus = 'pendente' | 'agendada' | 'em_andamento' | 'aprovada' | 'reprovada' | 'dispensada' | 'cancelada';
 
 export type TipoVistoria = 'pre_adesao' | 'renovacao' | 'reinspecao';
 

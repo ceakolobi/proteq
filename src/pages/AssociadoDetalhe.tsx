@@ -17,6 +17,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
@@ -65,6 +69,7 @@ import {
   Plus,
   Minus,
   Info,
+  XCircle,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
 import type { AssociateStatus } from '@/types/database';
@@ -263,6 +268,7 @@ export default function AssociadoDetalhe() {
 
   const canChangeRegiao = isAdminPrincipal || hasRole('admin_nivel_basico');
   const canEditStatus = isAdminPrincipal || hasRole('admin_nivel_basico') || hasRole('admin_regional');
+  const canManageVistoria = isAdminPrincipal || hasRole('admin_nivel_basico');
 
   const { value: formData, setValue: setFormData, clearDraft, resetValue, hasDraft } =
     useFormPersistence<FormData>(`associado-edit:${id ?? ''}`, EMPTY_FORM);
@@ -294,6 +300,7 @@ export default function AssociadoDetalhe() {
   // Vistoria remota
   const [vistoriaAtual, setVistoriaAtual] = useState<VistoriaStatus | null>(null);
   const [isEnviandoLink, setIsEnviandoLink] = useState(false);
+  const [showDeleteVistoriaConfirm, setShowDeleteVistoriaConfirm] = useState(false);
 
   // Plano & Benefícios
   const [showTrocarPlano, setShowTrocarPlano] = useState(false);
@@ -612,6 +619,37 @@ export default function AssociadoDetalhe() {
       toast.error(e?.message || 'Erro ao reenviar link');
     } finally {
       setIsEnviandoLink(false);
+    }
+  };
+
+  const handleCancelarVistoria = async () => {
+    if (!vistoriaAtual || !id) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      const { error } = await supabase.from('vistorias').update({
+        status: 'cancelada',
+        cancelada_por: user.id,
+        cancelada_em: new Date().toISOString(),
+      } as never).eq('id', vistoriaAtual.id);
+      if (error) throw error;
+      await fetchVistoriaAtual(id);
+      toast.success('Vistoria cancelada. Você pode reenviar o link agora.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao cancelar vistoria');
+    }
+  };
+
+  const handleExcluirVistoria = async () => {
+    if (!vistoriaAtual || !id) return;
+    setShowDeleteVistoriaConfirm(false);
+    try {
+      const { error } = await supabase.from('vistorias').delete().eq('id', vistoriaAtual.id);
+      if (error) throw error;
+      setVistoriaAtual(null);
+      toast.success('Vistoria excluída com sucesso.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao excluir vistoria');
     }
   };
 
@@ -1459,13 +1497,15 @@ export default function AssociadoDetalhe() {
                     return <Badge className="bg-red-100 text-red-800 border-red-300 border gap-1"><ShieldAlert className="h-3 w-3" />Vistoria reprovada</Badge>;
                   if (vistoriaAtual.status === 'em_andamento')
                     return <Badge className="bg-purple-100 text-purple-800 border-purple-300 border gap-1"><ShieldCheck className="h-3 w-3" />Vistoria enviada — em revisão</Badge>;
+                  if (vistoriaAtual.status === 'cancelada')
+                    return <Badge className="bg-gray-100 text-gray-600 border-gray-300 border gap-1"><XCircle className="h-3 w-3" />Vistoria cancelada</Badge>;
                   if (expired)
                     return <Badge className="bg-red-100 text-red-800 border-red-300 border gap-1"><AlertCircle className="h-3 w-3" />Link expirado</Badge>;
                   return <Badge className="bg-amber-100 text-amber-800 border-amber-300 border gap-1"><Clock className="h-3 w-3" />Aguardando vistoria</Badge>;
                 })()}
                 {/* Enviar / Reenviar link */}
                 {(() => {
-                  const canSend = !vistoriaAtual || ['reprovada'].includes(vistoriaAtual.status) || (vistoriaAtual.token_expires_at && new Date(vistoriaAtual.token_expires_at) < new Date());
+                  const canSend = !vistoriaAtual || ['reprovada', 'cancelada'].includes(vistoriaAtual.status) || (vistoriaAtual.token_expires_at && new Date(vistoriaAtual.token_expires_at) < new Date());
                   const canResend = vistoriaAtual && ['pendente', 'agendada'].includes(vistoriaAtual.status) && vistoriaAtual.token_expires_at && new Date(vistoriaAtual.token_expires_at) < new Date();
                   if (canSend)
                     return (
@@ -1483,6 +1523,18 @@ export default function AssociadoDetalhe() {
                     );
                   return null;
                 })()}
+                {canManageVistoria && vistoriaAtual && !['aprovada', 'dispensada', 'cancelada'].includes(vistoriaAtual.status) && (
+                  <Button size="sm" variant="outline" className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    onClick={handleCancelarVistoria}>
+                    <XCircle className="h-4 w-4 mr-1.5" />Cancelar Vistoria
+                  </Button>
+                )}
+                {canManageVistoria && vistoriaAtual && (
+                  <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50"
+                    onClick={() => setShowDeleteVistoriaConfirm(true)}>
+                    <Trash2 className="h-4 w-4 mr-1.5" />Excluir Vistoria
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
@@ -1613,6 +1665,23 @@ export default function AssociadoDetalhe() {
         </div>
 
       </div>
+
+      <AlertDialog open={showDeleteVistoriaConfirm} onOpenChange={setShowDeleteVistoriaConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir vistoria?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O registro da vistoria será removido permanentemente do banco de dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExcluirVistoria} className="bg-red-600 hover:bg-red-700 text-white">
+              Sim, excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
