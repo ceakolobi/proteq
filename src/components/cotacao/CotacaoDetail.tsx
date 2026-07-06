@@ -59,6 +59,8 @@ import {
   Link,
   Copy,
   ExternalLink,
+  Save,
+  X,
 } from 'lucide-react';
 import type { Cotacao, CotacaoContato, CotacaoStatus, TipoContato } from '@/types/cotacao';
 import { 
@@ -68,10 +70,12 @@ import {
   metodoValoracaoLabels,
   tipoContatoLabels,
 } from '@/types/cotacao';
-import { 
-  isCota01, 
+import {
+  isCota01,
   getCategoriaByTipoVeiculo,
   PARTICIPACAO_MINIMA_COTA_01,
+  getPerfilEditor,
+  formatCurrency,
 } from '@/lib/cotacaoUtils';
 import type { VehicleType } from '@/types/database';
 
@@ -93,7 +97,7 @@ interface CotacaoDetailProps {
 }
 
 export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDetailProps) {
-  const { user, profile, isAdminPrincipal, hasRole } = useAuth();
+  const { user, profile, roles, isAdminPrincipal, hasRole } = useAuth();
   const navigate = useNavigate();
   const [isContatoDialogOpen, setIsContatoDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -126,6 +130,60 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const isAprovado = cotacao.status === 'aprovado';
   const isAceita = cotacao.status === 'aceita' || !!(cotacao as any).aceita_em;
   const canApprove = cotacao.status !== 'aprovado' && cotacao.status !== 'perdido' && canManage;
+
+  // Perfil do editor — gate de edição de ajustes
+  const perfilEditor = getPerfilEditor(roles ?? [], isAdminPrincipal);
+  const podeEditarAjustes = perfilEditor === 'ADMIN';
+
+  // Estados para edição de ajustes
+  const [modoEdicaoAjustes, setModoEdicaoAjustes] = useState(false);
+  const [ajusteGeral, setAjusteGeral] = useState<number>((cotacao as any).ajuste_geral_valor ?? 0);
+  const [ajusteIndividual, setAjusteIndividual] = useState<number>((cotacao as any).ajuste_individual_valor ?? 0);
+  const [isSavingAjustes, setIsSavingAjustes] = useState(false);
+
+  // valor_base imutável — base sem ajustes (reconstrói se não estiver salvo)
+  const valorBase: number = (() => {
+    const stored = (cotacao as any).valor_base;
+    if (stored != null && stored > 0) return Number(stored);
+    // Reconstrução: base = mensalidade - ajustes originais
+    const mens = cotacao.mensalidade ?? 0;
+    const ag = Number((cotacao as any).ajuste_geral_valor ?? 0);
+    const ai = Number((cotacao as any).ajuste_individual_valor ?? 0);
+    return mens - ag - ai;
+  })();
+
+  const mensalidadeCalculada = valorBase + ajusteGeral + ajusteIndividual;
+
+  const handleSalvarAjustes = async () => {
+    setIsSavingAjustes(true);
+    try {
+      const { error } = await supabase
+        .from('cotacoes')
+        .update({
+          ajuste_geral_valor: ajusteGeral,
+          ajuste_individual_valor: ajusteIndividual,
+          mensalidade: mensalidadeCalculada,
+          valor_final: mensalidadeCalculada,
+          editado_por: user?.id ?? null,
+          perfil_editor: perfilEditor,
+        })
+        .eq('id', cotacao.id);
+      if (error) throw error;
+      toast.success('Ajustes salvos — mensalidade atualizada');
+      setModoEdicaoAjustes(false);
+      onUpdate();
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao salvar ajustes');
+    } finally {
+      setIsSavingAjustes(false);
+    }
+  };
+
+  const handleCancelarEdicaoAjustes = () => {
+    setAjusteGeral((cotacao as any).ajuste_geral_valor ?? 0);
+    setAjusteIndividual((cotacao as any).ajuste_individual_valor ?? 0);
+    setModoEdicaoAjustes(false);
+  };
 
   // Participação com fallback para cotações sem valor salvo no banco
   const participacaoDisplay: number | null = (() => {
