@@ -29,6 +29,14 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+### 2026-07-06
+- Bug: cotações salvas sem `company_id` (sede) — campo estava ausente no `insertData` de `CotacaoForm.tsx`
+- Causa raiz: form faz insert inline sem usar `useCotacoes.createCotacao()`, que já tinha o campo correto
+- Fix: adicionado `company_id: profile?.company_id || null` ao `insertData` em `CotacaoForm.tsx:354`
+- Migration `20260706000001_fix_cotacoes_company_id.sql` (backfill histórico) já existia — só faltava o fix no front
+- Confirmado: `cotacoes` não tem coluna `sede_id`; a "sede" no contexto da cotação é `company_id`
+- `consultor_id` e `regiao_id` já estavam sendo enviados corretamente
+
 ### 2026-07-01
 - Fix: Edge Function `generate-contract-manual` retornava 400 sem template configurado
 - Causa raiz: função exigia template em `document_templates` mas nenhum estava cadastrado

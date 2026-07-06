@@ -358,6 +358,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         valor_bem: valorBem,
         metodo_valoracao: formData.metodo_valoracao!,
         consultor_id: user?.id!,
+        company_id: profile?.company_id || null,
         regiao_id: profile?.regiao_id || null,
         lead_id: leadId || null,
         placa: formData.placa || null,

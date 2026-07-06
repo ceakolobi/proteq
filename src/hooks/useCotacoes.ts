@@ -134,6 +134,7 @@ export function useCotacoes(): UseCotacoesResult {
         valor_bem: data.valor_bem!,
         metodo_valoracao: data.metodo_valoracao || 'fipe',
         consultor_id: user.id,
+        company_id: profile?.company_id || null,
         regiao_id: data.regiao_id || profile?.regiao_id || null,
         status: data.status || 'novo',
         lead_id: data.lead_id || null,
