@@ -29,6 +29,14 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+### 2026-07-06 (cont. 3)
+- Feature: ajuste_geral_valor e ajuste_individual_valor editáveis em CotacaoDetail.tsx
+- Gate: perfilEditor === 'ADMIN' (admin_principal / admin_regional / isAdminPrincipal)
+- Sem migration — colunas já existiam em cotacoes
+- Recalcula mensalidade em tempo real; salva ajuste_geral_valor, ajuste_individual_valor, mensalidade, valor_final
+- Proteção: client-side only (RLS de cotacoes não checa role)
+- Build: ✓ sem erros
+
 ### 2026-07-06 (cont. 2)
 - Fix: company_id faltando em 14 inserts — varredura completa + todos os pontos corrigidos
 - Padrão: profile?.company_id ?? null em todos os payloads de insert nas tabelas multi-tenant

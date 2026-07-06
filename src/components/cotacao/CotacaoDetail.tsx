@@ -141,35 +141,49 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const [ajusteIndividual, setAjusteIndividual] = useState<number>((cotacao as any).ajuste_individual_valor ?? 0);
   const [isSavingAjustes, setIsSavingAjustes] = useState(false);
 
-  // valor_base imutável — base sem ajustes (reconstrói se não estiver salvo)
+  // valor_base imutável — piso de mensalidade (preço base da cota, sem ajustes)
   const valorBase: number = (() => {
     const stored = (cotacao as any).valor_base;
     if (stored != null && stored > 0) return Number(stored);
-    // Reconstrução: base = mensalidade - ajustes originais
+    // Reconstrução: base = mensalidade original - ajustes originais
     const mens = cotacao.mensalidade ?? 0;
     const ag = Number((cotacao as any).ajuste_geral_valor ?? 0);
     const ai = Number((cotacao as any).ajuste_individual_valor ?? 0);
-    return mens - ag - ai;
+    return Math.max(0, mens - ag - ai);
   })();
 
-  const mensalidadeCalculada = valorBase + ajusteGeral + ajusteIndividual;
+  // Mensalidade resultante dos ajustes (sem trava)
+  const mensalidadeBruta = valorBase + ajusteGeral + ajusteIndividual;
+
+  // Trava: mensalidade não pode cair abaixo do valorBase (piso da cota)
+  // valorBase é o valor mínimo configurado na cota para esse tipo de veículo.
+  // PARTICIPACAO_MINIMA_COTA_01 são valores de franquia/sinistro — não de mensalidade.
+  const mensalidadeMinima = valorBase;
+  const aplicouMinimoMensalidade = mensalidadeBruta < mensalidadeMinima;
+  const mensalidadeCalculada = Math.max(mensalidadeMinima, mensalidadeBruta);
 
   const handleSalvarAjustes = async () => {
     setIsSavingAjustes(true);
     try {
+      // Recalcula com trava antes de persistir
+      const mensalidadeFinal = Math.max(mensalidadeMinima, valorBase + ajusteGeral + ajusteIndividual);
       const { error } = await supabase
         .from('cotacoes')
         .update({
           ajuste_geral_valor: ajusteGeral,
           ajuste_individual_valor: ajusteIndividual,
-          mensalidade: mensalidadeCalculada,
-          valor_final: mensalidadeCalculada,
+          mensalidade: mensalidadeFinal,
+          valor_final: mensalidadeFinal,
           editado_por: user?.id ?? null,
           perfil_editor: perfilEditor,
         })
         .eq('id', cotacao.id);
       if (error) throw error;
-      toast.success('Ajustes salvos — mensalidade atualizada');
+      toast.success(
+        aplicouMinimoMensalidade
+          ? 'Ajustes salvos — valor mínimo da cota aplicado'
+          : 'Ajustes salvos — mensalidade atualizada'
+      );
       setModoEdicaoAjustes(false);
       onUpdate();
     } catch (e: any) {
@@ -760,10 +774,23 @@ _Proteção Veicular_`;
         {/* Valores */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Valores
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Valores
+              </CardTitle>
+              {podeEditarAjustes && !modoEdicaoAjustes && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setModoEdicaoAjustes(true)}
+                  className="h-7 px-2 text-xs"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Editar Ajustes
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
@@ -775,27 +802,73 @@ _Proteção Veicular_`;
               <span className="font-semibold">{formatCurrency(cotacao.valor_bem)}</span>
             </div>
             <Separator />
-            {/* Detalhamento do cálculo */}
-            {(cotacao as any).valor_base && (
-              <>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Valor Base:</span>
-                  <span>{formatCurrency((cotacao as any).valor_base)}</span>
+
+            {/* Detalhamento do cálculo — com edição condicional */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Valor Base:</span>
+                <span>{formatCurrency(valorBase)}</span>
+              </div>
+
+              {/* Ajuste Geral */}
+              <div className="flex items-center justify-between text-xs gap-2">
+                <span className="text-muted-foreground shrink-0">Ajuste Geral (R$):</span>
+                {modoEdicaoAjustes ? (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={ajusteGeral}
+                    onChange={(e) => setAjusteGeral(parseFloat(e.target.value) || 0)}
+                    className="h-7 w-28 text-xs text-right"
+                  />
+                ) : (
+                  <span className={ajusteGeral !== 0 ? 'text-primary font-medium' : ''}>
+                    {ajusteGeral > 0 ? '+' : ''}{formatCurrency(ajusteGeral)}
+                  </span>
+                )}
+              </div>
+
+              {/* Ajuste Individual */}
+              <div className="flex items-center justify-between text-xs gap-2">
+                <span className="text-muted-foreground shrink-0">Ajuste Individual (R$):</span>
+                {modoEdicaoAjustes ? (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={ajusteIndividual}
+                    onChange={(e) => setAjusteIndividual(parseFloat(e.target.value) || 0)}
+                    className="h-7 w-28 text-xs text-right"
+                  />
+                ) : (
+                  <span className={ajusteIndividual !== 0 ? 'text-primary font-medium' : ''}>
+                    {ajusteIndividual > 0 ? '+' : ''}{formatCurrency(ajusteIndividual)}
+                  </span>
+                )}
+              </div>
+
+              {/* Preview da mensalidade calculada no modo edição */}
+              {modoEdicaoAjustes && (
+                <div className="space-y-1 pt-1 border-t">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground font-medium">Mensalidade resultante:</span>
+                    <span className="font-bold text-primary">{formatCurrency(mensalidadeCalculada)}</span>
+                  </div>
+                  {aplicouMinimoMensalidade && (
+                    <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                      <span>⚠</span>
+                      <span>Valor mínimo da cota aplicado — não é possível ficar abaixo de {formatCurrency(mensalidadeMinima)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Ajuste Geral (R$):</span>
-                  <span>{formatCurrency((cotacao as any).ajuste_geral_valor || 0)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Ajuste Individual (R$):</span>
-                  <span>{formatCurrency((cotacao as any).ajuste_individual_valor || 0)}</span>
-                </div>
-                <Separator />
-              </>
-            )}
+              )}
+            </div>
+
+            <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Mensalidade:</span>
-              <span className="font-bold text-primary text-lg">{formatCurrency(cotacao.mensalidade)}</span>
+              <span className="font-bold text-primary text-lg">
+                {modoEdicaoAjustes ? formatCurrency(mensalidadeCalculada) : formatCurrency(cotacao.mensalidade)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Participação (7%):</span>
@@ -805,7 +878,36 @@ _Proteção Veicular_`;
               <span className="text-muted-foreground">Carro Reserva:</span>
               <span>{cotacao.carro_reserva_dias} dias</span>
             </div>
-            
+
+            {/* Botões salvar/cancelar */}
+            {modoEdicaoAjustes && (
+              <div className="flex gap-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelarEdicaoAjustes}
+                  disabled={isSavingAjustes}
+                  className="flex-1"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSalvarAjustes}
+                  disabled={isSavingAjustes}
+                  className="flex-1"
+                >
+                  {isSavingAjustes ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="w-3 h-3 mr-1" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+            )}
+
             {/* Cláusula COTA 01 - Valor Mínimo de Participação */}
             {cotacao.cota_nome && isCota01(cotacao.cota_nome) && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs mt-3">
