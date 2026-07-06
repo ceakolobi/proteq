@@ -464,7 +464,8 @@ export default function Associados() {
           .from('associados')
           .insert({
             ...associadoData,
-            consultor_id: user.id, // OBRIGATÓRIO: Link to current consultor
+            consultor_id: user.id,
+            company_id: profile?.company_id ?? null,
           })
           .select()
           .single();
@@ -557,6 +558,7 @@ export default function Associados() {
           cota_id: cotaApropriada?.id || null,
           mensalidade: mensalidade,
           carro_reserva_dias: 15,
+          company_id: profile?.company_id ?? null,
         });
 
       if (error) throw error;

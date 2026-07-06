@@ -496,6 +496,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           cidade: associadoData.cidade.trim(),
           estado: associadoData.estado.trim(),
           consultor_id: user.id,
+          company_id: profile?.company_id ?? null,
           regiao_id: finalRegiaoId,
           status: 'ativo',
           dia_vencimento: associadoData.dia_vencimento,
@@ -578,6 +579,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           cota_id: cotaApropriada.id,
           mensalidade,
           consultor_id: user.id,
+          company_id: profile?.company_id ?? null,
           carro_reserva_dias: 15,
         })
         .select()
@@ -612,6 +614,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
             veiculo_id: veiculo.id,
             associado_id: associado.id,
             consultor_id: user.id,
+            company_id: profile?.company_id ?? null,
             status: 'dispensada',
             motivo_dispensa: `Migração de outra associação: ${associadoData.nome_associacao_anterior || 'Não informada'}. Data de saída: ${dataSaidaFormatada}`,
             dispensada_por: user.id,

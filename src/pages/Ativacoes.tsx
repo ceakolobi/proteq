@@ -105,7 +105,7 @@ const statusConfig: Record<AtivacaoStatus, { label: string; variant: 'default' |
 
 export default function Ativacoes() {
   const navigate = useNavigate();
-  const { user, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
+  const { user, profile, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking, userSedeId } = useAccessControl('authenticated');
 
   // Permissões granulares com fallback por role
@@ -275,6 +275,7 @@ export default function Ativacoes() {
         veiculo_id: formVeiculoId,
         associado_id: veiculo.associado_id,
         sede_id: veiculo.sede_id || userSedeId || null,
+        company_id: profile?.company_id ?? null,
         consultor_id: isConsultor ? user?.id : veiculo.consultor_id,
         numero_contrato: formNumeroContrato,
         plano: formPlano || veiculo.cotas?.cota_nome || null,

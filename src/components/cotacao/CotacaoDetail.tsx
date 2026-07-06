@@ -93,7 +93,7 @@ interface CotacaoDetailProps {
 }
 
 export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDetailProps) {
-  const { user, isAdminPrincipal, hasRole } = useAuth();
+  const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   const navigate = useNavigate();
   const [isContatoDialogOpen, setIsContatoDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -276,6 +276,7 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
         .from('propostas')
         .insert([{
           consultor_id: cotacao.consultor_id,
+          company_id: profile?.company_id ?? null,
           lead_id: cotacao.lead_id || null,
           veiculo_marca: cotacao.marca,
           veiculo_modelo: cotacao.modelo,
@@ -501,6 +502,7 @@ _(abra o link para visualizar todos os detalhes e aceitar online)_
           cotacao_id: cotacao.id,
           associado_id: cotacao.associado_id || null,
           consultor_id: cotacao.consultor_id,
+          company_id: profile?.company_id ?? null,
           proposta_id: cotacao.proposta_id || null,
           canal_abertura: canal,
           tipo_vistoria: 'pre_adesao',

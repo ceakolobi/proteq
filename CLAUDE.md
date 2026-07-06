@@ -29,6 +29,23 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+### 2026-07-06 (cont. 2)
+- Fix: company_id faltando em 14 inserts — varredura completa + todos os pontos corrigidos
+- Padrão: profile?.company_id ?? null em todos os payloads de insert nas tabelas multi-tenant
+- Cotas.tsx: adicionado import useAuth (único arquivo que não tinha)
+- Ativacoes, Vistorias, CotacaoDetail: profile adicionado ao destructuring de useAuth()
+- Veículos manteve sede_id + ganhou company_id (campos distintos: tenant vs unidade)
+- ALERTA DE SEGURANÇA: api_tokens sem endpoint de validação por company_id identificado (reportado)
+- Build: ✓ sem erros
+
+### 2026-07-06 (cont.)
+- Bug: dois cards "Guincho km Extra" visíveis em benefícios/adicionais
+- Causa: seed migration + insert manual via admin sem UNIQUE constraint → 2 linhas no banco com mesmo nome/valor
+- Fix DB: migration `20260706000002_fix_beneficios_extras_duplicates.sql` — DELETE dos duplicados + UNIQUE (company_id, nome)
+- Fix front (defensivo): deduplica por id em `useBeneficiosExtras.ts` e `AssociadoDetalhe.tsx:fetchBeneficiosExtras`
+- Nota: tabela é `beneficios_extras`, não `beneficios` (tabela separada de acionamentos)
+- Migration NÃO aplicada em produção — aguardando confirmação de Eduardo
+
 ### 2026-07-06
 - Bug: cotações salvas sem `company_id` (sede) — campo estava ausente no `insertData` de `CotacaoForm.tsx`
 - Causa raiz: form faz insert inline sem usar `useCotacoes.createCotacao()`, que já tinha o campo correto

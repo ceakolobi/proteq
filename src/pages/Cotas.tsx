@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -57,6 +58,7 @@ const categoriaLabels: Record<CotaCategoria, string> = {
 
 export default function Cotas() {
   // Permissões granulares com fallback por role
+  const { profile } = useAuth();
   const { canAccessPage, canCreate, canEdit, canDelete, isLoading: permissionsLoading } = useModuleAccess('cotas');
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   
@@ -287,7 +289,7 @@ export default function Cotas() {
       } else {
         const { error } = await supabase
           .from('cotas')
-          .insert(cotaData);
+          .insert({ ...cotaData, company_id: profile?.company_id ?? null });
 
         if (error) throw error;
         toast({

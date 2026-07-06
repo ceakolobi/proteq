@@ -439,7 +439,10 @@ export default function AssociadoDetalhe() {
     // caminhao, maquina_agricola, etc. → show all active
 
     const { data } = await query;
-    setBeneficiosExtras((data as BeneficioExtra[]) || []);
+    const unicos = Array.from(
+      new Map(((data ?? []) as BeneficioExtra[]).map(b => [b.id, b])).values()
+    );
+    setBeneficiosExtras(unicos);
   }, []);
 
   // Sempre busca de associado_beneficios_extras (fonte única)
@@ -564,6 +567,7 @@ export default function AssociadoDetalhe() {
         token_acesso: token,
         token_expires_at: expiresAt,
         consultor_id: user.id,
+        company_id: profile?.company_id ?? null,
       } as never);
       if (insertErr) throw insertErr;
 

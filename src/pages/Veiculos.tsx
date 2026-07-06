@@ -564,6 +564,7 @@ export default function Veiculos() {
         associado_id: formData.associado_id,
         consultor_id: user?.id,
         sede_id: sedeId,
+        company_id: profile?.company_id ?? null,
         codigo_fipe: formData.codigo_fipe || null,
         mes_referencia_fipe: formData.mes_referencia_fipe || null,
         protecao_ativa: false,

@@ -105,7 +105,7 @@ const statusConfig = {
 
 export default function Vistorias() {
   const navigate = useNavigate();
-  const { user, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
+  const { user, profile, hasAnyRole, hasRole, isAdminPrincipal } = useAuth();
   const { isAllowed, isChecking, userSedeId } = useAccessControl('authenticated');
 
   // Permissões granulares com fallback por role
@@ -265,6 +265,7 @@ export default function Vistorias() {
         status: (formVistoriadorId && formDataAgendada ? 'agendada' : 'pendente') as InspectionStatus,
         consultor_id: user?.id || null,
         sede_id: userSedeId || null,
+        company_id: profile?.company_id ?? null,
         vistoriador_id: formVistoriadorId || null,
         data_agendada: formDataAgendada || null,
       };

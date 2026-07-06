@@ -132,6 +132,7 @@ export function ApiTokensCard() {
         name: newTokenName.trim(),
         token: newToken,
         description: newTokenDescription.trim() || null,
+        company_id: profile?.company_id ?? null,
       });
 
     if (insertError) {
@@ -504,25 +505,19 @@ export function ApiTokensCard() {
         <div className="space-y-3">
           <Label className="text-base flex items-center gap-2">
             <ExternalLink className="w-4 h-4" />
-            Exemplo de Integração
+            Como usar
           </Label>
-          <div className="p-4 rounded-lg bg-muted font-mono text-xs overflow-x-auto">
-            <pre className="whitespace-pre-wrap">
-{`curl -X POST "${apiBaseUrl}/leads" \\
-  -H "apikey: SEU_ANON_KEY" \\
-  -H "Authorization: Bearer SEU_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "nome": "João Silva",
-    "telefone": "11999998888",
-    "email": "joao@email.com",
-    "consultor_id": "UUID_DO_CONSULTOR"
-  }'`}
-            </pre>
+          <div className="p-4 rounded-lg bg-muted/50 border border-border/50 text-sm space-y-2">
+            <p className="font-medium">Tokens <code className="bg-muted px-1 rounded text-xs">hag_...</code> funcionam via Edge Function</p>
+            <p className="text-muted-foreground text-xs">
+              Esses tokens <strong>não</strong> são JWTs e não funcionam diretamente com a REST API do Supabase (<code className="bg-muted px-1 rounded">/rest/v1</code>).
+              Eles devem ser enviados no header <code className="bg-muted px-1 rounded">Authorization: Bearer SEU_TOKEN</code> para uma Edge Function dedicada,
+              que valida o token via <code className="bg-muted px-1 rounded">validate_api_token()</code> e escopa as operações à empresa correspondente.
+            </p>
+            <p className="text-muted-foreground text-xs">
+              O endpoint de integração será disponibilizado em breve. Gere e guarde seu token com antecedência.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Substitua <code className="bg-muted px-1 rounded">SEU_TOKEN</code> pelo token gerado acima e <code className="bg-muted px-1 rounded">SEU_ANON_KEY</code> pela chave pública do projeto.
-          </p>
         </div>
       </CardContent>
     </Card>

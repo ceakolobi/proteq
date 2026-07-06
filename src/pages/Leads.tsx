@@ -482,6 +482,7 @@ export default function Leads() {
           .insert({
             ...leadData,
             consultor_id: user!.id,
+            company_id: profile?.company_id ?? null,
           });
 
         if (error) throw error;

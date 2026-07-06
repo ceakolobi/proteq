@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export interface BeneficioExtra {
@@ -32,7 +33,10 @@ export function useBeneficiosExtrasAtivos(tipoBem?: string) {
       const { data, error } = await query;
       if (error) throw error;
 
-      let lista = (data ?? []) as BeneficioExtra[];
+      // Deduplica por id (proteção contra duplicatas no banco)
+      let lista = Array.from(
+        new Map(((data ?? []) as BeneficioExtra[]).map(b => [b.id, b])).values()
+      );
 
       // Filtra por tipo de bem
       if (tipoBem === 'carro') lista = lista.filter(b => b.aplica_carro);
@@ -60,6 +64,7 @@ export function useBeneficiosExtras() {
 }
 
 export function useUpsertBeneficio() {
+  const { profile } = useAuth();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<BeneficioExtra> & { nome: string; valor_mensal: number }) => {
@@ -73,6 +78,7 @@ export function useUpsertBeneficio() {
         aplica_carro: input.aplica_carro ?? true,
         aplica_moto: input.aplica_moto ?? true,
         aplica_caminhonete: input.aplica_caminhonete ?? true,
+        company_id: profile?.company_id ?? null,
       };
 
       if (input.id) {
