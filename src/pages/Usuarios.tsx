@@ -313,6 +313,16 @@ export default function Usuarios() {
       return;
     }
 
+    const rolesQueExigemSede = ['gestor', 'admin_regional', 'gerente', 'consultor_vendas'];
+    if (rolesQueExigemSede.includes(createFormData.role) && (!createFormData.sede_id || !createFormData.regiao_id)) {
+      toast({
+        variant: 'destructive',
+        title: 'Sede e Região obrigatórias',
+        description: `O perfil "${ROLE_LABELS[createFormData.role as AppRole] || createFormData.role}" exige sede e região para funcionar corretamente no sistema.`,
+      });
+      return;
+    }
+
     if (createFormData.senha.length < 6) {
       toast({
         variant: 'destructive',
@@ -349,19 +359,17 @@ export default function Usuarios() {
       // Aguardar o profile ser criado pelo trigger
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Atualizar profile com sede/região
-      if (createFormData.sede_id || createFormData.regiao_id) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            sede_id: createFormData.sede_id || null,
-            regiao_id: createFormData.regiao_id || null,
-          })
-          .eq('id', authData.user.id);
+      // Atualizar profile com sede/região (sempre, para evitar NULL silencioso)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          sede_id: createFormData.sede_id || null,
+          regiao_id: createFormData.regiao_id || null,
+        })
+        .eq('id', authData.user.id);
 
-        if (profileError) {
-          console.error('Error updating profile:', profileError);
-        }
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
       }
 
       // Adicionar role
@@ -370,6 +378,7 @@ export default function Usuarios() {
         .insert({
           user_id: authData.user.id,
           role: createFormData.role as AppRole,
+          company_id: adminCompanyId ?? null,
         });
 
       if (roleError) throw roleError;

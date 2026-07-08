@@ -10,7 +10,7 @@
 - Painel prod: C:\Users\Cliente\Documents\GitHub\painelharmonyagrocombr-6e9e5f71
 - App mobile: C:\Users\Cliente\harmony-home-screen
 - Vault Obsidian: C:\Amk\amarok
-- Supabase prod: sbtfhtllzpurjprivqoi
+- Supabase prod (self-managed, migrado 27/06/2026): sfobrbxzdbgjoxgjerus
 - Supabase dev: vzztqnihkwuhqgavtgae
 
 ## Convenções obrigatórias
@@ -22,7 +22,7 @@
 
 ## Pendências em aberto
 - [ ] PWA não abre no iPhone — pendente investigar
-- [ ] Migration fotos/contratos aplicar em produção (sbtfhtllzpurjprivqoi)
+- [ ] Migration fotos/contratos aplicar em produção (sfobrbxzdbgjoxgjerus)
 - [ ] Auth real Supabase no app mobile (ainda usa sessionStorage)
 - [ ] Meta Ads — primeira campanha ainda não lançada
 - [ ] SDR manual — 50 prospects ainda não iniciado
