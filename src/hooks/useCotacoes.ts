@@ -298,6 +298,35 @@ export function useCotacoes(): UseCotacoesResult {
     }
   };
 
+  const deleteCotacao = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('cotacoes').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Cotação excluída');
+      await fetchCotacoes();
+      return true;
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao excluir cotação');
+      return false;
+    }
+  };
+
+  const migrarCotacao = async (id: string, consultorId: string, regiaoId: string | null): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('cotacoes')
+        .update({ consultor_id: consultorId, regiao_id: regiaoId })
+        .eq('id', id);
+      if (error) throw error;
+      toast.success('Cotação migrada com sucesso');
+      await fetchCotacoes();
+      return true;
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao migrar cotação');
+      return false;
+    }
+  };
+
   const getMensalidadeByTipo = async (cotaId: string, tipoBem: TipoBem): Promise<number> => {
     try {
       const { data: cota } = await supabase
