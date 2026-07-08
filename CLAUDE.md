@@ -29,6 +29,33 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+
+### 2026-07-08
+- Fix: perfis órfãos (gestores com regiao_id/sede_id/company_id NULL bloqueados por RLS)
+  - Varredura SQL: queries para identificar perfis órfãos por role
+  - Fix Usuarios.tsx: `update` de sede_id/regiao_id agora sempre executa (removido `if` que deixava NULL)
+  - Fix Usuarios.tsx: `user_roles` insert agora inclui `company_id`
+  - Fix Usuarios.tsx: validação obrigatória de sede+região para roles gestor/admin_regional/gerente/consultor_vendas
+- Feature: cotações do site salvas no banco
+  - `usePublicQuotation.ts`: salva cotação em `cotacoes` com `origem='site'` ao calcular resultado
+  - Migration necessária: `ALTER TABLE cotacoes ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT 'painel'`
+  - `Cotacoes.tsx`: aba "Do Site" com tabela, busca, botão migrar (modal consultor+regional) e excluir
+  - `useCotacoes.ts`: adicionado `deleteCotacao`, `migrarCotacao`, `consultor_nome`
+- Feature: fluxo primeiro acesso (modo link + senha provisória)
+  - Migration: `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS senha_provisoria BOOLEAN DEFAULT false`
+  - Edge Function `admin-criar-acesso` deployada em sfobrbxzdbgjoxgjerus
+  - Secret `APP_URL=https://harmonyclube.com.br` configurada no Supabase
+  - Redirect URL `https://harmonyclube.com.br/**` adicionada em Auth → URL Configuration
+  - `DefinirSenha.tsx`: nova página /definir-senha (handles modo link via PASSWORD_RECOVERY e modo provisório)
+  - `useForcarTrocaSenha.ts`: redireciona para /definir-senha se senha_provisoria=true
+  - `AuthContext.tsx`: expõe `senhaProvisoria` e `clearSenhaProvisoria`
+  - `Usuarios.tsx`: seção "Primeiro Acesso" com botões "Enviar link" e "Gerar senha provisória" + modal de exibição única
+  - Edge Function: sempre retorna HTTP 200 com `{ success, error }` — nunca FunctionsHttpError
+  - Confirmado funcionando end-to-end ✅
+- Feature: label "Gerente Regional" no dropdown de perfis
+  - `src/config/permissions.ts`: `gerente: 'Gerente Regional'`
+- Fix: acesso total ao Eduardo (kolobi2013cf@gmail.com) via SQL no banco
+  - Garantir `is_admin_principal=true`, role `admin_principal` e `company_id` correto
 ### 2026-07-07
 - Feature: campo "Comissão do Consultor (%)" no modal de Novo/Editar Consultor (Consultores.tsx)
 - Grava em `configuracao_comissoes` (tabela já existia — sem migration)
