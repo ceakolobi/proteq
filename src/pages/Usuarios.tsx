@@ -113,6 +113,10 @@ export default function Usuarios() {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
 
+  // Acesso inicial: estado para botões de admin
+  const [acessoLoading, setAcessoLoading] = useState<'link' | 'senha' | null>(null);
+  const [senhaGerada, setSenhaGerada] = useState<string | null>(null);
+
   const fetchData = async () => {
     if (!isAllowed) return;
     
