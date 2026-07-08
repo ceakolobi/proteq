@@ -12,7 +12,6 @@ interface CotacaoWithRelations extends Cotacao {
   consultor_nome?: string;
   cota_nome?: string;
   contatos?: CotacaoContato[];
-  cliente_nome?: string;
   cliente_email?: string;
   cliente_whatsapp?: string;
   proposta_enviada_em?: string;
@@ -24,6 +23,8 @@ interface UseCotacoesResult {
   refetch: () => Promise<void>;
   createCotacao: (data: Partial<Cotacao>) => Promise<Cotacao | null>;
   updateCotacao: (id: string, data: Partial<Cotacao>) => Promise<boolean>;
+  deleteCotacao: (id: string) => Promise<boolean>;
+  migrarCotacao: (id: string, consultorId: string, regiaoId: string | null) => Promise<boolean>;
   addContato: (cotacaoId: string, tipo: string, descricao: string) => Promise<boolean>;
   aprovarCotacao: (cotacaoId: string) => Promise<boolean>;
   getMensalidadeByTipo: (cotaId: string, tipoBem: TipoBem) => Promise<number>;
@@ -79,6 +80,16 @@ export function useCotacoes(): UseCotacoesResult {
             regiao_nome = regiao?.nome;
           }
 
+          let consultor_nome: string | undefined = undefined;
+          if (cotacao.consultor_id) {
+            const { data: consultor } = await supabase
+              .from('profiles')
+              .select('nome_completo')
+              .eq('id', cotacao.consultor_id)
+              .maybeSingle();
+            consultor_nome = consultor?.nome_completo;
+          }
+
           // Fetch contatos
           const { data: contatos } = await supabase
             .from('cotacao_contatos')
@@ -103,6 +114,7 @@ export function useCotacoes(): UseCotacoesResult {
             lead_email,
             lead_telefone,
             regiao_nome,
+            consultor_nome,
             cota_nome,
             contatos: contatos || [],
           };

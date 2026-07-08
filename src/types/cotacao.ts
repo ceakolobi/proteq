@@ -90,6 +90,8 @@ export interface Cotacao {
   
   // Metadados
   observacoes?: string;
+  company_id?: string;
+  origem?: string; // 'site' | 'painel'
   created_at: string;
   updated_at: string;
 }
