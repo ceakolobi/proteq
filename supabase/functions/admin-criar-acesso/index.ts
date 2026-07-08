@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sempre retorna 200 — erros chegam como { success: false, error: "..." }
+// Isso evita FunctionsHttpError no cliente e permite extrair a mensagem real.
+function ok(body: object) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -14,7 +23,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const appUrl = Deno.env.get("APP_URL") ?? "http://localhost:5173";
+    const appUrl = (Deno.env.get("APP_URL") ?? "http://localhost:5173").replace(/\/$/, "");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -22,22 +31,11 @@ serve(async (req) => {
 
     // Verificar autenticação do chamador
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return ok({ success: false, error: "Não autorizado" });
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user: caller }, error: authError } = await adminClient.auth.getUser(token);
-
-    if (authError || !caller) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (authError || !caller) return ok({ success: false, error: "Token inválido" });
 
     // Verificar se chamador tem role de admin
     const { data: callerProfile } = await adminClient
@@ -56,20 +54,12 @@ serve(async (req) => {
       callerProfile?.is_admin_principal === true ||
       callerRoles?.some((r: { role: string }) => rolesAdmin.includes(r.role));
 
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Acesso negado" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!isAdmin) return ok({ success: false, error: "Acesso negado" });
 
     const { userId, email, modo } = await req.json();
 
     if (!userId || !email || !modo) {
-      return new Response(JSON.stringify({ error: "userId, email e modo são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return ok({ success: false, error: "userId, email e modo são obrigatórios" });
     }
 
     // MODO 1: enviar link de recuperação/definição de senha por e-mail
@@ -81,16 +71,11 @@ serve(async (req) => {
       });
 
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("[admin-criar-acesso] generateLink error:", error.message, error);
+        return ok({ success: false, error: `generateLink falhou: ${error.message}` });
       }
 
-      return new Response(
-        JSON.stringify({ success: true, link: data.properties?.action_link }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return ok({ success: true, link: data.properties?.action_link });
     }
 
     // MODO 2: gerar senha provisória e marcar flag no perfil
@@ -103,10 +88,8 @@ serve(async (req) => {
       });
 
       if (authUpdateError) {
-        return new Response(JSON.stringify({ error: authUpdateError.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("[admin-criar-acesso] updateUserById error:", authUpdateError.message);
+        return ok({ success: false, error: `Erro ao atualizar senha: ${authUpdateError.message}` });
       }
 
       const { error: profileError } = await adminClient
@@ -115,28 +98,19 @@ serve(async (req) => {
         .eq("id", userId);
 
       if (profileError) {
-        return new Response(JSON.stringify({ error: profileError.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("[admin-criar-acesso] profile update error:", profileError.message);
+        return ok({ success: false, error: `Erro ao marcar perfil: ${profileError.message}` });
       }
 
       // Senha retornada UMA vez apenas — não é persistida em nenhuma tabela
-      return new Response(
-        JSON.stringify({ success: true, senha: senhaGerada }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return ok({ success: true, senha: senhaGerada });
     }
 
-    return new Response(
-      JSON.stringify({ error: "modo inválido. Use 'link' ou 'senha_provisoria'" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return ok({ success: false, error: "modo inválido. Use 'link' ou 'senha_provisoria'" });
+
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erro interno";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[admin-criar-acesso] unhandled error:", msg);
+    return ok({ success: false, error: msg });
   }
 });

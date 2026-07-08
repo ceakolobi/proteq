@@ -117,6 +117,15 @@ export default function Usuarios() {
   const [acessoLoading, setAcessoLoading] = useState<'link' | 'senha' | null>(null);
   const [senhaGerada, setSenhaGerada] = useState<string | null>(null);
 
+  // Extrai mensagem real de erro de um FunctionsHttpError (o Supabase não expõe o body automaticamente)
+  const extractFunctionError = async (error: any): Promise<string> => {
+    try {
+      const body = await error?.context?.json?.();
+      if (body?.error) return body.error;
+    } catch {}
+    return error?.message ?? 'Erro desconhecido';
+  };
+
   const handleEnviarLink = async () => {
     if (!editingUser) return;
     setAcessoLoading('link');
@@ -126,7 +135,8 @@ export default function Usuarios() {
         body: { userId: editingUser.id, email: editingUser.email, modo: 'link' },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (error) throw new Error(await extractFunctionError(error));
+      if (data?.error) throw new Error(data.error);
       toast({ title: 'Link enviado!', description: `E-mail de definição de senha enviado para ${editingUser.email}.` });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Erro ao enviar link', description: err.message });
@@ -144,7 +154,8 @@ export default function Usuarios() {
         body: { userId: editingUser.id, email: editingUser.email, modo: 'senha_provisoria' },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (error) throw new Error(await extractFunctionError(error));
+      if (data?.error) throw new Error(data.error);
       setSenhaGerada(data.senha);
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Erro ao gerar senha', description: err.message });
