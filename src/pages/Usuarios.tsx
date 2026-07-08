@@ -117,6 +117,42 @@ export default function Usuarios() {
   const [acessoLoading, setAcessoLoading] = useState<'link' | 'senha' | null>(null);
   const [senhaGerada, setSenhaGerada] = useState<string | null>(null);
 
+  const handleEnviarLink = async () => {
+    if (!editingUser) return;
+    setAcessoLoading('link');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-criar-acesso', {
+        body: { userId: editingUser.id, email: editingUser.email, modo: 'link' },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      toast({ title: 'Link enviado!', description: `E-mail de definição de senha enviado para ${editingUser.email}.` });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro ao enviar link', description: err.message });
+    } finally {
+      setAcessoLoading(null);
+    }
+  };
+
+  const handleGerarSenha = async () => {
+    if (!editingUser) return;
+    setAcessoLoading('senha');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-criar-acesso', {
+        body: { userId: editingUser.id, email: editingUser.email, modo: 'senha_provisoria' },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      setSenhaGerada(data.senha);
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar senha', description: err.message });
+    } finally {
+      setAcessoLoading(null);
+    }
+  };
+
   const fetchData = async () => {
     if (!isAllowed) return;
     
@@ -943,6 +979,38 @@ export default function Usuarios() {
                   </div>
                 )}
 
+                {/* Seção de acesso inicial — visível apenas para admin_principal / admin_regional */}
+                {(isAdminPrincipal || currentUserRoles.includes('admin_regional')) && editingUser && !isProtectedAdmin(editingUser) && (
+                  <div className="rounded-md border p-4 space-y-3">
+                    <p className="text-sm font-medium">Primeiro acesso</p>
+                    <p className="text-xs text-muted-foreground">
+                      Use para usuários que ainda não definiram uma senha própria.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!!acessoLoading}
+                        onClick={handleEnviarLink}
+                        className="flex-1"
+                      >
+                        {acessoLoading === 'link' ? 'Enviando…' : '✉️ Enviar link de acesso'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!!acessoLoading}
+                        onClick={handleGerarSenha}
+                        className="flex-1"
+                      >
+                        {acessoLoading === 'senha' ? 'Gerando…' : '🔑 Gerar senha provisória'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancelar
@@ -956,6 +1024,40 @@ export default function Usuarios() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Modal: exibir senha provisória gerada */}
+      <AlertDialog open={!!senhaGerada} onOpenChange={open => { if (!open) setSenhaGerada(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Senha provisória gerada</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Repasse esta senha ao usuário <strong>{editingUser?.nome_completo}</strong> por um canal seguro (WhatsApp, ligação etc.).</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded bg-muted px-3 py-2 text-lg font-mono tracking-widest select-all">
+                    {senhaGerada}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { navigator.clipboard.writeText(senhaGerada ?? ''); toast({ title: 'Copiado!' }); }}
+                  >
+                    Copiar
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Esta senha aparece apenas uma vez e não é salva no sistema. Após o primeiro login, o usuário será forçado a criar uma senha própria.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSenhaGerada(null)}>
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirmação de exclusão */}
       <AlertDialog open={!!userToDelete} onOpenChange={open => { if (!open) setUserToDelete(null); }}>
