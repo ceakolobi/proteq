@@ -65,6 +65,7 @@ const consultorSchema = z.object({
   telefone: z.string().trim().min(10, 'Telefone deve ter pelo menos 10 dígitos').max(15).optional().or(z.literal('')),
   cpf: z.string().trim().min(11, 'CPF deve ter 11 dígitos').max(14).optional().or(z.literal('')),
   regiao_id: z.string().uuid('Região inválida'),
+  percentual_comissao: z.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%'),
 });
 
 interface ConsultorWithStats extends Profile {
@@ -98,6 +99,7 @@ export default function Consultores() {
     cpf: '',
     regiao_id: '',
     ativo: true,
+    percentual_comissao: 15,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -260,11 +262,18 @@ export default function Consultores() {
     );
   }
 
-  const handleOpenDialog = (consultor?: ConsultorWithStats) => {
+  const handleOpenDialog = async (consultor?: ConsultorWithStats) => {
     setFormErrors({});
-    
+
     if (consultor) {
       setSelectedConsultor(consultor);
+
+      const { data: commData } = await supabase
+        .from('configuracao_comissoes' as any)
+        .select('percentual_consultor')
+        .eq('consultor_id', consultor.id)
+        .maybeSingle();
+
       setFormData({
         nome_completo: consultor.nome_completo,
         email: consultor.email,
@@ -272,14 +281,15 @@ export default function Consultores() {
         cpf: consultor.cpf || '',
         regiao_id: consultor.regiao_id || '',
         ativo: consultor.ativo,
+        percentual_comissao: (commData as any)?.percentual_consultor ?? 15,
       });
     } else {
       setSelectedConsultor(null);
       // Set default regiao for Admin Regional
-      const defaultRegiaoId = isAdminRegional && !isAdminPrincipal && profile?.regiao_id 
-        ? profile.regiao_id 
+      const defaultRegiaoId = isAdminRegional && !isAdminPrincipal && profile?.regiao_id
+        ? profile.regiao_id
         : '';
-      
+
       setFormData({
         nome_completo: '',
         email: '',
@@ -287,6 +297,7 @@ export default function Consultores() {
         cpf: '',
         regiao_id: defaultRegiaoId,
         ativo: true,
+        percentual_comissao: 15,
       });
     }
     setIsDialogOpen(true);
@@ -335,6 +346,8 @@ export default function Consultores() {
         return;
       }
 
+      let savedConsultorId: string | null = null;
+
       if (selectedConsultor) {
         // Update existing consultor
         const { error } = await supabase
@@ -350,6 +363,7 @@ export default function Consultores() {
           .eq('id', selectedConsultor.id);
 
         if (error) throw error;
+        savedConsultorId = selectedConsultor.id;
         toast.success('Consultor atualizado com sucesso');
       } else {
         // Check if email already exists
@@ -394,11 +408,12 @@ export default function Consultores() {
             if (roleError) throw roleError;
           }
 
+          savedConsultorId = existingUser.id;
           toast.success('Consultor vinculado com sucesso');
         } else {
           // Create new user via edge function
           const { data: sessionData } = await supabase.auth.getSession();
-          
+
           if (!sessionData.session) {
             toast.error('Sessão expirada. Faça login novamente.');
             setIsSaving(false);
@@ -428,6 +443,8 @@ export default function Consultores() {
             throw new Error(result.error || 'Erro ao criar consultor');
           }
 
+          savedConsultorId = result.userId;
+
           if (result.emailSent) {
             toast.success('Consultor criado com sucesso! E-mail com credenciais enviado.');
           } else {
@@ -438,6 +455,40 @@ export default function Consultores() {
             );
             toast.info('Anote a senha acima e informe ao consultor. Ele deverá trocá-la no primeiro acesso.');
           }
+        }
+      }
+
+      // Upsert percentual de comissão do consultor
+      if (savedConsultorId) {
+        const { data: existingComm } = await supabase
+          .from('configuracao_comissoes' as any)
+          .select('id')
+          .eq('consultor_id', savedConsultorId)
+          .eq('regional_id', regiaoData.sede_id)
+          .maybeSingle();
+
+        if ((existingComm as any)?.id) {
+          await supabase.from('configuracao_comissoes' as any)
+            .update({
+              percentual_consultor: formData.percentual_comissao,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', (existingComm as any).id);
+        } else {
+          const { data: regionalConfig } = await supabase
+            .from('configuracao_comissoes' as any)
+            .select('percentual_regional')
+            .eq('regional_id', regiaoData.sede_id)
+            .is('consultor_id', null)
+            .maybeSingle();
+
+          await supabase.from('configuracao_comissoes' as any).insert({
+            consultor_id: savedConsultorId,
+            regional_id: regiaoData.sede_id,
+            percentual_consultor: formData.percentual_comissao,
+            percentual_regional: (regionalConfig as any)?.percentual_regional ?? 25,
+            created_by: profile?.id,
+          });
         }
       }
 
@@ -821,6 +872,25 @@ export default function Consultores() {
                 </Select>
                 {formErrors.regiao_id && (
                   <p className="text-sm text-destructive">{formErrors.regiao_id}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="percentual_comissao">Comissão do Consultor (%)</Label>
+                <Input
+                  id="percentual_comissao"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={formData.percentual_comissao}
+                  onChange={(e) =>
+                    setFormData({ ...formData, percentual_comissao: Number(e.target.value) })
+                  }
+                  placeholder="Ex: 15"
+                  className={formErrors.percentual_comissao ? 'border-destructive' : ''}
+                />
+                {formErrors.percentual_comissao && (
+                  <p className="text-sm text-destructive">{formErrors.percentual_comissao}</p>
                 )}
               </div>
 

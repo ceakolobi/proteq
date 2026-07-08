@@ -29,6 +29,17 @@
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
 ## Log de sessões
+### 2026-07-07
+- Feature: campo "Comissão do Consultor (%)" no modal de Novo/Editar Consultor (Consultores.tsx)
+- Grava em `configuracao_comissoes` (tabela já existia — sem migration)
+- Create: INSERT com `consultor_id`, `regional_id` (sede da região), `percentual_consultor`, `percentual_regional` (herdado da config regional ou default 25)
+- Edit: UPSERT — atualiza `percentual_consultor` se registro já existe, insere se não
+- Link usuário existente: mesmo upsert
+- Ao abrir modal de edição: busca `percentual_consultor` atual em `configuracao_comissoes`; default 15 se não encontrado
+- Validação Zod: obrigatório, 0-100
+- Build: ✓ sem erros
+
+
 ### 2026-07-06 (cont. 3)
 - Feature: ajuste_geral_valor e ajuste_individual_valor editáveis em CotacaoDetail.tsx
 - Gate: perfilEditor === 'ADMIN' (admin_principal / admin_regional / isAdminPrincipal)
