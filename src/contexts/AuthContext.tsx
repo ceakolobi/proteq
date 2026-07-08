@@ -13,6 +13,7 @@ interface AuthContextType {
   isGlobalAdmin: boolean; // Bypass global para admin@system.com ou Admin Principal
   isDemo: boolean; // Flag para usuário demo (read-only)
   mustChangePassword: boolean;
+  senhaProvisoria: boolean;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -20,6 +21,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   clearMustChangePassword: () => Promise<void>;
+  clearSenhaProvisoria: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -158,8 +160,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Demo user: has admin_demo role or demo email
   const isDemo = roles.includes('admin_demo') || user?.email === DEMO_EMAIL;
 
-  // Must change password flag from profile
   const mustChangePassword = profile?.must_change_password === true;
+  const senhaProvisoria = profile?.senha_provisoria === true;
 
   const hasRole = (role: AppRole) => {
     // Global admin sempre tem todas as roles
@@ -173,17 +175,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return checkRoles.some(role => roles.includes(role));
   };
 
-  // Clear the must_change_password flag after password change
   const clearMustChangePassword = async () => {
     if (!user) return;
-    
     const { error } = await supabase
       .from('profiles')
       .update({ must_change_password: false })
       .eq('id', user.id);
-
     if (!error) {
       setProfile(prev => prev ? { ...prev, must_change_password: false } : null);
+    }
+  };
+
+  const clearSenhaProvisoria = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ senha_provisoria: false })
+      .eq('id', user.id);
+    if (!error) {
+      setProfile(prev => prev ? { ...prev, senha_provisoria: false } : null);
     }
   };
 
@@ -197,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isGlobalAdmin,
     isDemo,
     mustChangePassword,
+    senhaProvisoria,
     hasRole,
     hasAnyRole,
     signIn,
@@ -204,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     refreshProfile,
     clearMustChangePassword,
+    clearSenhaProvisoria,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

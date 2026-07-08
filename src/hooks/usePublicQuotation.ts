@@ -23,6 +23,8 @@ export function usePublicQuotation() {
   const [configFinanceira, setConfigFinanceira] = useState<ConfiguracaoFinanceira | null>(null);
   const [loading, setLoading] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [defaultConsultorId, setDefaultConsultorId] = useState<string | null>(null);
+  const [defaultCompanyId, setDefaultCompanyId] = useState<string | null>(null);
   
   // Benefícios extras selecionados
   const [beneficiosSelecionadosIds, setBeneficiosSelecionadosIds] = useState<string[]>([]);
@@ -111,6 +113,9 @@ export function usePublicQuotation() {
       const companyId = consultores?.[0]?.company_id;
 
       if (consultorId) {
+        setDefaultConsultorId(consultorId);
+        setDefaultCompanyId(companyId || null);
+
         // Verificar se já existe um lead com esse telefone/email
         const telefoneNormalizado = dados.telefone.replace(/\D/g, '');
         const { data: existingLead } = await supabase
@@ -175,11 +180,41 @@ export function usePublicQuotation() {
           .eq('id', leadId);
         console.log('[usePublicQuotation] Lead atualizado com veículo');
       }
-      
+
       if (!resultadoCotacao) {
         setCotacao(null);
         setEtapa('resultado');
         return;
+      }
+
+      // Salvar cotação na tabela cotacoes para gestão interna
+      if (defaultConsultorId) {
+        const cotaMatch = cotas.find(c => c.cota_nome === resultadoCotacao.cotaNome);
+        await supabase.from('cotacoes').insert({
+          consultor_id: defaultConsultorId,
+          company_id: defaultCompanyId,
+          lead_id: leadId,
+          tipo_bem: veiculo.tipo_bem as any,
+          marca: veiculo.marca,
+          modelo: veiculo.modelo,
+          ano_fabricacao: veiculo.ano,
+          placa: veiculo.placa || null,
+          valor_bem: veiculo.valor_fipe,
+          valor_fipe: veiculo.valor_fipe,
+          codigo_fipe: veiculo.codigo_fipe || null,
+          metodo_valoracao: 'fipe',
+          mensalidade: resultadoCotacao.mensalidade,
+          participacao: resultadoCotacao.participacao,
+          cota_id: cotaMatch?.id || null,
+          cliente_nome: dadosPessoais.nome,
+          cliente_email: dadosPessoais.email,
+          cliente_whatsapp: dadosPessoais.telefone,
+          status: 'novo',
+          origem: 'site',
+          carro_reserva_dias: 15,
+          carro_reserva_adicional: 0,
+        } as any);
+        console.log('[usePublicQuotation] Cotação salva na base da sede');
       }
       
       setCotacao(resultadoCotacao);

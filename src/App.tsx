@@ -48,6 +48,7 @@ import Inadimplencia from "./pages/financeiro/Inadimplencia";
 import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
 import AssociadoDetalhe from "./pages/AssociadoDetalhe";
+import DefinirSenha from "./pages/DefinirSenha";
 
 const queryClient = new QueryClient();
 
@@ -193,6 +194,8 @@ const App = () => (
                 <Route path="/financeiro/configuracoes" element={<ProtectedRoute><ConfiguracoesFinanceiras /></ProtectedRoute>} />
                 
                 {/* Rotas Públicas (sem autenticação) */}
+                {/* Definição de senha — acessível com ou sem sessão (modo link e modo provisório) */}
+                <Route path="/definir-senha" element={<DefinirSenha />} />
                 <Route path="/segunda-via-boleto" element={<SegundaViaBoleto />} />
                 <Route path="/vistoria-publica" element={<VistoriaPublica />} />
                 <Route path="/vistoria/:token" element={<VistoriaRemota />} />

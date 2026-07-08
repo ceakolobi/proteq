@@ -39,6 +39,7 @@ export interface Profile {
   ativo: boolean;
   is_admin_principal: boolean;
   must_change_password: boolean;
+  senha_provisoria?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -355,6 +355,8 @@ export function useCotacoes(): UseCotacoesResult {
     refetch: fetchCotacoes,
     createCotacao,
     updateCotacao,
+    deleteCotacao,
+    migrarCotacao,
     addContato,
     aprovarCotacao,
     getMensalidadeByTipo,
