@@ -28,7 +28,38 @@
 - [ ] SDR manual — 50 prospects ainda não iniciado
 - [ ] Meta Pixel instalar em harmonyclube.com.br
 
+## ⚠️ Migrations SQL pendentes (rodar no SQL Editor de sfobrbxzdbgjoxgjerus)
+Rodar ANTES de testar as features correspondentes. Sem elas, o código quebra ou a feature não funciona.
+
+- [ ] **cotacoes.origem** (cotações do site) — código já em prod:
+  `ALTER TABLE cotacoes ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT 'painel';`
+- [ ] **profiles.senha_provisoria** (fluxo primeiro acesso) — verificar se já aplicada:
+  `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS senha_provisoria BOOLEAN DEFAULT false;`
+- [ ] **companies redes sociais** (Item 4 Configurações) — BLOQUEADOR: sem isso, salvar QUALQUER config falha:
+  `ALTER TABLE companies ADD COLUMN IF NOT EXISTS instagram TEXT, ADD COLUMN IF NOT EXISTS facebook TEXT, ADD COLUMN IF NOT EXISTS whatsapp_comercial TEXT;`
+- [ ] **RLS system_info** (versionamento automático) — INSERT bloqueado por falta de policy; criar policy INSERT/UPDATE para admin_principal (flag is_admin_principal OU role admin). SELECT liberado para authenticated.
+- [ ] **função upsert_associado_por_cpf** — RPC SECURITY DEFINER usada no wizard de associado (dedup por CPF). Ver corpo completo no log 2026-07-09.
+
 ## Log de sessões
+
+### 2026-07-09
+- Feature: preenchimento automático de cadastro via upload de documento (Anthropic API)
+  - Edge Function `extract-document-data` deployada (CNH/CRLV/comprovante → JSON via claude-haiku-4-5, fetch direto na API)
+  - Salva doc original no bucket `documentos-associados` (privado, criado auto) para auditoria
+  - Componente `DocumentScanner.tsx` nos 3 steps do wizard; telefone/email NUNCA autopreenchidos
+  - Wizard usa RPC `upsert_associado_por_cpf` (dedup por CPF entre canais)
+- Feature: wizard de associado — só nome/CPF/telefone/email obrigatórios; veículo mantém placa/tipo/marca/modelo/ano/valor_fipe; Dialog mais largo (w-[95vw] sm:max-w-4xl)
+- UI: sidebar cinza claro no modo light (index.css :root --sidebar-*); logo colorida no light, branca no dark/penumbra
+- Configurações — 6 itens auditados e corrigidos:
+  - Item 1 Identidade Visual: cores injetadas como CSS var (--primary via useBrand useEffect); toggle PF/PJ com máscara; preview contraste WCAG
+  - Item 2 Contra-capa: PDF do site (ResultadoCotacao) adiciona contra-capa como última página; rodapé do PDF usa contato real
+  - Item 3 Capas PDF: 3 modos já existiam em LayoutCotacaoHarmony; faltava auto-save de cover_mode/cover_fixed_index no PdfCoversManager
+  - Item 4 Contatos: campos instagram/facebook/whatsapp_comercial; rodapé do painel (SystemFooter) mostra contatos reais
+  - Item 5 Versão: auto-versionamento (10 updates=patch, 30=minor) via useSystemInfo.registerUpdate; botão 1-clique sem dialog
+  - Item 6 Contratos gerados: realtime subscribe em generated_contracts; link direto pro /associados/:id
+- Fix: permissões de acesso não salvavam — savePermissions trocado de DELETE+INSERT para upsert onConflict user_id,module,action; retorno {ok,error} com toast
+- Fix: "Enviar link de acesso" — Edge Function admin-criar-acesso busca email real via getUserById (profiles.email podia estar dessincronizado de auth.users)
+- LEMBRETE: dist/ pré-buildado precisa `npm run build` antes de commitar — recorrente do usuário esquecer
 
 ### 2026-07-08
 - Fix: perfis órfãos (gestores com regiao_id/sede_id/company_id NULL bloqueados por RLS)
