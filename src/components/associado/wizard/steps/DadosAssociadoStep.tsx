@@ -12,11 +12,12 @@ import {
 import { User, Mail, Phone, Calendar, Briefcase, Heart, CreditCard, Building2, Upload, FileCheck } from 'lucide-react';
 import type { AssociadoFormData } from '../types';
 import { ESTADO_CIVIL_OPTIONS, DIA_VENCIMENTO_OPTIONS } from '../types';
-import { DocumentScanner } from '@/components/associado/DocumentScanner';
+import { DocumentScanner, type ScanResult } from '@/components/associado/DocumentScanner';
 
 interface DadosAssociadoStepProps {
   data: AssociadoFormData;
   onChange: (data: AssociadoFormData) => void;
+  onDocumentScanned?: (result: ScanResult) => void;
 }
 
 // Mask functions
@@ -46,7 +47,7 @@ const maskPhone = (value: string): string => {
     .replace(/(-\d{4})\d+?$/, '$1');
 };
 
-export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) {
+export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosAssociadoStepProps) {
   const handleChange = (field: keyof AssociadoFormData, value: string | boolean | File | null) => {
     onChange({ ...data, [field]: value });
   };
@@ -72,8 +73,10 @@ export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) 
               cpf: extracted.cpf ? maskCPF(extracted.cpf as string) : data.cpf,
               rg: extracted.rg ? maskRG(extracted.rg as string) : data.rg,
               data_nascimento: (extracted.data_nascimento as string) || data.data_nascimento,
+              // telefone e email NUNCA preenchidos automaticamente — manual obrigatório
             });
           }}
+          onScanned={onDocumentScanned}
         />
       </div>
 

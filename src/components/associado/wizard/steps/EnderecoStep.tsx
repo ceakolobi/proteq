@@ -13,11 +13,12 @@ import { MapPin, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AssociadoFormData } from '../types';
 import { ESTADOS_BRASILEIROS } from '../types';
-import { DocumentScanner } from '@/components/associado/DocumentScanner';
+import { DocumentScanner, type ScanResult } from '@/components/associado/DocumentScanner';
 
 interface EnderecoStepProps {
   data: AssociadoFormData;
   onChange: (data: AssociadoFormData) => void;
+  onDocumentScanned?: (result: ScanResult) => void;
 }
 
 const maskCEP = (value: string): string => {
@@ -27,7 +28,7 @@ const maskCEP = (value: string): string => {
     .slice(0, 9);
 };
 
-export function EnderecoStep({ data, onChange }: EnderecoStepProps) {
+export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStepProps) {
   const [isSearching, setIsSearching] = useState(false);
 
   const handleChange = (field: keyof AssociadoFormData, value: string) => {
@@ -90,6 +91,7 @@ export function EnderecoStep({ data, onChange }: EnderecoStepProps) {
         </div>
         <DocumentScanner
           documentKind="comprovante_endereco"
+          onScanned={onDocumentScanned}
           onExtracted={(extracted) => {
             const cep = extracted.cep as string | undefined;
             onChange({

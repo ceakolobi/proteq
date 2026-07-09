@@ -21,6 +21,7 @@ import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
 import { useWizardPersistence, type WizardDraft } from '@/hooks/useWizardPersistence';
+import type { ScanResult } from '@/components/associado/DocumentScanner';
 
 interface AssociadoWizardProps {
   open: boolean;
@@ -101,6 +102,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
+  const [pendingScannedDocs, setPendingScannedDocs] = useState<ScanResult[]>([]);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   // Estado pós-cadastro: guarda ids para oferecer geração de contrato
   const [createdIds, setCreatedIds] = useState<{ associadoId: string; veiculoId: string; nome: string } | null>(null);
@@ -204,6 +206,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setTermosAceitos(false);
     setSelectedRegiaoId(null);
     setStepValidation({});
+    setPendingScannedDocs([]);
     setPendingDraft(null);
     // não resetar createdIds aqui — é resetado ao fechar o dialog pós-cadastro
   }, []);
@@ -475,37 +478,45 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         }
       }
 
-      // 2. Create associado
+      // 2. Criar/atualizar associado via upsert por CPF (evita duplicação entre canais)
+      const dadosJson = {
+        nome_completo: associadoData.nome_completo.trim(),
+        rg: associadoData.rg?.replace(/\D/g, '') || null,
+        data_nascimento: associadoData.data_nascimento || null,
+        telefone: associadoData.telefone.replace(/\D/g, ''),
+        whatsapp: associadoData.whatsapp?.replace(/\D/g, '') || null,
+        email: associadoData.email.trim().toLowerCase(),
+        estado_civil: associadoData.estado_civil || null,
+        profissao: associadoData.profissao || null,
+        cep: associadoData.cep.replace(/\D/g, ''),
+        endereco: associadoData.endereco.trim(),
+        numero: associadoData.numero || null,
+        complemento: associadoData.complemento || null,
+        bairro: associadoData.bairro || null,
+        cidade: associadoData.cidade.trim(),
+        estado: associadoData.estado.trim(),
+        dia_vencimento: associadoData.dia_vencimento,
+        veio_de_outra_associacao: associadoData.veio_de_outra_associacao,
+        nome_associacao_anterior: associadoData.veio_de_outra_associacao ? associadoData.nome_associacao_anterior.trim() : null,
+        data_saida_associacao: associadoData.veio_de_outra_associacao ? associadoData.data_saida_associacao : null,
+        comprovante_migracao_url: comprovanteUrl,
+      };
+
+      const { data: associadoId, error: upsertError } = await supabase
+        .rpc('upsert_associado_por_cpf', {
+          p_cpf: associadoData.cpf.replace(/\D/g, ''),
+          p_dados: dadosJson,
+          p_consultor_id: user.id,
+          p_regiao_id: finalRegiaoId,
+          p_company_id: profile?.company_id ?? null,
+        });
+
+      if (upsertError) throw upsertError;
+
       const { data: associado, error: associadoError } = await supabase
         .from('associados')
-        .insert({
-          nome_completo: associadoData.nome_completo.trim(),
-          cpf: associadoData.cpf.replace(/\D/g, ''),
-          rg: associadoData.rg?.replace(/\D/g, '') || null,
-          data_nascimento: associadoData.data_nascimento || null,
-          telefone: associadoData.telefone.replace(/\D/g, ''),
-          whatsapp: associadoData.whatsapp?.replace(/\D/g, '') || null,
-          email: associadoData.email.trim().toLowerCase(),
-          estado_civil: associadoData.estado_civil || null,
-          profissao: associadoData.profissao || null,
-          cep: associadoData.cep.replace(/\D/g, ''),
-          endereco: associadoData.endereco.trim(),
-          numero: associadoData.numero || null,
-          complemento: associadoData.complemento || null,
-          bairro: associadoData.bairro || null,
-          cidade: associadoData.cidade.trim(),
-          estado: associadoData.estado.trim(),
-          consultor_id: user.id,
-          company_id: profile?.company_id ?? null,
-          regiao_id: finalRegiaoId,
-          status: 'ativo',
-          dia_vencimento: associadoData.dia_vencimento,
-          veio_de_outra_associacao: associadoData.veio_de_outra_associacao,
-          nome_associacao_anterior: associadoData.veio_de_outra_associacao ? associadoData.nome_associacao_anterior.trim() : null,
-          data_saida_associacao: associadoData.veio_de_outra_associacao ? associadoData.data_saida_associacao : null,
-          comprovante_migracao_url: comprovanteUrl,
-        })
         .select()
+        .eq('id', associadoId)
         .single();
 
       if (associadoError) throw associadoError;
@@ -521,6 +532,21 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         );
         if (docsFailed > 0) {
           toast.warning(`${docsFailed} documento(s) do associado não puderam ser enviados. Você pode adicioná-los depois na edição.`);
+        }
+      }
+
+      // 3b. Vincular documentos escaneados (já no Storage) ao associado recém-criado
+      if (pendingScannedDocs.length > 0) {
+        for (const scan of pendingScannedDocs) {
+          if (!scan.storagePath) continue;
+          await supabase.from('documentos_associado').insert({
+            associado_id: associado.id,
+            company_id: profile?.company_id ?? null,
+            created_by: user.id,
+            tipo: scan.documentKind,
+            nome_arquivo: scan.fileName || scan.storagePath.split('/').pop() || scan.documentKind,
+            url: scan.storagePath,
+          });
         }
       }
 
@@ -679,6 +705,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           <DadosAssociadoStep
             data={associadoData}
             onChange={setAssociadoData}
+            onDocumentScanned={(r) => setPendingScannedDocs(prev => [...prev, r])}
           />
         );
       case 1:
@@ -686,6 +713,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           <EnderecoStep
             data={associadoData}
             onChange={setAssociadoData}
+            onDocumentScanned={(r) => setPendingScannedDocs(prev => [...prev, r])}
           />
         );
       case 2:
@@ -700,6 +728,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           <DadosVeiculoStep
             data={veiculoData}
             onChange={setVeiculoData}
+            onDocumentScanned={(r) => setPendingScannedDocs(prev => [...prev, r])}
           />
         );
       case 4:

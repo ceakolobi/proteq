@@ -9,6 +9,14 @@ import { Loader2, ScanLine, CheckCircle } from 'lucide-react';
 
 export type DocumentKind = 'cnh' | 'crlv' | 'comprovante_endereco';
 
+export interface ScanResult {
+  extracted: Record<string, unknown>;
+  documentKind: DocumentKind;
+  storagePath: string | null;
+  bucketName: string;
+  fileName: string;
+}
+
 const KIND_LABELS: Record<DocumentKind, string> = {
   cnh: 'CNH',
   crlv: 'CRLV',
@@ -44,9 +52,7 @@ const FIELD_LABELS: Record<string, string> = {
 function formatValue(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
   if (key === 'data_nascimento' || key === 'cnh_validade') {
-    try {
-      return new Date(String(value) + 'T12:00:00').toLocaleDateString('pt-BR');
-    } catch { return String(value); }
+    try { return new Date(String(value) + 'T12:00:00').toLocaleDateString('pt-BR'); } catch { return String(value); }
   }
   return String(value);
 }
@@ -62,14 +68,17 @@ async function fileToBase64(file: File): Promise<string> {
 
 interface DocumentScannerProps {
   documentKind: DocumentKind;
+  /** Preenche os campos do formulário com os dados extraídos */
   onExtracted: (data: Record<string, unknown>) => void;
+  /** Callback opcional: recebe o resultado completo incluindo caminho no Storage */
+  onScanned?: (result: ScanResult) => void;
   className?: string;
 }
 
-export function DocumentScanner({ documentKind, onExtracted, className }: DocumentScannerProps) {
+export function DocumentScanner({ documentKind, onExtracted, onScanned, className }: DocumentScannerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [extractedData, setExtractedData] = useState<Record<string, unknown> | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,7 +103,13 @@ export function DocumentScanner({ documentKind, onExtracted, className }: Docume
       if (error) throw new Error(error.message);
       if (!data?.success) throw new Error(data?.error ?? 'Falha na extração');
 
-      setExtractedData(data.data);
+      setScanResult({
+        extracted: data.data,
+        documentKind,
+        storagePath: data.storagePath ?? null,
+        bucketName: data.bucketName ?? 'documentos-associados',
+        fileName: data.fileName ?? '',
+      });
     } catch (err: any) {
       toast.error(`Erro ao ler documento: ${err.message}`);
     } finally {
@@ -104,14 +119,14 @@ export function DocumentScanner({ documentKind, onExtracted, className }: Docume
   };
 
   const handleConfirm = () => {
-    if (extractedData) {
-      onExtracted(extractedData);
-      toast.success('Formulário preenchido com os dados do documento!');
-    }
-    setExtractedData(null);
+    if (!scanResult) return;
+    onExtracted(scanResult.extracted);
+    onScanned?.(scanResult);
+    toast.success('Formulário preenchido com os dados do documento!');
+    setScanResult(null);
   };
 
-  const visibleEntries = Object.entries(extractedData ?? {}).filter(
+  const visibleEntries = Object.entries(scanResult?.extracted ?? {}).filter(
     ([, v]) => v !== null && v !== undefined && v !== ''
   );
 
@@ -133,15 +148,13 @@ export function DocumentScanner({ documentKind, onExtracted, className }: Docume
         onClick={() => inputRef.current?.click()}
         className={className}
       >
-        {isScanning ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <ScanLine className="h-4 w-4 mr-2" />
-        )}
+        {isScanning
+          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          : <ScanLine className="h-4 w-4 mr-2" />}
         {isScanning ? 'Lendo documento…' : `Preencher com ${KIND_LABELS[documentKind]}`}
       </Button>
 
-      <Dialog open={!!extractedData} onOpenChange={(open) => { if (!open) setExtractedData(null); }}>
+      <Dialog open={!!scanResult} onOpenChange={(open) => { if (!open) setScanResult(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -166,11 +179,11 @@ export function DocumentScanner({ documentKind, onExtracted, className }: Docume
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Revise os dados antes de confirmar. Campos incorretos podem ser corrigidos manualmente após o preenchimento.
+            Revise os dados antes de confirmar. Campos incorretos podem ser corrigidos manualmente.
           </p>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setExtractedData(null)}>Descartar</Button>
+            <Button variant="outline" onClick={() => setScanResult(null)}>Descartar</Button>
             <Button onClick={handleConfirm} disabled={visibleEntries.length === 0}>
               Preencher formulário
             </Button>

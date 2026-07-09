@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const BUCKET = "documentos-associados";
 
 const PROMPTS: Record<string, string> = {
   cnh: `Analise esta CNH brasileira e extraia os dados em JSON puro, sem markdown, sem explicação:
@@ -55,12 +58,17 @@ serve(async (req) => {
     });
 
   try {
-    // Verificar autenticação mínima (sessão válida)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return respond({ success: false, error: "Não autorizado" });
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return respond({ success: false, error: "ANTHROPIC_API_KEY não configurada" });
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const { fileBase64, mediaType, documentKind } = await req.json();
 
@@ -69,12 +77,31 @@ serve(async (req) => {
     }
 
     const prompt = PROMPTS[documentKind];
-    if (!prompt) {
-      return respond({ success: false, error: `documentKind inválido: ${documentKind}` });
+    if (!prompt) return respond({ success: false, error: `documentKind inválido: ${documentKind}` });
+
+    // 1. Garantir que o bucket existe (privado)
+    const { data: buckets } = await adminClient.storage.listBuckets();
+    const bucketExists = buckets?.some((b: { name: string }) => b.name === BUCKET);
+    if (!bucketExists) {
+      await adminClient.storage.createBucket(BUCKET, { public: false });
     }
 
-    const isPdf = mediaType === "application/pdf";
+    // 2. Salvar arquivo no Storage para auditoria
+    const ext = mediaType.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
+    const fileName = `scanned/${documentKind}_${Date.now()}.${ext}`;
+    const fileBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
 
+    const { error: uploadError } = await adminClient.storage
+      .from(BUCKET)
+      .upload(fileName, fileBytes, { contentType: mediaType, upsert: false });
+
+    const storagePath = uploadError ? null : fileName;
+    if (uploadError) {
+      console.error("[extract-document-data] storage upload error:", uploadError.message);
+    }
+
+    // 3. Extrair dados via Anthropic
+    const isPdf = mediaType === "application/pdf";
     const contentBlock = isPdf
       ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: fileBase64 } }
       : { type: "image", source: { type: "base64", media_type: mediaType, data: fileBase64 } };
@@ -100,7 +127,6 @@ serve(async (req) => {
     }
 
     const message = await anthropicRes.json();
-
     const rawText = message.content?.[0]?.type === "text" ? message.content[0].text : "";
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
 
@@ -109,7 +135,15 @@ serve(async (req) => {
     }
 
     const extracted = JSON.parse(jsonMatch[0]);
-    return respond({ success: true, data: extracted, documentKind });
+
+    return respond({
+      success: true,
+      data: extracted,
+      documentKind,
+      storagePath,    // path dentro do bucket (null se falhou o upload)
+      bucketName: BUCKET,
+      fileName,
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erro interno";
     console.error("[extract-document-data]", msg);

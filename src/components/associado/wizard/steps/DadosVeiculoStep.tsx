@@ -15,11 +15,12 @@ import { supabase } from '@/integrations/supabase/client';
 import type { VeiculoFormData } from '../types';
 import { COMBUSTIVEL_OPTIONS, COR_OPTIONS, SITUACAO_FINANCEIRA_OPTIONS } from '../types';
 import { vehicleTypeLabels, type VehicleType } from '@/types/database';
-import { DocumentScanner } from '@/components/associado/DocumentScanner';
+import { DocumentScanner, type ScanResult } from '@/components/associado/DocumentScanner';
 
 interface DadosVeiculoStepProps {
   data: VeiculoFormData;
   onChange: (data: VeiculoFormData) => void;
+  onDocumentScanned?: (result: ScanResult) => void;
 }
 
 const formatPlaca = (value: string): string => {
@@ -35,7 +36,7 @@ const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
+export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVeiculoStepProps) {
   const [isSearching, setIsSearching] = useState(false);
 
   const handleChange = (field: keyof VeiculoFormData, value: any) => {
@@ -125,6 +126,7 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
         </div>
         <DocumentScanner
           documentKind="crlv"
+          onScanned={onDocumentScanned}
           onExtracted={(extracted) => {
             const placa = extracted.placa as string | undefined;
             onChange({

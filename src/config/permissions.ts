@@ -184,11 +184,10 @@ export function getAssociadoPermissions(roles: AppRole[], isAdminPrincipal: bool
     return { canCreate: true, canEdit: true, canDelete: false, canView: true };
   }
   
-  if (roles.includes('consultor_vendas')) {
-    // Consultor só vê/edita os próprios associados
+  if (roles.includes('consultor_vendas') || roles.includes('cadastro')) {
     return { canCreate: true, canEdit: true, canDelete: false, canView: true };
   }
-  
+
   return { canCreate: false, canEdit: false, canDelete: false, canView: false };
 }
 
