@@ -49,6 +49,8 @@ import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
 import AssociadoDetalhe from "./pages/AssociadoDetalhe";
 import DefinirSenha from "./pages/DefinirSenha";
+import TabShell from "./components/layout/TabShell";
+import { TabManagerProvider } from "./contexts/TabManagerContext";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +147,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <TabManagerProvider>
               <Routes>
                 {/* Rotas públicas - apenas landing e autenticação */}
                 <Route path="/" element={<HomeRoute />} />
@@ -152,8 +155,8 @@ const App = () => (
                 <Route path="/validar-proposta" element={<ValidarProposta />} />
                 
                 {/* Rotas protegidas - requerem autenticação */}
-                {/* Dashboard geral - todos os usuários autenticados */}
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                {/* Dashboard geral - shell de abas (POC) */}
+                <Route path="/dashboard" element={<ProtectedRoute><TabShell /></ProtectedRoute>} />
                 
                 {/* Perfil do usuário - todos os usuários autenticados */}
                 <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
@@ -207,6 +210,7 @@ const App = () => (
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </TabManagerProvider>
             </BrowserRouter>
           </PWAWrapper>
         </TooltipProvider>

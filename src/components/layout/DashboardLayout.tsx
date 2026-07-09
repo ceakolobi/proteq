@@ -68,6 +68,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useForcarTrocaSenha } from '@/hooks/useForcarTrocaSenha';
 import { useSettings } from '@/hooks/useSettings';
+import { useTabManager, useInsideShell } from '@/contexts/TabManagerContext';
 
 
 interface NavItem {
@@ -280,6 +281,8 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useForcarTrocaSenha();
+  const insideShell = useInsideShell();
+  const tabManager = useTabManager();
   const { profile, roles, isAdminPrincipal, signOut, user } = useAuth();
   const { isDemo } = useIsDemo();
   const location = useLocation();
@@ -405,27 +408,47 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const NavMenuItem = ({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) => {
-    const isActive = location.pathname === item.href;
-    
-    return (
-      <Link
-        to={item.href}
-        onClick={onNavigate}
-        className={cn(
-          'group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-          'hover:bg-sidebar-accent/80',
-          isActive
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-sidebar-foreground/80 hover:text-sidebar-foreground'
-        )}
-      >
-        <span className={cn(
-          'transition-transform duration-200 group-hover:scale-110',
-          isActive && 'text-primary-foreground'
-        )}>
+    // Item registrado no sistema de abas? Abre aba em vez de navegar.
+    const isTabItem = tabManager?.isRegistered(item.href) ?? false;
+    const isActive = isTabItem
+      ? tabManager?.activeId === item.href
+      : location.pathname === item.href;
+
+    const classes = cn(
+      'group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer',
+      'hover:bg-sidebar-accent/80',
+      isActive
+        ? 'bg-primary text-primary-foreground shadow-sm'
+        : 'text-sidebar-foreground/80 hover:text-sidebar-foreground'
+    );
+
+    const inner = (
+      <>
+        <span className={cn('transition-transform duration-200 group-hover:scale-110', isActive && 'text-primary-foreground')}>
           {item.icon}
         </span>
         <span>{item.title}</span>
+      </>
+    );
+
+    if (isTabItem && tabManager) {
+      return (
+        <div
+          className={classes}
+          onClick={() => {
+            tabManager.openTab(item.href);
+            if (location.pathname !== '/dashboard') navigate('/dashboard');
+            onNavigate?.();
+          }}
+        >
+          {inner}
+        </div>
+      );
+    }
+
+    return (
+      <Link to={item.href} onClick={onNavigate} className={classes}>
+        {inner}
       </Link>
     );
   };
@@ -556,22 +579,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </DropdownMenu>
   );
 
+  // Renderizado dentro de uma aba do shell: sem moldura (o shell já desenha sidebar/header)
+  if (insideShell) {
+    return <>{children}</>;
+  }
+
+  const maximized = tabManager?.maximized ?? false;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Demo Banner */}
       <DemoBanner />
-      
-      {/* Desktop Sidebar */}
+
+      {/* Desktop Sidebar — escondida quando maximizado */}
       <aside className={cn(
-        "hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:block lg:w-56 lg:border-r lg:border-sidebar-border/50 lg:bg-sidebar lg:shadow-sm",
+        "hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-56 lg:border-r lg:border-sidebar-border/50 lg:bg-sidebar lg:shadow-sm",
+        maximized ? "lg:hidden" : "lg:block",
         isDemo && "lg:top-10"
       )}>
         <SidebarContent />
       </aside>
 
-      {/* Desktop Header */}
+      {/* Desktop Header — escondido quando maximizado */}
       <header className={cn(
-        "hidden lg:flex fixed left-56 right-0 z-40 h-14 items-center justify-end px-6 border-b border-border/50 bg-card/95 backdrop-blur-sm",
+        "hidden fixed left-56 right-0 z-40 h-14 items-center justify-end px-6 border-b border-border/50 bg-card/95 backdrop-blur-sm",
+        maximized ? "lg:hidden" : "lg:flex",
         isDemo ? "top-10" : "top-0"
       )}>
         <div className="flex items-center gap-3">
@@ -618,8 +650,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main content */}
       <main className={cn(
-        "lg:pl-56 min-h-[calc(100vh-3.5rem)] flex flex-col",
-        isDemo ? "lg:pt-24" : "lg:pt-14",
+        "min-h-[calc(100vh-3.5rem)] flex flex-col",
+        maximized ? "lg:pl-0 lg:pt-0" : (isDemo ? "lg:pl-56 lg:pt-24" : "lg:pl-56 lg:pt-14"),
         isPWAMode && "pb-20" // Espaço para a barra de navegação mobile
       )}>
         <div className="p-4 lg:p-6 flex-1">
