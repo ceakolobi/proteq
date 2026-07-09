@@ -436,13 +436,9 @@ export default function Usuarios() {
 
       // Salvar permissões se for admin principal
       if (isAdminPrincipal && adminCompanyId) {
-        const permissionsSaved = await savePermissions(
-          authData.user.id,
-          createPermissions,
-          adminCompanyId
-        );
-        if (!permissionsSaved) {
-          console.warn('Permissions could not be saved');
+        const result = await savePermissions(authData.user.id, createPermissions, adminCompanyId);
+        if (!result.ok) {
+          toast({ variant: 'destructive', title: 'Permissões não salvas', description: result.error });
         }
       }
 
@@ -535,13 +531,10 @@ export default function Usuarios() {
 
       // Salvar permissões se for admin principal
       if (isAdminPrincipal && profile?.company_id) {
-        const permissionsSaved = await savePermissions(
-          editingUser.id,
-          editingPermissions,
-          profile.company_id
-        );
-        if (!permissionsSaved) {
-          console.warn('Permissions could not be saved');
+        const result = await savePermissions(editingUser.id, editingPermissions, profile.company_id);
+        if (!result.ok) {
+          toast({ variant: 'destructive', title: 'Permissões não salvas', description: result.error });
+          return; // não avança se permissões falharam
         }
       }
 

@@ -100,6 +100,9 @@ export default function Configuracoes() {
     telefone: "",
     email: "",
     site: "",
+    instagram: "",
+    facebook: "",
+    whatsapp_comercial: "",
     modo_white_label: false,
     esconder_marca_harmony: false,
     cover_mode: "fixed",
@@ -128,6 +131,9 @@ export default function Configuracoes() {
       telefone: settings.telefone || "",
       email: settings.email || "",
       site: settings.site || "",
+      instagram: (settings as any).instagram || "",
+      facebook: (settings as any).facebook || "",
+      whatsapp_comercial: (settings as any).whatsapp_comercial || "",
       modo_white_label: settings.modo_white_label || false,
       esconder_marca_harmony: settings.esconder_marca_harmony || false,
       cover_mode: settings.cover_mode || "fixed",
@@ -618,8 +624,14 @@ export default function Configuracoes() {
             }}
             coverMode={formData.cover_mode}
             coverFixedIndex={formData.cover_fixed_index}
-            onChangeCoverMode={(mode) => setFormData({ ...formData, cover_mode: mode })}
-            onChangeCoverFixedIndex={(index) => setFormData({ ...formData, cover_fixed_index: index })}
+            onChangeCoverMode={(mode) => {
+              setFormData(prev => ({ ...prev, cover_mode: mode }));
+              updateSettings({ cover_mode: mode }); // auto-save
+            }}
+            onChangeCoverFixedIndex={(index) => {
+              setFormData(prev => ({ ...prev, cover_fixed_index: index }));
+              updateSettings({ cover_fixed_index: index }); // auto-save
+            }}
             uploadLegacyImage={uploadImage as any}
             updateCompanySettings={updateSettings as any}
             removeStorageFile={removeFromStorage}
@@ -679,6 +691,52 @@ export default function Configuracoes() {
                       setFormData({ ...formData, site: e.target.value })
                     }
                     placeholder="www.empresa.com.br"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-1">
+                <Label className="text-sm">Redes Sociais</Label>
+                <p className="text-xs text-muted-foreground">Aparecem no rodapé do painel e nos PDFs</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="instagram">Instagram</Label>
+                <div className="flex gap-2">
+                  <span className="text-muted-foreground mt-2.5 text-sm">@</span>
+                  <Input
+                    id="instagram"
+                    value={formData.instagram}
+                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    placeholder="seuarroba"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="facebook">Facebook</Label>
+                <div className="flex gap-2">
+                  <Globe className="w-4 h-4 text-muted-foreground mt-3" />
+                  <Input
+                    id="facebook"
+                    value={formData.facebook}
+                    onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                    placeholder="facebook.com/suapagina"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp_comercial">WhatsApp Comercial</Label>
+                <div className="flex gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground mt-3" />
+                  <Input
+                    id="whatsapp_comercial"
+                    value={formData.whatsapp_comercial}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_comercial: e.target.value })}
+                    placeholder="(00) 00000-0000"
                   />
                 </div>
               </div>

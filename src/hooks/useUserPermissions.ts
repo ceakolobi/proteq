@@ -176,53 +176,34 @@ export function useUserPermissions(targetUserId?: string) {
     userId: string,
     matrix: PermissionMatrix,
     companyId: string
-  ): Promise<boolean> => {
+  ): Promise<{ ok: boolean; error?: string }> => {
     if (!isAdminPrincipal) {
-      console.error('Only admin_principal can modify permissions');
-      return false;
+      return { ok: false, error: 'Apenas o Admin Principal pode modificar permissões' };
     }
 
     try {
-      // Delete existing permissions for this user
-      await supabase
-        .from('user_permissions')
-        .delete()
-        .eq('user_id', userId);
+      const records = PERMISSION_MODULES.flatMap(mod =>
+        PERMISSION_ACTIONS.map(act => ({
+          user_id: userId,
+          module: mod.id,
+          action: act.id,
+          granted: matrix[mod.id]?.[act.id] || false,
+          granted_by: user!.id,
+          company_id: companyId,
+        }))
+      );
 
-      // Prepare new permissions
-      const newPermissions: {
-        user_id: string;
-        module: PermissionModule;
-        action: PermissionAction;
-        granted: boolean;
-        granted_by: string;
-        company_id: string;
-      }[] = [];
-
-      PERMISSION_MODULES.forEach(mod => {
-        PERMISSION_ACTIONS.forEach(act => {
-          newPermissions.push({
-            user_id: userId,
-            module: mod.id,
-            action: act.id,
-            granted: matrix[mod.id]?.[act.id] || false,
-            granted_by: user!.id,
-            company_id: companyId,
-          });
-        });
-      });
-
-      // Insert new permissions
+      // Upsert evita problemas de DELETE + INSERT com RLS ou constraint
       const { error } = await supabase
         .from('user_permissions')
-        .insert(newPermissions);
+        .upsert(records, { onConflict: 'user_id,module,action' });
 
       if (error) throw error;
 
-      return true;
-    } catch (error) {
-      console.error('Error saving permissions:', error);
-      return false;
+      return { ok: true };
+    } catch (err: any) {
+      console.error('Error saving permissions:', err);
+      return { ok: false, error: err?.message || 'Erro ao salvar permissões' };
     }
   };
 

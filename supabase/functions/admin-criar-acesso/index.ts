@@ -56,17 +56,24 @@ serve(async (req) => {
 
     if (!isAdmin) return ok({ success: false, error: "Acesso negado" });
 
-    const { userId, email, modo } = await req.json();
+    const { userId, modo } = await req.json();
 
-    if (!userId || !email || !modo) {
-      return ok({ success: false, error: "userId, email e modo são obrigatórios" });
+    if (!userId || !modo) {
+      return ok({ success: false, error: "userId e modo são obrigatórios" });
     }
+
+    // Buscar e-mail real de auth.users — profiles.email pode estar desatualizado
+    const { data: authUser, error: authUserError } = await adminClient.auth.admin.getUserById(userId);
+    if (authUserError || !authUser?.user?.email) {
+      return ok({ success: false, error: `Usuário não encontrado em auth.users: ${authUserError?.message ?? 'e-mail ausente'}` });
+    }
+    const emailReal = authUser.user.email;
 
     // MODO 1: enviar link de recuperação/definição de senha por e-mail
     if (modo === "link") {
       const { data, error } = await adminClient.auth.admin.generateLink({
         type: "recovery",
-        email,
+        email: emailReal,
         options: { redirectTo: `${appUrl}/definir-senha` },
       });
 

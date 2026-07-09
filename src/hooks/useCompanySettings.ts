@@ -60,6 +60,9 @@ export interface SystemSettings {
   cover_4: string | null;
   cover_mode: string | null;
   cover_fixed_index: number | null;
+  instagram: string | null;
+  facebook: string | null;
+  whatsapp_comercial: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +90,9 @@ const defaultSettings: SystemSettings = {
   cover_4: null,
   cover_mode: "fixed",
   cover_fixed_index: 1,
+  instagram: null,
+  facebook: null,
+  whatsapp_comercial: null,
   created_at: "",
   updated_at: "",
 };
@@ -116,6 +122,9 @@ function companyToSettings(company: CompanySettings): SystemSettings {
     cover_4: company.cover_4,
     cover_mode: company.cover_mode,
     cover_fixed_index: company.cover_fixed_index,
+    instagram: (company as any).instagram ?? null,
+    facebook: (company as any).facebook ?? null,
+    whatsapp_comercial: (company as any).whatsapp_comercial ?? null,
     created_at: company.created_at,
     updated_at: company.updated_at,
   };
@@ -237,6 +246,9 @@ export function useCompanySettings() {
       if (updates.cover_4 !== undefined) companyUpdates.cover_4 = updates.cover_4;
       if (updates.cover_mode !== undefined) companyUpdates.cover_mode = updates.cover_mode;
       if (updates.cover_fixed_index !== undefined) companyUpdates.cover_fixed_index = updates.cover_fixed_index;
+      if (updates.instagram !== undefined) companyUpdates.instagram = updates.instagram;
+      if (updates.facebook !== undefined) companyUpdates.facebook = updates.facebook;
+      if (updates.whatsapp_comercial !== undefined) companyUpdates.whatsapp_comercial = updates.whatsapp_comercial;
       
       companyUpdates.updated_at = new Date().toISOString();
 
