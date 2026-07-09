@@ -280,6 +280,7 @@ export default function AssociadoDetalhe() {
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [uploadingVeicDoc, setUploadingVeicDoc] = useState(false);
   const [showContractPreview, setShowContractPreview] = useState(false);
+  const [ativandoAsaas, setAtivandoAsaas] = useState(false);
 
   const [documentos, setDocumentos] = useState<DocumentoAssociado[]>([]);
   const [veiculo, setVeiculo] = useState<VeiculoInfo | null>(null);
@@ -827,6 +828,31 @@ export default function AssociadoDetalhe() {
     if (v.replace(/\D/g, '').length === 8) setTimeout(searchCEP, 100);
   };
 
+  // FASE 1 — teste manual: ativa cliente + assinatura na Asaas para este associado.
+  // Sem automação: só dispara ao clicar. Botão visível apenas para admin_principal (Parte 5).
+  const handleAtivarAsaas = async () => {
+    if (!id) return;
+    setAtivandoAsaas(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('asaas-criar-assinatura', {
+        body: { associadoId: id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error ?? 'Falha ao ativar cobrança');
+      if (data.alreadyActive) {
+        toast.info(`Assinatura já existia (sub ${data.subscriptionId}).`);
+      } else {
+        toast.success(`Cobrança Asaas ativada! Cliente ${data.customerId}, assinatura ${data.subscriptionId}, ${data.value ? `R$ ${data.value}` : ''} venc. ${data.nextDueDate}.`);
+      }
+    } catch (e: any) {
+      toast.error(`Erro Asaas: ${e.message}`);
+    } finally {
+      setAtivandoAsaas(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!id) return;
     if (!formData.nome_completo.trim() || !formData.cpf.trim() || !formData.email.trim() || !formData.telefone.trim()) {
@@ -1004,6 +1030,19 @@ export default function AssociadoDetalhe() {
           </div>
 
           <div className="flex gap-2 flex-shrink-0">
+            {/* FASE 1 — botão de teste manual, só admin_principal e só no Gabriel (CPF 09087888945) */}
+            {isAdminPrincipal && formData.cpf.replace(/\D/g, '') === '09087888945' && (
+              <Button
+                variant="outline"
+                onClick={handleAtivarAsaas}
+                disabled={ativandoAsaas}
+                className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+              >
+                {ativandoAsaas
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Ativando...</>
+                  : 'Ativar cobrança Asaas'}
+              </Button>
+            )}
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving
                 ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
