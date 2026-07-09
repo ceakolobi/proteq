@@ -4,18 +4,26 @@ import { useBeneficiosExtrasAtivos } from '@/hooks/useBeneficiosExtras';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
 import { CATEGORIAS_BENEFICIOS } from '@/constants/beneficios';
 
+interface ContatoSettings {
+  empresa_nome?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  site?: string | null;
+}
+
 interface Props {
   dadosPessoais: DadosPessoais;
   dadosVeiculo: DadosVeiculo;
   cotacao: ResultadoCotacaoPublica;
   beneficiosSelecionadosIds?: string[];
+  contato?: ContatoSettings;
 }
 
 const formatBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function PropostaPDFView(
-  { dadosPessoais, dadosVeiculo, cotacao, beneficiosSelecionadosIds = [] },
+  { dadosPessoais, dadosVeiculo, cotacao, beneficiosSelecionadosIds = [], contato },
   ref,
 ) {
   const { data: beneficiosExtras = [] } = useBeneficiosExtrasAtivos(dadosVeiculo.tipo_bem);
@@ -191,8 +199,12 @@ export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function Propos
           lineHeight: 1.6,
         }}
       >
-        <p style={{ margin: 0, fontWeight: 600, color: text.primary }}>Harmony Agro</p>
-        <p style={{ margin: 0 }}>contato@harmonyagro.com.br · WhatsApp (xx) xxxx-xxxx</p>
+        <p style={{ margin: 0, fontWeight: 600, color: text.primary }}>
+          {contato?.empresa_nome || 'Harmony Clube de Benefícios'}
+        </p>
+        <p style={{ margin: 0 }}>
+          {[contato?.email, contato?.telefone, contato?.site].filter(Boolean).join(' · ') || 'contato@harmonyclube.com.br'}
+        </p>
         <p style={{ margin: '4px 0 0' }}>
           Proposta válida por 7 dias | Gerado em {dataAtual}
         </p>

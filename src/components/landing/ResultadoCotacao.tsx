@@ -17,6 +17,7 @@ import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './typ
 import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { BeneficiosExtrasSelector } from '@/components/cotacao/BeneficiosExtrasSelector';
 import { type BeneficioExtra } from '@/hooks/useBeneficiosExtras';
+import { useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,6 +90,26 @@ export function ResultadoCotacao({
   const [loadingAction, setLoadingAction] = useState<null | 'pdf' | 'email' | 'whatsapp'>(null);
   const [selectedBenefitObjs, setSelectedBenefitObjs] = useState<BeneficioExtra[]>([]);
   const { toast } = useToast();
+
+  // Carrega configurações públicas da empresa (contra-capa e contato)
+  const [publicSettings, setPublicSettings] = useState<{
+    pdf_contracapa?: string | null;
+    empresa_nome?: string | null;
+    telefone?: string | null;
+    email?: string | null;
+    site?: string | null;
+  }>({});
+
+  useEffect(() => {
+    // Tenta carregar via tabela companies primeiro (requer company_id),
+    // cai na tabela settings como fallback público.
+    supabase
+      .from('settings')
+      .select('pdf_contracapa, empresa_nome, telefone, email, site')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setPublicSettings(data); });
+  }, []);
 
 
   if (!dadosVeiculo) {
@@ -193,6 +214,29 @@ export function ResultadoCotacao({
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= pageHeight - margin * 2;
+      }
+
+      // Contra-capa como última página (se configurada)
+      const contracapaUrl = publicSettings.pdf_contracapa;
+      if (contracapaUrl) {
+        try {
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              const cvs = document.createElement('canvas');
+              cvs.width = img.naturalWidth || 794;
+              cvs.height = img.naturalHeight || 1123;
+              const ctx = cvs.getContext('2d');
+              ctx?.drawImage(img, 0, 0);
+              pdf.addPage();
+              pdf.addImage(cvs.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, pageHeight);
+              resolve();
+            };
+            img.onerror = () => resolve();
+            img.src = contracapaUrl;
+          });
+        } catch { /* ignora se a imagem falhar */ }
       }
 
       const blob = pdf.output('blob');
@@ -335,6 +379,7 @@ export function ResultadoCotacao({
         dadosVeiculo={dadosVeiculo}
         cotacao={cotacao}
         beneficiosSelecionadosIds={beneficiosSelecionadosIds}
+        contato={publicSettings}
       />
 
       <div className="container mx-auto max-w-5xl" ref={pdfRef}>
