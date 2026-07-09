@@ -45,14 +45,14 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    /* Sidebar com azul marinho */
-    --sidebar-background: 240 57% 20%;
-    --sidebar-foreground: 0 0% 95%;
+    /* Sidebar cinza claro */
+    --sidebar-background: 220 14% 96%;
+    --sidebar-foreground: 220 20% 22%;
     --sidebar-primary: 21 82% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 57% 28%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 50% 30%;
+    --sidebar-accent: 220 14% 88%;
+    --sidebar-accent-foreground: 220 20% 18%;
+    --sidebar-border: 220 14% 82%;
     --sidebar-ring: 21 82% 53%;
 
     /* Charts com paleta laranja/azul */
@@ -62,7 +62,7 @@ All colors MUST be HSL.
     --chart-4: 240 40% 50%;
     --chart-5: 15 75% 45%;
 
-    --sidebar: 240 57% 20%;
+    --sidebar: 220 14% 96%;
 
     --font-sans: 'Roboto', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-serif: 'Libre Caslon Text', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;

@@ -104,8 +104,11 @@ export function useBrand() {
         return brand.logos.dark;
       
       case 'sidebar':
-        // Sidebar é SEMPRE dark navy → logo clara (branca) sempre, independente do tema
-        return brand.logos.light;
+        // Sidebar clara no modo light → logo colorida; dark/penumbra → logo branca
+        if (resolvedTheme === 'dark' || resolvedTheme === 'penumbra') {
+          return brand.logos.light;
+        }
+        return brand.logos.primary;
       
       case 'header':
       case 'auto':
