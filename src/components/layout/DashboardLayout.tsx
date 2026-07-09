@@ -128,13 +128,6 @@ const navSections: NavSection[] = [
         module: 'cotacoes',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
       },
-      {
-        title: 'Simulador',
-        href: '/cotacao',
-        icon: <DollarSign className="h-4 w-4" />,
-        module: 'cotacoes',
-        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
-      },
     ],
   },
   {
