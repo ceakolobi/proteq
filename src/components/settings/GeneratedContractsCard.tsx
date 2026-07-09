@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, ExternalLink } from "lucide-react";
 
 type ContractRow = {
   id: string;
@@ -45,6 +46,7 @@ function digitsOnly(value: string) {
 
 export function GeneratedContractsCard() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [items, setItems] = useState<ContractRow[]>([]);
 
@@ -83,6 +85,16 @@ export function GeneratedContractsCard() {
 
   useEffect(() => {
     load();
+
+    // Atualização em tempo real quando novos contratos são gerados
+    const channel = supabase
+      .channel('generated-contracts-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_contracts' }, () => {
+        load();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -277,10 +289,26 @@ export function GeneratedContractsCard() {
                         <Badge variant="secondary">{c.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => download(c)}>
-                          <Download className="h-4 w-4" />
-                          Baixar
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Abrir perfil do associado"
+                            onClick={() => navigate(`/associados/${c.associado_id}`)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => download(c)}
+                            disabled={!c.pdf_path}
+                            title={c.pdf_path ? 'Baixar PDF' : 'PDF não disponível'}
+                          >
+                            <Download className="h-4 w-4" />
+                            {c.pdf_path ? 'PDF' : '—'}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

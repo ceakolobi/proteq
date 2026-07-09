@@ -67,6 +67,7 @@ import { roleLabels } from '@/types/database';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useForcarTrocaSenha } from '@/hooks/useForcarTrocaSenha';
+import { useSettings } from '@/hooks/useSettings';
 
 
 interface NavItem {
@@ -649,24 +650,38 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 }
 
 function SystemFooter() {
-  const { systemInfo, isLoading } = useSystemInfo();
+  const { systemInfo, isLoading: versionLoading } = useSystemInfo();
+  const { settings, isLoading: settingsLoading } = useSettings();
 
-  if (isLoading || !systemInfo) {
-    return null;
-  }
+  if (versionLoading || settingsLoading) return null;
 
-  const releaseDate = systemInfo.release_date 
+  const releaseDate = systemInfo?.release_date
     ? format(new Date(systemInfo.release_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : '';
+
+  const contatos = [
+    settings.telefone,
+    settings.email,
+    settings.site,
+    (settings as any).instagram ? `@${(settings as any).instagram}` : null,
+  ].filter(Boolean) as string[];
 
   return (
     <footer className="border-t border-border/50 bg-muted/30 py-3 px-4 lg:px-6">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <Info className="h-3.5 w-3.5" />
-          <span>Versão do Sistema: <strong className="text-foreground">v{systemInfo.system_version}</strong></span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          {systemInfo && (
+            <span>v<strong className="text-foreground">{systemInfo.system_version}</strong></span>
+          )}
+          {contatos.length > 0 && (
+            <>
+              <span className="hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{contatos.join(' · ')}</span>
+            </>
+          )}
         </div>
-        <span>Última atualização: {releaseDate}</span>
+        {releaseDate && <span className="hidden sm:inline">Atualizado em {releaseDate}</span>}
       </div>
     </footer>
   );

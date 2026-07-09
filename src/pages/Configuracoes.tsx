@@ -872,26 +872,17 @@ export default function Configuracoes() {
 }
 
 function SystemVersionCard() {
-  const { systemInfo, isLoading, createNewVersion } = useSystemInfo();
+  const { systemInfo, totalUpdates, nextVersion, updatesUntilNextPatch, patchesUntilNextMinor, isLoading, registerUpdate } = useSystemInfo();
   const { profile } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newVersion, setNewVersion] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleCreateVersion = async () => {
-    if (!newVersion.trim()) return;
-    
+  const handleRegister = async () => {
     setIsSaving(true);
-    const success = await createNewVersion(
-      newVersion.trim(),
-      newNotes.trim(),
-      profile?.nome_completo || "Admin"
-    );
-    
+    const success = await registerUpdate(newNotes.trim(), profile?.nome_completo || "Admin");
     if (success) {
       setIsDialogOpen(false);
-      setNewVersion("");
       setNewNotes("");
     }
     setIsSaving(false);
@@ -911,9 +902,11 @@ function SystemVersionCard() {
     );
   }
 
-  const releaseDate = systemInfo?.release_date 
+  const releaseDate = systemInfo?.release_date
     ? format(new Date(systemInfo.release_date), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })
     : '';
+
+  const updatesInPatch = totalUpdates % 10;
 
   return (
     <Card>
@@ -923,117 +916,95 @@ function SystemVersionCard() {
           Versão do Sistema
         </CardTitle>
         <CardDescription>
-          Informações sobre a versão atual e histórico de atualizações
+          Versão calculada automaticamente a cada 10 atualizações registradas
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {systemInfo ? (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-                <Tag className="w-5 h-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Versão Atual</p>
-                  <p className="text-2xl font-bold text-primary">v{systemInfo.system_version}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-                <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Última Atualização</p>
-                  <p className="font-medium">{releaseDate}</p>
-                  {systemInfo.updated_by && (
-                    <p className="text-xs text-muted-foreground">por {systemInfo.updated_by}</p>
-                  )}
-                </div>
-              </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+            <Tag className="w-5 h-5 text-primary mt-0.5" />
+            <div>
+              <p className="text-sm text-muted-foreground">Versão Atual</p>
+              <p className="text-2xl font-bold text-primary">v{systemInfo?.system_version ?? '1.0.0'}</p>
+              <p className="text-xs text-muted-foreground">{totalUpdates} atualizações registradas</p>
             </div>
+          </div>
 
-            {systemInfo.release_notes && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Notas da Versão
-                </Label>
-                <div className="p-4 rounded-lg bg-muted/50 text-sm whitespace-pre-wrap">
-                  {systemInfo.release_notes}
-                </div>
-              </div>
-            )}
-
-            <Separator />
-
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                <strong>Padrão SemVer (MAJOR.MINOR.PATCH):</strong>
-              </p>
-              <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
-                <li><strong>MAJOR</strong> – Mudanças incompatíveis com versões anteriores</li>
-                <li><strong>MINOR</strong> – Novas funcionalidades (retrocompatíveis)</li>
-                <li><strong>PATCH</strong> – Correções de bugs</li>
-              </ul>
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+            <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm text-muted-foreground">Última Atualização</p>
+              <p className="font-medium text-sm">{releaseDate || '—'}</p>
+              {systemInfo?.updated_by && (
+                <p className="text-xs text-muted-foreground">por {systemInfo.updated_by}</p>
+              )}
             </div>
+          </div>
+        </div>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Registrar Nova Versão
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Registrar Nova Versão</DialogTitle>
-                  <DialogDescription>
-                    Adicione uma nova versão ao sistema. Isso será refletido em toda a interface.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="version">Número da Versão</Label>
-                    <Input
-                      id="version"
-                      value={newVersion}
-                      onChange={(e) => setNewVersion(e.target.value)}
-                      placeholder="Ex: 1.2.0"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Siga o padrão MAJOR.MINOR.PATCH
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notas da Versão</Label>
-                    <Textarea
-                      id="notes"
-                      value={newNotes}
-                      onChange={(e) => setNewNotes(e.target.value)}
-                      placeholder="Descreva as mudanças desta versão..."
-                      rows={4}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleCreateVersion} disabled={!newVersion.trim() || isSaving}>
-                    {isSaving ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Salvar Versão
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </>
-        ) : (
-          <p className="text-muted-foreground text-center py-4">
-            Nenhuma informação de versão encontrada.
+        {/* Progresso até próxima versão */}
+        <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Progresso para próximo PATCH</span>
+            <span>{updatesInPatch}/10 atualizações</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-1.5">
+            <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${updatesInPatch * 10}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Próxima versão ao registrar: <strong className="text-foreground">v{nextVersion}</strong>
+            {' '}· faltam {updatesUntilNextPatch} para próximo PATCH
+            {' '}· {patchesUntilNextMinor} PATCHes para próximo MINOR
           </p>
+        </div>
+
+        {systemInfo?.release_notes && (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Notas da Última Atualização
+            </Label>
+            <div className="p-3 rounded-lg bg-muted/50 text-sm whitespace-pre-wrap">
+              {systemInfo.release_notes}
+            </div>
+          </div>
         )}
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Registrar Atualização
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registrar Atualização</DialogTitle>
+              <DialogDescription>
+                A versão <strong>v{nextVersion}</strong> será registrada automaticamente.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notas (opcional)</Label>
+                <Textarea
+                  id="notes"
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Descreva as mudanças desta atualização..."
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleRegister} disabled={isSaving}>
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Registrar v{nextVersion}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
