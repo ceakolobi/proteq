@@ -268,41 +268,9 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           toast.error('E-mail válido é obrigatório');
           return false;
         }
-        // Validação dos campos de migração
-        if (associadoData.veio_de_outra_associacao) {
-          if (!associadoData.nome_associacao_anterior.trim()) {
-            toast.error('Nome da associação anterior é obrigatório');
-            return false;
-          }
-          if (!associadoData.data_saida_associacao) {
-            toast.error('Data de saída da associação anterior é obrigatória');
-            return false;
-          }
-          // Arquivos não persistem em rascunho; garanta que seja um File real
-          if (!isRealFile(associadoData.comprovante_migracao_file)) {
-            toast.error('Documento comprobatório é obrigatório para dispensa de vistoria');
-            return false;
-          }
-        }
         return true;
       
-      case 1: // Endereço
-        if (!associadoData.cep.replace(/\D/g, '')) {
-          toast.error('CEP é obrigatório');
-          return false;
-        }
-        if (!associadoData.endereco.trim()) {
-          toast.error('Endereço é obrigatório');
-          return false;
-        }
-        if (!associadoData.cidade.trim()) {
-          toast.error('Cidade é obrigatória');
-          return false;
-        }
-        if (!associadoData.estado.trim()) {
-          toast.error('Estado é obrigatório');
-          return false;
-        }
+      case 1: // Endereço — todos os campos opcionais
         return true;
       
       case 2: // Docs Associado
@@ -454,27 +422,21 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setIsSubmitting(true);
     
     try {
-      // 1. Upload comprovante de migração se necessário
+      // 1. Upload comprovante de migração se fornecido (opcional)
       let comprovanteUrl: string | null = null;
       if (associadoData.veio_de_outra_associacao) {
         const file = associadoData.comprovante_migracao_file;
-
-        if (!isRealFile(file) || !file.name) {
-          toast.error('Reenvie o comprovante de migração (o rascunho não preserva anexos)');
-          return;
-        }
-
-        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : undefined;
-        const safeExt = fileExt || 'bin';
-        const fileName = `migracao_${Date.now()}.${safeExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('associado-documentos')
-          .upload(fileName, file);
-
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from('associado-documentos').getPublicUrl(fileName);
-          comprovanteUrl = urlData.publicUrl;
+        if (isRealFile(file) && file.name) {
+          const fileExt = file.name.includes('.') ? file.name.split('.').pop() : undefined;
+          const safeExt = fileExt || 'bin';
+          const fileName = `migracao_${Date.now()}.${safeExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('associado-documentos')
+            .upload(fileName, file);
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('associado-documentos').getPublicUrl(fileName);
+            comprovanteUrl = urlData.publicUrl;
+          }
         }
       }
 
