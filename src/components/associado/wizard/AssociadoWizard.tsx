@@ -294,18 +294,6 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           toast.error('Valor FIPE é obrigatório');
           return false;
         }
-        // Validar Chassi (17 caracteres alfanuméricos)
-        const chassiLimpo = veiculoData.chassi.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-        if (!chassiLimpo || chassiLimpo.length !== 17) {
-          toast.error('Chassi deve ter exatamente 17 caracteres');
-          return false;
-        }
-        // Validar Renavam (11 dígitos)
-        const renavamLimpo = veiculoData.renavam.replace(/\D/g, '');
-        if (!renavamLimpo || renavamLimpo.length !== 11) {
-          toast.error('Renavam deve ter exatamente 11 dígitos');
-          return false;
-        }
         return true;
       
       case 4: // Docs Veículo
@@ -773,7 +761,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       />
       
       <Dialog open={open && !showDraftDialog} onOpenChange={handleClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-xl">Novo Cadastro de Associado</DialogTitle>

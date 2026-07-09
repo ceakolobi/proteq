@@ -228,7 +228,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* Dia de Vencimento */}
         <div className="space-y-2">
           <Label htmlFor="dia_vencimento">
-            Dia de Vencimento <span className="text-destructive">*</span>
+            Dia de Vencimento
           </Label>
           <Select
             value={String(data.dia_vencimento)}
@@ -286,7 +286,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
                 {/* Nome da Associação Anterior */}
                 <div className="md:col-span-2 space-y-2">
                   <Label htmlFor="nome_associacao_anterior">
-                    Nome da Associação Anterior <span className="text-destructive">*</span>
+                    Nome da Associação Anterior
                   </Label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -303,7 +303,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
                 {/* Data de Saída */}
                 <div className="space-y-2">
                   <Label htmlFor="data_saida_associacao">
-                    Data de Saída <span className="text-destructive">*</span>
+                    Data de Saída
                   </Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -321,7 +321,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
               {/* Upload de Comprovante */}
               <div className="space-y-2">
                 <Label htmlFor="comprovante_migracao">
-                  Documento Comprobatório <span className="text-destructive">*</span>
+                  Documento Comprobatório
                 </Label>
                 <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
                   <input
@@ -372,7 +372,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        <span className="text-destructive">*</span> Campos obrigatórios
+        <span className="text-destructive">*</span> Nome completo, CPF, telefone e e-mail são obrigatórios. Todos os demais campos são opcionais.
       </p>
     </div>
   );

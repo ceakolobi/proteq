@@ -319,9 +319,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
 
         {/* Chassi */}
         <div className="md:col-span-3 space-y-2">
-          <Label htmlFor="chassi">
-            Chassi <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="chassi">Chassi</Label>
           <Input
             id="chassi"
             placeholder="Ex: 9BWZZZ377VT004251"
@@ -330,16 +328,11 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
             maxLength={17}
             className="uppercase font-mono tracking-wide"
           />
-          <p className="text-xs text-muted-foreground">
-            17 caracteres alfanuméricos
-          </p>
         </div>
 
         {/* Renavam */}
         <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="renavam">
-            Renavam <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="renavam">Renavam</Label>
           <Input
             id="renavam"
             placeholder="Ex: 00123456789"
@@ -348,9 +341,6 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
             maxLength={11}
             className="font-mono"
           />
-          <p className="text-xs text-muted-foreground">
-            11 dígitos numéricos
-          </p>
         </div>
 
         {/* Quilometragem */}

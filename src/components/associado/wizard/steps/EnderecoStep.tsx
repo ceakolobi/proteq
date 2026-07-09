@@ -111,9 +111,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* CEP */}
         <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="cep">
-            CEP <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="cep">CEP</Label>
           <div className="flex gap-2">
             <Input
               id="cep"
@@ -146,9 +144,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
 
         {/* Rua/Endereço */}
         <div className="md:col-span-4 space-y-2">
-          <Label htmlFor="endereco">
-            Endereço <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="endereco">Endereço</Label>
           <Input
             id="endereco"
             placeholder="Rua, Avenida, etc."
@@ -192,9 +188,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
 
         {/* Cidade */}
         <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="cidade">
-            Cidade <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="cidade">Cidade</Label>
           <Input
             id="cidade"
             placeholder="Cidade"
@@ -205,9 +199,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
 
         {/* Estado */}
         <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="estado">
-            Estado <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="estado">Estado</Label>
           <Select
             value={data.estado}
             onValueChange={(value) => handleChange('estado', value)}
@@ -227,7 +219,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
       </div>
 
       <p className="text-xs text-muted-foreground">
-        <span className="text-destructive">*</span> Campos obrigatórios
+        Todos os campos de endereço são opcionais — podem ser preenchidos pelo scanner de comprovante ou completados depois.
       </p>
     </div>
   );
