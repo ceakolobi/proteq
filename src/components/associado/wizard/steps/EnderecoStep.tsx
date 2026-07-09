@@ -13,6 +13,7 @@ import { MapPin, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AssociadoFormData } from '../types';
 import { ESTADOS_BRASILEIROS } from '../types';
+import { DocumentScanner } from '@/components/associado/DocumentScanner';
 
 interface EnderecoStepProps {
   data: AssociadoFormData;
@@ -82,9 +83,27 @@ export function EnderecoStep({ data, onChange }: EnderecoStepProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 pb-2 border-b">
-        <MapPin className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">Endereço</h3>
+      <div className="flex items-center justify-between pb-2 border-b">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-lg">Endereço</h3>
+        </div>
+        <DocumentScanner
+          documentKind="comprovante_endereco"
+          onExtracted={(extracted) => {
+            const cep = extracted.cep as string | undefined;
+            onChange({
+              ...data,
+              cep: cep ? cep.replace(/(\d{5})(\d{3})/, '$1-$2') : data.cep,
+              endereco: (extracted.endereco as string) || data.endereco,
+              numero: (extracted.numero as string) || data.numero,
+              complemento: (extracted.complemento as string) || data.complemento,
+              bairro: (extracted.bairro as string) || data.bairro,
+              cidade: (extracted.cidade as string) || data.cidade,
+              estado: (extracted.estado as string) || data.estado,
+            });
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">

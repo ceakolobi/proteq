@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { VeiculoFormData } from '../types';
 import { COMBUSTIVEL_OPTIONS, COR_OPTIONS, SITUACAO_FINANCEIRA_OPTIONS } from '../types';
 import { vehicleTypeLabels, type VehicleType } from '@/types/database';
+import { DocumentScanner } from '@/components/associado/DocumentScanner';
 
 interface DadosVeiculoStepProps {
   data: VeiculoFormData;
@@ -117,9 +118,28 @@ export function DadosVeiculoStep({ data, onChange }: DadosVeiculoStepProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 pb-2 border-b">
-        <Car className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">Dados do Veículo</h3>
+      <div className="flex items-center justify-between pb-2 border-b">
+        <div className="flex items-center gap-2">
+          <Car className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-lg">Dados do Veículo</h3>
+        </div>
+        <DocumentScanner
+          documentKind="crlv"
+          onExtracted={(extracted) => {
+            const placa = extracted.placa as string | undefined;
+            onChange({
+              ...data,
+              placa: placa ? formatPlaca(placa.replace(/[^A-Za-z0-9]/g, '')) : data.placa,
+              chassi: (extracted.chassi as string)?.toUpperCase().replace(/[^A-Z0-9]/g, '') || data.chassi,
+              renavam: (extracted.renavam as string)?.replace(/\D/g, '') || data.renavam,
+              marca: (extracted.marca as string) || data.marca,
+              modelo: (extracted.modelo as string) || data.modelo,
+              ano: (extracted.ano_fabricacao as number) || data.ano,
+              cor: (extracted.cor as string) || data.cor,
+              combustivel: (extracted.combustivel as string) || data.combustivel,
+            });
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">

@@ -12,6 +12,7 @@ import {
 import { User, Mail, Phone, Calendar, Briefcase, Heart, CreditCard, Building2, Upload, FileCheck } from 'lucide-react';
 import type { AssociadoFormData } from '../types';
 import { ESTADO_CIVIL_OPTIONS, DIA_VENCIMENTO_OPTIONS } from '../types';
+import { DocumentScanner } from '@/components/associado/DocumentScanner';
 
 interface DadosAssociadoStepProps {
   data: AssociadoFormData;
@@ -57,9 +58,23 @@ export function DadosAssociadoStep({ data, onChange }: DadosAssociadoStepProps) 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 pb-2 border-b">
-        <User className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-lg">Dados Pessoais</h3>
+      <div className="flex items-center justify-between pb-2 border-b">
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-lg">Dados Pessoais</h3>
+        </div>
+        <DocumentScanner
+          documentKind="cnh"
+          onExtracted={(extracted) => {
+            onChange({
+              ...data,
+              nome_completo: (extracted.nome_completo as string) || data.nome_completo,
+              cpf: extracted.cpf ? maskCPF(extracted.cpf as string) : data.cpf,
+              rg: extracted.rg ? maskRG(extracted.rg as string) : data.rg,
+              data_nascimento: (extracted.data_nascimento as string) || data.data_nascimento,
+            });
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
