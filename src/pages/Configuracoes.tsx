@@ -874,17 +874,11 @@ export default function Configuracoes() {
 function SystemVersionCard() {
   const { systemInfo, totalUpdates, nextVersion, updatesUntilNextPatch, patchesUntilNextMinor, isLoading, registerUpdate } = useSystemInfo();
   const { profile } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newNotes, setNewNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleRegister = async () => {
     setIsSaving(true);
-    const success = await registerUpdate(newNotes.trim(), profile?.nome_completo || "Admin");
-    if (success) {
-      setIsDialogOpen(false);
-      setNewNotes("");
-    }
+    await registerUpdate("", profile?.nome_completo || "Admin");
     setIsSaving(false);
   };
 
@@ -970,41 +964,10 @@ function SystemVersionCard() {
           </div>
         )}
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Registrar Atualização
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Registrar Atualização</DialogTitle>
-              <DialogDescription>
-                A versão <strong>v{nextVersion}</strong> será registrada automaticamente.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notas (opcional)</Label>
-                <Textarea
-                  id="notes"
-                  value={newNotes}
-                  onChange={(e) => setNewNotes(e.target.value)}
-                  placeholder="Descreva as mudanças desta atualização..."
-                  rows={4}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleRegister} disabled={isSaving}>
-                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Registrar v{nextVersion}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button className="w-full sm:w-auto" onClick={handleRegister} disabled={isSaving}>
+          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+          Atualizar versão (v{nextVersion})
+        </Button>
       </CardContent>
     </Card>
   );
