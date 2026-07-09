@@ -129,6 +129,16 @@ export function useBrand() {
     };
   }, [settings]);
 
+  // Injeta a cor primária no :root como CSS variable para propagar em botões, links etc.
+  useEffect(() => {
+    if (isLoading) return;
+    const primary = brand.colors.primary;
+    if (!primary) return;
+    const root = document.documentElement;
+    root.style.setProperty('--primary', hexToHSL(primary));
+    root.style.setProperty('--primary-foreground', bestForegroundHSL(primary));
+  }, [brand.colors.primary, isLoading]);
+
   /**
    * Retorna a logo apropriada para o contexto atual
    * @param context - 'sidebar' | 'header' | 'login' | 'splash' | 'report'

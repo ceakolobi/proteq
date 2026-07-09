@@ -54,6 +54,23 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { hexToHSL, bestForegroundHSL, contrastRatio } from "@/hooks/useBrand";
+
+// ── Máscaras de documento ────────────────────────────────────────────────────
+const maskCNPJ = (v: string) =>
+  v.replace(/\D/g, '')
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1/$2')
+    .replace(/(\d{4})(\d{1,2})/, '$1-$2')
+    .slice(0, 18);
+
+const maskCPF = (v: string) =>
+  v.replace(/\D/g, '')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .slice(0, 14);
 
 export default function Configuracoes() {
   const navigate = useNavigate();
@@ -75,6 +92,7 @@ export default function Configuracoes() {
   const [formData, setFormData] = useState({
     empresa_nome: "",
     cnpj: "",
+    tipo_documento: "pj" as "pj" | "pf",
     cor_primaria: "",
     cor_secundaria: "",
     cor_destaque: "",
@@ -97,9 +115,12 @@ export default function Configuracoes() {
 
   // Inicializar form com dados do settings
   if (!isFormInitialized && !isLoading && settings.id) {
+    const rawDoc = (settings.cnpj || "").replace(/\D/g, '');
+    const tipoDoc: "pj" | "pf" = rawDoc.length === 11 ? "pf" : "pj";
     setFormData({
       empresa_nome: settings.empresa_nome || "",
       cnpj: settings.cnpj || "",
+      tipo_documento: tipoDoc,
       cor_primaria: settings.cor_primaria || "#F97316",
       cor_secundaria: settings.cor_secundaria || "#22C55E",
       cor_destaque: settings.cor_destaque || "#F59E0B",
@@ -123,6 +144,12 @@ export default function Configuracoes() {
 
   const handleSave = async () => {
     await updateSettings(formData);
+    // Injeta imediatamente no DOM para refletir sem reload
+    if (formData.cor_primaria) {
+      const root = document.documentElement;
+      root.style.setProperty('--primary', hexToHSL(formData.cor_primaria));
+      root.style.setProperty('--primary-foreground', bestForegroundHSL(formData.cor_primaria));
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,18 +297,42 @@ export default function Configuracoes() {
                 </div>
               </div>
 
-              {/* CNPJ */}
+              {/* Documento: PJ ou PF */}
               <div className="space-y-2">
-                <Label htmlFor="cnpj">CNPJ</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="cnpj">
+                    {formData.tipo_documento === 'pj' ? 'CNPJ' : 'CPF'}
+                  </Label>
+                  <div className="flex gap-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, tipo_documento: 'pj', cnpj: '' })}
+                      className={`px-2 py-0.5 rounded border transition-colors ${formData.tipo_documento === 'pj' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'}`}
+                    >
+                      Pessoa Jurídica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, tipo_documento: 'pf', cnpj: '' })}
+                      className={`px-2 py-0.5 rounded border transition-colors ${formData.tipo_documento === 'pf' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50'}`}
+                    >
+                      Pessoa Física
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <FileText className="w-4 h-4 text-muted-foreground mt-3" />
                   <Input
                     id="cnpj"
                     value={formData.cnpj}
-                    onChange={(e) =>
-                      setFormData({ ...formData, cnpj: e.target.value })
-                    }
-                    placeholder="00.000.000/0000-00"
+                    onChange={(e) => {
+                      const masked = formData.tipo_documento === 'pj'
+                        ? maskCNPJ(e.target.value)
+                        : maskCPF(e.target.value);
+                      setFormData({ ...formData, cnpj: masked });
+                    }}
+                    placeholder={formData.tipo_documento === 'pj' ? '00.000.000/0000-00' : '000.000.000-00'}
+                    maxLength={formData.tipo_documento === 'pj' ? 18 : 14}
                   />
                 </div>
               </div>
@@ -456,23 +507,31 @@ export default function Configuracoes() {
                   </div>
                 </div>
 
-                {/* Preview das cores */}
-                <div className="flex gap-2 p-3 rounded-lg bg-muted">
-                  <div
-                    className="w-12 h-8 rounded"
-                    style={{ backgroundColor: formData.cor_primaria }}
-                  />
-                  <div
-                    className="w-12 h-8 rounded"
-                    style={{ backgroundColor: formData.cor_secundaria }}
-                  />
-                  <div
-                    className="w-12 h-8 rounded"
-                    style={{ backgroundColor: formData.cor_destaque }}
-                  />
-                  <span className="text-xs text-muted-foreground ml-2 self-center">
-                    Preview da paleta
-                  </span>
+                {/* Preview das cores com contraste WCAG */}
+                <div className="space-y-2 p-3 rounded-lg bg-muted">
+                  <p className="text-xs text-muted-foreground mb-2">Preview — texto automático (WCAG AA)</p>
+                  {[
+                    { label: 'Primária', key: 'cor_primaria', hex: formData.cor_primaria },
+                    { label: 'Secundária', key: 'cor_secundaria', hex: formData.cor_secundaria },
+                    { label: 'Destaque', key: 'cor_destaque', hex: formData.cor_destaque },
+                  ].map(({ label, hex }) => {
+                    const fgHSL = bestForegroundHSL(hex);
+                    const fgHex = fgHSL.startsWith('0 0% 100') ? '#ffffff' : '#1a1f2e';
+                    const ratio = Math.max(contrastRatio(hex, '#ffffff'), contrastRatio(hex, '#000000'));
+                    const pass = ratio >= 4.5;
+                    return (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between px-3 py-2 rounded"
+                        style={{ backgroundColor: hex, color: fgHex }}
+                      >
+                        <span className="text-sm font-medium">{label}</span>
+                        <span className="text-xs opacity-80">
+                          {ratio.toFixed(1)}:1 {pass ? '✓ AA' : '⚠ baixo'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
