@@ -39,6 +39,18 @@ Rodar ANTES de testar as features correspondentes. Sem elas, o código quebra ou
   `ALTER TABLE companies ADD COLUMN IF NOT EXISTS instagram TEXT, ADD COLUMN IF NOT EXISTS facebook TEXT, ADD COLUMN IF NOT EXISTS whatsapp_comercial TEXT;`
 - [ ] **RLS system_info** (versionamento automático) — INSERT bloqueado por falta de policy; criar policy INSERT/UPDATE para admin_principal (flag is_admin_principal OU role admin). SELECT liberado para authenticated.
 - [ ] **função upsert_associado_por_cpf** — RPC SECURITY DEFINER usada no wizard de associado (dedup por CPF). Ver corpo completo no log 2026-07-09.
+- [ ] **Colunas Asaas** (integração pagamento) — código já deployado, aguardando:
+  `ALTER TABLE associados ADD COLUMN IF NOT EXISTS asaas_customer_id TEXT;`
+  `ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS asaas_subscription_id TEXT;`
+  `ALTER TABLE cobrancas ADD COLUMN IF NOT EXISTS asaas_payment_id TEXT;`
+  `ALTER TABLE cobrancas ADD COLUMN IF NOT EXISTS asaas_status TEXT;`
+
+## Integração Asaas (Fase 1 — teste manual, sem automação) — status 2026-07-09
+- Edge Functions DEPLOYADAS: `asaas-criar-assinatura` (exige admin_principal) e `asaas-webhook` (público, --no-verify-jwt)
+- Mapeamento: associados.asaas_customer_id (customer), veiculos.asaas_subscription_id (subscription), cobrancas.asaas_payment_id+asaas_status (payment). mensalidades=recorrente, pagamentos=legada (não usar)
+- Botão "Ativar cobrança Asaas" em AssociadoDetalhe — só admin_principal E só Gabriel (CPF 09087888945)
+- PENDENTE p/ ativar: (1) rodar migration acima; (2) secrets no Supabase: ASAAS_API_KEY, ASAAS_WEBHOOK_TOKEN, opcional ASAAS_BASE_URL (default produção — usar sandbox p/ testar), ASAAS_BILLING_TYPE (default UNDEFINED); (3) cadastrar webhook na Asaas: https://sfobrbxzdbgjoxgjerus.supabase.co/functions/v1/asaas-webhook com o token; (4) commitar dist; (5) testar no Gabriel
+- Recomendado: testar em SANDBOX antes de produção
 
 ## Log de sessões
 
