@@ -135,18 +135,11 @@ const navSections: NavSection[] = [
     icon: <UserCog className="h-4 w-4" />,
     items: [
       {
-        title: 'Painel Regional',
-        href: '/regional',
+        title: 'Regionais',
+        href: '/sedes',
         icon: <Building2 className="h-4 w-4" />,
-        module: 'dashboard',
-        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente'],
-      },
-      {
-        title: 'Painel Consultor',
-        href: '/consultor',
-        icon: <UserCircle className="h-4 w-4" />,
-        module: 'dashboard',
-        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'consultor_vendas'],
+        module: 'configuracoes',
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
       },
       {
         title: 'Consultores',
@@ -156,11 +149,11 @@ const navSections: NavSection[] = [
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'financeiro'],
       },
       {
-        title: 'Sedes',
-        href: '/sedes',
-        icon: <Building2 className="h-4 w-4" />,
-        module: 'configuracoes',
-        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional'],
+        title: 'Relatórios',
+        href: '/relatorios',
+        icon: <BarChart3 className="h-4 w-4" />,
+        module: 'relatorios',
+        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'financeiro'],
       },
     ],
   },
@@ -196,20 +189,6 @@ const navSections: NavSection[] = [
         module: 'vistorias',
         roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'vistoriador'],
       },
-      {
-        title: 'Usuários',
-        href: '/usuarios',
-        icon: <UserCog className="h-4 w-4" />,
-        module: 'usuarios',
-        roles: ['admin_principal', 'admin_nivel_basico'],
-      },
-      {
-        title: 'Relatórios',
-        href: '/relatorios',
-        icon: <BarChart3 className="h-4 w-4" />,
-        module: 'relatorios',
-        roles: ['admin_principal', 'admin_nivel_basico', 'admin_regional', 'gerente', 'financeiro'],
-      },
     ],
   },
   {
@@ -236,6 +215,13 @@ const navSections: NavSection[] = [
     title: 'Administração',
     icon: <ShieldCheck className="h-4 w-4" />,
     items: [
+      {
+        title: 'Usuários',
+        href: '/usuarios',
+        icon: <UserCog className="h-4 w-4" />,
+        module: 'usuarios',
+        roles: ['admin_principal', 'admin_nivel_basico'],
+      },
       {
         title: 'Painel Admin',
         href: '/admin',

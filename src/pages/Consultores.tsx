@@ -89,6 +89,7 @@ export default function Consultores() {
     loadSedes: true 
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [regiaoFilter, setRegiaoFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [selectedConsultor, setSelectedConsultor] = useState<ConsultorWithStats | null>(null);
@@ -535,12 +536,14 @@ export default function Consultores() {
     }
   };
 
-  const filteredConsultores = consultores.filter(
-    (consultor) =>
+  const filteredConsultores = consultores.filter((consultor) => {
+    const matchesSearch =
       consultor.nome_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       consultor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      consultor.regiao_nome?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      consultor.regiao_nome?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRegiao = regiaoFilter === 'all' || consultor.regiao_id === regiaoFilter;
+    return matchesSearch && matchesRegiao;
+  });
 
   const totalAssociados = consultores.reduce((acc, c) => acc + (c.associados_count || 0), 0);
   const totalLeads = consultores.reduce((acc, c) => acc + (c.leads_count || 0), 0);
@@ -645,7 +648,7 @@ export default function Consultores() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -655,6 +658,21 @@ export default function Consultores() {
                   className="pl-10"
                 />
               </div>
+              {/* Filtro por região — admin principal filtra entre todas; regional já vê só a sua base */}
+              {isAdminPrincipal && (
+                <Select value={regiaoFilter} onValueChange={setRegiaoFilter}>
+                  <SelectTrigger className="w-full sm:w-56">
+                    <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Filtrar por região" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as regiões</SelectItem>
+                    {regioes.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="rounded-md border">
