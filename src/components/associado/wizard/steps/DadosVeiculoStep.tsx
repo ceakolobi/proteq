@@ -118,7 +118,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between pb-2 border-b">
         <div className="flex items-center gap-2">
           <Car className="h-5 w-5 text-primary" />
@@ -144,11 +144,12 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Placa */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="placa">
-            Placa          </Label>
+            Placa <span className="text-destructive">*</span>
+          </Label>
           <div className="flex gap-2">
             <Input
               id="placa"
@@ -180,7 +181,8 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Tipo */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="tipo">
-            Tipo de Veículo          </Label>
+            Tipo de Veículo <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={data.tipo}
             onValueChange={(value) => handleChange('tipo', value as VehicleType)}
@@ -221,7 +223,8 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Marca */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="marca">
-            Marca          </Label>
+            Marca <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="marca"
             placeholder="Ex: Toyota"
@@ -233,7 +236,8 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Modelo */}
         <div className="md:col-span-3 space-y-2">
           <Label htmlFor="modelo">
-            Modelo          </Label>
+            Modelo <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="modelo"
             placeholder="Ex: Corolla XEi 2.0"
@@ -245,7 +249,8 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Ano */}
         <div className="md:col-span-1 space-y-2">
           <Label htmlFor="ano">
-            Ano          </Label>
+            Ano <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="ano"
             type="number"
@@ -260,7 +265,8 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Valor FIPE */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="valor_fipe">
-            Valor FIPE          </Label>
+            Valor FIPE <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="valor_fipe"
             placeholder="R$ 0,00"
@@ -354,6 +360,9 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         </div>
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        <span className="text-destructive">*</span> Campos obrigatórios
+      </p>
     </div>
   );
 }

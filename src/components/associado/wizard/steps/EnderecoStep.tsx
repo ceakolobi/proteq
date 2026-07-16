@@ -83,7 +83,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between pb-2 border-b">
         <div className="flex items-center gap-2">
           <MapPin className="h-5 w-5 text-primary" />
@@ -108,7 +108,7 @@ export function EnderecoStep({ data, onChange, onDocumentScanned }: EnderecoStep
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* CEP */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="cep">CEP</Label>

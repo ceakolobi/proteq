@@ -58,7 +58,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between pb-2 border-b">
         <div className="flex items-center gap-2">
           <User className="h-5 w-5 text-primary" />
@@ -80,11 +80,12 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Nome Completo */}
-        <div className="sm:col-span-2 lg:col-span-3 space-y-2">
+        <div className="md:col-span-2 space-y-2">
           <Label htmlFor="nome_completo">
-            Nome Completo          </Label>
+            Nome Completo <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="nome_completo"
             placeholder="Nome completo do associado"
@@ -96,7 +97,8 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* CPF */}
         <div className="space-y-2">
           <Label htmlFor="cpf">
-            CPF          </Label>
+            CPF <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="cpf"
             placeholder="000.000.000-00"
@@ -174,7 +176,8 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* Telefone */}
         <div className="space-y-2">
           <Label htmlFor="telefone">
-            Telefone          </Label>
+            Telefone <span className="text-destructive">*</span>
+          </Label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -207,7 +210,8 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* E-mail */}
         <div className="space-y-2">
           <Label htmlFor="email">
-            E-mail          </Label>
+            E-mail <span className="text-destructive">*</span>
+          </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -367,6 +371,9 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         </CardContent>
       </Card>
 
+      <p className="text-xs text-muted-foreground">
+        <span className="text-destructive">*</span> Nome completo, CPF, telefone e e-mail são obrigatórios. Todos os demais campos são opcionais.
+      </p>
     </div>
   );
 }
