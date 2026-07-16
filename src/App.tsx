@@ -48,6 +48,7 @@ import Inadimplencia from "./pages/financeiro/Inadimplencia";
 import RelatoriosFinanceiros from "./pages/financeiro/RelatoriosFinanceiros";
 import ConfiguracoesFinanceiras from "./pages/financeiro/ConfiguracoesFinanceiras";
 import AssociadoDetalhe from "./pages/AssociadoDetalhe";
+import ConsultorDetalhe from "./pages/ConsultorDetalhe";
 import DefinirSenha from "./pages/DefinirSenha";
 import TabShell from "./components/layout/TabShell";
 import { TabManagerProvider } from "./contexts/TabManagerContext";
@@ -173,7 +174,8 @@ const App = () => (
                 {/* Admin Regional or above */}
                 <Route path="/regional" element={<ProtectedRoute><RegionalDashboard /></ProtectedRoute>} />
                 <Route path="/consultores" element={<ProtectedRoute><Consultores /></ProtectedRoute>} />
-                
+                <Route path="/consultores/:id" element={<ProtectedRoute><ConsultorDetalhe /></ProtectedRoute>} />
+
                 {/* Consultor or above */}
                 <Route path="/consultor" element={<ProtectedRoute><ConsultorDashboard /></ProtectedRoute>} />
                 <Route path="/cotacao" element={<ProtectedRoute><Cotacao /></ProtectedRoute>} />

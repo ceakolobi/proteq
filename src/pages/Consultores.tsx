@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useReferenceData } from '@/hooks/useReferenceData';
@@ -55,7 +56,8 @@ import {
   TrendingUp,
   Loader2,
   Plus,
-  Trash2
+  Trash2,
+  Eye
 } from 'lucide-react';
 import type { Profile, Regiao, Sede } from '@/types/database';
 import { DocumentScanner } from '@/components/associado/DocumentScanner';
@@ -80,6 +82,7 @@ interface ConsultorWithStats extends Profile {
 
 export default function Consultores() {
   const { profile, isAdminPrincipal, hasRole } = useAuth();
+  const navigate = useNavigate();
   const { isAllowed, isChecking } = useAccessControl('admin_or_gerente_or_financeiro', { redirectOnDeny: false });
   
   const [consultores, setConsultores] = useState<ConsultorWithStats[]>([]);
@@ -894,7 +897,16 @@ export default function Consultores() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => navigate(`/consultores/${consultor.id}`)}
+                              title="Ver painel"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleOpenDialog(consultor)}
+                              title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
