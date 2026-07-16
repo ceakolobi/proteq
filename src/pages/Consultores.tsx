@@ -923,7 +923,7 @@ export default function Consultores() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedConsultor ? 'Editar Consultor' : 'Novo Consultor'}
@@ -939,8 +939,8 @@ export default function Consultores() {
               <DocumentScanner documentKind="cnh" onExtracted={handleCnhExtracted} />
             </div>
 
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
+            <div className="grid gap-4 py-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="nome_completo">Nome Completo *</Label>
                 <Input
                   id="nome_completo"
@@ -1015,46 +1015,42 @@ export default function Consultores() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="rg">RG</Label>
-                  <Input
-                    id="rg"
-                    value={formData.rg}
-                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
-                    placeholder="Preenchido pela CNH ou manual"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-                  <Input
-                    id="data_nascimento"
-                    type="date"
-                    value={formData.data_nascimento}
-                    onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="rg">RG</Label>
+                <Input
+                  id="rg"
+                  value={formData.rg}
+                  onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                  placeholder="Preenchido pela CNH ou manual"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                <Input
+                  id="data_nascimento"
+                  type="date"
+                  value={formData.data_nascimento}
+                  onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cnh_categoria">Categoria CNH</Label>
-                  <Input
-                    id="cnh_categoria"
-                    value={formData.cnh_categoria}
-                    onChange={(e) => setFormData({ ...formData, cnh_categoria: e.target.value })}
-                    placeholder="Ex: AB"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cnh_validade">Validade CNH</Label>
-                  <Input
-                    id="cnh_validade"
-                    type="date"
-                    value={formData.cnh_validade}
-                    onChange={(e) => setFormData({ ...formData, cnh_validade: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="cnh_categoria">Categoria CNH</Label>
+                <Input
+                  id="cnh_categoria"
+                  value={formData.cnh_categoria}
+                  onChange={(e) => setFormData({ ...formData, cnh_categoria: e.target.value })}
+                  placeholder="Ex: AB"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cnh_validade">Validade CNH</Label>
+                <Input
+                  id="cnh_validade"
+                  type="date"
+                  value={formData.cnh_validade}
+                  onChange={(e) => setFormData({ ...formData, cnh_validade: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
@@ -1068,7 +1064,7 @@ export default function Consultores() {
               </div>
 
               {/* Foto / logo do consultor */}
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="foto">Foto / Logo do consultor</Label>
                 <Input
                   id="foto"
@@ -1084,7 +1080,7 @@ export default function Consultores() {
               </div>
 
               {/* Documentos do consultor */}
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label>Documentos (CNH, RG, Comprovante de endereço)</Label>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {([['cnh', 'CNH'], ['rg', 'RG'], ['comprovante_endereco', 'Comprovante']] as const).map(([tipo, label]) => (
@@ -1151,7 +1147,7 @@ export default function Consultores() {
               </div>
 
               {selectedConsultor && (
-                <div className="flex items-center justify-between py-2">
+                <div className="flex items-center justify-between py-2 sm:col-span-2">
                   <Label htmlFor="ativo">Consultor Ativo</Label>
                   <Switch
                     id="ativo"
