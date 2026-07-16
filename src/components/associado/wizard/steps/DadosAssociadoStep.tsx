@@ -58,7 +58,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between pb-2 border-b">
         <div className="flex items-center gap-2">
           <User className="h-5 w-5 text-primary" />
@@ -80,9 +80,9 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Nome Completo */}
-        <div className="md:col-span-2 space-y-2">
+        <div className="sm:col-span-2 lg:col-span-3 space-y-2">
           <Label htmlFor="nome_completo">
             Nome Completo <span className="text-destructive">*</span>
           </Label>

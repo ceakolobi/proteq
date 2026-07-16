@@ -761,7 +761,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       />
       
       <Dialog open={open && !showDraftDialog} onOpenChange={handleClose}>
-        <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-xl">Novo Cadastro de Associado</DialogTitle>
