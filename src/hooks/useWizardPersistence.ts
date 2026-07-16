@@ -3,7 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AssociadoFormData, VeiculoFormData } from '@/components/associado/wizard/types';
 
-const STORAGE_KEY = 'draft_associado';
+const STORAGE_KEY_PREFIX = 'harmony_draft_associado';
+
+// Chave única por usuário: harmony_draft_associado_<userId>
+function getStorageKey(userId?: string | null): string {
+  return `${STORAGE_KEY_PREFIX}_${userId || 'anon'}`;
+}
 
 export interface WizardDraft {
   id?: string; // backend associado id (for updates)
@@ -28,9 +33,9 @@ interface UseWizardPersistenceReturn {
 }
 
 // --- localStorage helpers ---
-function loadFromLocalStorage(): WizardDraft | null {
+function loadFromLocalStorage(key: string): WizardDraft | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored) as WizardDraft;
 
@@ -47,17 +52,17 @@ function loadFromLocalStorage(): WizardDraft | null {
   return null;
 }
 
-function saveToLocalStorage(data: WizardDraft): void {
+function saveToLocalStorage(key: string, data: WizardDraft): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving draft to localStorage:', e);
   }
 }
 
-function clearLocalStorageKey(): void {
+function clearLocalStorageKey(key: string): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(key);
   } catch (e) {
     console.error('Error clearing draft from localStorage:', e);
   }
@@ -70,6 +75,7 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const storageKey = getStorageKey(user?.id);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -80,14 +86,14 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
 
   // --- Local Storage ---
   const loadDraftLocal = useCallback((): WizardDraft | null => {
-    const draft = loadFromLocalStorage();
+    const draft = loadFromLocalStorage(storageKey);
     setHasDraft(!!draft);
     if (draft?.id) setDraftId(draft.id);
     return draft;
-  }, []);
+  }, [storageKey]);
 
   const saveDraftLocal = useCallback((data: Partial<WizardDraft>) => {
-    const current = loadFromLocalStorage() || {
+    const current = loadFromLocalStorage(storageKey) || {
       currentStep: 0,
       associadoData: {} as AssociadoFormData,
       veiculoData: {} as VeiculoFormData,
@@ -108,15 +114,15 @@ export function useWizardPersistence(): UseWizardPersistenceReturn {
       };
     }
 
-    saveToLocalStorage(updated);
+    saveToLocalStorage(storageKey, updated);
     setHasDraft(true);
     if (updated.id) setDraftId(updated.id);
-  }, []);
+  }, [storageKey]);
 
   const clearDraftLocal = useCallback(() => {
-    clearLocalStorageKey();
+    clearLocalStorageKey(storageKey);
     setHasDraft(false);
-  }, []);
+  }, [storageKey]);
 
   // --- Backend ---
   const saveDraftBackend = useCallback(

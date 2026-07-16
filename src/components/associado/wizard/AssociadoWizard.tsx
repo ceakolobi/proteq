@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Check, Loader2, Save, MapPin, FileText, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Loader2, Save, MapPin, FileText, Send, RotateCcw, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -109,6 +109,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [isGeneratingContract, setIsGeneratingContract] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WizardDraft | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showRestoredBanner, setShowRestoredBanner] = useState(false);
 
   // Determinar se precisa exibir seletor de regional
   const needsRegiaoSelector = isAdminPrincipal || isGlobalAdmin || !profile?.regiao_id;
@@ -208,6 +209,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setStepValidation({});
     setPendingScannedDocs([]);
     setPendingDraft(null);
+    setShowRestoredBanner(false);
     // não resetar createdIds aqui — é resetado ao fechar o dialog pós-cadastro
   }, []);
 
@@ -236,6 +238,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       setAssociadoData(safeAssociadoData as AssociadoFormData);
       setVeiculoData((pendingDraft.veiculoData || initialVeiculoData) as VeiculoFormData);
       setTermosAceitos(false);
+      setShowRestoredBanner(true);
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
@@ -246,6 +249,12 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     resetWizard();
     setShowDraftDialog(false);
     setPendingDraft(null);
+  };
+
+  // Descartar rascunho a partir do banner (limpa local + backend e zera o formulário)
+  const handleDiscardFromBanner = async () => {
+    await clearAll();
+    resetWizard();
   };
 
   // Validação LEVE só no submit final: apenas o que o banco/RPC upsert_associado_por_cpf
@@ -773,6 +782,35 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
               </div>
             </div>
           </DialogHeader>
+
+          {/* Aviso discreto de rascunho restaurado */}
+          {showRestoredBanner && (
+            <div className="flex-shrink-0 mt-3 flex items-center justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2 text-primary">
+                <RotateCcw className="h-4 w-4 flex-shrink-0" />
+                <span>Rascunho restaurado do último preenchimento.</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-destructive hover:text-destructive"
+                  onClick={handleDiscardFromBanner}
+                >
+                  Descartar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setShowRestoredBanner(false)}
+                  aria-label="Fechar aviso"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Step Content */}
           <div className="flex-1 overflow-y-auto py-4 px-1">
