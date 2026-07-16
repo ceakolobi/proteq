@@ -53,9 +53,12 @@ import {
   Mail,
   Building2,
   TrendingUp,
-  Loader2
+  Loader2,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import type { Profile, Regiao, Sede } from '@/types/database';
+import { DocumentScanner } from '@/components/associado/DocumentScanner';
 import { z } from 'zod';
 
 // Validation schema
@@ -96,11 +99,17 @@ export default function Consultores() {
   const [formData, setFormData] = useState({
     nome_completo: '',
     email: '',
-    telefone: '',
+    telefones: [''] as string[],
     cpf: '',
     regiao_id: '',
     ativo: true,
     percentual_comissao: 15,
+    site: '',
+    rg: '',
+    data_nascimento: '',
+    cnh_numero: '',
+    cnh_categoria: '',
+    cnh_validade: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -275,14 +284,28 @@ export default function Consultores() {
         .eq('consultor_id', consultor.id)
         .maybeSingle();
 
+      const { data: detData } = await supabase
+        .from('consultores_detalhes' as any)
+        .select('*')
+        .eq('consultor_id', consultor.id)
+        .maybeSingle();
+      const det = detData as any;
+      const telefonesDet: string[] = Array.isArray(det?.telefones) ? det.telefones : [];
+
       setFormData({
         nome_completo: consultor.nome_completo,
         email: consultor.email,
-        telefone: consultor.telefone || '',
+        telefones: telefonesDet.length > 0 ? telefonesDet : [consultor.telefone || ''],
         cpf: consultor.cpf || '',
         regiao_id: consultor.regiao_id || '',
         ativo: consultor.ativo,
         percentual_comissao: (commData as any)?.percentual_consultor ?? 15,
+        site: det?.site || '',
+        rg: det?.rg || '',
+        data_nascimento: det?.data_nascimento || '',
+        cnh_numero: det?.cnh_numero || '',
+        cnh_categoria: det?.cnh_categoria || '',
+        cnh_validade: det?.cnh_validade || '',
       });
     } else {
       setSelectedConsultor(null);
@@ -294,11 +317,17 @@ export default function Consultores() {
       setFormData({
         nome_completo: '',
         email: '',
-        telefone: '',
+        telefones: [''],
         cpf: '',
         regiao_id: defaultRegiaoId,
         ativo: true,
         percentual_comissao: 15,
+        site: '',
+        rg: '',
+        data_nascimento: '',
+        cnh_numero: '',
+        cnh_categoria: '',
+        cnh_validade: '',
       });
     }
     setIsDialogOpen(true);
@@ -332,6 +361,7 @@ export default function Consultores() {
     }
 
     setIsSaving(true);
+    const primeiroTelefone = (formData.telefones[0] || '').trim() || null;
 
     try {
       // Get sede_id from regiao
@@ -355,7 +385,7 @@ export default function Consultores() {
           .from('profiles')
           .update({
             nome_completo: formData.nome_completo.trim(),
-            telefone: formData.telefone.trim() || null,
+            telefone: primeiroTelefone,
             cpf: formData.cpf.replace(/\D/g, '') || null,
             regiao_id: formData.regiao_id,
             sede_id: regiaoData.sede_id,
@@ -380,7 +410,7 @@ export default function Consultores() {
             .from('profiles')
             .update({
               nome_completo: formData.nome_completo.trim(),
-              telefone: formData.telefone.trim() || null,
+              telefone: primeiroTelefone,
               cpf: formData.cpf.replace(/\D/g, '') || null,
               regiao_id: formData.regiao_id,
               sede_id: regiaoData.sede_id,
@@ -425,7 +455,7 @@ export default function Consultores() {
             body: {
               nome_completo: formData.nome_completo.trim(),
               email: formData.email.trim().toLowerCase(),
-              telefone: formData.telefone.trim() || null,
+              telefone: primeiroTelefone,
               cpf: formData.cpf.replace(/\D/g, '') || null,
               regiao_id: formData.regiao_id,
               sede_id: regiaoData.sede_id,
@@ -491,6 +521,24 @@ export default function Consultores() {
             created_by: profile?.id,
           });
         }
+      }
+
+      // Pedaço 2a — Detalhes do consultor (site, telefones, RG, CNH). Upload de arquivo é o Pedaço 2b.
+      if (savedConsultorId) {
+        const { error: detErr } = await supabase
+          .from('consultores_detalhes' as any)
+          .upsert({
+            consultor_id: savedConsultorId,
+            site: formData.site.trim() || null,
+            telefones: formData.telefones.map((t) => t.trim()).filter(Boolean),
+            rg: formData.rg.replace(/\D/g, '') || null,
+            data_nascimento: formData.data_nascimento || null,
+            cnh_numero: formData.cnh_numero.trim() || null,
+            cnh_categoria: formData.cnh_categoria.trim() || null,
+            cnh_validade: formData.cnh_validade || null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'consultor_id' });
+        if (detErr) console.error('Erro ao salvar detalhes do consultor:', detErr);
       }
 
       setIsDialogOpen(false);
@@ -559,6 +607,31 @@ export default function Consultores() {
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+  };
+
+  const updateTelefone = (i: number, value: string) => {
+    setFormData((fd) => {
+      const t = [...fd.telefones];
+      t[i] = formatPhone(value);
+      return { ...fd, telefones: t };
+    });
+  };
+  const addTelefone = () => setFormData((fd) => ({ ...fd, telefones: [...fd.telefones, ''] }));
+  const removeTelefone = (i: number) =>
+    setFormData((fd) => ({ ...fd, telefones: fd.telefones.filter((_, idx) => idx !== i) }));
+
+  // Autofill via CNH — só preenche campos de texto (upload do arquivo é o Pedaço 2b)
+  const handleCnhExtracted = (extracted: Record<string, unknown>) => {
+    setFormData((fd) => ({
+      ...fd,
+      nome_completo: (extracted.nome_completo as string) || fd.nome_completo,
+      cpf: extracted.cpf ? formatCPF(String(extracted.cpf)) : fd.cpf,
+      rg: extracted.rg ? String(extracted.rg) : fd.rg,
+      data_nascimento: (extracted.data_nascimento as string) || fd.data_nascimento,
+      cnh_numero: (extracted.cnh_numero as string) || fd.cnh_numero,
+      cnh_categoria: (extracted.cnh_categoria as string) || fd.cnh_categoria,
+      cnh_validade: (extracted.cnh_validade as string) || fd.cnh_validade,
+    }));
   };
 
   return (
@@ -796,7 +869,7 @@ export default function Consultores() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedConsultor ? 'Editar Consultor' : 'Novo Consultor'}
@@ -807,6 +880,10 @@ export default function Consultores() {
                   : 'Cadastre um novo consultor. Será enviado um e-mail com login e senha temporária.'}
               </DialogDescription>
             </DialogHeader>
+
+            <div className="flex justify-end pb-1">
+              <DocumentScanner documentKind="cnh" onExtracted={handleCnhExtracted} />
+            </div>
 
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
@@ -844,16 +921,31 @@ export default function Consultores() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={formData.telefone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, telefone: formatPhone(e.target.value) })
-                  }
-                  placeholder="(00) 00000-0000"
-                  maxLength={15}
-                />
+                <Label>Telefones</Label>
+                {formData.telefones.map((tel, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input
+                      value={tel}
+                      onChange={(e) => updateTelefone(i, e.target.value)}
+                      placeholder="(00) 00000-0000"
+                      maxLength={15}
+                    />
+                    {formData.telefones.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeTelefone(i)}
+                        aria-label="Remover telefone"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button type="button" variant="ghost" size="sm" onClick={addTelefone} className="h-7">
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar telefone
+                </Button>
               </div>
 
               <div className="space-y-2">
@@ -866,6 +958,58 @@ export default function Consultores() {
                   }
                   placeholder="000.000.000-00"
                   maxLength={14}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rg">RG</Label>
+                  <Input
+                    id="rg"
+                    value={formData.rg}
+                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    placeholder="Preenchido pela CNH ou manual"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                  <Input
+                    id="data_nascimento"
+                    type="date"
+                    value={formData.data_nascimento}
+                    onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cnh_categoria">Categoria CNH</Label>
+                  <Input
+                    id="cnh_categoria"
+                    value={formData.cnh_categoria}
+                    onChange={(e) => setFormData({ ...formData, cnh_categoria: e.target.value })}
+                    placeholder="Ex: AB"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cnh_validade">Validade CNH</Label>
+                  <Input
+                    id="cnh_validade"
+                    type="date"
+                    value={formData.cnh_validade}
+                    onChange={(e) => setFormData({ ...formData, cnh_validade: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="site">Site (opcional)</Label>
+                <Input
+                  id="site"
+                  value={formData.site}
+                  onChange={(e) => setFormData({ ...formData, site: e.target.value })}
+                  placeholder="https://..."
                 />
               </div>
 
