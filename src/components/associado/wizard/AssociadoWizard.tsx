@@ -308,6 +308,27 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
+  // Salva o rascunho completo (todos os steps) sem sair da etapa atual
+  const handleSaveDraft = async () => {
+    setIsSaving(true);
+    const draft: WizardDraft = {
+      currentStep,
+      associadoData,
+      veiculoData,
+      termosAceitos,
+      lastUpdated: new Date().toISOString(),
+    };
+    saveDraftLocal(draft);
+    try {
+      await saveDraftBackend(draft);
+    } catch (e) {
+      console.error('Erro ao salvar rascunho no backend:', e);
+    } finally {
+      toast.success('Rascunho salvo. Você pode continuar editando.');
+      setTimeout(() => setIsSaving(false), 400);
+    }
+  };
+
   const uploadDocuments = async (
     docs: DocumentoUpload[],
     bucket: string,
@@ -819,16 +840,26 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
           {/* Footer with Navigation */}
           <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 0 || isSubmitting}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={currentStep === 0 || isSubmitting}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleSaveDraft}
+                disabled={isSaving || isSubmitting}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar
+              </Button>
+            </div>
 
-            <div className="text-sm text-muted-foreground">
+            <div className="hidden sm:block text-sm text-muted-foreground">
               Etapa {currentStep + 1} de {STEPS.length}
             </div>
 
