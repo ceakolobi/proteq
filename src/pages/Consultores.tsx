@@ -110,9 +110,16 @@ export default function Consultores() {
     cnh_numero: '',
     cnh_categoria: '',
     cnh_validade: '',
+    foto_url: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [docFiles, setDocFiles] = useState<{ cnh: File | null; rg: File | null; comprovante_endereco: File | null }>({
+    cnh: null,
+    rg: null,
+    comprovante_endereco: null,
+  });
 
   const isAdminRegional = hasRole('admin_regional');
 
@@ -274,6 +281,8 @@ export default function Consultores() {
 
   const handleOpenDialog = async (consultor?: ConsultorWithStats) => {
     setFormErrors({});
+    setFotoFile(null);
+    setDocFiles({ cnh: null, rg: null, comprovante_endereco: null });
 
     if (consultor) {
       setSelectedConsultor(consultor);
@@ -306,6 +315,7 @@ export default function Consultores() {
         cnh_numero: det?.cnh_numero || '',
         cnh_categoria: det?.cnh_categoria || '',
         cnh_validade: det?.cnh_validade || '',
+        foto_url: det?.foto_url || '',
       });
     } else {
       setSelectedConsultor(null);
@@ -328,6 +338,7 @@ export default function Consultores() {
         cnh_numero: '',
         cnh_categoria: '',
         cnh_validade: '',
+        foto_url: '',
       });
     }
     setIsDialogOpen(true);
@@ -523,8 +534,20 @@ export default function Consultores() {
         }
       }
 
-      // Pedaço 2a — Detalhes do consultor (site, telefones, RG, CNH). Upload de arquivo é o Pedaço 2b.
+      // Pedaço 2b — Detalhes + foto + documentos no bucket privado consultor-documentos
       if (savedConsultorId) {
+        // Foto (path = {consultor_id}/foto_...)
+        let fotoUrl: string | null = formData.foto_url || null;
+        if (fotoFile) {
+          const ext = fotoFile.name.includes('.') ? fotoFile.name.split('.').pop() : 'jpg';
+          const path = `${savedConsultorId}/foto_${Date.now()}.${ext || 'jpg'}`;
+          const { error: fErr } = await supabase.storage
+            .from('consultor-documentos')
+            .upload(path, fotoFile, { upsert: true });
+          if (fErr) console.error('Erro ao enviar foto:', fErr);
+          else fotoUrl = path;
+        }
+
         const { error: detErr } = await supabase
           .from('consultores_detalhes' as any)
           .upsert({
@@ -536,9 +559,28 @@ export default function Consultores() {
             cnh_numero: formData.cnh_numero.trim() || null,
             cnh_categoria: formData.cnh_categoria.trim() || null,
             cnh_validade: formData.cnh_validade || null,
+            foto_url: fotoUrl,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'consultor_id' });
         if (detErr) console.error('Erro ao salvar detalhes do consultor:', detErr);
+
+        // Documentos (CNH / RG / comprovante) → bucket + tabela documentos_consultor
+        for (const tipo of ['cnh', 'rg', 'comprovante_endereco'] as const) {
+          const file = docFiles[tipo];
+          if (!file) continue;
+          const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+          const path = `${savedConsultorId}/${tipo}_${Date.now()}.${ext || 'bin'}`;
+          const { error: upErr } = await supabase.storage.from('consultor-documentos').upload(path, file);
+          if (upErr) { console.error(`Erro ao enviar documento ${tipo}:`, upErr); continue; }
+          const { error: docErr } = await supabase.from('documentos_consultor' as any).insert({
+            consultor_id: savedConsultorId,
+            tipo,
+            nome_arquivo: file.name,
+            storage_path: path,
+            created_by: profile?.id,
+          });
+          if (docErr) console.error(`Erro ao registrar documento ${tipo}:`, docErr);
+        }
       }
 
       setIsDialogOpen(false);
@@ -1011,6 +1053,46 @@ export default function Consultores() {
                   onChange={(e) => setFormData({ ...formData, site: e.target.value })}
                   placeholder="https://..."
                 />
+              </div>
+
+              {/* Foto / logo do consultor */}
+              <div className="space-y-2">
+                <Label htmlFor="foto">Foto / Logo do consultor</Label>
+                <Input
+                  id="foto"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFotoFile(e.target.files?.[0] || null)}
+                />
+                {(fotoFile || formData.foto_url) && (
+                  <p className="text-xs text-muted-foreground">
+                    {fotoFile ? `Selecionado: ${fotoFile.name}` : 'Foto já enviada anteriormente.'}
+                  </p>
+                )}
+              </div>
+
+              {/* Documentos do consultor */}
+              <div className="space-y-2">
+                <Label>Documentos (CNH, RG, Comprovante de endereço)</Label>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {([['cnh', 'CNH'], ['rg', 'RG'], ['comprovante_endereco', 'Comprovante']] as const).map(([tipo, label]) => (
+                    <div key={tipo} className="space-y-1">
+                      <Label htmlFor={`doc_${tipo}`} className="text-xs text-muted-foreground">{label}</Label>
+                      <Input
+                        id={`doc_${tipo}`}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setDocFiles((prev) => ({ ...prev, [tipo]: e.target.files?.[0] || null }))}
+                      />
+                      {docFiles[tipo] && (
+                        <p className="text-xs text-green-600 truncate">{docFiles[tipo]?.name}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enviados ao salvar (bucket privado por empresa). O scanner de CNH acima só preenche os campos — o arquivo você anexa aqui.
+                </p>
               </div>
 
               <div className="space-y-2">
