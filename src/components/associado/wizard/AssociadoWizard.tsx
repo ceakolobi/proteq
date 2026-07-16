@@ -248,79 +248,39 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setPendingDraft(null);
   };
 
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 0: // Dados Associado
-        const cpfLimpo = associadoData.cpf.replace(/\D/g, '');
-        if (!associadoData.nome_completo.trim()) {
-          toast.error('Nome completo é obrigatório');
-          return false;
-        }
-        if (cpfLimpo.length !== 11) {
-          toast.error('CPF deve ter 11 dígitos');
-          return false;
-        }
-        if (!associadoData.telefone.replace(/\D/g, '')) {
-          toast.error('Telefone é obrigatório');
-          return false;
-        }
-        if (!associadoData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(associadoData.email)) {
-          toast.error('E-mail válido é obrigatório');
-          return false;
-        }
-        return true;
-      
-      case 1: // Endereço — todos os campos opcionais
-        return true;
-      
-      case 2: // Docs Associado
-        // Documentos são recomendados mas não obrigatórios
-        return true;
-      
-      case 3: // Dados Veículo
-        if (!veiculoData.placa.replace(/[^A-Za-z0-9]/g, '')) {
-          toast.error('Placa é obrigatória');
-          return false;
-        }
-        if (!veiculoData.marca.trim()) {
-          toast.error('Marca é obrigatória');
-          return false;
-        }
-        if (!veiculoData.modelo.trim()) {
-          toast.error('Modelo é obrigatório');
-          return false;
-        }
-        if (veiculoData.valor_fipe <= 0) {
-          toast.error('Valor FIPE é obrigatório');
-          return false;
-        }
-        return true;
-      
-      case 4: // Docs Veículo
-        // Documentos são recomendados mas não obrigatórios
-        return true;
-      
-      case 5: // Resumo e confirmação
-        if (needsRegiaoSelector && !selectedRegiaoId) {
-          toast.error('Selecione uma regional para o associado');
-          return false;
-        }
-        return true;
-
-      case 6: // Termos
-        if (!termosAceitos) {
-          toast.error('Você precisa ler e aceitar os termos para finalizar o cadastro');
-          return false;
-        }
-        return true;
-
-      default:
-        return true;
+  // Validação LEVE só no submit final: apenas o que o banco/RPC upsert_associado_por_cpf
+  // realmente exige, pra evitar erro feio do Supabase. NÃO trava a navegação entre etapas.
+  const validateSubmit = (): boolean => {
+    const cpfLimpo = associadoData.cpf.replace(/\D/g, '');
+    if (!associadoData.nome_completo.trim()) {
+      toast.error('Informe o nome completo para finalizar o cadastro');
+      return false;
     }
+    if (cpfLimpo.length !== 11) {
+      toast.error('CPF deve ter 11 dígitos para finalizar o cadastro');
+      return false;
+    }
+    if (!associadoData.telefone.replace(/\D/g, '')) {
+      toast.error('Informe o telefone para finalizar o cadastro');
+      return false;
+    }
+    if (!associadoData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(associadoData.email)) {
+      toast.error('Informe um e-mail válido para finalizar o cadastro');
+      return false;
+    }
+    if (!veiculoData.placa.replace(/[^A-Za-z0-9]/g, '')) {
+      toast.error('Informe a placa do veículo para finalizar o cadastro');
+      return false;
+    }
+    if (veiculoData.valor_fipe <= 0) {
+      toast.error('Informe o valor FIPE do veículo para finalizar o cadastro');
+      return false;
+    }
+    return true;
   };
 
   const handleNext = async () => {
-    if (!validateStep(currentStep)) return;
+    // Navegação livre: nenhuma validação bloqueia o avanço entre etapas
     setStepValidation(prev => ({ ...prev, [currentStep]: true }));
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
 
@@ -392,8 +352,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) return;
-    
+    if (!validateSubmit()) return;
+
     // Determinar qual regiao_id usar
     const finalRegiaoId = needsRegiaoSelector ? selectedRegiaoId : profile?.regiao_id;
     
@@ -701,7 +661,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Label htmlFor="regiao-select">Regional *</Label>
+                    <Label htmlFor="regiao-select">Regional</Label>
                     <Select
                       value={selectedRegiaoId || ''}
                       onValueChange={setSelectedRegiaoId}
@@ -782,15 +742,13 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
                 {STEPS.map((step, index) => (
                   <button
                     key={step.id}
-                    onClick={() => {
-                      if (index < currentStep) setCurrentStep(index);
-                    }}
-                    disabled={index > currentStep}
-                    className={`flex flex-col items-center gap-1 transition-colors ${
+                    type="button"
+                    onClick={() => setCurrentStep(index)}
+                    className={`flex flex-col items-center gap-1 transition-colors cursor-pointer hover:text-primary ${
                       index === currentStep
                         ? 'text-primary'
                         : index < currentStep
-                        ? 'text-primary/70 cursor-pointer hover:text-primary'
+                        ? 'text-primary/70'
                         : 'text-muted-foreground'
                     }`}
                   >
@@ -800,7 +758,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
                           ? 'bg-primary text-primary-foreground border-primary'
                           : index < currentStep
                           ? 'bg-primary/20 border-primary text-primary'
-                          : 'bg-muted border-muted-foreground/30'
+                          : 'bg-muted border-muted-foreground/30 hover:border-primary/50'
                       }`}
                     >
                       {index < currentStep ? (

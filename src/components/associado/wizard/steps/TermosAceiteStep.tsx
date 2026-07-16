@@ -72,7 +72,7 @@ export function TermosAceiteStep({ aceitou, onChange, selectedRegiaoId, onRegiao
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="regiao-select">Regional *</Label>
+              <Label htmlFor="regiao-select">Regional</Label>
               <Select
                 value={selectedRegiaoId || ''}
                 onValueChange={onRegiaoChange}

@@ -148,8 +148,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Placa */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="placa">
-            Placa <span className="text-destructive">*</span>
-          </Label>
+            Placa          </Label>
           <div className="flex gap-2">
             <Input
               id="placa"
@@ -181,8 +180,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Tipo */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="tipo">
-            Tipo de Veículo <span className="text-destructive">*</span>
-          </Label>
+            Tipo de Veículo          </Label>
           <Select
             value={data.tipo}
             onValueChange={(value) => handleChange('tipo', value as VehicleType)}
@@ -223,8 +221,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Marca */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="marca">
-            Marca <span className="text-destructive">*</span>
-          </Label>
+            Marca          </Label>
           <Input
             id="marca"
             placeholder="Ex: Toyota"
@@ -236,8 +233,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Modelo */}
         <div className="md:col-span-3 space-y-2">
           <Label htmlFor="modelo">
-            Modelo <span className="text-destructive">*</span>
-          </Label>
+            Modelo          </Label>
           <Input
             id="modelo"
             placeholder="Ex: Corolla XEi 2.0"
@@ -249,8 +245,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Ano */}
         <div className="md:col-span-1 space-y-2">
           <Label htmlFor="ano">
-            Ano <span className="text-destructive">*</span>
-          </Label>
+            Ano          </Label>
           <Input
             id="ano"
             type="number"
@@ -265,8 +260,7 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         {/* Valor FIPE */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="valor_fipe">
-            Valor FIPE <span className="text-destructive">*</span>
-          </Label>
+            Valor FIPE          </Label>
           <Input
             id="valor_fipe"
             placeholder="R$ 0,00"
@@ -360,9 +354,6 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        <span className="text-destructive">*</span> Campos obrigatórios
-      </p>
     </div>
   );
 }

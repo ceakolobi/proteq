@@ -84,8 +84,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* Nome Completo */}
         <div className="sm:col-span-2 lg:col-span-3 space-y-2">
           <Label htmlFor="nome_completo">
-            Nome Completo <span className="text-destructive">*</span>
-          </Label>
+            Nome Completo          </Label>
           <Input
             id="nome_completo"
             placeholder="Nome completo do associado"
@@ -97,8 +96,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* CPF */}
         <div className="space-y-2">
           <Label htmlFor="cpf">
-            CPF <span className="text-destructive">*</span>
-          </Label>
+            CPF          </Label>
           <Input
             id="cpf"
             placeholder="000.000.000-00"
@@ -176,8 +174,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* Telefone */}
         <div className="space-y-2">
           <Label htmlFor="telefone">
-            Telefone <span className="text-destructive">*</span>
-          </Label>
+            Telefone          </Label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -210,8 +207,7 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         {/* E-mail */}
         <div className="space-y-2">
           <Label htmlFor="email">
-            E-mail <span className="text-destructive">*</span>
-          </Label>
+            E-mail          </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -371,9 +367,6 @@ export function DadosAssociadoStep({ data, onChange, onDocumentScanned }: DadosA
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">
-        <span className="text-destructive">*</span> Nome completo, CPF, telefone e e-mail são obrigatórios. Todos os demais campos são opcionais.
-      </p>
     </div>
   );
 }
