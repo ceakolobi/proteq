@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useFormPersistence } from '@/hooks/useFormPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { useReferenceData } from '@/hooks/useReferenceData';
+import { calcularCotacaoCompleta, type Cota, type ResultadoCotacao } from '@/lib/cotacaoUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,7 +73,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
-import type { AssociateStatus } from '@/types/database';
+import type { AssociateStatus, VehicleType } from '@/types/database';
 import {
   ESTADO_CIVIL_OPTIONS,
   DIA_VENCIMENTO_OPTIONS,
@@ -153,6 +154,8 @@ interface CotaDisponivel {
   mensalidade_carreta: number | null;
   mensalidade_implemento_agricola: number | null;
   percentual_geral: number | null;
+  ajuste_geral_valor: number | null;
+  acrescimo_global: number | null;
 }
 
 interface BeneficioAtual {
@@ -320,6 +323,29 @@ export default function AssociadoDetalhe() {
   const [extrasAtivos, setExtrasAtivos] = useState<ExtraAtivo[]>([]);
   const [isTogglingBeneficio, setIsTogglingBeneficio] = useState<string | null>(null);
 
+  // Edição de FIPE / cálculo do plano (cota, mensalidade, participação)
+  const [recalcAuto, setRecalcAuto] = useState(true);
+  const [fipeInput, setFipeInput] = useState(0);
+  const [mensalidadeInput, setMensalidadeInput] = useState(0);
+  const [participacaoInput, setParticipacaoInput] = useState(0);
+  const [isSavingPlano, setIsSavingPlano] = useState(false);
+
+  const canEditPlano =
+    isAdminPrincipal || hasRole('admin_nivel_basico') || hasRole('admin_regional') || hasRole('cadastro');
+
+  // Fonte única: recalcula cota + mensalidade + participação a partir do FIPE editável.
+  // Usa calcularCotacaoCompleta (mesma lógica do wizard/cotação) direto, sem hook externo.
+  const { cotas: cotasReferencia } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
+  const cotasAtivasCalc = useMemo(
+    () => (cotasReferencia as Cota[]).filter((c) => c.ativo),
+    [cotasReferencia]
+  );
+  const resultadoRecalc = useMemo<ResultadoCotacao | null>(() => {
+    const tipo = veiculo?.tipo as VehicleType | undefined;
+    if (!tipo || fipeInput <= 0) return null;
+    return calcularCotacaoCompleta(fipeInput, tipo, cotasAtivasCalc);
+  }, [fipeInput, veiculo?.tipo, cotasAtivasCalc]);
+
   const isDirty = JSON.stringify(formData) !== JSON.stringify(savedData);
 
   // ─── Fetch ─────────────────────────────────────────────────────────────────
@@ -420,7 +446,7 @@ export default function AssociadoDetalhe() {
   const fetchCotasDisponiveis = useCallback(async () => {
     const { data } = await supabase
       .from('cotas')
-      .select('id,cota_nome,categoria,ativo,fipe_min,fipe_max,valor_carro,valor_moto,valor_camionete,mensalidade_caminhao,mensalidade_utilitario,mensalidade_maquina_agricola,mensalidade_maquina_industrial,mensalidade_carreta,mensalidade_implemento_agricola,percentual_geral')
+      .select('id,cota_nome,categoria,ativo,fipe_min,fipe_max,valor_carro,valor_moto,valor_camionete,mensalidade_caminhao,mensalidade_utilitario,mensalidade_maquina_agricola,mensalidade_maquina_industrial,mensalidade_carreta,mensalidade_implemento_agricola,percentual_geral,ajuste_geral_valor,acrescimo_global')
       .eq('ativo', true)
       .order('cota_nome');
     setCotasDisponiveis((data as CotaDisponivel[]) || []);
@@ -506,20 +532,25 @@ export default function AssociadoDetalhe() {
   };
 
   const estimarMensalidade = (cota: CotaDisponivel, tipo: string, valorFipe: number): number | null => {
+    let base: number | null;
     switch (tipo) {
-      case 'carro':             return cota.valor_carro;
+      case 'carro':             base = cota.valor_carro; break;
       case 'pickup':
-      case 'caminhonete':       return cota.valor_camionete;
-      case 'moto':              return cota.valor_moto;
-      case 'caminhao':          return cota.mensalidade_caminhao;
-      case 'utilitario':        return cota.mensalidade_utilitario;
-      case 'maquina_agricola':  return cota.mensalidade_maquina_agricola;
-      case 'maquina_industrial':return cota.mensalidade_maquina_industrial;
-      case 'carreta':           return cota.mensalidade_carreta;
-      case 'implemento_agricola':return cota.mensalidade_implemento_agricola;
+      case 'caminhonete':       base = cota.valor_camionete; break;
+      case 'moto':              base = cota.valor_moto; break;
+      case 'caminhao':          base = cota.mensalidade_caminhao; break;
+      case 'utilitario':        base = cota.mensalidade_utilitario; break;
+      case 'maquina_agricola':  base = cota.mensalidade_maquina_agricola; break;
+      case 'maquina_industrial':base = cota.mensalidade_maquina_industrial; break;
+      case 'carreta':           base = cota.mensalidade_carreta; break;
+      case 'implemento_agricola':base = cota.mensalidade_implemento_agricola; break;
       default:
-        return cota.percentual_geral ? valorFipe * cota.percentual_geral / 100 : null;
+        base = cota.percentual_geral ? valorFipe * cota.percentual_geral / 100 : null;
     }
+    if (base == null) return null;
+    // Coerente com calcularCotacaoCompleta: valorFinal = base + ajuste_geral (individual = 0)
+    const ajusteGeral = Number(cota.ajuste_geral_valor) || Number(cota.acrescimo_global) || 0;
+    return base + ajusteGeral;
   };
 
   const handleAbrirEmailModal = (url?: string) => {
@@ -796,7 +827,85 @@ export default function AssociadoDetalhe() {
     fetchAll();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Recarrega apenas o veículo + plano (após salvar o FIPE/plano)
+  const refetchVeiculo = useCallback(async () => {
+    if (!id) return;
+    const { data: veics } = await supabase
+      .from('veiculos')
+      .select('id,marca,modelo,placa,ano,cotacao_id,cota_id,tipo,mensalidade,valor_fipe')
+      .eq('associado_id', id).order('created_at', { ascending: false }).limit(1);
+    const v = (veics?.[0] as VeiculoInfo) ?? null;
+    setVeiculo(v);
+    if (v) fetchPlanoAtual(v);
+  }, [id, fetchPlanoAtual]);
+
+  // Sincroniza os inputs editáveis com os valores salvos ao (re)carregar o veículo/cotação
+  useEffect(() => {
+    setFipeInput(veiculo?.valor_fipe ?? 0);
+    setMensalidadeInput(cotacaoInfo?.mensalidade ?? veiculo?.mensalidade ?? 0);
+    setParticipacaoInput(cotacaoInfo?.participacao ?? 0);
+  }, [veiculo?.id, veiculo?.valor_fipe, veiculo?.mensalidade, cotacaoInfo?.id, cotacaoInfo?.mensalidade, cotacaoInfo?.participacao]);
+
   // ─── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleSalvarPlano = async () => {
+    if (!veiculo || !id) return;
+    if (fipeInput <= 0) { toast.error('Informe um valor FIPE válido'); return; }
+
+    let novaCotaId = veiculo.cota_id;
+    let novaMensalidade = mensalidadeInput;
+    let novaParticipacao = participacaoInput;
+    let novoValorBase: number | null = null;
+    let novoAjusteGeral: number | null = null;
+
+    if (recalcAuto) {
+      if (!resultadoRecalc) {
+        toast.error('Não existe faixa FIPE (cota) para este valor. Contate o administrador.');
+        return;
+      }
+      novaCotaId = resultadoRecalc.cotaId;
+      novaMensalidade = resultadoRecalc.valorFinal;
+      novaParticipacao = resultadoRecalc.participacao;
+      novoValorBase = resultadoRecalc.valorBase;
+      novoAjusteGeral = resultadoRecalc.ajusteGeralValor;
+    }
+
+    setIsSavingPlano(true);
+    try {
+      const { error: vErr } = await supabase
+        .from('veiculos')
+        .update({ valor_fipe: fipeInput, cota_id: novaCotaId, mensalidade: novaMensalidade } as never)
+        .eq('id', veiculo.id);
+      if (vErr) throw vErr;
+
+      // Mantém a cotação vinculada coerente (contrato/financeiro leem daqui primeiro)
+      if (veiculo.cotacao_id) {
+        const cotacaoUpdate: Record<string, unknown> = {
+          valor_fipe: fipeInput,
+          valor_bem: fipeInput,
+          cota_id: novaCotaId,
+          mensalidade: novaMensalidade,
+          valor_final: novaMensalidade,
+          participacao: novaParticipacao,
+        };
+        if (novoValorBase != null) cotacaoUpdate.valor_base = novoValorBase;
+        if (novoAjusteGeral != null) cotacaoUpdate.ajuste_geral_valor = novoAjusteGeral;
+
+        const { error: cErr } = await supabase
+          .from('cotacoes')
+          .update(cotacaoUpdate as never)
+          .eq('id', veiculo.cotacao_id);
+        if (cErr) throw cErr;
+      }
+
+      toast.success('Plano atualizado com sucesso!');
+      await refetchVeiculo();
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao salvar plano');
+    } finally {
+      setIsSavingPlano(false);
+    }
+  };
 
   const set = (field: keyof FormData, value: string | number) =>
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -1517,6 +1626,18 @@ export default function AssociadoDetalhe() {
           onToggleBeneficio={handleToggleBeneficio}
           onProporTroca={handleProporTroca}
           estimarMensalidade={estimarMensalidade}
+          canEditPlano={canEditPlano}
+          recalcAuto={recalcAuto}
+          onRecalcAutoChange={setRecalcAuto}
+          fipeInput={fipeInput}
+          onFipeChange={setFipeInput}
+          mensalidadeInput={mensalidadeInput}
+          onMensalidadeChange={setMensalidadeInput}
+          participacaoInput={participacaoInput}
+          onParticipacaoChange={setParticipacaoInput}
+          resultadoRecalc={resultadoRecalc}
+          onSavePlano={handleSalvarPlano}
+          isSavingPlano={isSavingPlano}
         />
 
         {/* ── Seção 6: Contratos ── */}
@@ -1753,6 +1874,18 @@ interface PlanosBeneficiosProps {
   onToggleBeneficio: (extra: BeneficioExtra) => void;
   onProporTroca: () => void;
   estimarMensalidade: (cota: CotaDisponivel, tipo: string, valorFipe: number) => number | null;
+  canEditPlano: boolean;
+  recalcAuto: boolean;
+  onRecalcAutoChange: (v: boolean) => void;
+  fipeInput: number;
+  onFipeChange: (v: number) => void;
+  mensalidadeInput: number;
+  onMensalidadeChange: (v: number) => void;
+  participacaoInput: number;
+  onParticipacaoChange: (v: number) => void;
+  resultadoRecalc: ResultadoCotacao | null;
+  onSavePlano: () => void;
+  isSavingPlano: boolean;
 }
 
 function PlanosBeneficios({
@@ -1761,11 +1894,25 @@ function PlanosBeneficios({
   cotaSelecionadaId, setCotaSelecionadaId, propostaPendente, showTrocarPlano,
   setShowTrocarPlano, isTogglingBeneficio, isPropondoTroca, onToggleBeneficio,
   onProporTroca, estimarMensalidade,
+  canEditPlano, recalcAuto, onRecalcAutoChange, fipeInput, onFipeChange,
+  mensalidadeInput, onMensalidadeChange, participacaoInput, onParticipacaoChange,
+  resultadoRecalc, onSavePlano, isSavingPlano,
 }: PlanosBeneficiosProps) {
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const totalExtras = extrasAtivos.reduce((sum, e) => sum + (e.valor_snapshot ?? 0), 0);
-  // PROBLEMA 1 — mensalidade vem da cotação, não do veículo
-  const mensalidadeBase = cotacaoInfo?.mensalidade ?? veiculo?.mensalidade ?? 0;
+  // Auto-heal: recalcula ao vivo (fonte única) quando o valor salvo está 0/nulo.
+  // Apenas exibição — NÃO grava no banco.
+  const { cotas: cotasHeal } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
+  const mensalidadeRecalculada = useMemo<ResultadoCotacao | null>(() => {
+    const tipo = veiculo?.tipo as VehicleType | undefined;
+    const fipe = veiculo?.valor_fipe ?? 0;
+    if (!tipo || fipe <= 0) return null;
+    return calcularCotacaoCompleta(fipe, tipo, (cotasHeal as Cota[]).filter((c) => c.ativo));
+  }, [veiculo?.valor_fipe, veiculo?.tipo, cotasHeal]);
+  const mensalidadeSalva = cotacaoInfo?.mensalidade ?? veiculo?.mensalidade ?? 0;
+  const mensalidadeBase = mensalidadeSalva > 0
+    ? mensalidadeSalva
+    : (mensalidadeRecalculada?.valorFinal ?? 0);
 
   return (
     <Card>
@@ -1788,6 +1935,96 @@ function PlanosBeneficios({
           </div>
         ) : (
           <>
+            {/* ── Edição de FIPE & cálculo (cota / mensalidade / participação) ── */}
+            {canEditPlano && veiculo && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 space-y-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Valor FIPE &amp; Cálculo do Plano
+                  </p>
+                  <label className="flex items-center gap-2 text-xs font-medium text-blue-800 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-blue-600"
+                      checked={recalcAuto}
+                      onChange={(e) => onRecalcAutoChange(e.target.checked)}
+                    />
+                    Recalcular automaticamente (cota, participação e mensalidade)
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-800">Valor FIPE (R$)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={fipeInput || ''}
+                      onChange={(e) => onFipeChange(parseFloat(e.target.value) || 0)}
+                      placeholder="Ex: 45000"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-800">Cota</Label>
+                    <Input
+                      value={recalcAuto ? (resultadoRecalc?.cotaNome ?? '—') : (cotaAtualNome ?? '—')}
+                      readOnly
+                      disabled
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-800">Mensalidade (R$)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={recalcAuto ? (resultadoRecalc?.valorFinal ?? '') : (mensalidadeInput || '')}
+                      onChange={(e) => onMensalidadeChange(parseFloat(e.target.value) || 0)}
+                      readOnly={recalcAuto}
+                      disabled={recalcAuto}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-800">Participação (R$)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={recalcAuto ? (resultadoRecalc?.participacao ?? '') : (participacaoInput || '')}
+                      onChange={(e) => onParticipacaoChange(parseFloat(e.target.value) || 0)}
+                      readOnly={recalcAuto}
+                      disabled={recalcAuto}
+                    />
+                  </div>
+                </div>
+
+                {recalcAuto && fipeInput > 0 && !resultadoRecalc && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Não existe faixa FIPE (cota) configurada para este valor. Ajuste o FIPE ou contate o administrador.
+                  </p>
+                )}
+                {!recalcAuto && (
+                  <p className="text-xs text-amber-700 flex items-center gap-1">
+                    <Info className="h-3.5 w-3.5" />
+                    Modo manual: cota, mensalidade e participação são definidos por você e não serão recalculados.
+                  </p>
+                )}
+
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={onSavePlano}
+                    disabled={isSavingPlano || (recalcAuto && (!resultadoRecalc || fipeInput <= 0))}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isSavingPlano
+                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+                      : <><CheckCircle2 className="h-4 w-4 mr-2" />Salvar plano</>}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* ── PROBLEMA 4: Card do plano completo ── */}
             {temCotacao ? (
               <div className="space-y-3">
