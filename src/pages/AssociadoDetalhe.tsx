@@ -2277,7 +2277,7 @@ function PlanosBeneficios({
               <div className="px-4 py-3 border-t border-slate-700 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">Cota de participação</p>
-                  <p className="text-xs text-slate-300">{cotacaoInfo?.participacao != null ? `${cotacaoInfo.participacao}%` : '7%'} do valor FIPE</p>
+                  <p className="text-xs text-slate-300">7% do valor FIPE</p>
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">Valor mínimo</p>
@@ -2287,7 +2287,7 @@ function PlanosBeneficios({
                   <p className="text-xs text-slate-500">Valor calculado</p>
                   <p className="text-xs font-semibold text-slate-200">
                     {veiculo?.valor_fipe
-                      ? fmtBRL(Math.max(veiculo.valor_fipe * (cotacaoInfo?.participacao ?? 7) / 100, 1800))
+                      ? fmtBRL(cotacaoInfo?.participacao ?? Math.max(veiculo.valor_fipe * 0.07, 1800))
                       : '—'}
                   </p>
                 </div>
