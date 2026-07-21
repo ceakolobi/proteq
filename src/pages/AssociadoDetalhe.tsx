@@ -73,6 +73,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import ContractCard from '@/components/associado/ContractCard';
+import PlacaLookup, { type VehicleData, type PlacaStatus } from '@/components/cotacao/PlacaLookup';
 import type { AssociateStatus, VehicleType } from '@/types/database';
 import {
   ESTADO_CIVIL_OPTIONS,
@@ -329,6 +330,18 @@ export default function AssociadoDetalhe() {
   const [mensalidadeInput, setMensalidadeInput] = useState(0);
   const [participacaoInput, setParticipacaoInput] = useState(0);
   const [isSavingPlano, setIsSavingPlano] = useState(false);
+
+  // Busca por placa (preenche o FIPE automaticamente; fallback = FIPE manual)
+  const [placaInput, setPlacaInput] = useState('');
+  const [placaStatus, setPlacaStatus] = useState<PlacaStatus>('idle');
+  const [lookupData, setLookupData] = useState<VehicleData | null>(null);
+
+  const handlePlacaVehicleFound = (data: VehicleData) => {
+    setLookupData(data);
+    if (data.valor_fipe && data.valor_fipe > 0) {
+      setFipeInput(data.valor_fipe);
+    }
+  };
 
   const canEditPlano =
     isAdminPrincipal || hasRole('admin_nivel_basico') || hasRole('admin_regional') || hasRole('cadastro');
@@ -844,7 +857,10 @@ export default function AssociadoDetalhe() {
     setFipeInput(veiculo?.valor_fipe ?? 0);
     setMensalidadeInput(cotacaoInfo?.mensalidade ?? veiculo?.mensalidade ?? 0);
     setParticipacaoInput(cotacaoInfo?.participacao ?? 0);
-  }, [veiculo?.id, veiculo?.valor_fipe, veiculo?.mensalidade, cotacaoInfo?.id, cotacaoInfo?.mensalidade, cotacaoInfo?.participacao]);
+    setPlacaInput(veiculo?.placa ?? '');
+    setLookupData(null);
+    setPlacaStatus('idle');
+  }, [veiculo?.id, veiculo?.placa, veiculo?.valor_fipe, veiculo?.mensalidade, cotacaoInfo?.id, cotacaoInfo?.mensalidade, cotacaoInfo?.participacao]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -872,9 +888,24 @@ export default function AssociadoDetalhe() {
 
     setIsSavingPlano(true);
     try {
+      const veiculoUpdate: Record<string, unknown> = {
+        valor_fipe: fipeInput,
+        cota_id: novaCotaId,
+        mensalidade: novaMensalidade,
+      };
+      // Se o FIPE veio de consulta por placa, completa/atualiza os dados do veículo
+      if (lookupData) {
+        if (lookupData.placa) veiculoUpdate.placa = lookupData.placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        if (lookupData.marca) veiculoUpdate.marca = lookupData.marca;
+        if (lookupData.modelo) veiculoUpdate.modelo = lookupData.modelo;
+        const anoLookup = parseInt(lookupData.ano_fabricacao || '', 10);
+        if (anoLookup) veiculoUpdate.ano = anoLookup;
+        if (lookupData.codigo_fipe) veiculoUpdate.codigo_fipe = lookupData.codigo_fipe;
+      }
+
       const { error: vErr } = await supabase
         .from('veiculos')
-        .update({ valor_fipe: fipeInput, cota_id: novaCotaId, mensalidade: novaMensalidade } as never)
+        .update(veiculoUpdate as never)
         .eq('id', veiculo.id);
       if (vErr) throw vErr;
 
@@ -1638,6 +1669,11 @@ export default function AssociadoDetalhe() {
           resultadoRecalc={resultadoRecalc}
           onSavePlano={handleSalvarPlano}
           isSavingPlano={isSavingPlano}
+          placaInput={placaInput}
+          onPlacaChange={setPlacaInput}
+          placaStatus={placaStatus}
+          onPlacaStatusChange={setPlacaStatus}
+          onVehicleFound={handlePlacaVehicleFound}
         />
 
         {/* ── Seção 6: Contratos ── */}
@@ -1886,6 +1922,11 @@ interface PlanosBeneficiosProps {
   resultadoRecalc: ResultadoCotacao | null;
   onSavePlano: () => void;
   isSavingPlano: boolean;
+  placaInput: string;
+  onPlacaChange: (v: string) => void;
+  placaStatus: PlacaStatus;
+  onPlacaStatusChange: (s: PlacaStatus) => void;
+  onVehicleFound: (data: VehicleData) => void;
 }
 
 function PlanosBeneficios({
@@ -1897,6 +1938,7 @@ function PlanosBeneficios({
   canEditPlano, recalcAuto, onRecalcAutoChange, fipeInput, onFipeChange,
   mensalidadeInput, onMensalidadeChange, participacaoInput, onParticipacaoChange,
   resultadoRecalc, onSavePlano, isSavingPlano,
+  placaInput, onPlacaChange, placaStatus, onPlacaStatusChange, onVehicleFound,
 }: PlanosBeneficiosProps) {
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const totalExtras = extrasAtivos.reduce((sum, e) => sum + (e.valor_snapshot ?? 0), 0);
@@ -1952,6 +1994,21 @@ function PlanosBeneficios({
                     />
                     Recalcular automaticamente (cota, participação e mensalidade)
                   </label>
+                </div>
+
+                {/* Busca por placa: preenche o FIPE automaticamente (fallback = FIPE manual) */}
+                <div className="rounded-lg border border-blue-100 bg-white/70 p-3">
+                  <PlacaLookup
+                    value={placaInput}
+                    onChange={onPlacaChange}
+                    onVehicleFound={onVehicleFound}
+                    onStatusChange={onPlacaStatusChange}
+                    disabled={isSavingPlano}
+                    tipoTemFipe
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    A consulta por placa preenche o Valor FIPE automaticamente. Se não encontrar, digite o FIPE manualmente abaixo.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -2014,7 +2071,7 @@ function PlanosBeneficios({
                   <Button
                     size="sm"
                     onClick={onSavePlano}
-                    disabled={isSavingPlano || (recalcAuto && (!resultadoRecalc || fipeInput <= 0))}
+                    disabled={isSavingPlano || placaStatus === 'loading' || (recalcAuto && (!resultadoRecalc || fipeInput <= 0))}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isSavingPlano
