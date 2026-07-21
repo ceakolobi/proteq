@@ -22,6 +22,7 @@ import { DraftRecoveryDialog } from './DraftRecoveryDialog';
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from './types';
 import { useWizardPersistence, type WizardDraft } from '@/hooks/useWizardPersistence';
 import type { ScanResult } from '@/components/associado/DocumentScanner';
+import { calcularCotacaoCompleta, type Cota as CotaCalc } from '@/lib/cotacaoUtils';
 
 interface AssociadoWizardProps {
   open: boolean;
@@ -500,39 +501,29 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         }
       }
 
-      // 3. Find appropriate cota
-      const { data: cotas } = await supabase
+      // 3. Buscar cota + mensalidade via fonte única (calcularCotacaoCompleta)
+      //    Substitui o switch antigo (só carro/moto/pickup) que ignorava aplica_*
+      //    e caía em cotas erradas via cotas?.[0].
+      const { data: cotasAtivas } = await supabase
         .from('cotas')
         .select('*')
-        .eq('ativo', true)
-        .gte('fipe_max', veiculoData.valor_fipe)
-        .lte('fipe_min', veiculoData.valor_fipe);
+        .eq('ativo', true);
 
-      const cotaApropriada = cotas?.[0];
-      
-      if (!cotaApropriada) {
+      const resultadoCotacao = calcularCotacaoCompleta(
+        veiculoData.valor_fipe,
+        veiculoData.tipo,
+        (cotasAtivas ?? []) as unknown as CotaCalc[]
+      );
+
+      if (!resultadoCotacao) {
         toast.error('Não existe faixa FIPE para este valor. Contate o administrador.');
         // Rollback: delete associado
         await supabase.from('associados').delete().eq('id', associado.id);
         return;
       }
 
-      // Calculate mensalidade usando fórmula única com valores fixos
-      const ajusteGeralValor = Number((cotaApropriada as any).ajuste_geral_valor) || Number(cotaApropriada.acrescimo_global) || 0;
-      let valorBase = 0;
-      switch (veiculoData.tipo) {
-        case 'carro':
-          valorBase = cotaApropriada.valor_carro || 0;
-          break;
-        case 'moto':
-          valorBase = cotaApropriada.valor_moto || 0;
-          break;
-        case 'pickup':
-          valorBase = cotaApropriada.valor_camionete || 0;
-          break;
-      }
-      // Fórmula única: valorFinal = valorBase + ajusteGeralValor
-      const mensalidade = valorBase + ajusteGeralValor;
+      const cotaApropriada = resultadoCotacao.cota;
+      const mensalidade = resultadoCotacao.valorFinal;
 
       // 4. Create veiculo
       const { data: veiculo, error: veiculoError } = await supabase

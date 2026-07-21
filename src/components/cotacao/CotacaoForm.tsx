@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useReferenceData } from '@/hooks/useReferenceData';
+import { useMensalidadeCalculada } from '@/hooks/useMensalidadeCalculada';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,7 +49,6 @@ import {
   type CotaCategoria,
   type PerfilEditor,
   type ResultadoCotacao,
-  type Cota,
 } from '@/lib/cotacaoUtils';
 import { BeneficiosExtrasSelector } from './BeneficiosExtrasSelector';
 import type { BeneficioExtra } from '@/hooks/useBeneficiosExtras';
@@ -73,8 +72,7 @@ interface CotacaoFormProps {
 
 export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: CotacaoFormProps) {
   const { user, profile, roles, isAdminPrincipal } = useAuth();
-  const { cotas, isLoading: cotasLoading } = useReferenceData({ loadCotas: true, filterByUserAccess: false });
-  
+
   // Determinar perfil do editor
   const perfilEditor = useMemo(() => {
     return getPerfilEditor(roles || [], isAdminPrincipal);
@@ -115,11 +113,20 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     [beneficiosSelecionadosObjs]
   );
   
-  // Estado para prévia automática
-  const [previewResult, setPreviewResult] = useState<ResultadoCotacao | null>(null);
-
-  // Cotas ativas
-  const cotasAtivas = useMemo(() => (cotas as Cota[]).filter(c => c.ativo), [cotas]);
+  // Fonte única: cotas ativas + cálculo de mensalidade (compartilhado com o wizard)
+  const valorBemNumerico = useMemo(() => parseValorBrasileiro(formData.valor_bem), [formData.valor_bem]);
+  const {
+    resultado: previewResultRaw,
+    cotasAtivas,
+    isLoading: cotasLoading,
+  } = useMensalidadeCalculada({
+    valorFipe: valorBemNumerico,
+    tipo: formData.tipo_bem || null,
+    ajusteIndividual: formData.ajuste_individual_valor,
+    carroReservaExtra: formData.carro_reserva_extra,
+  });
+  // Preserva o comportamento original: valor < R$ 1.000 não exibe prévia
+  const previewResult = valorBemNumerico >= 1000 ? previewResultRaw : null;
 
   // Categoria calculada automaticamente
   const categoriaCalculada = useMemo((): CotaCategoria | null => {
@@ -148,35 +155,6 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       setFipeBloqueado(false);
     }
   }, [formData.tipo_bem, tipoTemFipe]);
-
-  // Cálculo automático da prévia
-  const calcularPreviaAutomatica = useCallback(() => {
-    if (!formData.tipo_bem || !formData.valor_bem) {
-      setPreviewResult(null);
-      return;
-    }
-
-    const valorBem = parseValorBrasileiro(formData.valor_bem);
-    if (valorBem < 1000) {
-      setPreviewResult(null);
-      return;
-    }
-
-    const result = calcularCotacaoCompleta(
-      valorBem,
-      formData.tipo_bem as TipoBem,
-      cotasAtivas,
-      formData.ajuste_individual_valor,
-      formData.carro_reserva_extra
-    );
-
-    setPreviewResult(result);
-  }, [formData.tipo_bem, formData.valor_bem, formData.ajuste_individual_valor, formData.carro_reserva_extra, cotasAtivas]);
-
-  // Atualizar prévia automaticamente
-  useEffect(() => {
-    calcularPreviaAutomatica();
-  }, [calcularPreviaAutomatica]);
 
   // Handler quando veículo é encontrado via placa
   const handleVehicleFound = useCallback((data: VehicleData) => {

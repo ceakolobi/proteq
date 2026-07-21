@@ -4,6 +4,7 @@ import { User, MapPin, FileText, Car, Camera, CheckCircle, CreditCard, Building2
 import type { AssociadoFormData, VeiculoFormData, DocumentoUpload } from '../types';
 import { vehicleTypeLabels } from '@/types/database';
 import { DIA_VENCIMENTO_OPTIONS } from '../types';
+import { useMensalidadeCalculada } from '@/hooks/useMensalidadeCalculada';
 
 interface ResumoStepProps {
   associadoData: AssociadoFormData;
@@ -33,6 +34,10 @@ const formatCurrency = (value: number): string => {
 };
 
 export function ResumoStep({ associadoData, veiculoData, docsAssociado, docsVeiculo }: ResumoStepProps) {
+  const { resultado: mensalidade } = useMensalidadeCalculada({
+    valorFipe: veiculoData.valor_fipe,
+    tipo: veiculoData.tipo,
+  });
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 pb-2 border-b">
@@ -153,7 +158,16 @@ export function ResumoStep({ associadoData, veiculoData, docsAssociado, docsVeic
               
               <span className="text-muted-foreground">Valor FIPE:</span>
               <span className="font-medium text-primary">{formatCurrency(veiculoData.valor_fipe)}</span>
-              
+
+              {mensalidade && (
+                <>
+                  <span className="text-muted-foreground">Mensalidade:</span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency(mensalidade.valorFinal)}
+                  </span>
+                </>
+              )}
+
               {veiculoData.cor && (
                 <>
                   <span className="text-muted-foreground">Cor:</span>

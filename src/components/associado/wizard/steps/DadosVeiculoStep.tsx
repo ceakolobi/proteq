@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -9,13 +7,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Car, Search, Loader2, Fuel, Palette, Gauge } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { Car, Fuel, Palette, Gauge, Calculator } from 'lucide-react';
 import type { VeiculoFormData } from '../types';
 import { COMBUSTIVEL_OPTIONS, COR_OPTIONS, SITUACAO_FINANCEIRA_OPTIONS } from '../types';
 import { vehicleTypeLabels, type VehicleType } from '@/types/database';
 import { DocumentScanner, type ScanResult } from '@/components/associado/DocumentScanner';
+import PlacaLookup, { type VehicleData } from '@/components/cotacao/PlacaLookup';
+import { useMensalidadeCalculada } from '@/hooks/useMensalidadeCalculada';
 
 interface DadosVeiculoStepProps {
   data: VeiculoFormData;
@@ -37,78 +35,31 @@ const formatCurrency = (value: number): string => {
 };
 
 export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVeiculoStepProps) {
-  const [isSearching, setIsSearching] = useState(false);
-
   const handleChange = (field: keyof VeiculoFormData, value: any) => {
     onChange({ ...data, [field]: value });
   };
 
-  const searchByPlaca = async () => {
-    const placaLimpa = data.placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    
-    if (placaLimpa.length < 7) {
-      toast.error('Placa inválida');
-      return;
-    }
+  // Fonte única: preview de mensalidade recalculado ao vivo (igual ao CotacaoForm)
+  const { resultado: previewMensalidade } = useMensalidadeCalculada({
+    valorFipe: data.valor_fipe,
+    tipo: data.tipo,
+  });
 
-    setIsSearching(true);
-    
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        const { data: result, error } = await supabase.functions.invoke('api', {
-          body: {
-            route: 'placa',
-            placa: placaLimpa,
-          },
-          headers: {
-            'x-origem': 'associado_wizard',
-            ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` }),
-          },
-        });
-
-      if (error) throw error;
-
-      if (result?.success && result?.data) {
-        const veiculo = result.data;
-        // Limpar chassi retornado - remover asteriscos e caracteres especiais
-        const chassiRetornado = (veiculo.chassi || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-        // Verificar se chassi está mascarado (tinha asteriscos ou veio vazio)
-        const chassiOriginal = veiculo.chassi || '';
-        const chassiMascarado = !chassiRetornado || chassiOriginal.includes('*');
-        
-        onChange({
-          ...data,
-          marca: veiculo.marca || data.marca,
-          modelo: veiculo.modelo || data.modelo,
-          ano: veiculo.ano_fabricacao || veiculo.ano || data.ano,
-          cor: veiculo.cor?.toLowerCase() || data.cor,
-          combustivel: veiculo.combustivel?.toLowerCase() || data.combustivel,
-          // Se chassi válido e não mascarado, preencher; senão manter valor atual
-          chassi: (!chassiMascarado && chassiRetornado.length >= 17) ? chassiRetornado : data.chassi,
-          renavam: veiculo.renavam?.replace(/\D/g, '') || data.renavam,
-          valor_fipe: veiculo.valor_fipe || data.valor_fipe,
-          codigo_fipe: veiculo.codigo_fipe || data.codigo_fipe,
-        });
-        
-        // Informar usuário se chassi precisa ser preenchido manualmente
-        if (chassiMascarado || chassiRetornado.length < 17) {
-          toast.info('Chassi não disponível. Preencha manualmente.');
-        }
-        toast.success('Dados do veículo encontrados!');
-      } else {
-        toast.info('Veículo não encontrado. Preencha manualmente.');
-      }
-    } catch (error) {
-      console.error('Error searching placa:', error);
-      toast.info('Não foi possível buscar dados automaticamente. Preencha manualmente.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handlePlacaChange = (value: string) => {
-    handleChange('placa', formatPlaca(value));
+  // Busca de placa via componente compartilhado PlacaLookup (mesmo do CotacaoForm)
+  const handleVehicleFound = (v: VehicleData) => {
+    const chassiRetornado = (v.chassi || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    onChange({
+      ...data,
+      marca: v.marca || data.marca,
+      modelo: v.modelo || data.modelo,
+      ano: v.ano_fabricacao ? Number(v.ano_fabricacao) || data.ano : data.ano,
+      cor: v.cor?.toLowerCase() || data.cor,
+      combustivel: v.combustivel?.toLowerCase() || data.combustivel,
+      chassi: chassiRetornado.length >= 17 ? chassiRetornado : data.chassi,
+      renavam: v.renavam?.replace(/\D/g, '') || data.renavam,
+      valor_fipe: v.valor_fipe || data.valor_fipe,
+      codigo_fipe: v.codigo_fipe || data.codigo_fipe,
+    });
   };
 
   const handleValorFipeChange = (value: string) => {
@@ -144,40 +95,15 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        {/* Placa */}
-        <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="placa">
-            Placa <span className="text-destructive">*</span>
-          </Label>
-          <div className="flex gap-2">
-            <Input
-              id="placa"
-              placeholder="ABC-1234"
-              value={data.placa}
-              onChange={(e) => handlePlacaChange(e.target.value)}
-              maxLength={8}
-              className="uppercase"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={searchByPlaca}
-              disabled={isSearching}
-            >
-              {isSearching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Digite a placa para buscar dados automaticamente
-          </p>
-        </div>
+      <PlacaLookup
+        value={data.placa}
+        onChange={(value) => handleChange('placa', value)}
+        onVehicleFound={handleVehicleFound}
+        onStatusChange={() => {}}
+        origem="associado_wizard"
+      />
 
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Tipo */}
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="tipo">
@@ -359,6 +285,35 @@ export function DadosVeiculoStep({ data, onChange, onDocumentScanned }: DadosVei
           </div>
         </div>
       </div>
+
+      {data.valor_fipe > 0 && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Calculator className="h-4 w-4 text-primary" />
+            <h4 className="font-medium text-sm">Resumo Financeiro</h4>
+          </div>
+          {previewMensalidade ? (
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor FIPE</span>
+                <span className="font-medium">{formatCurrency(data.valor_fipe)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Mensalidade base ({previewMensalidade.cotaNome})
+                </span>
+                <span className="font-semibold text-primary">
+                  {formatCurrency(previewMensalidade.valorFinal)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Não há faixa de cota ativa para este valor FIPE. Verifique com o administrador.
+            </p>
+          )}
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground">
         <span className="text-destructive">*</span> Campos obrigatórios
