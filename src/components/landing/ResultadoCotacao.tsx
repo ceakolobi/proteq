@@ -340,7 +340,8 @@ export function ResultadoCotacao({
         `📋 Cota de participação: 7% · ${formatCurrency(cotacao.participacao)} (FIPE: ${formatCurrency(cotacao.valorFipe)})\n\n` +
         BENEFICIOS_WHATSAPP +
         extrasSecao +
-        `\n\n⏳ Proposta válida por 7 dias.\n` +
+        `\n\n📌 Valores estimados, sujeitos a análise cadastral e vistoria do veículo.\n` +
+        `⏳ Proposta válida por 7 dias.\n` +
         `🤝 Harmony Clube de Benefícios — Proteção Veicular`;
 
       const url = getWhatsAppUrl(telefone, mensagem);
@@ -425,6 +426,10 @@ export function ResultadoCotacao({
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">por mês</p>
               </div>
+
+              <p className="text-[11px] text-muted-foreground leading-snug pt-2 border-t border-border/50">
+                Valores estimados, sujeitos a análise cadastral e vistoria do veículo.
+              </p>
 
             </CardContent>
           </Card>

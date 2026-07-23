@@ -14,7 +14,8 @@ interface DadosPessoaisFormProps {
 
 export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoaisFormProps) {
   const [dados, setDados] = useState<DadosPessoais>(initialData);
-  const [errors, setErrors] = useState<Partial<DadosPessoais>>({});
+  const [errors, setErrors] = useState<Partial<Record<'nome' | 'telefone' | 'email', string>>>({});
+  const [consentido, setConsentido] = useState<boolean>(initialData.consentimentoLgpd ?? false);
 
   const formatTelefone = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -29,8 +30,8 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
   };
 
   const validate = (): boolean => {
-    const newErrors: Partial<DadosPessoais> = {};
-    
+    const newErrors: Partial<Record<'nome' | 'telefone' | 'email', string>> = {};
+
     if (!dados.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
     }
@@ -50,8 +51,9 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consentido) return;
     if (validate()) {
-      onSubmit(dados);
+      onSubmit({ ...dados, consentimentoLgpd: consentido });
     }
   };
 
@@ -129,13 +131,35 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
             </CardContent>
           </Card>
 
+          {/* Consentimento LGPD */}
+          <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentido}
+              onChange={(e) => setConsentido(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary cursor-pointer"
+            />
+            <span className="text-sm text-muted-foreground leading-relaxed">
+              Li e concordo com a{' '}
+              <a
+                href="/privacidade"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary font-medium hover:underline"
+              >
+                Política de Privacidade
+              </a>{' '}
+              e autorizo o contato da Harmony sobre esta cotação.
+            </span>
+          </label>
+
           {/* Botões de ação */}
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={onBack} className="flex-1">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
             </Button>
-            <Button type="submit" className="flex-1">
+            <Button type="submit" className="flex-1" disabled={!consentido}>
               Salvar e Continuar
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

@@ -12,6 +12,37 @@ interface ConfiguracaoFinanceira {
   tipo_chave_pix: string | null;
 }
 
+interface UtmParams {
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+}
+
+const UTM_STORAGE_KEY = 'harmony_utm';
+
+// Lê UTMs da querystring; se ausentes, reaproveita o que foi salvo na sessão.
+function capturarUtm(): UtmParams {
+  const vazio: UtmParams = { utm_source: null, utm_medium: null, utm_campaign: null };
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const daUrl: UtmParams = {
+      utm_source: params.get('utm_source'),
+      utm_medium: params.get('utm_medium'),
+      utm_campaign: params.get('utm_campaign'),
+    };
+
+    if (daUrl.utm_source || daUrl.utm_medium || daUrl.utm_campaign) {
+      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(daUrl));
+      return daUrl;
+    }
+
+    const salvo = sessionStorage.getItem(UTM_STORAGE_KEY);
+    return salvo ? { ...vazio, ...JSON.parse(salvo) } : vazio;
+  } catch {
+    return vazio;
+  }
+}
+
 export function usePublicQuotation() {
   const [etapa, setEtapa] = useState<EtapaFunil>('hero');
   const [dadosPessoais, setDadosPessoais] = useState<DadosPessoais>({ nome: '', telefone: '', email: '' });
@@ -25,6 +56,7 @@ export function usePublicQuotation() {
   const [leadId, setLeadId] = useState<string | null>(null);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | null>(null);
   const [defaultCompanyId, setDefaultCompanyId] = useState<string | null>(null);
+  const [utm, setUtm] = useState<UtmParams>({ utm_source: null, utm_medium: null, utm_campaign: null });
   
   // Benefícios extras selecionados
   const [beneficiosSelecionadosIds, setBeneficiosSelecionadosIds] = useState<string[]>([]);
@@ -63,6 +95,7 @@ export function usePublicQuotation() {
 
     fetchCotas();
     fetchConfig();
+    setUtm(capturarUtm());
   }, []);
 
   const calcularCotacao = (veiculo: DadosVeiculo): ResultadoCotacaoPublica | null => {
@@ -125,9 +158,22 @@ export function usePublicQuotation() {
           .limit(1)
           .maybeSingle() as { data: { id: string } | null };
 
+        // Aceite LGPD (valor real do checkbox) + UTMs capturados na entrada
+        const lgpdUtm = {
+          consentimento_lgpd: !!dados.consentimentoLgpd,
+          consentimento_lgpd_em: dados.consentimentoLgpd ? new Date().toISOString() : null,
+          utm_source: utm.utm_source,
+          utm_medium: utm.utm_medium,
+          utm_campaign: utm.utm_campaign,
+        };
+
         if (existingLead) {
-          // Lead existente encontrado
+          // Lead existente encontrado — atualiza aceite/UTM desta cotação
           setLeadId(existingLead.id);
+          await supabase
+            .from('leads')
+            .update(lgpdUtm as any)
+            .eq('id', existingLead.id);
           console.log('[usePublicQuotation] Lead existente encontrado:', existingLead.id);
         } else {
           // Criar novo lead
@@ -141,7 +187,8 @@ export function usePublicQuotation() {
               company_id: companyId,
               origem: 'site' as const,
               status: 'novo' as const,
-            })
+              ...lgpdUtm,
+            } as any)
             .select('id')
             .single();
 
