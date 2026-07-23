@@ -45,7 +45,7 @@ export function LandingFooter() {
           </p>
           <div className="flex gap-6 text-sm text-secondary-foreground/70">
             <a href="#" className="hover:text-primary transition-colors">Termos de uso</a>
-            <a href="#" className="hover:text-primary transition-colors">Política de privacidade</a>
+            <a href="/privacidade" className="hover:text-primary transition-colors">Política de privacidade</a>
           </div>
         </div>
       </div>

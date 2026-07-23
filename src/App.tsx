@@ -31,6 +31,7 @@ import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 import LayoutCotacaoHarmony from "./pages/LayoutCotacaoHarmony";
 import ValidarProposta from "./pages/ValidarProposta";
+import Privacidade from "./pages/Privacidade";
 import Configuracoes from "./pages/Configuracoes";
 import DocumentosContratos from "./pages/DocumentosContratos";
 import BeneficiosExtras from "./pages/BeneficiosExtras";
@@ -154,6 +155,7 @@ const App = () => (
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
                 <Route path="/validar-proposta" element={<ValidarProposta />} />
+                <Route path="/privacidade" element={<Privacidade />} />
                 
                 {/* Rotas protegidas - requerem autenticação */}
                 {/* Dashboard geral - shell de abas (POC) */}

@@ -4,6 +4,8 @@ export interface DadosPessoais {
   nome: string;
   telefone: string;
   email: string;
+  // Aceite LGPD marcado pelo usuário no funil público (registro legal).
+  consentimentoLgpd?: boolean;
 }
 
 export interface DadosVeiculo {
