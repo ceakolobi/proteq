@@ -433,7 +433,7 @@ export function calcularCotacaoCompleta(
   tipoVeiculo: VehicleType,
   cotas: Cota[],
   ajusteIndividualValor: number = 0,
-  carroReservaExtra?: 'nenhum' | '30dias' | '90dias'
+  carroReservaExtra?: 'nenhum' | 'mais15' | 'mais30'
 ): ResultadoCotacao | null {
   // 1. Determinar categoria primeiro (necessário para busca)
   const categoria = getCategoriaByTipoVeiculo(tipoVeiculo);
@@ -456,10 +456,10 @@ export function calcularCotacaoCompleta(
   );
 
   // Adicionar carro reserva extra
-  if (carroReservaExtra === '30dias') {
-    valorFinal += 39.90;
-  } else if (carroReservaExtra === '90dias') {
-    valorFinal += 59.90;
+  if (carroReservaExtra === 'mais15') {
+    valorFinal += 19.90;
+  } else if (carroReservaExtra === 'mais30') {
+    valorFinal += 29.90;
   }
 
   // 6. Calcular participação (7% do FIPE) com aplicação de valor mínimo para COTA 01

@@ -91,7 +91,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
     metodo_valoracao: 'fipe' as MetodoValoracao,
     valor_bem: '',
     codigo_fipe: '',
-    carro_reserva_extra: 'nenhum' as 'nenhum' | '30dias' | '90dias',
+    carro_reserva_extra: 'nenhum' as 'nenhum' | 'mais15' | 'mais30',
     observacoes: '',
     ajuste_individual_valor: 0, // Ajuste em R$ pelo gestor
     motivo_ajuste: '',
@@ -360,9 +360,9 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         perfil_editor: formData.ajuste_individual_valor !== 0 ? perfilEditor : null,
         motivo_ajuste: formData.motivo_ajuste || null,
         carro_reserva_dias: formData.carro_reserva_extra === 'nenhum' ? 15 : 
-                           formData.carro_reserva_extra === '30dias' ? 45 : 105,
+                           formData.carro_reserva_extra === 'mais15' ? 30 : 45,
         carro_reserva_adicional: formData.carro_reserva_extra === 'nenhum' ? 0 :
-                                 formData.carro_reserva_extra === '30dias' ? 39.90 : 59.90,
+                                 formData.carro_reserva_extra === 'mais15' ? 19.90 : 29.90,
         observacoes: formData.observacoes || null,
         valor_adesao: formData.valor_adesao || 0,
       };
@@ -727,7 +727,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   <Label>Carro Reserva</Label>
                   <Select
                     value={formData.carro_reserva_extra}
-                    onValueChange={(value: 'nenhum' | '30dias' | '90dias') => {
+                    onValueChange={(value: 'nenhum' | 'mais15' | 'mais30') => {
                       setFormData(prev => ({ ...prev, carro_reserva_extra: value }));
                       setResultado(null);
                     }}
@@ -736,9 +736,9 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="nenhum">30 dias (inclusos)</SelectItem>
-                      <SelectItem value="30dias">+30 dias (R$ 39,90/mês)</SelectItem>
-                      <SelectItem value="90dias">+90 dias (R$ 59,90/mês)</SelectItem>
+                      <SelectItem value="nenhum">15 dias (inclusos)</SelectItem>
+                      <SelectItem value="mais15">+15 dias (R$ 19,90/mês)</SelectItem>
+                      <SelectItem value="mais30">+30 dias (R$ 29,90/mês)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -963,8 +963,8 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Carro Reserva:</span>
                     <span>
-                      {formData.carro_reserva_extra === 'nenhum' ? '30 dias' :
-                       formData.carro_reserva_extra === '30dias' ? '60 dias' : '120 dias'}
+                      {formData.carro_reserva_extra === 'nenhum' ? '15 dias' :
+                       formData.carro_reserva_extra === 'mais15' ? '30 dias' : '45 dias'}
                     </span>
                   </div>
                 </div>
@@ -1064,7 +1064,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
                 {formData.carro_reserva_extra !== 'nenhum' && (
                   <div className="text-center text-xs text-muted-foreground">
-                    Inclui carro reserva adicional: {formData.carro_reserva_extra === '30dias' ? '+30 dias' : '+90 dias'}
+                    Inclui carro reserva adicional: {formData.carro_reserva_extra === 'mais15' ? '+15 dias' : '+30 dias'}
                   </div>
                 )}
 

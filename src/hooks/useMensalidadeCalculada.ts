@@ -11,7 +11,7 @@ interface UseMensalidadeCalculadaParams {
   valorFipe: number;
   tipo: VehicleType | '' | null | undefined;
   ajusteIndividual?: number;
-  carroReservaExtra?: 'nenhum' | '30dias' | '90dias';
+  carroReservaExtra?: 'nenhum' | 'mais15' | 'mais30';
 }
 
 interface UseMensalidadeCalculadaResult {

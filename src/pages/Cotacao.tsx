@@ -128,10 +128,10 @@ export default function Cotacao() {
     let mensalidade = valorBase + ajusteGeralValor;
 
     let carroReservaAdicional = 0;
-    if (formData.carroReservaExtra === '30dias') {
-      carroReservaAdicional = 39.90;
-    } else if (formData.carroReservaExtra === '90dias') {
-      carroReservaAdicional = 59.90;
+    if (formData.carroReservaExtra === 'mais15') {
+      carroReservaAdicional = 19.90;
+    } else if (formData.carroReservaExtra === 'mais30') {
+      carroReservaAdicional = 29.90;
     }
 
     const participacaoCalculada = valorFipe * 0.07;
@@ -168,7 +168,7 @@ export default function Cotacao() {
   };
 
   const beneficios = [
-    { icon: Car, label: 'Carro Reserva', desc: '30 dias inclusos' },
+    { icon: Car, label: 'Carro Reserva', desc: '15 dias inclusos' },
     { icon: Truck, label: 'Guincho', desc: '500 km (250 ida e volta)' },
     { icon: Shield, label: 'Vidros', desc: 'Cobertura de para-brisa' },
     { icon: Key, label: 'Chaveiro', desc: '24 horas' },
@@ -317,8 +317,8 @@ export default function Cotacao() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="nenhum">15 dias (inclusos)</SelectItem>
-                    <SelectItem value="30dias">+30 dias (R$ 39,90/mês)</SelectItem>
-                    <SelectItem value="90dias">+90 dias (R$ 59,90/mês)</SelectItem>
+                    <SelectItem value="mais15">+15 dias (R$ 19,90/mês)</SelectItem>
+                    <SelectItem value="mais30">+30 dias (R$ 29,90/mês)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -404,7 +404,7 @@ export default function Cotacao() {
                     <div className="flex items-center gap-2 text-sm">
                       <Car className="h-4 w-4 text-muted-foreground" />
                       <span>
-                        Carro reserva: {formData.carroReservaExtra === 'nenhum' ? '15' : formData.carroReservaExtra === '30dias' ? '45' : '105'} dias
+                        Carro reserva: {formData.carroReservaExtra === 'nenhum' ? '15' : formData.carroReservaExtra === 'mais15' ? '30' : '45'} dias
                       </span>
                     </div>
                   </div>
