@@ -147,7 +147,9 @@ serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    const algumEnviou = results.email === true || results.whatsapp === true;
+    return new Response(JSON.stringify({ success: algumEnviou, results }), {
+      status: algumEnviou ? 200 : 502,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

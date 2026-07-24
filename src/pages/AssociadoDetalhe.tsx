@@ -617,7 +617,7 @@ export default function AssociadoDetalhe() {
       if (insertErr) throw insertErr;
 
       // Notificar via edge function (WhatsApp + Email)
-      await supabase.functions.invoke('send-vistoria-link', {
+      const { data: envio, error: sendError } = await supabase.functions.invoke('send-vistoria-link', {
         body: {
           token,
           nome: formData.nome_completo,
@@ -628,7 +628,16 @@ export default function AssociadoDetalhe() {
       });
 
       await fetchVistoriaAtual(id);
-      toast.success('Link de vistoria enviado por WhatsApp e e-mail!');
+
+      if (sendError || !envio?.success) {
+        toast.error('Vistoria criada, mas o link NÃO foi enviado. Confira os dados e use "Reenviar link".');
+      } else {
+        const canais = [
+          envio.results?.email ? 'e-mail' : null,
+          envio.results?.whatsapp ? 'WhatsApp' : null,
+        ].filter(Boolean);
+        toast.success(`Link de vistoria enviado por ${canais.join(' e ') || 'nenhum canal'}!`);
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao enviar link de vistoria');
     } finally {
@@ -646,13 +655,14 @@ export default function AssociadoDetalhe() {
       const token = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
-      await supabase.from('vistorias').update({
+      const { error: updateErr } = await supabase.from('vistorias').update({
         token_acesso: token,
         token_expires_at: expiresAt,
         status: 'pendente',
       } as never).eq('id', vistoriaAtual.id);
+      if (updateErr) throw updateErr;
 
-      await supabase.functions.invoke('send-vistoria-link', {
+      const { data: envio, error: sendError } = await supabase.functions.invoke('send-vistoria-link', {
         body: {
           token,
           nome: formData.nome_completo,
@@ -663,7 +673,16 @@ export default function AssociadoDetalhe() {
       });
 
       await fetchVistoriaAtual(id);
-      toast.success('Link reenviado com sucesso!');
+
+      if (sendError || !envio?.success) {
+        toast.error('Token renovado, mas o link NÃO foi enviado. Confira os dados e tente de novo.');
+      } else {
+        const canais = [
+          envio.results?.email ? 'e-mail' : null,
+          envio.results?.whatsapp ? 'WhatsApp' : null,
+        ].filter(Boolean);
+        toast.success(`Link reenviado por ${canais.join(' e ') || 'nenhum canal'}!`);
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Erro ao reenviar link');
     } finally {
