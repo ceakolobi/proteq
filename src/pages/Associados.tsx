@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
@@ -93,6 +93,7 @@ type WizardStep = 'associado' | 'veiculo' | 'complete';
 
 export default function Associados() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAllowed, isChecking } = useAccessControl('authenticated');
   const { user, profile, isAdminPrincipal, hasRole } = useAuth();
   
@@ -359,6 +360,14 @@ export default function Associados() {
     // Abre o novo wizard moderno
     setIsNewWizardOpen(true);
   };
+
+  // Rota /associados/novo abre direto o wizard de cadastro (usado pelo CTA da cotação)
+  useEffect(() => {
+    if (location.pathname === '/associados/novo' && profile) {
+      handleOpenNewAssociadoWizard();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, profile]);
 
   const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
     navigate('/associados/' + associado.id);

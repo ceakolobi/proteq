@@ -58,9 +58,10 @@ import {
   Camera,
   Link,
   Copy,
-  ExternalLink,
   Save,
   X,
+  UserPlus,
+  AlertCircle,
 } from 'lucide-react';
 import type { Cotacao, CotacaoContato, CotacaoStatus, TipoContato } from '@/types/cotacao';
 import { 
@@ -124,6 +125,7 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const [isCreatingVistoria, setIsCreatingVistoria] = useState(false);
   const [vistoriaLink, setVistoriaLink] = useState<string | null>(null);
   const [vistoriaId, setVistoriaId] = useState<string | null>(null);
+  const [vistoriaExpiraEm, setVistoriaExpiraEm] = useState<string | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
 
   const canManage = isAdminPrincipal || hasRole('admin_regional') || cotacao.consultor_id === user?.id;
@@ -530,82 +532,115 @@ _(abra o link para visualizar todos os detalhes e aceitar online)_
 
   // ====== FUNÇÕES DE VISTORIA ======
   
-  // Criar vistoria e gerar link
+  // Validade padrão do link de vistoria: 7 dias (bate com o texto do WhatsApp e o default do banco)
+  const VISTORIA_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+  // Criar/gerar link REAL de vistoria. Só roda com veiculo_id — a UI oferece o CTA
+  // de cadastro de associado quando o veículo ainda não existe (link nunca sai quebrado).
   const handleCriarVistoria = async (canal: 'link' | 'telefone' | 'whatsapp') => {
-    if (!cotacao.veiculo_id && !cotacao.placa) {
-      toast.error('Não há veículo vinculado a esta cotação');
-      return;
-    }
+    if (!cotacao.veiculo_id) return;
 
     setIsCreatingVistoria(true);
     try {
-      // Verificar se já existe uma vistoria para esta cotação
-      const { data: existingVistoria } = await supabase
+      // Reaproveita vistoria já existente desta cotação (não duplica)
+      const { data: existente } = await supabase
         .from('vistorias')
-        .select('id, token_acesso')
+        .select('id, token_acesso, token_expires_at')
         .eq('cotacao_id', cotacao.id)
         .maybeSingle();
 
-      if (existingVistoria) {
-        // Já existe vistoria, usar o link existente
-        const link = `${window.location.origin}/vistoria-publica?token=${existingVistoria.token_acesso}`;
-        setVistoriaLink(link);
-        setVistoriaId(existingVistoria.id);
-        
-        if (canal === 'link') {
-          await navigator.clipboard.writeText(link);
-          toast.success('Link da vistoria copiado!');
-        } else if (canal === 'whatsapp') {
-          handleEnviarVistoriaWhatsApp(link);
-        }
-        return;
+      let vistId = existente?.id ?? null;
+      let token = existente?.token_acesso ?? null;
+      let expiresAt = existente?.token_expires_at ?? null;
+      const expirado = expiresAt ? new Date(expiresAt) < new Date() : false;
+
+      if (existente && (!token || expirado)) {
+        // Link ausente ou expirado → renova para não mandar link morto ao cliente
+        token = crypto.randomUUID();
+        expiresAt = new Date(Date.now() + VISTORIA_TTL_MS).toISOString();
+        const { error: renewErr } = await supabase
+          .from('vistorias')
+          .update({ token_acesso: token, token_expires_at: expiresAt, status: 'pendente' })
+          .eq('id', existente.id);
+        if (renewErr) throw renewErr;
       }
 
-      // Verificar se tem veículo_id, senão precisa criar o veículo primeiro ou informar
-      let veiculoId = cotacao.veiculo_id;
-      
-      if (!veiculoId) {
-        toast.error('É necessário vincular um veículo à cotação antes de iniciar a vistoria');
-        return;
+      if (!existente) {
+        // token_acesso/token_expires_at setados explicitamente = link real garantido
+        token = crypto.randomUUID();
+        expiresAt = new Date(Date.now() + VISTORIA_TTL_MS).toISOString();
+        const { data: nova, error } = await supabase
+          .from('vistorias')
+          .insert({
+            veiculo_id: cotacao.veiculo_id,
+            cotacao_id: cotacao.id,
+            associado_id: cotacao.associado_id || null,
+            consultor_id: cotacao.consultor_id,
+            company_id: profile?.company_id ?? null,
+            proposta_id: cotacao.proposta_id || null,
+            canal_abertura: canal,
+            tipo_vistoria: 'pre_adesao',
+            status: 'pendente',
+            solicitada_em: new Date().toISOString(),
+            token_acesso: token,
+            token_expires_at: expiresAt,
+          })
+          .select('id, token_acesso, token_expires_at')
+          .single();
+        if (error) throw error;
+        vistId = nova.id;
+        token = nova.token_acesso;
+        expiresAt = nova.token_expires_at;
       }
 
-      // Criar nova vistoria
-      const { data: novaVistoria, error } = await supabase
-        .from('vistorias')
-        .insert({
-          veiculo_id: veiculoId,
-          cotacao_id: cotacao.id,
-          associado_id: cotacao.associado_id || null,
-          consultor_id: cotacao.consultor_id,
-          company_id: profile?.company_id ?? null,
-          proposta_id: cotacao.proposta_id || null,
-          canal_abertura: canal,
-          tipo_vistoria: 'pre_adesao',
-          status: 'pendente',
-          solicitada_em: new Date().toISOString(),
-        })
-        .select('id, token_acesso')
-        .single();
+      if (!token) throw new Error('Vistoria sem token de acesso. Tente novamente.');
 
-      if (error) throw error;
-
-      const link = `${window.location.origin}/vistoria-publica?token=${novaVistoria.token_acesso}`;
+      const link = `${window.location.origin}/vistoria/${token}`;
       setVistoriaLink(link);
-      setVistoriaId(novaVistoria.id);
+      setVistoriaId(vistId);
+      setVistoriaExpiraEm(expiresAt);
 
       if (canal === 'link') {
         await navigator.clipboard.writeText(link);
-        toast.success('Vistoria criada! Link copiado para a área de transferência.');
+        toast.success('Link de vistoria pronto e copiado!');
       } else if (canal === 'whatsapp') {
         handleEnviarVistoriaWhatsApp(link);
       } else if (canal === 'telefone') {
-        toast.success('Vistoria criada! Agora ligue para o cliente.');
+        toast.success('Vistoria pronta! Agora ligue para o cliente.');
       }
 
       onUpdate();
     } catch (err: any) {
       console.error('Erro ao criar vistoria:', err);
       toast.error(err.message || 'Erro ao criar vistoria');
+    } finally {
+      setIsCreatingVistoria(false);
+    }
+  };
+
+  // Gera um novo token/validade para a vistoria atual (link antigo deixa de valer)
+  const handleReenviarVistoria = async () => {
+    if (!vistoriaId) {
+      handleCriarVistoria('link');
+      return;
+    }
+    setIsCreatingVistoria(true);
+    try {
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + VISTORIA_TTL_MS).toISOString();
+      const { error } = await supabase
+        .from('vistorias')
+        .update({ token_acesso: token, token_expires_at: expiresAt, status: 'pendente' })
+        .eq('id', vistoriaId);
+      if (error) throw error;
+
+      const link = `${window.location.origin}/vistoria/${token}`;
+      setVistoriaLink(link);
+      setVistoriaExpiraEm(expiresAt);
+      await navigator.clipboard.writeText(link);
+      toast.success('Novo link gerado e copiado!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao reenviar link');
     } finally {
       setIsCreatingVistoria(false);
     }
@@ -1099,14 +1134,14 @@ _Proteção Veicular_`;
                 {!clienteEmail && <span className="ml-auto text-xs text-muted-foreground">(informe o e-mail)</span>}
               </Button>
 
-              <Button 
-                disabled={true}
-                className="w-full justify-start bg-green-600/50 hover:bg-green-600/50 text-white/70 cursor-not-allowed"
-                title="Opção temporariamente desabilitada"
+              <Button
+                onClick={handleEnviarWhatsApp}
+                disabled={!clienteWhatsapp}
+                className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Enviar pelo WhatsApp
-                <span className="ml-auto text-xs opacity-80">(em manutenção)</span>
+                {!clienteWhatsapp && <span className="ml-auto text-xs opacity-80">(informe o WhatsApp)</span>}
               </Button>
             </div>
           </CardContent>
@@ -1128,12 +1163,12 @@ _Proteção Veicular_`;
           <CardContent className="space-y-4">
             {/* Link gerado */}
             {vistoriaLink && (
-              <div className="p-3 rounded-lg bg-background border text-sm">
-                <div className="flex items-center justify-between mb-2">
+              <div className="p-3 rounded-lg bg-background border text-sm space-y-2">
+                <div className="flex items-center justify-between">
                   <span className="text-muted-foreground font-medium">Link de Vistoria:</span>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={handleCopiarLinkVistoria}
                   >
                     <Copy className="w-4 h-4 mr-1" />
@@ -1141,52 +1176,106 @@ _Proteção Veicular_`;
                   </Button>
                 </div>
                 <p className="font-mono text-xs break-all text-primary">{vistoriaLink}</p>
+                {vistoriaExpiraEm && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Válido até {formatDateTime(vistoriaExpiraEm)}
+                  </p>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleEnviarVistoriaWhatsApp(vistoriaLink)}
+                    disabled={!clienteWhatsapp}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1" />
+                    Enviar por WhatsApp
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleReenviarVistoria}
+                    disabled={isCreatingVistoria}
+                  >
+                    {isCreatingVistoria ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 mr-1" />
+                    )}
+                    Reenviar link
+                  </Button>
+                </div>
               </div>
             )}
 
-            {/* Botões de ação */}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Button
-                onClick={() => handleCriarVistoria('link')}
-                disabled={isCreatingVistoria}
-                variant="outline"
-                className="justify-start"
-              >
-                {isCreatingVistoria ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            {/* Ações — só quando há veículo real vinculado (link nunca sai quebrado) */}
+            {cotacao.veiculo_id ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Button
+                  onClick={() => handleCriarVistoria('link')}
+                  disabled={isCreatingVistoria}
+                  variant="outline"
+                  className="justify-start"
+                >
+                  {isCreatingVistoria ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Link className="w-4 h-4 mr-2" />
+                  )}
+                  Gerar Link de Vistoria
+                </Button>
+
+                <Button
+                  onClick={handleLigarCliente}
+                  disabled={isCreatingVistoria || !clienteWhatsapp}
+                  variant="outline"
+                  className="justify-start"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Ligar para o Cliente
+                </Button>
+
+                <Button
+                  onClick={() => handleCriarVistoria('whatsapp')}
+                  disabled={isCreatingVistoria || !clienteWhatsapp}
+                  className="justify-start bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Enviar Link por WhatsApp
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-800">
+                    A vistoria é feita sobre o veículo do associado.{' '}
+                    {cotacao.associado_id
+                      ? 'Abra o associado desta cotação para cadastrar o veículo e liberar a vistoria.'
+                      : 'Esta cotação ainda não foi convertida em associado. Cadastre o associado (com o veículo) para liberar a vistoria.'}
+                  </p>
+                </div>
+                {cotacao.associado_id ? (
+                  <Button
+                    onClick={() => navigate(`/associados/${cotacao.associado_id}`)}
+                    className="w-full sm:w-auto"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Abrir associado
+                  </Button>
                 ) : (
-                  <Link className="w-4 h-4 mr-2" />
+                  <Button
+                    onClick={() => navigate(`/associados/novo?cotacao=${cotacao.id}`)}
+                    className="w-full sm:w-auto"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Cadastrar associado
+                  </Button>
                 )}
-                Gerar Link de Vistoria
-              </Button>
-
-              <Button
-                onClick={handleLigarCliente}
-                disabled={isCreatingVistoria || !clienteWhatsapp}
-                variant="outline"
-                className="justify-start"
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                Ligar para o Cliente
-              </Button>
-
-              <Button
-                disabled={true}
-                className="justify-start bg-green-600/50 hover:bg-green-600/50 text-white/70 cursor-not-allowed"
-                title="Opção temporariamente desabilitada"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Enviar Link por WhatsApp
-                <span className="ml-auto text-xs opacity-80">(em manutenção)</span>
-              </Button>
-            </div>
-
-            {/* Aviso se não tem veículo vinculado */}
-            {!cotacao.veiculo_id && (
-              <p className="text-sm text-amber-600 flex items-center gap-2">
-                <ExternalLink className="w-4 h-4" />
-                É necessário vincular um veículo à cotação para iniciar a vistoria.
-              </p>
+              </div>
             )}
           </CardContent>
         </Card>
