@@ -133,7 +133,10 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
 
   // Perfil do editor — gate de edição de ajustes
   const perfilEditor = getPerfilEditor(roles ?? [], isAdminPrincipal);
-  const podeEditarAjustes = perfilEditor === 'ADMIN';
+  // ADMIN edita geral+individual; GESTOR edita só o individual (cotacaoUtils.validarAjusteValor)
+  const podeEditarGeral = perfilEditor === 'ADMIN';
+  const podeEditarIndividual = perfilEditor === 'ADMIN' || perfilEditor === 'GESTOR';
+  const podeEditarAjustes = podeEditarIndividual;
 
   // Estados para edição de ajustes
   const [modoEdicaoAjustes, setModoEdicaoAjustes] = useState(false);
@@ -813,7 +816,7 @@ _Proteção Veicular_`;
               {/* Ajuste Geral */}
               <div className="flex items-center justify-between text-xs gap-2">
                 <span className="text-muted-foreground shrink-0">Ajuste Geral (R$):</span>
-                {modoEdicaoAjustes ? (
+                {modoEdicaoAjustes && podeEditarGeral ? (
                   <Input
                     type="number"
                     step="0.01"
