@@ -60,7 +60,6 @@ import {
   Copy,
   Save,
   X,
-  UserPlus,
   AlertCircle,
 } from 'lucide-react';
 import type { Cotacao, CotacaoContato, CotacaoStatus, TipoContato } from '@/types/cotacao';
@@ -127,6 +126,15 @@ export default function CotacaoDetail({ cotacao, onBack, onUpdate }: CotacaoDeta
   const [vistoriaId, setVistoriaId] = useState<string | null>(null);
   const [vistoriaExpiraEm, setVistoriaExpiraEm] = useState<string | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+
+  // Proc. C — criar veículo direto da cotação (veículo "solto", associado_id nulo até a conversão)
+  const [veiculoIdLocal, setVeiculoIdLocal] = useState<string | null>(cotacao.veiculo_id ?? null);
+  const [veiculoForm, setVeiculoForm] = useState({
+    placa: cotacao.placa || '',
+    marca: cotacao.marca || '',
+    modelo: cotacao.modelo || '',
+    ano: cotacao.ano_fabricacao || new Date().getFullYear(),
+  });
 
   const canManage = isAdminPrincipal || hasRole('admin_regional') || cotacao.consultor_id === user?.id;
   const isAprovado = cotacao.status === 'aprovado';
@@ -535,13 +543,77 @@ _(abra o link para visualizar todos os detalhes e aceitar online)_
   // Validade padrão do link de vistoria: 7 dias (bate com o texto do WhatsApp e o default do banco)
   const VISTORIA_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-  // Criar/gerar link REAL de vistoria. Só roda com veiculo_id — a UI oferece o CTA
-  // de cadastro de associado quando o veículo ainda não existe (link nunca sai quebrado).
-  const handleCriarVistoria = async (canal: 'link' | 'telefone' | 'whatsapp') => {
-    if (!cotacao.veiculo_id) return;
+  // Proc. C — garante um veículo para a cotação: reusa o existente ou cria um veículo
+  // "solto" (associado_id nulo) a partir dos dados da cotação + form inline. Idempotente.
+  const garantirVeiculo = async (): Promise<string | null> => {
+    if (veiculoIdLocal) return veiculoIdLocal;
+    if (cotacao.veiculo_id) { setVeiculoIdLocal(cotacao.veiculo_id); return cotacao.veiculo_id; }
 
+    // Reusa veículo já ligado a esta cotação (não duplica, mesmo se veiculo_id não salvou)
+    const { data: jaExiste } = await supabase
+      .from('veiculos')
+      .select('id')
+      .eq('cotacao_id', cotacao.id)
+      .maybeSingle();
+    if (jaExiste?.id) {
+      setVeiculoIdLocal(jaExiste.id);
+      await supabase.from('cotacoes').update({ veiculo_id: jaExiste.id }).eq('id', cotacao.id);
+      return jaExiste.id;
+    }
+
+    const placa = (veiculoForm.placa || '').trim().toUpperCase();
+    if (!placa) {
+      toast.error('Informe a placa do veículo para gerar a vistoria.');
+      return null;
+    }
+    if (!veiculoForm.marca.trim() || !veiculoForm.modelo.trim() || !veiculoForm.ano) {
+      toast.error('Preencha marca, modelo e ano do veículo.');
+      return null;
+    }
+
+    // company_id/sede_id/consultor_id sempre preenchidos (multi-tenant, sobrevive a endurecer RLS)
+    const { data: novo, error } = await supabase
+      .from('veiculos')
+      .insert({
+        associado_id: null,
+        cotacao_id: cotacao.id,
+        consultor_id: cotacao.consultor_id,
+        company_id: cotacao.company_id ?? profile?.company_id ?? null,
+        sede_id: profile?.sede_id ?? null,
+        tipo: cotacao.tipo_bem,
+        marca: veiculoForm.marca.trim(),
+        modelo: veiculoForm.modelo.trim(),
+        ano: Number(veiculoForm.ano),
+        placa,
+        chassi: cotacao.chassi || null,
+        renavam: cotacao.renavam || null,
+        cor: cotacao.cor || null,
+        codigo_fipe: cotacao.codigo_fipe || null,
+        cota_id: cotacao.cota_id || null,
+        valor_fipe: cotacao.valor_fipe ?? cotacao.valor_bem ?? 0,
+        mensalidade: cotacao.mensalidade ?? 0,
+        carro_reserva_dias: cotacao.carro_reserva_dias ?? 15,
+        carro_reserva_adicional: cotacao.carro_reserva_adicional ?? 0,
+        protecao_ativa: false,               // veículo em vistoria não é protegido (sem adesão paga)
+        veiculo_status: 'aguardando_vistoria', // senão o vistoriador não enxerga (RLS filtra por isso)
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
+
+    // Liga a cotação ao veículo (o outro sentido, veiculos.cotacao_id, já foi setado no insert)
+    await supabase.from('cotacoes').update({ veiculo_id: novo.id }).eq('id', cotacao.id);
+    setVeiculoIdLocal(novo.id);
+    return novo.id;
+  };
+
+  // Criar/gerar link REAL de vistoria. Garante o veículo antes (Proc. C); se faltar placa,
+  // pede e não gera — o link nunca sai quebrado.
+  const handleCriarVistoria = async (canal: 'link' | 'telefone' | 'whatsapp') => {
     setIsCreatingVistoria(true);
     try {
+      const veiculoId = await garantirVeiculo();
+      if (!veiculoId) return;
       // Reaproveita vistoria já existente desta cotação (não duplica)
       const { data: existente } = await supabase
         .from('vistorias')
@@ -572,7 +644,7 @@ _(abra o link para visualizar todos os detalhes e aceitar online)_
         const { data: nova, error } = await supabase
           .from('vistorias')
           .insert({
-            veiculo_id: cotacao.veiculo_id,
+            veiculo_id: veiculoId,
             cotacao_id: cotacao.id,
             associado_id: cotacao.associado_id || null,
             consultor_id: cotacao.consultor_id,
@@ -1211,72 +1283,87 @@ _Proteção Veicular_`;
               </div>
             )}
 
-            {/* Ações — só quando há veículo real vinculado (link nunca sai quebrado) */}
-            {cotacao.veiculo_id ? (
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Button
-                  onClick={() => handleCriarVistoria('link')}
-                  disabled={isCreatingVistoria}
-                  variant="outline"
-                  className="justify-start"
-                >
-                  {isCreatingVistoria ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Link className="w-4 h-4 mr-2" />
-                  )}
-                  Gerar Link de Vistoria
-                </Button>
-
-                <Button
-                  onClick={handleLigarCliente}
-                  disabled={isCreatingVistoria || !clienteWhatsapp}
-                  variant="outline"
-                  className="justify-start"
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  Ligar para o Cliente
-                </Button>
-
-                <Button
-                  onClick={() => handleCriarVistoria('whatsapp')}
-                  disabled={isCreatingVistoria || !clienteWhatsapp}
-                  className="justify-start bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Enviar Link por WhatsApp
-                </Button>
-              </div>
-            ) : (
+            {/* Proc. C — sem veículo: formulário inline para criar direto da cotação */}
+            {!veiculoIdLocal && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                   <p className="text-sm text-amber-800">
-                    A vistoria é feita sobre o veículo do associado.{' '}
-                    {cotacao.associado_id
-                      ? 'Abra o associado desta cotação para cadastrar o veículo e liberar a vistoria.'
-                      : 'Esta cotação ainda não foi convertida em associado. Cadastre o associado (com o veículo) para liberar a vistoria.'}
+                    Esta cotação ainda não tem veículo cadastrado. Preencha os dados abaixo
+                    (a <strong>placa</strong> é obrigatória) para gerar a vistoria.
                   </p>
                 </div>
-                {cotacao.associado_id ? (
-                  <Button
-                    onClick={() => navigate(`/associados/${cotacao.associado_id}`)}
-                    className="w-full sm:w-auto"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Abrir associado
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => navigate(`/associados/novo?cotacao=${cotacao.id}`)}
-                    className="w-full sm:w-auto"
-                  >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Cadastrar associado
-                  </Button>
-                )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Placa *</Label>
+                    <Input
+                      value={veiculoForm.placa}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, placa: e.target.value.toUpperCase() })}
+                      placeholder="ABC1D23"
+                      maxLength={8}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ano</Label>
+                    <Input
+                      type="number"
+                      value={veiculoForm.ano}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, ano: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Marca</Label>
+                    <Input
+                      value={veiculoForm.marca}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, marca: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Modelo</Label>
+                    <Input
+                      value={veiculoForm.modelo}
+                      onChange={(e) => setVeiculoForm({ ...veiculoForm, modelo: e.target.value })}
+                    />
+                  </div>
+                </div>
               </div>
             )}
+
+            {/* Ações — sempre disponíveis; o veículo é criado no clique se ainda não existir */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Button
+                onClick={() => handleCriarVistoria('link')}
+                disabled={isCreatingVistoria}
+                variant="outline"
+                className="justify-start"
+              >
+                {isCreatingVistoria ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Link className="w-4 h-4 mr-2" />
+                )}
+                Gerar Link de Vistoria
+              </Button>
+
+              <Button
+                onClick={handleLigarCliente}
+                disabled={isCreatingVistoria || !clienteWhatsapp}
+                variant="outline"
+                className="justify-start"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Ligar para o Cliente
+              </Button>
+
+              <Button
+                onClick={() => handleCriarVistoria('whatsapp')}
+                disabled={isCreatingVistoria || !clienteWhatsapp}
+                className="justify-start bg-green-600 hover:bg-green-700 text-white"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enviar Link por WhatsApp
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
