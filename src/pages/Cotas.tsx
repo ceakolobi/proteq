@@ -350,7 +350,7 @@ export default function Cotas() {
                 Nova Cota
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingCota ? 'Editar Cota' : 'Nova Cota'}

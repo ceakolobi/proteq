@@ -976,7 +976,7 @@ export default function Veiculos() {
 
         {/* Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Veículo</DialogTitle>
               <DialogDescription>Atualize os dados do veículo e seu status.</DialogDescription>
@@ -1199,7 +1199,7 @@ export default function Veiculos() {
 
         {/* Create Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Novo Veículo</DialogTitle>
               <DialogDescription>Cadastre um novo veículo. Digite a placa para buscar automaticamente os dados FIPE.</DialogDescription>

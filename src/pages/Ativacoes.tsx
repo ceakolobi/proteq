@@ -467,7 +467,7 @@ export default function Ativacoes() {
                   {isConsultor ? 'Solicitar Ativação' : 'Nova Ativação'}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{isConsultor ? 'Solicitar Ativação' : 'Nova Ativação de Proteção'}</DialogTitle>
                   <DialogDescription>
