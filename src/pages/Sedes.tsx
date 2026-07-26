@@ -507,7 +507,7 @@ export default function Sedes() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedSede ? 'Editar Regional' : 'Nova Regional'}

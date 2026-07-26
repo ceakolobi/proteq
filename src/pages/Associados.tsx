@@ -1058,7 +1058,7 @@ export default function Associados() {
 
         {/* Create/Edit Associado Dialog with Wizard */}
         <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {isWizardMode 
@@ -1273,7 +1273,7 @@ export default function Associados() {
 
         {/* Standalone Add Veiculo Dialog (for existing associados) */}
         <Dialog open={isVeiculoDialogOpen} onOpenChange={setIsVeiculoDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Adicionar Veículo</DialogTitle>
               <DialogDescription>

@@ -561,7 +561,7 @@ export default function Vistorias() {
                   Solicitar Vistoria
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Solicitar Nova Vistoria</DialogTitle>
                   <DialogDescription>Preencha os dados para solicitar uma vistoria</DialogDescription>

@@ -141,7 +141,7 @@ export default function BeneficiosExtrasPage() {
         )}
 
         <Dialog open={openModal} onOpenChange={setOpenModal}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing?.id ? 'Editar' : 'Novo'} Benefício Extra</DialogTitle>
             </DialogHeader>
