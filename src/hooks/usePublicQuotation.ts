@@ -135,77 +135,109 @@ export function usePublicQuotation() {
 
   const salvarDadosPessoais = async (dados: DadosPessoais) => {
     setDadosPessoais(dados);
-    
-    // Criar lead automaticamente no sistema
+    setLoading(true);
+
+    // Criar lead automaticamente no sistema.
+    // REGRA: se qualquer escrita do lead falhar, avisamos o usuário e NÃO
+    // avançamos de etapa — avançar mesmo com erro produzia falso sucesso e
+    // perdia todos os leads do funil.
     try {
       // Buscar um consultor padrão (primeiro ativo) para associar o lead
-      const { data: consultores } = await supabase
-        .rpc('get_default_consultor_publico') as { data: { id: string; company_id: string | null }[] | null };
+      const { data: consultores, error: consultorError } = await supabase
+        .rpc('get_default_consultor_publico') as { data: { id: string; company_id: string | null }[] | null; error: unknown };
+
+      if (consultorError) {
+        console.error('[usePublicQuotation] Erro ao buscar consultor padrão:', consultorError);
+        toast.error('Não foi possível iniciar sua cotação agora. Tente novamente em instantes.');
+        return;
+      }
 
       const consultorId = consultores?.[0]?.id;
       const companyId = consultores?.[0]?.company_id;
 
-      if (consultorId) {
-        setDefaultConsultorId(consultorId);
-        setDefaultCompanyId(companyId || null);
-
-        // Verificar se já existe um lead com esse telefone/email
-        const telefoneNormalizado = dados.telefone.replace(/\D/g, '');
-        const { data: existingLead } = await supabase
-          .from('leads')
-          .select('id')
-          .eq('telefone', telefoneNormalizado)
-          .limit(1)
-          .maybeSingle() as { data: { id: string } | null };
-
-        // Aceite LGPD (valor real do checkbox) + UTMs capturados na entrada
-        const lgpdUtm = {
-          consentimento_lgpd: !!dados.consentimentoLgpd,
-          consentimento_lgpd_em: dados.consentimentoLgpd ? new Date().toISOString() : null,
-          utm_source: utm.utm_source,
-          utm_medium: utm.utm_medium,
-          utm_campaign: utm.utm_campaign,
-        };
-
-        if (existingLead) {
-          // Lead existente encontrado — atualiza aceite/UTM desta cotação
-          setLeadId(existingLead.id);
-          await supabase
-            .from('leads')
-            .update(lgpdUtm as any)
-            .eq('id', existingLead.id);
-          console.log('[usePublicQuotation] Lead existente encontrado:', existingLead.id);
-        } else {
-          // Criar novo lead
-          const { data: novoLead, error: leadError } = await supabase
-            .from('leads')
-            .insert({
-              nome: dados.nome.trim(),
-              telefone: telefoneNormalizado,
-              email: dados.email.trim().toLowerCase(),
-              consultor_id: consultorId,
-              company_id: companyId,
-              origem: 'site' as const,
-              status: 'novo' as const,
-              ...lgpdUtm,
-            } as any)
-            .select('id')
-            .single();
-
-          if (leadError) {
-            console.error('[usePublicQuotation] Erro ao criar lead:', leadError);
-          } else if (novoLead) {
-            setLeadId(novoLead.id);
-            console.log('[usePublicQuotation] Lead criado com sucesso:', novoLead.id);
-          }
-        }
-      } else {
+      if (!consultorId) {
         console.warn('[usePublicQuotation] Nenhum consultor encontrado para associar o lead');
+        toast.error('Não foi possível iniciar sua cotação agora. Tente novamente em instantes.');
+        return;
+      }
+
+      setDefaultConsultorId(consultorId);
+      setDefaultCompanyId(companyId || null);
+
+      // Verificar se já existe um lead com esse telefone/email
+      const telefoneNormalizado = dados.telefone.replace(/\D/g, '');
+      const { data: existingLead, error: existingLeadError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('telefone', telefoneNormalizado)
+        .limit(1)
+        .maybeSingle() as { data: { id: string } | null; error: unknown };
+
+      if (existingLeadError) {
+        console.error('[usePublicQuotation] Erro ao verificar lead existente:', existingLeadError);
+        toast.error('Não foi possível salvar seus dados. Tente novamente.');
+        return;
+      }
+
+      // Aceite LGPD (valor real do checkbox) + UTMs capturados na entrada
+      const lgpdUtm = {
+        consentimento_lgpd: !!dados.consentimentoLgpd,
+        consentimento_lgpd_em: dados.consentimentoLgpd ? new Date().toISOString() : null,
+        utm_source: utm.utm_source,
+        utm_medium: utm.utm_medium,
+        utm_campaign: utm.utm_campaign,
+      };
+
+      if (existingLead) {
+        // Lead existente encontrado — atualiza aceite/UTM desta cotação
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update(lgpdUtm as any)
+          .eq('id', existingLead.id);
+
+        if (updateError) {
+          console.error('[usePublicQuotation] Erro ao atualizar lead existente:', updateError);
+          toast.error('Não foi possível salvar seus dados. Tente novamente.');
+          return;
+        }
+
+        setLeadId(existingLead.id);
+        console.log('[usePublicQuotation] Lead existente atualizado:', existingLead.id);
+      } else {
+        // Criar novo lead
+        const { data: novoLead, error: leadError } = await supabase
+          .from('leads')
+          .insert({
+            nome: dados.nome.trim(),
+            telefone: telefoneNormalizado,
+            email: dados.email.trim().toLowerCase(),
+            consultor_id: consultorId,
+            company_id: companyId,
+            origem: 'site' as const,
+            status: 'novo' as const,
+            ...lgpdUtm,
+          } as any)
+          .select('id')
+          .single();
+
+        if (leadError || !novoLead) {
+          console.error('[usePublicQuotation] Erro ao criar lead:', leadError);
+          toast.error('Não foi possível salvar seus dados. Tente novamente.');
+          return;
+        }
+
+        setLeadId(novoLead.id);
+        console.log('[usePublicQuotation] Lead criado com sucesso:', novoLead.id);
       }
     } catch (error) {
       console.error('[usePublicQuotation] Erro ao processar lead:', error);
+      toast.error('Erro inesperado ao salvar seus dados. Tente novamente.');
+      return;
+    } finally {
+      setLoading(false);
     }
-    
+
+    // Só chega aqui se o lead foi gravado/atualizado com sucesso.
     setEtapa('dados_veiculo');
   };
 
