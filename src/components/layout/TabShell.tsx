@@ -2,6 +2,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { TabBar } from '@/components/layout/TabBar';
 import { ShellSlotContext, useTabManager } from '@/contexts/TabManagerContext';
 import { TAB_REGISTRY } from '@/config/tabRegistry';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function TabShell() {
   const tm = useTabManager();
@@ -25,7 +26,9 @@ export default function TabShell() {
               const visible = tab.id === activeId && !tab.minimized;
               return (
                 <div key={tab.id} style={{ display: visible ? 'block' : 'none' }}>
-                  <Component />
+                  <ErrorBoundary label={`aba: ${def.title}`} compact>
+                    <Component />
+                  </ErrorBoundary>
                 </div>
               );
             })}

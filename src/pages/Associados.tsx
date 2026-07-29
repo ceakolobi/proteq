@@ -251,6 +251,17 @@ export default function Associados() {
     }
   }, [user?.id, isAdminPrincipal, isConsultor, isAllowed, isChecking, permissionsLoading, canAccessPage]);
 
+  // Rota /associados/novo abre direto o wizard de cadastro (usado pelo CTA da cotação).
+  // Precisa ficar ANTES dos early returns abaixo: hooks nunca podem ser condicionais,
+  // senao da React error #310 ("rendered more hooks than during the previous render") —
+  // era a causa da tela branca em Associados e no /dashboard (TabShell monta a aba).
+  useEffect(() => {
+    if (location.pathname === '/associados/novo' && profile) {
+      handleOpenNewAssociadoWizard();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, profile]);
+
   if (isChecking || permissionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -360,14 +371,6 @@ export default function Associados() {
     // Abre o novo wizard moderno
     setIsNewWizardOpen(true);
   };
-
-  // Rota /associados/novo abre direto o wizard de cadastro (usado pelo CTA da cotação)
-  useEffect(() => {
-    if (location.pathname === '/associados/novo' && profile) {
-      handleOpenNewAssociadoWizard();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, profile]);
 
   const handleOpenEditDialog = (associado: AssociadoWithDetails) => {
     navigate('/associados/' + associado.id);

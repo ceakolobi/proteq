@@ -5,6 +5,7 @@ import { useAccessControl } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -98,7 +99,7 @@ export default function Pagamentos() {
 
       if (mesFilter) {
         const primeiroDia = `${mesFilter}-01`;
-        const ultimoDia = new Date(parseInt(mesFilter.split('-')[0]), parseInt(mesFilter.split('-')[1]), 0).toISOString().split('T')[0];
+        const ultimoDia = toLocalYMD(new Date(parseInt(mesFilter.split('-')[0]), parseInt(mesFilter.split('-')[1]), 0));
         query = query.gte('data_pagamento', primeiroDia).lte('data_pagamento', ultimoDia);
       }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toLocalYMD } from '@/lib/dateUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
@@ -281,7 +282,7 @@ export default function Ativacoes() {
         plano: formPlano || veiculo.cotas?.cota_nome || null,
         categoria: formCategoria || null,
         cobertura_resumida: formCobertura || null,
-        data_ativacao: new Date().toISOString().split('T')[0],
+        data_ativacao: toLocalYMD(),
         data_vencimento: formDataVencimento || null,
         status: (isConsultor ? 'pendente_financeiro' : formStatus) as AtivacaoStatus,
         observacoes: formObservacoes || null,
