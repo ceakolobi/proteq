@@ -666,8 +666,11 @@ function SystemFooter() {
 
   if (versionLoading || settingsLoading) return null;
 
-  const releaseDate = systemInfo?.release_date
-    ? format(new Date(systemInfo.release_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+  // Guardar contra data invalida: format() do date-fns LANCA "Invalid time value"
+  // numa data invalida (diferente de toLocaleDateString) e derrubaria todo o shell.
+  const releaseDateObj = systemInfo?.release_date ? new Date(systemInfo.release_date) : null;
+  const releaseDate = releaseDateObj && !isNaN(releaseDateObj.getTime())
+    ? format(releaseDateObj, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : '';
 
   const contatos = [
