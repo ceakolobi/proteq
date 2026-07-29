@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -74,7 +75,7 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true });
 
         // Fetch propostas hoje - only if user can see proposals
-        const today = new Date().toISOString().split('T')[0];
+        const today = toLocalYMD();
         const { count: propostasHoje } = await supabase
           .from('propostas')
           .select('*', { count: 'exact', head: true })

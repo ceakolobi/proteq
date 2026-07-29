@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -400,7 +401,7 @@ export default function RegionalDashboard() {
     try {
       const mesStart = `${mesReferencia}-01`;
       const [ano, mes] = mesReferencia.split('-').map(Number);
-      const mesEnd = new Date(ano, mes, 0).toISOString().split('T')[0];
+      const mesEnd = toLocalYMD(new Date(ano, mes, 0));
 
       const { data, error } = await supabase
         .from('comissoes' as any)

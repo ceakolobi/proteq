@@ -5,6 +5,7 @@ import { useAccessControl } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,8 +66,8 @@ export default function RelatoriosFinanceiros() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<ReportData[]>([]);
   const [filters, setFilters] = useState({
-    dataInicio: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
-    dataFim: new Date().toISOString().split('T')[0],
+    dataInicio: toLocalYMD(new Date(new Date().getFullYear(), 0, 1)),
+    dataFim: toLocalYMD(),
     tipoRelatorio: 'mensal',
   });
 

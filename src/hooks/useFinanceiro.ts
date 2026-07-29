@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import type { 
   Mensalidade, 
@@ -25,8 +26,8 @@ export function useFinanceiro() {
     }
 
     const hoje = new Date();
-    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
-    const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+    const primeiroDiaMes = toLocalYMD(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+    const ultimoDiaMes = toLocalYMD(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
 
     try {
       // Buscar mensalidades do mês

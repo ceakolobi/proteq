@@ -3,6 +3,72 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+
+    <!-- harmony boot guard: rede de seguranca contra tela branca pos-deploy.
+         Se um <script>/<link> de /assets/ falhar ao carregar (chunk removido por
+         deploy novo, servido index.html velho), limpa SW+caches e recarrega UMA vez.
+         Reusa a MESMA flag do chunkRecovery.ts para nao duplicar reload. -->
+    <script>
+      (function () {
+        var FLAG = 'harmony:chunk-recovery';
+        var done = false;
+        function isAssetUrl(u) {
+          return typeof u === 'string' && u.indexOf('/assets/') !== -1 && /\.(m?js|css)(\?|$)/.test(u);
+        }
+        function showManual() {
+          try {
+            document.body.innerHTML =
+              '<div style="font-family:system-ui,sans-serif;max-width:420px;margin:15vh auto;text-align:center;color:#1f2937">' +
+              '<h2>Atualizacao necessaria</h2>' +
+              '<p style="color:#6b7280">Ja tentamos atualizar automaticamente. Por favor recarregue forcando: ' +
+              '<strong>Ctrl+Shift+R</strong> (Windows) ou <strong>Cmd+Shift+R</strong> (Mac).</p></div>';
+          } catch (e) {}
+        }
+        function recover(info) {
+          if (done) return; done = true;
+          try {
+            sessionStorage.setItem('harmony:last-error', JSON.stringify({
+              when: new Date().toISOString(), tipo: 'boot-chunk-failure', origem: 'index.html',
+              detalhe: String(info), url: location.href,
+              userAgent: (navigator && navigator.userAgent) || null
+            }));
+          } catch (e) {}
+          var jaTentou = false;
+          try { jaTentou = !!sessionStorage.getItem(FLAG); } catch (e) {}
+          if (jaTentou) { showManual(); return; }
+          try { sessionStorage.setItem(FLAG, String(Date.now())); } catch (e) {}
+          var reload = function () { try { location.reload(); } catch (e) {} };
+          var tasks = [];
+          try {
+            if (navigator.serviceWorker) {
+              tasks.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister(); }));
+              }).catch(function () {}));
+            }
+          } catch (e) {}
+          try {
+            if (window.caches) {
+              tasks.push(caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+              }).catch(function () {}));
+            }
+          } catch (e) {}
+          if (tasks.length && window.Promise) { Promise.all(tasks).then(reload).catch(reload); setTimeout(reload, 3000); }
+          else reload();
+        }
+        window.addEventListener('error', function (e) {
+          var t = e && e.target;
+          if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+            var u = t.src || t.href || '';
+            if (isAssetUrl(u)) recover(u);
+            return;
+          }
+          if (e && typeof e.message === 'string' && e.message.indexOf("Unexpected token '<'") !== -1) {
+            recover(e.message);
+          }
+        }, true);
+      })();
+    </script>
     <title>Harmony CRM - Proteção Veicular 100% Digital | Cotação Online</title>
     <meta name="description" content="Proteção veicular 100% digital. Faça sua cotação online em 2 minutos, contratação sem burocracia e ativação imediata. Sem ligações de vendedores!" />
     <meta name="keywords" content="proteção veicular, proteção de carro, cotação online, proteção de veículo, associação de proteção veicular, proteção automotiva, proteção 24h" />
@@ -87,7 +153,7 @@
       .safe-area-top { padding-top: var(--sat); }
       .safe-area-bottom { padding-bottom: var(--sab); }
     </style>
-    <script type="module" crossorigin src="/assets/index-DSOLVi-t.js"></script>
+    <script type="module" crossorigin src="/assets/index-8nsuXjez.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BiUqEvZ1.css">
   <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
 

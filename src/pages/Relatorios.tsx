@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
@@ -155,7 +156,7 @@ export default function Relatorios() {
   };
 
   const getExportData = (): { data: any[]; columns: ExportColumn[]; filename: string; title: string } => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalYMD();
     
     switch (activeTab) {
       case 'regional':

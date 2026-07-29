@@ -5,6 +5,7 @@ import { useAccessControl } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFinanceiro } from '@/hooks/useFinanceiro';
+import { toLocalYMD } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -85,7 +86,7 @@ export default function Mensalidades() {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [paymentData, setPaymentData] = useState({
     forma_pagamento: '',
-    data_pagamento: new Date().toISOString().split('T')[0],
+    data_pagamento: toLocalYMD(),
     observacoes: '',
   });
   const [newStatus, setNewStatus] = useState<string>('');
@@ -115,7 +116,7 @@ export default function Mensalidades() {
     setSelectedMensalidade(mensalidade);
     setPaymentData({
       forma_pagamento: '',
-      data_pagamento: new Date().toISOString().split('T')[0],
+      data_pagamento: toLocalYMD(),
       observacoes: '',
     });
     setIsPaymentDialogOpen(true);
