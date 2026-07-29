@@ -53,6 +53,7 @@ import ConsultorDetalhe from "./pages/ConsultorDetalhe";
 import DefinirSenha from "./pages/DefinirSenha";
 import TabShell from "./components/layout/TabShell";
 import { TabManagerProvider } from "./contexts/TabManagerContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -150,6 +151,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <TabManagerProvider>
+              <ErrorBoundary label="app">
               <Routes>
                 {/* Rotas públicas - apenas landing e autenticação */}
                 <Route path="/" element={<HomeRoute />} />
@@ -214,6 +216,7 @@ const App = () => (
                 {/* 404 - Rota não encontrada */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </ErrorBoundary>
               </TabManagerProvider>
             </BrowserRouter>
           </PWAWrapper>
