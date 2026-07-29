@@ -54,7 +54,23 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Desliga o NavigationRoute cache-first do precache (que servia o index.html
+        // antigo apontando para chunks removidos por um deploy novo -> tela branca).
+        navigateFallback: null,
         runtimeCaching: [
+          {
+            // Navegacoes (index.html): network-first — busca o index novo; cai no
+            // cache 'html-cache' apenas se offline ou se estourar o timeout.
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-cache",
+              networkTimeoutSeconds: 3,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
