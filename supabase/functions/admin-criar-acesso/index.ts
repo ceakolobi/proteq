@@ -62,6 +62,30 @@ serve(async (req) => {
       return ok({ success: false, error: "userId e modo são obrigatórios" });
     }
 
+    // Proteção: admin não-principal não pode resetar senha de outro admin
+    const isCallerAdminPrincipal = callerProfile?.is_admin_principal === true;
+    if (!isCallerAdminPrincipal) {
+      const { data: targetProfile } = await adminClient
+        .from("profiles")
+        .select("is_admin_principal")
+        .eq("id", userId)
+        .single();
+
+      const { data: targetRoles } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+
+      const adminRolesSet = ["admin_principal", "admin_regional", "admin_nivel_basico"];
+      const targetIsAdmin =
+        targetProfile?.is_admin_principal === true ||
+        targetRoles?.some((r: { role: string }) => adminRolesSet.includes(r.role));
+
+      if (targetIsAdmin) {
+        return ok({ success: false, error: "Você não tem permissão para alterar a senha de um administrador" });
+      }
+    }
+
     // Buscar e-mail real de auth.users — profiles.email pode estar desatualizado
     const { data: authUser, error: authUserError } = await adminClient.auth.admin.getUserById(userId);
     if (authUserError || !authUser?.user?.email) {

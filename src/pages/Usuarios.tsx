@@ -46,7 +46,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
-import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff, Trash2, Key, Copy } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,6 +118,13 @@ export default function Usuarios() {
   const [acessoLoading, setAcessoLoading] = useState<'link' | 'senha' | null>(null);
   const [senhaGerada, setSenhaGerada] = useState<string | null>(null);
 
+  // Modal de credenciais (botão por linha)
+  const [credenciaisUser, setCredenciaisUser] = useState<UserWithRole | null>(null);
+  const [isCredenciaisOpen, setIsCredenciaisOpen] = useState(false);
+  const [senhaGeradaCredenciais, setSenhaGeradaCredenciais] = useState<string | null>(null);
+  const [novoEmail, setNovoEmail] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+
   // Extrai mensagem real de erro de um FunctionsHttpError (o Supabase não expõe o body automaticamente)
   const extractFunctionError = async (error: any): Promise<string> => {
     try {
@@ -161,6 +169,78 @@ export default function Usuarios() {
       toast({ variant: 'destructive', title: 'Erro ao gerar senha', description: err.message });
     } finally {
       setAcessoLoading(null);
+    }
+  };
+
+  const handleAbrirCredenciais = (u: UserWithRole) => {
+    setCredenciaisUser(u);
+    setNovoEmail(u.email || '');
+    setSenhaGeradaCredenciais(null);
+    setIsCredenciaisOpen(true);
+  };
+
+  const handleEnviarLinkCredenciais = async () => {
+    if (!credenciaisUser) return;
+    setAcessoLoading('link');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-criar-acesso', {
+        body: { userId: credenciaisUser.id, modo: 'link' },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(await extractFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Link enviado!', description: `E-mail de redefinição enviado para ${credenciaisUser.email}.` });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro ao enviar link', description: err.message });
+    } finally {
+      setAcessoLoading(null);
+    }
+  };
+
+  const handleGerarSenhaCredenciais = async () => {
+    if (!credenciaisUser) return;
+    setAcessoLoading('senha');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-criar-acesso', {
+        body: { userId: credenciaisUser.id, modo: 'senha_provisoria' },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(await extractFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      setSenhaGeradaCredenciais(data.senha);
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro ao gerar senha', description: err.message });
+    } finally {
+      setAcessoLoading(null);
+    }
+  };
+
+  const handleAlterarEmail = async () => {
+    if (!credenciaisUser) return;
+    const emailTrimmed = novoEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTrimmed)) {
+      toast({ variant: 'destructive', title: 'E-mail inválido', description: 'Verifique o formato do e-mail.' });
+      return;
+    }
+    setEmailLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-alterar-email', {
+        body: { userId: credenciaisUser.id, novoEmail: emailTrimmed },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(await extractFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'E-mail alterado!', description: `E-mail atualizado para ${emailTrimmed}.` });
+      setIsCredenciaisOpen(false);
+      fetchData();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro ao alterar e-mail', description: err.message });
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -268,6 +348,12 @@ export default function Usuarios() {
       targetUser.is_admin_principal,
       targetUser.email
     );
+  };
+
+  const canManageCredsOf = (targetUser: Profile) => {
+    if (isProtectedAdmin(targetUser)) return false;
+    return isAdminPrincipal ||
+      currentUserRoles.some(r => (['admin_regional', 'admin_nivel_basico'] as string[]).includes(r));
   };
 
   // Fetch user permissions when opening edit dialog
@@ -676,9 +762,20 @@ export default function Usuarios() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  title="Editar usuário"
                                   onClick={() => handleOpenDialog({ ...user, roles: userRoles })}
                                 >
                                   <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canManageCredsOf(user) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Alterar senha / e-mail"
+                                  onClick={() => handleAbrirCredenciais({ ...user, roles: userRoles })}
+                                >
+                                  <Key className="h-4 w-4" />
                                 </Button>
                               )}
                               {canDeleteUser(user) && (
@@ -1028,6 +1125,109 @@ export default function Usuarios() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Modal de credenciais: alterar senha e e-mail */}
+      <Dialog
+        open={isCredenciaisOpen}
+        onOpenChange={(o) => {
+          if (!o) { setIsCredenciaisOpen(false); setSenhaGeradaCredenciais(null); }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Alterar Acesso
+            </DialogTitle>
+            <DialogDescription>
+              {credenciaisUser?.nome_completo} · {credenciaisUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-2">
+            {/* Seção Senha */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Senha</p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!!acessoLoading}
+                  onClick={handleEnviarLinkCredenciais}
+                >
+                  {acessoLoading === 'link' ? 'Enviando…' : '✉️ Enviar link de redefinição por e-mail'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!!acessoLoading}
+                  onClick={handleGerarSenhaCredenciais}
+                >
+                  {acessoLoading === 'senha' ? 'Gerando…' : '🔑 Gerar senha provisória'}
+                </Button>
+              </div>
+
+              {senhaGeradaCredenciais && (
+                <div className="rounded-md border p-3 bg-muted/40 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Repasse por canal seguro (WhatsApp, ligação etc.):
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded bg-muted px-3 py-2 font-mono tracking-widest select-all text-sm">
+                      {senhaGeradaCredenciais}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(senhaGeradaCredenciais);
+                        toast({ title: 'Copiado!' });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-destructive font-medium">
+                    Aparece apenas uma vez — anote antes de fechar.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Seção E-mail */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">E-mail de acesso</p>
+              <div className="space-y-2">
+                <Label htmlFor="novo-email-creds">Novo e-mail</Label>
+                <Input
+                  id="novo-email-creds"
+                  type="email"
+                  placeholder="novo@email.com"
+                  value={novoEmail}
+                  onChange={(e) => setNovoEmail(e.target.value)}
+                />
+              </div>
+              <Button
+                className="w-full"
+                size="sm"
+                disabled={
+                  emailLoading ||
+                  !novoEmail.trim() ||
+                  novoEmail.trim().toLowerCase() === credenciaisUser?.email?.toLowerCase()
+                }
+                onClick={handleAlterarEmail}
+              >
+                {emailLoading ? 'Salvando…' : 'Confirmar alteração de e-mail'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                O usuário precisará usar o novo e-mail para fazer login.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal: exibir senha provisória gerada */}
       <AlertDialog open={!!senhaGerada} onOpenChange={open => { if (!open) setSenhaGerada(null); }}>
