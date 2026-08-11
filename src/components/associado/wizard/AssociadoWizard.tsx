@@ -88,11 +88,16 @@ const initialVeiculoData: VeiculoFormData = {
   codigo_fipe: '',
 };
 
+interface ConsultorOption {
+  id: string;
+  nome_completo: string;
+}
+
 export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWizardProps) {
-  const { user, profile, isAdminPrincipal, isGlobalAdmin } = useAuth();
+  const { user, profile, isAdminPrincipal, isGlobalAdmin, hasRole } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [associadoData, setAssociadoData] = useState<AssociadoFormData>(initialAssociadoData);
   const [veiculoData, setVeiculoData] = useState<VeiculoFormData>(initialVeiculoData);
   const [docsAssociado, setDocsAssociado] = useState<DocumentoUpload[]>([]);
@@ -101,6 +106,9 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
   const [selectedRegiaoId, setSelectedRegiaoId] = useState<string | null>(null);
   const [regioes, setRegioes] = useState<Regiao[]>([]);
   const [isLoadingRegioes, setIsLoadingRegioes] = useState(false);
+  const [selectedConsultorId, setSelectedConsultorId] = useState('');
+  const [consultores, setConsultores] = useState<ConsultorOption[]>([]);
+  const [isLoadingConsultores, setIsLoadingConsultores] = useState(false);
   
   const [stepValidation, setStepValidation] = useState<Record<number, boolean>>({});
   const [pendingScannedDocs, setPendingScannedDocs] = useState<ScanResult[]>([]);
@@ -113,6 +121,10 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
   // Determinar se precisa exibir seletor de regional
   const needsRegiaoSelector = isAdminPrincipal || isGlobalAdmin || !profile?.regiao_id;
+
+  // Admin/gerente podem atribuir a outro consultor; consultor regular é auto-atribuído
+  const canChangeConsultor = isAdminPrincipal || isGlobalAdmin ||
+    hasRole('gerente') || hasRole('admin_regional');
 
   const {
     saveDraftLocal,
@@ -148,6 +160,40 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
 
     fetchRegioes();
   }, [open, needsRegiaoSelector]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!canChangeConsultor) {
+      // Consultor regular: auto-atribui a si mesmo
+      if (user?.id) setSelectedConsultorId(user.id);
+      return;
+    }
+    // Admin/gerente: carrega lista e começa vazio (força seleção)
+    const fetchConsultores = async () => {
+      setIsLoadingConsultores(true);
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['consultor_vendas', 'gerente']);
+
+      if (!rolesData || rolesData.length === 0) {
+        setConsultores([]);
+        setIsLoadingConsultores(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, nome_completo')
+        .in('id', rolesData.map(r => r.user_id))
+        .order('nome_completo');
+
+      setConsultores((data || []) as ConsultorOption[]);
+      setIsLoadingConsultores(false);
+    };
+
+    fetchConsultores();
+  }, [open, canChangeConsultor, user?.id]);
 
   // Check for draft when dialog opens
   useEffect(() => {
@@ -206,6 +252,8 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
     setDocsVeiculo([]);
     setTermosAceitos(false);
     setSelectedRegiaoId(null);
+    setSelectedConsultorId('');
+    setConsultores([]);
     setStepValidation({});
     setPendingScannedDocs([]);
     setPendingDraft(null);
@@ -304,6 +352,10 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       case 5: // Resumo e confirmação
         if (needsRegiaoSelector && !selectedRegiaoId) {
           toast.error('Selecione uma regional para o associado');
+          return false;
+        }
+        if (!selectedConsultorId) {
+          toast.error('Selecione o consultor responsável pelo associado');
           return false;
         }
         return true;
@@ -457,7 +509,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
         .rpc('upsert_associado_por_cpf', {
           p_cpf: associadoData.cpf.replace(/\D/g, ''),
           p_dados: dadosJson,
-          p_consultor_id: user.id,
+          p_consultor_id: selectedConsultorId || user.id,
           p_regiao_id: finalRegiaoId,
           p_company_id: profile?.company_id ?? null,
         });
@@ -545,7 +597,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           codigo_fipe: veiculoData.codigo_fipe || null,
           cota_id: cotaApropriada.id,
           mensalidade,
-          consultor_id: user.id,
+          consultor_id: selectedConsultorId || user.id,
           company_id: profile?.company_id ?? null,
           carro_reserva_dias: 15,
         })
@@ -580,7 +632,7 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
           .insert({
             veiculo_id: veiculo.id,
             associado_id: associado.id,
-            consultor_id: user.id,
+            consultor_id: selectedConsultorId || user.id,
             company_id: profile?.company_id ?? null,
             status: 'dispensada',
             motivo_dispensa: `Migração de outra associação: ${associadoData.nome_associacao_anterior || 'Não informada'}. Data de saída: ${dataSaidaFormatada}`,
@@ -682,6 +734,44 @@ export function AssociadoWizard({ open, onOpenChange, onSuccess }: AssociadoWiza
       case 5:
         return (
           <div className="space-y-6">
+            {/* Consultor responsável — visível para admin/gerente */}
+            {canChangeConsultor && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Consultor Responsável
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="consultor-select">Consultor *</Label>
+                    <Select
+                      value={selectedConsultorId}
+                      onValueChange={setSelectedConsultorId}
+                      disabled={isLoadingConsultores}
+                    >
+                      <SelectTrigger id="consultor-select" className="w-full">
+                        <SelectValue placeholder={isLoadingConsultores ? 'Carregando...' : 'Selecione o consultor'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {consultores.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_completo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!selectedConsultorId && (
+                      <p className="text-xs text-destructive">
+                        É obrigatório selecionar o consultor responsável.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {needsRegiaoSelector && (
               <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">

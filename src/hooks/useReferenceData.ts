@@ -114,7 +114,7 @@ export function useReferenceData(options: ReferenceDataOptions = {}): ReferenceD
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
-        .eq('role', 'consultor_vendas');
+        .in('role', ['consultor_vendas', 'gerente']);
 
       if (rolesError) throw rolesError;
 

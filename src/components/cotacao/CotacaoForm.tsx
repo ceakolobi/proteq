@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useReferenceData } from '@/hooks/useReferenceData';
 import { useMensalidadeCalculada } from '@/hooks/useMensalidadeCalculada';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
+  UserCheck,
 } from 'lucide-react';
 import type { Cotacao, TipoBem, MetodoValoracao } from '@/types/cotacao';
 import { tipoBemLabels, metodoValoracaoLabels, tiposSemFipe } from '@/types/cotacao';
@@ -77,6 +79,18 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
   const perfilEditor = useMemo(() => {
     return getPerfilEditor(roles || [], isAdminPrincipal);
   }, [roles, isAdminPrincipal]);
+
+  const podeAlterarConsultor = perfilEditor !== 'CONSULTOR';
+
+  const { consultores } = useReferenceData({ loadConsultores: true, loadRegioes: false });
+  const [selectedConsultorId, setSelectedConsultorId] = useState('');
+
+  // Pré-seleciona o próprio consultor; admin/gestor começa vazio (força seleção)
+  useEffect(() => {
+    if (user?.id && perfilEditor === 'CONSULTOR') {
+      setSelectedConsultorId(user.id);
+    }
+  }, [user?.id, perfilEditor]);
 
   const [formData, setFormData] = useState({
     tipo_bem: '' as TipoBem | '',
@@ -297,9 +311,15 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       toast.error('Calcule a cotação primeiro');
       return;
     }
-    
+
     if (!resultadoFinal.valorFinal || resultadoFinal.valorFinal <= 0) {
       toast.error('Não é possível salvar cotação sem mensalidade calculada');
+      return;
+    }
+
+    if (!selectedConsultorId) {
+      setErrors(prev => ({ ...prev, consultor_id: 'Selecione o consultor responsável' }));
+      toast.error('Selecione o consultor responsável');
       return;
     }
 
@@ -335,7 +355,7 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
         ano_fabricacao: parseInt(formData.ano_fabricacao),
         valor_bem: valorBem,
         metodo_valoracao: formData.metodo_valoracao!,
-        consultor_id: user?.id!,
+        consultor_id: selectedConsultorId || user?.id!,
         company_id: profile?.company_id || null,
         regiao_id: profile?.regiao_id || null,
         lead_id: leadId || null,
@@ -402,6 +422,10 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
 
   // Confirma e salva em um único passo a partir da prévia (igual ao fluxo da landing)
   const handleConfirmarESalvar = async () => {
+    if (!selectedConsultorId) {
+      toast.error('Selecione o consultor responsável');
+      return;
+    }
     if (!formData.tipo_bem || !formData.marca || !formData.modelo || !formData.ano_fabricacao || !formData.valor_bem) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
@@ -456,6 +480,38 @@ export default function CotacaoForm({ leadId, leadNome, onSuccess, onCancel }: C
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Formulário */}
         <div className="space-y-6">
+          {/* Consultor Responsável */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <UserCheck className="w-5 h-5" />
+                Consultor Responsável
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>Consultor *</Label>
+                <Select
+                  value={selectedConsultorId}
+                  onValueChange={setSelectedConsultorId}
+                  disabled={!podeAlterarConsultor}
+                >
+                  <SelectTrigger className={(errors as any).consultor_id ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Selecione o consultor responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {consultores.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(errors as any).consultor_id && (
+                  <p className="text-sm text-destructive">{(errors as any).consultor_id}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* ETAPA 1: Tipo do Bem (determina categoria automaticamente) */}
           <Card>
             <CardHeader className="pb-4">
