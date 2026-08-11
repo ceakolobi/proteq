@@ -46,7 +46,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, AppRole, roleLabels } from '@/types/database';
-import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff, Trash2, Key, Copy } from 'lucide-react';
+import { Users, Pencil, Shield, Search, Plus, UserPlus, Eye, EyeOff, Trash2, Key, Copy, UserX } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
@@ -113,6 +113,8 @@ export default function Usuarios() {
   });
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
+  const [userToHardDelete, setUserToHardDelete] = useState<Profile | null>(null);
+  const [isHardDeleting, setIsHardDeleting] = useState(false);
 
   // Acesso inicial: estado para botões de admin
   const [acessoLoading, setAcessoLoading] = useState<'link' | 'senha' | null>(null);
@@ -214,6 +216,27 @@ export default function Usuarios() {
       toast({ variant: 'destructive', title: 'Erro ao gerar senha', description: err.message });
     } finally {
       setAcessoLoading(null);
+    }
+  };
+
+  const handleHardDeleteUser = async () => {
+    if (!userToHardDelete) return;
+    setIsHardDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('admin-deletar-usuario', {
+        body: { userId: userToHardDelete.id },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw new Error(await extractFunctionError(error));
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Usuário excluído', description: `${userToHardDelete.nome_completo} foi removido permanentemente.` });
+      setUserToHardDelete(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Erro ao excluir', description: err.message });
+    } finally {
+      setIsHardDeleting(false);
     }
   };
 
@@ -782,10 +805,22 @@ export default function Usuarios() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  title="Desativar usuário"
                                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                   onClick={() => setUserToDelete(user)}
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {isAdminPrincipal && !isProtectedAdmin(user) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Excluir permanentemente"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setUserToHardDelete(user)}
+                                >
+                                  <UserX className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
@@ -1258,6 +1293,41 @@ export default function Usuarios() {
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setSenhaGerada(null)}>
               Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação de exclusão permanente */}
+      <AlertDialog open={!!userToHardDelete} onOpenChange={open => { if (!open) setUserToHardDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <UserX className="h-5 w-5" />
+              Excluir permanentemente
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Tem certeza que deseja excluir <strong>{userToHardDelete?.nome_completo}</strong> ({userToHardDelete?.email}) de forma permanente?
+                </p>
+                <p className="font-semibold text-destructive">
+                  Esta ação é irreversível. O usuário será removido do sistema de autenticação e não poderá ser recuperado.
+                </p>
+                <p className="text-xs">
+                  Se o usuário tiver dados vinculados (associados, cotações etc.), a exclusão será bloqueada automaticamente. Nesse caso, use a opção "Desativar" em vez de excluir.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isHardDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-white"
+              disabled={isHardDeleting}
+              onClick={handleHardDeleteUser}
+            >
+              {isHardDeleting ? 'Excluindo…' : 'Excluir permanentemente'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
