@@ -136,6 +136,8 @@ interface VeiculoInfo {
   tipo: string;
   mensalidade: number;
   valor_fipe: number;
+  mensalidade_manual: number | null;
+  mensalidade_override: boolean | null;
 }
 
 interface CotaDisponivel {
@@ -323,6 +325,9 @@ export default function AssociadoDetalhe() {
   const [beneficiosExtras, setBeneficiosExtras] = useState<BeneficioExtra[]>([]);
   const [extrasAtivos, setExtrasAtivos] = useState<ExtraAtivo[]>([]);
   const [isTogglingBeneficio, setIsTogglingBeneficio] = useState<string | null>(null);
+
+  // Mensalidade manual/override
+  const [isSavingManual, setIsSavingManual] = useState(false);
 
   // Edição de FIPE / cálculo do plano (cota, mensalidade, participação)
   const [recalcAuto, setRecalcAuto] = useState(true);
@@ -840,7 +845,7 @@ export default function AssociadoDetalhe() {
 
         const { data: veics } = await supabase
           .from('veiculos')
-          .select('id,marca,modelo,placa,ano,cotacao_id,cota_id,tipo,mensalidade,valor_fipe')
+          .select('id,marca,modelo,placa,ano,cotacao_id,cota_id,tipo,mensalidade,valor_fipe,mensalidade_manual,mensalidade_override')
           .eq('associado_id', id).order('created_at', { ascending: false }).limit(1);
         const v = (veics?.[0] as VeiculoInfo) ?? null;
         setVeiculo(v);
@@ -954,6 +959,47 @@ export default function AssociadoDetalhe() {
       toast.error(e?.message || 'Erro ao salvar plano');
     } finally {
       setIsSavingPlano(false);
+    }
+  };
+
+  const handleSalvarMensalidadeManual = async (valor: number) => {
+    if (!veiculo) return;
+    setIsSavingManual(true);
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('veiculos')
+        .update({
+          mensalidade_manual: valor,
+          mensalidade_override: true,
+          mensalidade_alterada_por: authUser?.id ?? null,
+        } as never)
+        .eq('id', veiculo.id);
+      if (error) throw error;
+      toast.success('Mensalidade fixa salva!');
+      await refetchVeiculo();
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao salvar mensalidade manual');
+    } finally {
+      setIsSavingManual(false);
+    }
+  };
+
+  const handleDesativarOverride = async () => {
+    if (!veiculo) return;
+    setIsSavingManual(true);
+    try {
+      const { error } = await supabase
+        .from('veiculos')
+        .update({ mensalidade_override: false } as never)
+        .eq('id', veiculo.id);
+      if (error) throw error;
+      toast.success('Voltando ao cálculo automático');
+      await refetchVeiculo();
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao desativar mensalidade fixa');
+    } finally {
+      setIsSavingManual(false);
     }
   };
 
@@ -1677,6 +1723,9 @@ export default function AssociadoDetalhe() {
           onProporTroca={handleProporTroca}
           estimarMensalidade={estimarMensalidade}
           canEditPlano={canEditPlano}
+          isSavingManual={isSavingManual}
+          onSalvarMensalidadeManual={handleSalvarMensalidadeManual}
+          onDesativarOverride={handleDesativarOverride}
           recalcAuto={recalcAuto}
           onRecalcAutoChange={setRecalcAuto}
           fipeInput={fipeInput}
@@ -1930,6 +1979,9 @@ interface PlanosBeneficiosProps {
   onProporTroca: () => void;
   estimarMensalidade: (cota: CotaDisponivel, tipo: string, valorFipe: number) => number | null;
   canEditPlano: boolean;
+  isSavingManual: boolean;
+  onSalvarMensalidadeManual: (valor: number) => Promise<void>;
+  onDesativarOverride: () => Promise<void>;
   recalcAuto: boolean;
   onRecalcAutoChange: (v: boolean) => void;
   fipeInput: number;
@@ -1954,7 +2006,8 @@ function PlanosBeneficios({
   cotaSelecionadaId, setCotaSelecionadaId, propostaPendente, showTrocarPlano,
   setShowTrocarPlano, isTogglingBeneficio, isPropondoTroca, onToggleBeneficio,
   onProporTroca, estimarMensalidade,
-  canEditPlano, recalcAuto, onRecalcAutoChange, fipeInput, onFipeChange,
+  canEditPlano, isSavingManual, onSalvarMensalidadeManual, onDesativarOverride,
+  recalcAuto, onRecalcAutoChange, fipeInput, onFipeChange,
   mensalidadeInput, onMensalidadeChange, participacaoInput, onParticipacaoChange,
   resultadoRecalc, onSavePlano, isSavingPlano,
   placaInput, onPlacaChange, placaStatus, onPlacaStatusChange, onVehicleFound,
@@ -1974,6 +2027,18 @@ function PlanosBeneficios({
   const mensalidadeBase = mensalidadeSalva > 0
     ? mensalidadeSalva
     : (mensalidadeRecalculada?.valorFinal ?? 0);
+
+  // Estado local do toggle/input de mensalidade manual
+  const [overrideLocal, setOverrideLocal] = useState<boolean>(!!veiculo?.mensalidade_override);
+  const [manualInput, setManualInput] = useState<number>(veiculo?.mensalidade_manual ?? 0);
+  useEffect(() => {
+    setOverrideLocal(!!veiculo?.mensalidade_override);
+    setManualInput(veiculo?.mensalidade_manual ?? 0);
+  }, [veiculo?.id, veiculo?.mensalidade_override, veiculo?.mensalidade_manual]);
+
+  const totalMensal = veiculo?.mensalidade_override
+    ? (veiculo.mensalidade_manual ?? 0)
+    : (mensalidadeBase ? mensalidadeBase + totalExtras : 0);
 
   return (
     <Card>
@@ -2289,10 +2354,67 @@ function PlanosBeneficios({
                   </div>
                 )}
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-800">
-                  <p className="text-sm font-bold text-slate-200">Total mensal</p>
-                  <p className="text-lg font-bold text-orange-400">{mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}</p>
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">Total mensal</p>
+                    {veiculo?.mensalidade_override && (
+                      <p className="text-xs text-amber-400 flex items-center gap-1 mt-0.5">
+                        <Info className="h-3 w-3" />
+                        Valor fixado manualmente
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-lg font-bold text-orange-400">{totalMensal ? fmtBRL(totalMensal) : '—'}</p>
                 </div>
               </div>
+
+              {/* Toggle mensalidade fixa — apenas para quem pode editar plano */}
+              {canEditPlano && veiculo && (
+                <div className="px-4 py-3 border-t border-slate-700 bg-slate-800/40">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-orange-500"
+                      checked={overrideLocal}
+                      disabled={isSavingManual}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setOverrideLocal(checked);
+                        if (!checked) onDesativarOverride();
+                      }}
+                    />
+                    <span className="text-xs font-medium text-slate-300">Definir mensalidade fixa</span>
+                    {isSavingManual && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
+                  </label>
+                  {overrideLocal && (
+                    <div className="flex gap-2 items-end mt-3">
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs text-slate-400">Valor fixo (R$)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={manualInput || ''}
+                          onChange={(e) => setManualInput(parseFloat(e.target.value) || 0)}
+                          placeholder="Ex: 350.00"
+                          className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-500 h-8 text-sm"
+                          disabled={isSavingManual}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => onSalvarMensalidadeManual(manualInput)}
+                        disabled={isSavingManual || manualInput <= 0}
+                        className="bg-orange-600 hover:bg-orange-700 text-white h-8"
+                      >
+                        {isSavingManual
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : 'Salvar'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="px-4 py-3 border-t border-slate-700 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-500">Cota de participação</p>
