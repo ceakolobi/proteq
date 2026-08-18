@@ -526,6 +526,7 @@ export default function AssociadoDetalhe() {
               ativo: true,
               valor_snapshot: extra.valor_mensal,
               nome_snapshot: extra.nome,
+              company_id: profile?.company_id ?? null,
             },
             { onConflict: 'associado_id,beneficio_id' }
           );
@@ -2214,14 +2215,18 @@ function PlanosBeneficios({
                       </p>
                     )}
                   </div>
-                  <div className={`rounded-lg border p-3 ${totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
+                  <div className={`rounded-lg border p-3 ${veiculo?.mensalidade_override ? 'bg-amber-50 border-amber-200' : totalExtras > 0 ? 'bg-green-50 border-green-200' : ''}`}>
                     <p className="text-xs text-muted-foreground mb-1">Total mensal</p>
-                    <p className={`text-sm font-bold ${totalExtras > 0 ? 'text-green-700' : ''}`}>
-                      {mensalidadeBase ? fmtBRL(mensalidadeBase + totalExtras) : '—'}
+                    <p className={`text-sm font-bold ${veiculo?.mensalidade_override ? 'text-amber-700' : totalExtras > 0 ? 'text-green-700' : ''}`}>
+                      {totalMensal ? fmtBRL(totalMensal) : '—'}
                     </p>
-                    {totalExtras > 0 && (
+                    {veiculo?.mensalidade_override ? (
+                      <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
+                        <Info className="h-3 w-3" />Valor fixo manual
+                      </p>
+                    ) : totalExtras > 0 ? (
                       <p className="text-xs text-green-600 mt-0.5">+ {fmtBRL(totalExtras)} extras</p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
