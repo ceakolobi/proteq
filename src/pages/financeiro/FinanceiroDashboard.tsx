@@ -59,12 +59,13 @@ export default function Financeiro() {
   // Permissões granulares com fallback por role
   const { canAccessPage, canCreate, canEdit, isLoading: permissionsLoading } = useModuleAccess('financeiro');
   
-  const { 
-    stats, 
-    loading, 
-    fetchStats, 
-    gerarMensalidadesMes, 
-    atualizarAtrasadas 
+  const {
+    stats,
+    evolucaoMensal,
+    loading,
+    fetchStats,
+    gerarMensalidadesMes,
+    atualizarAtrasadas
   } = useFinanceiro();
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -113,15 +114,6 @@ export default function Financeiro() {
     { name: 'Atrasadas', value: stats.mensalidadesAtrasadas, color: '#ef4444' },
   ].filter(d => d.value > 0) : [];
 
-  // Dados para gráfico de barras (últimos 6 meses - simulado)
-  const barData = [
-    { mes: 'Jul', recebido: 45000, pendente: 5000 },
-    { mes: 'Ago', recebido: 48000, pendente: 4500 },
-    { mes: 'Set', recebido: 52000, pendente: 6000 },
-    { mes: 'Out', recebido: 50000, pendente: 5500 },
-    { mes: 'Nov', recebido: 55000, pendente: 4000 },
-    { mes: 'Dez', recebido: stats?.totalRecebido || 0, pendente: stats?.totalAReceber || 0 },
-  ];
 
   if (isChecking || loading) {
     return (
@@ -329,7 +321,7 @@ export default function Financeiro() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData}>
+                  <BarChart data={evolucaoMensal}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis dataKey="mes" className="text-xs" />
                     <YAxis 

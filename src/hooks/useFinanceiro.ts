@@ -10,6 +10,8 @@ import type {
   ConfiguracoesFinanceiras 
 } from '@/types/financeiro';
 
+const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
 export function useFinanceiro() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export function useFinanceiro() {
   const [mensalidades, setMensalidades] = useState<MensalidadeWithDetails[]>([]);
   const [inadimplentes, setInadimplentes] = useState<InadimplenteInfo[]>([]);
   const [config, setConfig] = useState<ConfiguracoesFinanceiras | null>(null);
+  const [evolucaoMensal, setEvolucaoMensal] = useState<{ mes: string; recebido: number; pendente: number }[]>([]);
 
   // Buscar estatísticas do dashboard
   const fetchStats = useCallback(async () => {
@@ -199,6 +202,49 @@ export function useFinanceiro() {
     }
   }, [user]);
 
+  // Buscar evolução mensal dos últimos 6 meses (dados reais)
+  const fetchEvolucaoMensal = useCallback(async () => {
+    if (!user) return;
+
+    const agora = new Date();
+    const inicio = new Date(agora.getFullYear(), agora.getMonth() - 5, 1);
+    const inicioStr = toLocalYMD(inicio);
+
+    try {
+      const { data, error } = await supabase
+        .from('mensalidades')
+        .select('mes_referencia, valor_final, status')
+        .gte('mes_referencia', inicioStr);
+
+      if (error) throw error;
+
+      const meses = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(agora.getFullYear(), agora.getMonth() - 5 + i, 1);
+        return {
+          mes: MESES_PT[d.getMonth()],
+          chave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+          recebido: 0,
+          pendente: 0,
+        };
+      });
+
+      (data || []).forEach(m => {
+        const chave = m.mes_referencia.slice(0, 7);
+        const entry = meses.find(e => e.chave === chave);
+        if (!entry) return;
+        if (m.status === 'paga') {
+          entry.recebido += Number(m.valor_final);
+        } else if (m.status === 'pendente' || m.status === 'a_vencer') {
+          entry.pendente += Number(m.valor_final);
+        }
+      });
+
+      setEvolucaoMensal(meses.map(({ mes, recebido, pendente }) => ({ mes, recebido, pendente })));
+    } catch (error) {
+      console.error('Erro ao buscar evolução mensal:', error);
+    }
+  }, [user]);
+
   // Registrar pagamento
   const registrarPagamento = async (
     mensalidadeId: string,
@@ -282,8 +328,9 @@ export function useFinanceiro() {
     if (user) {
       fetchStats();
       fetchConfig();
+      fetchEvolucaoMensal();
     }
-  }, [user, fetchStats, fetchConfig]);
+  }, [user, fetchStats, fetchConfig, fetchEvolucaoMensal]);
 
   return {
     loading,
@@ -291,10 +338,12 @@ export function useFinanceiro() {
     mensalidades,
     inadimplentes,
     config,
+    evolucaoMensal,
     fetchStats,
     fetchMensalidades,
     fetchInadimplentes,
     fetchConfig,
+    fetchEvolucaoMensal,
     registrarPagamento,
     alterarStatusMensalidade,
     gerarMensalidadesMes,
