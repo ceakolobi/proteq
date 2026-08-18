@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import {
   ClipboardCheck,
@@ -33,6 +34,7 @@ import {
   FileText,
   AlertTriangle,
   CalendarClock,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -137,6 +139,9 @@ export default function Vistorias() {
   const [selectedVistoria, setSelectedVistoria] = useState<VistoriaDB | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingFotoKey, setUploadingFotoKey] = useState<string | null>(null);
+  const [deletingFotoKey, setDeletingFotoKey] = useState<string | null>(null);
+  const [deletingFotoUrl, setDeletingFotoUrl] = useState<string | null>(null);
+  const [isDeletingFoto, setIsDeletingFoto] = useState(false);
 
   // Form states
   const [formVeiculoId, setFormVeiculoId] = useState('');
@@ -292,6 +297,38 @@ export default function Vistorias() {
       toast.error(e?.message || 'Erro ao enviar foto');
     } finally {
       setUploadingFotoKey(null);
+    }
+  };
+
+  const handleViewModalPhotoDelete = async (key: string, url: string) => {
+    if (!selectedVistoria) return;
+    setIsDeletingFoto(true);
+    try {
+      const path = url.split('/vistoria-fotos/')[1]?.split('?')[0];
+      if (path) {
+        await supabase.storage.from('vistoria-fotos').remove([path]);
+      }
+
+      const newFotos = (selectedVistoria.fotos || []).filter(u => u !== url);
+      const newChecklist = { ...(selectedVistoria.checklist || {}), [key]: false };
+
+      const { error } = await supabase
+        .from('vistorias')
+        .update({ fotos: newFotos, checklist: newChecklist })
+        .eq('id', selectedVistoria.id);
+      if (error) throw error;
+
+      const updated = { ...selectedVistoria, fotos: newFotos, checklist: newChecklist };
+      setSelectedVistoria(updated);
+      setVistorias(prev => prev.map(v => v.id === selectedVistoria.id ? updated : v));
+
+      toast.success('Foto removida');
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao remover foto');
+    } finally {
+      setIsDeletingFoto(false);
+      setDeletingFotoKey(null);
+      setDeletingFotoUrl(null);
     }
   };
 
@@ -1063,27 +1100,45 @@ export default function Vistorias() {
                                 <img
                                   src={photos[item.key]}
                                   alt={item.label}
-                                  className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80"
+                                  className="w-full h-20 object-cover rounded cursor-pointer"
                                   onClick={() => window.open(photos[item.key], '_blank')}
                                 />
                                 {canApproveReject && (
-                                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded cursor-pointer">
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      capture="environment"
-                                      className="hidden"
-                                      disabled={!!uploadingFotoKey}
-                                      onChange={(e) => {
-                                        const f = e.target.files?.[0];
-                                        if (f) handleViewModalPhotoUpload(item.key, f);
-                                        e.target.value = '';
+                                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded">
+                                    <button
+                                      type="button"
+                                      title="Remover foto"
+                                      disabled={!!uploadingFotoKey || isDeletingFoto}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingFotoKey(item.key);
+                                        setDeletingFotoUrl(photos[item.key]);
                                       }}
-                                    />
-                                    {isUploadingThis
-                                      ? <Loader2 className="h-5 w-5 text-white animate-spin" />
-                                      : <Camera className="h-5 w-5 text-white" />}
-                                  </label>
+                                      className="p-1.5 bg-red-600 hover:bg-red-700 rounded text-white transition-colors disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                    <label
+                                      title="Trocar foto"
+                                      className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white cursor-pointer transition-colors"
+                                    >
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        disabled={!!uploadingFotoKey}
+                                        onChange={(e) => {
+                                          const f = e.target.files?.[0];
+                                          if (f) handleViewModalPhotoUpload(item.key, f);
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                      {isUploadingThis
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : <Camera className="h-4 w-4" />}
+                                    </label>
+                                  </div>
                                 )}
                               </div>
                             ) : canApproveReject ? (
@@ -1125,6 +1180,36 @@ export default function Vistorias() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Confirmação de exclusão de foto */}
+        <AlertDialog
+          open={!!deletingFotoKey}
+          onOpenChange={(open) => { if (!open && !isDeletingFoto) { setDeletingFotoKey(null); setDeletingFotoUrl(null); } }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover esta foto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A foto será excluída permanentemente do storage e do checklist. Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingFoto}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isDeletingFoto}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => {
+                  if (deletingFotoKey && deletingFotoUrl) {
+                    handleViewModalPhotoDelete(deletingFotoKey, deletingFotoUrl);
+                  }
+                }}
+              >
+                {isDeletingFoto && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
