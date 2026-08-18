@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Camera, CheckCircle, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, CheckCircle, Loader2, Upload, X, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 
 export interface ChecklistItem {
   key: string;
