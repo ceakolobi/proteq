@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Camera, CheckCircle, Loader2, Upload, X, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import { Camera, CheckCircle, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 
 export interface ChecklistItem {
   key: string;
@@ -52,7 +52,7 @@ export default function VistoriaChecklist({
   const [uploading, setUploading] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isEditable = canEdit && vistoriaStatus === 'em_andamento';
+  const isEditable = canEdit;
 
   const handleFileUpload = async (key: string, file: File) => {
     if (!file) return;
@@ -170,17 +170,10 @@ export default function VistoriaChecklist({
           <DialogDescription>
             {isEditable ? (
               'Faça upload das fotos obrigatórias para cada item do checklist'
-            ) : vistoriaStatus !== 'em_andamento' ? (
-              <span className="flex items-center gap-2 text-amber-600">
-                <AlertTriangle className="h-4 w-4" />
-                O checklist só pode ser preenchido quando o status for "Em andamento"
-              </span>
-            ) : !canEdit ? (
-              <span className="flex items-center gap-2 text-muted-foreground">
-                Somente o vistoriador atribuído pode preencher o checklist
-              </span>
             ) : (
-              'Visualização do checklist'
+              <span className="flex items-center gap-2 text-muted-foreground">
+                Visualização do checklist — sem permissão para editar
+              </span>
             )}
           </DialogDescription>
         </DialogHeader>

@@ -136,6 +136,7 @@ export default function Vistorias() {
   const [isChecklistDialogOpen, setIsChecklistDialogOpen] = useState(false);
   const [selectedVistoria, setSelectedVistoria] = useState<VistoriaDB | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingFotoKey, setUploadingFotoKey] = useState<string | null>(null);
 
   // Form states
   const [formVeiculoId, setFormVeiculoId] = useState('');
@@ -247,6 +248,51 @@ export default function Vistorias() {
     setFormStatus('pendente');
     setFormParecerTecnico('');
     setFormChecklist({});
+  };
+
+  const handleViewModalPhotoUpload = async (key: string, file: File) => {
+    if (!selectedVistoria || !file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Selecione uma imagem'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Imagem máx. 5MB'); return; }
+
+    setUploadingFotoKey(key);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${selectedVistoria.id}/${key}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('vistoria-fotos')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('vistoria-fotos').getPublicUrl(path);
+      const newUrl = urlData.publicUrl;
+
+      // Remove URL antiga para essa key (mantém as demais), adiciona a nova
+      const oldFotos = selectedVistoria.fotos || [];
+      const filteredFotos = oldFotos.filter(url => {
+        const match = url.match(/\/([a-z_]+)_\d+\.[a-z]+(?:\?.*)?$/i);
+        return !match || match[1] !== key;
+      });
+      const newFotos = [...filteredFotos, newUrl];
+      const newChecklist = { ...(selectedVistoria.checklist || {}), [key]: true };
+
+      const { error: updateError } = await supabase
+        .from('vistorias')
+        .update({ fotos: newFotos, checklist: newChecklist })
+        .eq('id', selectedVistoria.id);
+      if (updateError) throw updateError;
+
+      const updated = { ...selectedVistoria, fotos: newFotos, checklist: newChecklist };
+      setSelectedVistoria(updated);
+      setVistorias(prev => prev.map(v => v.id === selectedVistoria.id ? updated : v));
+
+      toast.success(`${CHECKLIST_ITEMS.find(i => i.key === key)?.label} enviada!`);
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao enviar foto');
+    } finally {
+      setUploadingFotoKey(null);
+    }
   };
 
   const handleCreateVistoria = async () => {
@@ -921,7 +967,7 @@ export default function Vistorias() {
 
         {/* View Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Detalhes da Vistoria</DialogTitle>
             </DialogHeader>
@@ -995,36 +1041,81 @@ export default function Vistorias() {
                 <div>
                   <Label className="text-muted-foreground mb-3 block">Checklist de Fotos</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {CHECKLIST_ITEMS.map((item) => {
+                    {(() => {
                       const photos = fotosArrayToObject(selectedVistoria.fotos, selectedVistoria.id);
-                      const hasPhoto = !!photos[item.key];
-                      const isChecked = selectedVistoria.checklist?.[item.key];
-                      
-                      return (
-                        <div key={item.key} className={`border rounded-lg p-2 ${hasPhoto ? 'border-green-300 bg-green-50/50' : 'border-muted'}`}>
-                          <div className="flex items-center gap-1 mb-2">
-                            {isChecked || hasPhoto ? (
-                              <CheckCircle className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <XCircle className="h-3 w-3 text-red-600" />
-                            )}
-                            <span className="text-xs font-medium">{item.label}</span>
-                          </div>
-                          {hasPhoto ? (
-                            <img 
-                              src={photos[item.key]} 
-                              alt={item.label}
-                              className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80"
-                              onClick={() => window.open(photos[item.key], '_blank')}
-                            />
-                          ) : (
-                            <div className="w-full h-20 bg-muted/30 rounded flex items-center justify-center">
-                              <Camera className="h-6 w-6 text-muted-foreground/50" />
+                      return CHECKLIST_ITEMS.map((item) => {
+                        const hasPhoto = !!photos[item.key];
+                        const isChecked = selectedVistoria.checklist?.[item.key];
+                        const isUploadingThis = uploadingFotoKey === item.key;
+
+                        return (
+                          <div key={item.key} className={`border rounded-lg p-2 ${hasPhoto ? 'border-green-300 bg-green-50/50' : 'border-muted'}`}>
+                            <div className="flex items-center gap-1 mb-2">
+                              {isChecked || hasPhoto ? (
+                                <CheckCircle className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <XCircle className="h-3 w-3 text-red-600" />
+                              )}
+                              <span className="text-xs font-medium truncate">{item.label}</span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            {hasPhoto ? (
+                              <div className="relative group">
+                                <img
+                                  src={photos[item.key]}
+                                  alt={item.label}
+                                  className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80"
+                                  onClick={() => window.open(photos[item.key], '_blank')}
+                                />
+                                {canApproveReject && (
+                                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded cursor-pointer">
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      capture="environment"
+                                      className="hidden"
+                                      disabled={!!uploadingFotoKey}
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (f) handleViewModalPhotoUpload(item.key, f);
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                    {isUploadingThis
+                                      ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+                                      : <Camera className="h-5 w-5 text-white" />}
+                                  </label>
+                                )}
+                              </div>
+                            ) : canApproveReject ? (
+                              <label className={`w-full h-20 bg-muted/30 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-primary/10 transition-colors ${isUploadingThis ? 'pointer-events-none' : ''}`}>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  className="hidden"
+                                  disabled={!!uploadingFotoKey}
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f) handleViewModalPhotoUpload(item.key, f);
+                                    e.target.value = '';
+                                  }}
+                                />
+                                {isUploadingThis
+                                  ? <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                                  : <>
+                                      <Camera className="h-6 w-6 text-muted-foreground mb-1" />
+                                      <span className="text-xs text-muted-foreground">Enviar</span>
+                                    </>}
+                              </label>
+                            ) : (
+                              <div className="w-full h-20 bg-muted/30 rounded flex items-center justify-center">
+                                <Camera className="h-6 w-6 text-muted-foreground/50" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               </div>
@@ -1140,7 +1231,7 @@ export default function Vistorias() {
             vistoriaStatus={selectedVistoria.status}
             existingPhotos={fotosArrayToObject(selectedVistoria.fotos, selectedVistoria.id)}
             existingChecklist={selectedVistoria.checklist || {}}
-            canEdit={isVistoriador && selectedVistoria.vistoriador_id === user?.id}
+            canEdit={canApproveReject || (isVistoriador && selectedVistoria.vistoriador_id === user?.id)}
             onSave={fetchData}
           />
         )}
