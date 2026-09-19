@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -332,7 +332,7 @@ export function ResultadoCotacao({
         : '';
 
       const mensagem =
-        `🛡 HARMONY CLUBE DE BENEFÍCIOS\n` +
+        `🛡 PROTEQ\n` +
         `Olá, ${nomeCliente}! 😊\n` +
         `Segue sua proposta de proteção veicular:\n` +
         `🚗 Veículo: ${modelo} ${dadosVeiculo.ano}\n` +
@@ -342,7 +342,7 @@ export function ResultadoCotacao({
         extrasSecao +
         `\n\n📌 Valores estimados, sujeitos a análise cadastral e vistoria do veículo.\n` +
         `⏳ Proposta válida por 7 dias.\n` +
-        `🤝 Harmony Clube de Benefícios — Proteção Veicular`;
+        `🤝 Proteq — Proteção Veicular`;
 
       const url = getWhatsAppUrl(telefone, mensagem);
       const opened = window.open(url, '_blank', 'noopener,noreferrer');
@@ -386,7 +386,7 @@ export function ResultadoCotacao({
       <div className="container mx-auto max-w-5xl" ref={pdfRef}>
         {/* Header */}
         <div className="text-center mb-10">
-          <img src={logoHarmony} alt="Harmony" className="h-14 object-contain mx-auto mb-4" />
+          <img src={logoHarmony} alt="Proteq" className="h-14 object-contain mx-auto mb-4" />
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4">
             <Sparkles className="h-8 w-8 text-primary" />
           </div>

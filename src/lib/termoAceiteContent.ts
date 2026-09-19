@@ -1,14 +1,14 @@
-// Termo de Aceite - Harmony Clube de Benefícios
+// Termo de Aceite - Proteq
 // Versão 2.0
 
 export const TERMO_ACEITE_VERSAO = '2.1';
 
-export const TERMO_ACEITE_TITULO = 'TERMO DE ACEITE – HARMONY CLUBE DE BENEFÍCIOS';
+export const TERMO_ACEITE_TITULO = 'TERMO DE ACEITE – PROTEQ';
 
 export const TERMO_ACEITE_DECLARACAO = `
 DECLARAÇÃO DE ACEITE
 
-Declaro que li e concordo com o Regulamento da HARMONY CLUBE DE BENEFÍCIOS,
+Declaro que li e concordo com o Regulamento da PROTEQ,
 ciente de que se trata de uma associação de proteção veicular baseada no
 sistema de socorro mútuo, não caracterizada como seguradora, conforme
 legislação vigente.
@@ -18,7 +18,7 @@ regulamento e da regularidade das contribuições.
 `.trim();
 
 // Texto curto para o app (informativo)
-export const HARMONY_APP_TEXTO_CURTO = `A HARMONY CLUBE DE BENEFÍCIOS é uma associação de proteção veicular baseada no socorro mútuo entre associados.
+export const PROTEQ_APP_TEXTO_CURTO = `A PROTEQ é uma associação de proteção veicular baseada no socorro mútuo entre associados.
 
 Não se trata de seguro. Os benefícios dependem do cumprimento do regulamento e da regularidade financeira.
 
@@ -73,7 +73,7 @@ Assinatura eletrônica válida conforme legislação vigente (Lei nº 14.063/202
 
 ═══════════════════════════════════════════════════
 
-Documento gerado automaticamente pelo sistema Harmony Clube de Benefícios.
+Documento gerado automaticamente pelo sistema Proteq.
   `.trim();
 }
 

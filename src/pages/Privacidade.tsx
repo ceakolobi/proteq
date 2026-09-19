@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import logoHarmony from '@/assets/logo-harmony-colorida.png';
+import logoProteq from '@/assets/logo-Proteq-colorida.png';
 
 // Política de Privacidade — página pública estática (sem banco, sem lógica).
 // Todo o texto vive neste arquivo para facilitar edição posterior.
@@ -16,7 +16,7 @@ export default function Privacidade() {
       <header className="border-b border-border/50">
         <div className="container mx-auto max-w-3xl px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logoHarmony} alt="Harmony" className="h-9 object-contain" />
+            <img src={logoProteq} alt="Proteq" className="h-9 object-contain" />
           </Link>
           <Link
             to="/"
@@ -39,7 +39,7 @@ export default function Privacidade() {
             <h2 className="text-lg font-semibold text-foreground mb-2">1. Controlador dos dados</h2>
             <p>
               O tratamento dos dados pessoais coletados neste site é realizado pela{' '}
-              <strong>Harmony Clube de Benefícios</strong>, associação de proteção veicular,
+              <strong>Proteq Clube de Benefícios</strong>, associação de proteção veicular,
               inscrita no CNPJ sob o nº 39.583.767/0001-26, na condição de controladora dos dados. Para dúvidas, solicitações ou exercício de
               direitos relativos aos seus dados, entre em contato com o nosso Encarregado pelo
               Tratamento de Dados (DPO) pelo e-mail{' '}

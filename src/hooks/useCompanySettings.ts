@@ -69,7 +69,7 @@ export interface SystemSettings {
 
 const defaultSettings: SystemSettings = {
   id: "",
-  empresa_nome: "Harmony Clube de Benefícios",
+  empresa_nome: "Proteq",
   cnpj: null,
   empresa_logo: null,
   empresa_logo_branca: null,

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+﻿import { forwardRef } from 'react';
 import logoHarmony from '@/assets/logo-harmony-colorida.png';
 import { useBeneficiosExtrasAtivos } from '@/hooks/useBeneficiosExtras';
 import type { DadosPessoais, DadosVeiculo, ResultadoCotacaoPublica } from './types';
@@ -53,7 +53,7 @@ export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function Propos
     >
       {/* Header */}
       <div style={{ textAlign: 'center', paddingBottom: '16px', borderBottom: `2px solid ${text.brand}` }}>
-        <img src={logoHarmony} alt="Harmony" style={{ height: '56px', objectFit: 'contain' }} />
+        <img src={logoHarmony} alt="Proteq" style={{ height: '56px', objectFit: 'contain' }} />
       </div>
 
       {/* Title */}
@@ -200,7 +200,7 @@ export const PropostaPDFView = forwardRef<HTMLDivElement, Props>(function Propos
         }}
       >
         <p style={{ margin: 0, fontWeight: 600, color: text.primary }}>
-          {contato?.empresa_nome || 'Harmony Clube de Benefícios'}
+          {contato?.empresa_nome || 'Proteq'}
         </p>
         <p style={{ margin: 0 }}>
           {[contato?.email, contato?.telefone, contato?.site].filter(Boolean).join(' · ') || 'contato@harmonyclube.com.br'}

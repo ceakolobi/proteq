@@ -112,7 +112,7 @@ export function useBrand() {
     // Nome e subtítulo: só usa do banco se for white-label
     const brandName = isWhiteLabel && settings.empresa_nome 
       ? settings.empresa_nome 
-      : "Harmony CRM";
+      : "Proteq";
     
     const brandSubtitle = "Clube de Benefícios";
 

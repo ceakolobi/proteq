@@ -1,7 +1,7 @@
 {
-  "name": "Harmony Clube de Benefícios",
-  "short_name": "Harmony",
-  "description": "Aplicativo oficial do Harmony Clube de Benefícios",
+  "name": "Proteq - Proteção Veicular",
+  "short_name": "Proteq",
+  "description": "Sistema de gestão de proteção veicular Proteq",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

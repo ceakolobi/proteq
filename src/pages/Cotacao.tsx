@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
@@ -62,7 +62,7 @@ export default function Cotacao() {
   const { canAccessPage, isLoading: permissionsLoading } = useModuleAccess('cotacoes');
 
   useEffect(() => {
-    document.title = 'Cotação | Harmony Agro';
+    document.title = 'Cotação | Proteq';
   }, []);
 
   const [formData, setFormData] = useState({

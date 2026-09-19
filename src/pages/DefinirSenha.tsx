@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -98,7 +98,7 @@ export default function DefinirSenha() {
           <div>
             <CardTitle>Definir senha de acesso</CardTitle>
             <CardDescription>
-              Escolha uma senha segura para acessar o painel Harmony
+              Escolha uma senha segura para acessar o painel Proteq
             </CardDescription>
           </div>
         </CardHeader>

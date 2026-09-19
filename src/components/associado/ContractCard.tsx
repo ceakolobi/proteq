@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+﻿import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
@@ -382,7 +382,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
 
     const mensalidade = veiculo?.mensalidade ?? cotacao?.mensalidade ?? null;
     const cotaNome = cota?.cota_nome ?? cotacao?.plano ?? '1';
-    const empresaNome = settings.empresa_nome || 'Harmony Agro';
+    const empresaNome = settings.empresa_nome || 'Proteq';
     const cnpj = settings.cnpj || null;
     const diaVenc = associado.dia_vencimento;
 
@@ -455,7 +455,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
               FICHA DE AFILIAÇÃO
             </div>
             <div style={{ fontSize: 10, color: '#F97316', fontWeight: 600, letterSpacing: 1, marginTop: 4 }}>
-              HARMONY CLUBE DE BENEFÍCIOS — PROTEÇÃO VEICULAR PARA AGRONEGÓCIO
+              PROTEQ — PROTEÇÃO VEICULAR PARA AGRONEGÓCIO
             </div>
           </div>
 
@@ -656,7 +656,7 @@ const ContractCard = forwardRef<ContractCardRef, ContractCardProps>(
           <div style={{ border: '1px solid #d1d5db', padding: '12px 14px', marginBottom: 20, borderRadius: 2 }}>
             <p style={{ margin: 0, fontSize: 10.5, color: '#374151', lineHeight: 1.65, fontStyle: 'italic' }}>
               Declaro estar ciente de todas as cláusulas, condições e exigências do Regulamento Interno da{' '}
-              <strong>HARMONY CLUBE DE BENEFÍCIOS</strong>, comprometendo-me a cumpri-las integralmente.
+              <strong>PROTEQ</strong>, comprometendo-me a cumpri-las integralmente.
               Confirmo que os dados acima são verdadeiros e autorizo o tratamento dos mesmos para fins
               de execução deste contrato de proteção veicular baseado no sistema de socorro mútuo,
               não caracterizado como seguro, conforme legislação vigente.

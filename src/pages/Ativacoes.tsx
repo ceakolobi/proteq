@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toLocalYMD } from '@/lib/dateUtils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -150,7 +150,7 @@ export default function Ativacoes() {
   const [formMotivoCancelamento, setFormMotivoCancelamento] = useState('');
 
   useEffect(() => {
-    document.title = 'Ativações | Harmony Agro';
+    document.title = 'Ativações | Proteq';
   }, []);
 
   const generateContractNumber = () => {

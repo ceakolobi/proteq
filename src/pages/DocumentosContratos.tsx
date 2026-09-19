@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,7 +120,7 @@ export default function DocumentosContratos() {
 
 ## 1. CABEÇALHO
 
-Nome da Associação: HARMONY CLUBE DE BENEFÍCIOS
+Nome da Associação: Proteq CLUBE DE BENEFÍCIOS
 
 CNPJ: 39.583.767/0001-26
 

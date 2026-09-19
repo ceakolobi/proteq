@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useBrand } from "@/hooks/useBrand";
@@ -48,7 +48,7 @@ export default function ValidarProposta() {
         }
 
         // Buscar nome do consultor
-        let consultorNome = "Consultor Harmony Agro";
+        let consultorNome = "Consultor Proteq";
         if (cotacao.consultor_id) {
           const { data: profileRows } = await supabase
             .rpc("get_consultor_publico", { p_consultor_id: cotacao.consultor_id });
@@ -92,7 +92,7 @@ export default function ValidarProposta() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-harmony-orange/10 via-background to-harmony-green/10 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-Proteq-orange/10 via-background to-Proteq-green/10 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <Skeleton className="h-8 w-48 mx-auto" />
@@ -122,7 +122,7 @@ export default function ValidarProposta() {
               {error || "Não foi possível validar esta proposta."}
             </p>
             <p className="text-sm text-muted-foreground mt-4">
-              Verifique se o link está correto ou entre em contato com a Harmony Agro.
+              Verifique se o link está correto ou entre em contato com a Proteq.
             </p>
           </CardContent>
         </Card>
@@ -131,8 +131,8 @@ export default function ValidarProposta() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-harmony-orange/10 via-background to-harmony-green/10 flex items-center justify-center p-4">
-      <Card className={`w-full max-w-md ${proposta.status === "ativa" ? "border-harmony-green" : "border-muted"}`}>
+    <div className="min-h-screen bg-gradient-to-br from-Proteq-orange/10 via-background to-Proteq-green/10 flex items-center justify-center p-4">
+      <Card className={`w-full max-w-md ${proposta.status === "ativa" ? "border-Proteq-green" : "border-muted"}`}>
         <CardHeader className="text-center pb-2">
           {/* Logo dinâmica */}
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -147,10 +147,10 @@ export default function ValidarProposta() {
           {/* Status Badge */}
           {proposta.status === "ativa" ? (
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-harmony-green/10 flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-harmony-green" />
+              <div className="w-16 h-16 rounded-full bg-Proteq-green/10 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-Proteq-green" />
               </div>
-              <Badge className="bg-harmony-green hover:bg-harmony-green text-white text-lg px-4 py-1">
+              <Badge className="bg-Proteq-green hover:bg-Proteq-green text-white text-lg px-4 py-1">
                 PROPOSTA ATIVA
               </Badge>
             </div>
@@ -171,7 +171,7 @@ export default function ValidarProposta() {
         <CardContent className="space-y-4 pt-4">
           {/* Número da Cotação */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <FileText className="w-5 h-5 text-harmony-orange flex-shrink-0" />
+            <FileText className="w-5 h-5 text-Proteq-orange flex-shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Número da Cotação</p>
               <p className="font-mono font-medium">{proposta.numeroCotacao}</p>
@@ -189,7 +189,7 @@ export default function ValidarProposta() {
           
           {/* Consultor */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-            <User className="w-5 h-5 text-harmony-orange flex-shrink-0" />
+            <User className="w-5 h-5 text-Proteq-orange flex-shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Consultor Responsável</p>
               <p className="font-medium">{proposta.consultorNome}</p>
@@ -205,11 +205,11 @@ export default function ValidarProposta() {
                 <p className="text-sm font-medium">{proposta.dataCriacao}</p>
               </div>
             </div>
-            <div className={`flex items-center gap-2 p-3 rounded-lg ${proposta.status === "ativa" ? "bg-harmony-green/10" : "bg-muted/50"}`}>
-              <Clock className={`w-4 h-4 flex-shrink-0 ${proposta.status === "ativa" ? "text-harmony-green" : "text-muted-foreground"}`} />
+            <div className={`flex items-center gap-2 p-3 rounded-lg ${proposta.status === "ativa" ? "bg-Proteq-green/10" : "bg-muted/50"}`}>
+              <Clock className={`w-4 h-4 flex-shrink-0 ${proposta.status === "ativa" ? "text-Proteq-green" : "text-muted-foreground"}`} />
               <div>
                 <p className="text-xs text-muted-foreground">Válida até</p>
-                <p className={`text-sm font-medium ${proposta.status === "ativa" ? "text-harmony-green" : ""}`}>
+                <p className={`text-sm font-medium ${proposta.status === "ativa" ? "text-Proteq-green" : ""}`}>
                   {proposta.dataValidade}
                 </p>
               </div>
@@ -217,7 +217,7 @@ export default function ValidarProposta() {
           </div>
           
           {/* Mensagem de Status */}
-          <div className={`text-center p-4 rounded-lg ${proposta.status === "ativa" ? "bg-harmony-green/10 text-harmony-green" : "bg-muted text-muted-foreground"}`}>
+          <div className={`text-center p-4 rounded-lg ${proposta.status === "ativa" ? "bg-Proteq-green/10 text-Proteq-green" : "bg-muted text-muted-foreground"}`}>
             {proposta.status === "ativa" ? (
               <p className="text-sm font-medium">
                 ✓ Esta proposta é válida e pode ser utilizada para contratação.
@@ -231,33 +231,33 @@ export default function ValidarProposta() {
         </CardContent>
       </Card>
 
-      {/* Estilos Harmony */}
+      {/* Estilos Proteq */}
       <style>{`
-        .bg-harmony-orange {
+        .bg-Proteq-orange {
           background-color: hsl(25, 95%, 53%);
         }
-        .bg-harmony-green {
+        .bg-Proteq-green {
           background-color: hsl(142, 71%, 45%);
         }
-        .text-harmony-orange {
+        .text-Proteq-orange {
           color: hsl(25, 95%, 53%);
         }
-        .text-harmony-green {
+        .text-Proteq-green {
           color: hsl(142, 71%, 45%);
         }
-        .from-harmony-orange {
+        .from-Proteq-orange {
           --tw-gradient-from: hsl(25, 95%, 53%);
         }
-        .to-harmony-green {
+        .to-Proteq-green {
           --tw-gradient-to: hsl(142, 71%, 45%);
         }
-        .border-harmony-green {
+        .border-Proteq-green {
           border-color: hsl(142, 71%, 45%);
         }
-        .bg-harmony-green\\/10 {
+        .bg-Proteq-green\\/10 {
           background-color: hsl(142, 71%, 45%, 0.1);
         }
-        .bg-harmony-orange\\/10 {
+        .bg-Proteq-orange\\/10 {
           background-color: hsl(25, 95%, 53%, 0.1);
         }
       `}</style>

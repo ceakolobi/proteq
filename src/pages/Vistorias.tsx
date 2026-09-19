@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -155,7 +155,7 @@ export default function Vistorias() {
   const [formChecklist, setFormChecklist] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    document.title = 'Vistorias | Harmony Agro';
+    document.title = 'Vistorias | Proteq';
   }, []);
 
   const fetchData = useCallback(async () => {

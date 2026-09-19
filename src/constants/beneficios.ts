@@ -44,7 +44,7 @@ export const CATEGORIAS_BENEFICIOS: CategoriaBeneficio[] = [
 ];
 
 export const BENEFICIOS_WHATSAPP =
-  `*Benefícios da Harmony Clube*\n\n` +
+  `*Benefícios da Proteq*\n\n` +
   CATEGORIAS_BENEFICIOS.map(
     (cat) => `${cat.emoji} *${cat.titulo}*\n${cat.itens.map((i) => `- ${i}`).join('\n')}`,
   ).join('\n\n');

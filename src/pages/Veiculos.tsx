@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+﻿import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -221,7 +221,7 @@ export default function Veiculos() {
   }, []);
 
   useEffect(() => {
-    document.title = 'Veículos | Harmony Agro';
+    document.title = 'Veículos | Proteq';
   }, []);
 
   useEffect(() => {

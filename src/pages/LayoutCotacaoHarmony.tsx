@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -177,11 +177,11 @@ export default function LayoutCotacaoHarmony() {
   // Nome da empresa para exibição
   const nomeEmpresa = settings.modo_white_label && settings.empresa_nome 
     ? settings.empresa_nome 
-    : "HARMONY CLUBE DE BENEFÍCIOS";
+    : "PROTEQ";
   
   // Contatos da empresa
   const telefoneEmpresa = settings.telefone || "(00) 00000-0000";
-  const siteEmpresa = settings.site || "www.harmonyagro.com.br";
+  const siteEmpresa = settings.site || "proteq.antum.com.br";
   
   // Cores do sistema
   const corPrimaria = settings.cor_primaria || "#F97316";
@@ -442,7 +442,7 @@ export default function LayoutCotacaoHarmony() {
     const backCoverElement = element.querySelector('.pdf-back-cover') as HTMLElement | null;
 
     try {
-      const filename = `Proposta_HarmonyAgro_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
+      const filename = `Proposta_Proteq_${modeloParaArquivo}_#${numeroCotacaoCurto}.pdf`;
 
       if (backCoverElement && temContracapa) {
         backCoverElement.style.display = 'flex';

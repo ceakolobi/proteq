@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { X, Send, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -176,8 +176,8 @@ function parseCidadeEstado(input: string): { cidade: string; estado: string } {
 
 function msgInicial(context: string): ChatMsg {
   const texts: Record<string, string> = {
-    public:    'Oi! Sou a Emily, consultora da Harmony 😊\nPosso fazer uma cotação ou tirar suas dúvidas. Como posso te ajudar?',
-    associado: 'Olá! Sou a Emily, sua assistente Harmony 😊\nPosso consultar seu pagamento, vistoria, contrato e muito mais. O que precisa?',
+    public:    'Oi! Sou a Emily, consultora da Proteq 😊\nPosso fazer uma cotação ou tirar suas dúvidas. Como posso te ajudar?',
+    associado: 'Olá! Sou a Emily, sua assistente Proteq 😊\nPosso consultar seu pagamento, vistoria, contrato e muito mais. O que precisa?',
     consultor: 'Oi! Sou a Emily, sua assistente interna 😊\nPosso buscar associados, verificar vistorias e te ajudar com o dia a dia.',
   };
   return {

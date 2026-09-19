@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -298,7 +298,7 @@ export default function Leads() {
       : roleCanCreate;
 
   useEffect(() => {
-    document.title = 'Leads | Harmony Agro';
+    document.title = 'Leads | Proteq';
   }, []);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export default function AceitarCotacao() {
   const [whatsappCliente, setWhatsappCliente] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Aceitar Cotação | Harmony";
+    document.title = "Aceitar Cotação | Proteq";
     if (!token) {
       setErro("Link inválido.");
       setLoading(false);

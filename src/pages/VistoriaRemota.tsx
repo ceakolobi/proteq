@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -200,7 +200,7 @@ export default function VistoriaRemota() {
             </p>
             <div className="rounded-lg p-4 text-left space-y-2" style={{ background: '#374151' }}>
               <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide mb-3">Próximos passos</p>
-              {['Análise das fotos pela equipe Harmony', 'Geração do contrato após aprovação', 'Envio do contrato para assinatura digital', 'Ativação da proteção do seu veículo'].map((step, i) => (
+              {['Análise das fotos pela equipe Proteq', 'Geração do contrato após aprovação', 'Envio do contrato para assinatura digital', 'Ativação da proteção do seu veículo'].map((step, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <span className="h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: '#F97316' }}>{i + 1}</span>
                   <span className="text-gray-300 text-sm">{step}</span>

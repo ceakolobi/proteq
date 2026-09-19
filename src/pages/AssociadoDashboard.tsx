@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmilyChat } from '@/components/emily/EmilyChat';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
@@ -415,7 +415,7 @@ export default function AssociadoDashboard() {
         style={{ backgroundColor: 'hsl(230, 70%, 18%)' }}
       >
         <p className="text-white/80 text-sm">
-          © {new Date().getFullYear()} {brand?.name || 'Harmony Clube de Benefícios'}. Todos os direitos reservados.
+          © {new Date().getFullYear()} {brand?.name || 'Proteq Clube de Benefícios'}. Todos os direitos reservados.
         </p>
       </footer>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAccessControl, ACCESS_CHECKING_MESSAGE } from '@/hooks/useAccessControl';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
@@ -71,7 +71,7 @@ export default function Cotacoes() {
   });
 
   useEffect(() => {
-    document.title = 'Cotações | Harmony Agro';
+    document.title = 'Cotações | Proteq';
   }, []);
 
   useEffect(() => {

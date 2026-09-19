@@ -59,7 +59,7 @@ export async function mergePropostaComRegulamento(
 
   // Cabeçalho
   capa.drawRectangle({ x: 0, y: height - 90, width, height: 90, color: orange });
-  capa.drawText(dados.empresaNome || "HARMONY CLUBE DE BENEFÍCIOS", {
+  capa.drawText(dados.empresaNome || "PROTEQ", {
     x: 40,
     y: height - 50,
     size: 18,
@@ -128,7 +128,7 @@ export async function mergePropostaComRegulamento(
 
   // Declaração
   const decl =
-    "Ao aderir ao programa de proteção veicular da HARMONY CLUBE DE BENEFÍCIOS, o associado declara ter lido, compreendido e aceito integralmente as condições, direitos e deveres descritos no Regulamento Interno anexo a este documento.";
+    "Ao aderir ao programa de proteção veicular da PROTEQ, o associado declara ter lido, compreendido e aceito integralmente as condições, direitos e deveres descritos no Regulamento Interno anexo a este documento.";
   const palavras = decl.split(" ");
   let linha = "";
   let yDecl = y - 20;

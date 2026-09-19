@@ -1,4 +1,4 @@
-import { Download, X } from 'lucide-react';
+﻿import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePWA } from '@/hooks/usePWA';
 import { useState } from 'react';
@@ -26,7 +26,7 @@ export function PWAInstallPrompt() {
           <Download className="w-6 h-6 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm">Instalar Harmony</p>
+          <p className="font-semibold text-sm">Instalar Proteq</p>
           <p className="text-xs text-muted-foreground">Acesso rápido na tela inicial</p>
         </div>
         <div className="flex gap-2">

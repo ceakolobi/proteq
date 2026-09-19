@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAccessControl } from "@/hooks/useAccessControl";
@@ -104,7 +104,7 @@ export default function Configuracoes() {
     facebook: "",
     whatsapp_comercial: "",
     modo_white_label: false,
-    esconder_marca_harmony: false,
+    esconder_marca_Proteq: false,
     cover_mode: "fixed",
     cover_fixed_index: 1,
   });
@@ -135,7 +135,7 @@ export default function Configuracoes() {
       facebook: (settings as any).facebook || "",
       whatsapp_comercial: (settings as any).whatsapp_comercial || "",
       modo_white_label: settings.modo_white_label || false,
-      esconder_marca_harmony: settings.esconder_marca_harmony || false,
+      esconder_marca_Proteq: settings.esconder_marca_Proteq || false,
       cover_mode: settings.cover_mode || "fixed",
       cover_fixed_index: settings.cover_fixed_index || 1,
     });
@@ -774,16 +774,16 @@ export default function Configuracoes() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <EyeOff className="w-4 h-4" />
-                    <p className="font-medium">Esconder Marca Harmony</p>
+                    <p className="font-medium">Esconder Marca Proteq</p>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Remove referências à Harmony dos PDFs (White Label)
+                    Remove referências à Proteq dos PDFs (White Label)
                   </p>
                 </div>
                 <Switch
-                  checked={formData.esconder_marca_harmony}
+                  checked={formData.esconder_marca_Proteq}
                   onCheckedChange={(checked) =>
-                    setFormData({ ...formData, esconder_marca_harmony: checked })
+                    setFormData({ ...formData, esconder_marca_Proteq: checked })
                   }
                 />
               </div>

@@ -9,7 +9,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: 'E-mail',
-    content: 'contato@harmonyagro.com.br',
+    content: 'contato@proteq.antum.com.br',
     description: 'Envie sua mensagem',
   },
   {

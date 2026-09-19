@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
@@ -352,7 +352,7 @@ export default function Auth() {
       <div className="hidden lg:block lg:w-[70%] relative overflow-hidden">
         <img 
           src={authHeroImage} 
-          alt="Harmony Agro - Tecnologia e Rastreamento"
+          alt="Proteq - Prote+�+�o Veicular"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent" />
@@ -378,7 +378,7 @@ export default function Auth() {
 
       {/* Right side - 30% Auth form */}
       <div className="flex-1 lg:w-[30%] flex flex-col items-center justify-between p-6 lg:p-8 bg-card">
-        {/* Logo Harmony */}
+        {/* Logo Proteq */}
         <div className="mb-8">
           <img 
             src={getLogoForContext('login')} 

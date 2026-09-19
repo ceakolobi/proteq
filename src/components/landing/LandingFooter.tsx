@@ -1,4 +1,4 @@
-import { Shield } from 'lucide-react';
+﻿import { Shield } from 'lucide-react';
 import logoHarmonyBrancaFull from '@/assets/logo-harmony-branca-full.png';
 
 export function LandingFooter() {
@@ -12,7 +12,7 @@ export function LandingFooter() {
           <div className="md:col-span-2">
             <img 
               src={logoHarmonyBrancaFull} 
-              alt="Harmony"
+              alt="Proteq"
               className="h-12 object-contain mb-4"
             />
             <p className="text-sm text-secondary-foreground/80 max-w-sm mb-4">
@@ -41,7 +41,7 @@ export function LandingFooter() {
         {/* Bottom */}
         <div className="border-t border-secondary-foreground/20 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-secondary-foreground/70">
-            © {currentYear} Harmony Clube de Benefícios. Todos os direitos reservados.
+            © {currentYear} Proteq. Todos os direitos reservados.
           </p>
           <div className="flex gap-6 text-sm text-secondary-foreground/70">
             <a href="#" className="hover:text-primary transition-colors">Termos de uso</a>

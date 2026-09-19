@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -208,7 +208,7 @@ export default function AssinaturaTermoPublico() {
         `Seu código para assinar o Termo de Aceite é:\n\n` +
         `*${codigo}*\n\n` +
         `Este código é válido por 10 minutos.\n\n` +
-        `Harmony Clube de Benefícios`
+        `Proteq Clube de Benefícios`
       );
       
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${mensagem}`;
@@ -401,7 +401,7 @@ export default function AssinaturaTermoPublico() {
               </p>
             </div>
             <div className="bg-primary/5 rounded-lg p-4 text-sm text-muted-foreground">
-              <p>Bem-vindo ao <strong>Harmony Clube de Benefícios</strong>! 🎉</p>
+              <p>Bem-vindo ao <strong>Proteq Clube de Benefícios</strong>! 🎉</p>
               <p className="mt-2">Você receberá uma confirmação por e-mail em instantes.</p>
             </div>
             

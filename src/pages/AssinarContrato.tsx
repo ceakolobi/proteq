@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -233,7 +233,7 @@ export default function AssinarContrato() {
             {confirmedReading && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
           </div>
           <span className="text-sm text-gray-300 select-none">
-            Li e concordo com todas as cláusulas do contrato acima e com o Regulamento Interno da <strong className="text-white">Harmony Clube de Benefícios</strong>.
+            Li e concordo com todas as cláusulas do contrato acima e com o Regulamento Interno da <strong className="text-white">Proteq Clube de Benefícios</strong>.
           </span>
         </label>
 

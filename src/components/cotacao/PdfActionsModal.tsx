@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -60,7 +60,7 @@ export const PdfActionsModal = ({
   modelo = "",
   mensalidade = "",
   cotacaoId,
-  empresaNome = "Harmony Clube de Benefícios",
+  empresaNome = "Proteq",
   beneficiosExtras = [],
   placa,
   valorAdesao,
@@ -167,7 +167,7 @@ export const PdfActionsModal = ({
       ? `\n\n✨ *Benefícios Extras*\n${beneficiosExtras.map(b => `- ${b.nome_snapshot}`).join('\n')}`
       : '';
 
-    const mensagem = `🛡 HARMONY CLUBE DE BENEFÍCIOS
+    const mensagem = `🛡 PROTEQ
 Olá, ${nomePrimeiro}! 😊
 Segue sua proposta de proteção veicular:
 🚗 Veículo: ${veiculoDesc}
@@ -176,7 +176,7 @@ Segue sua proposta de proteção veicular:
 ${BENEFICIOS_WHATSAPP}${extrasSecao}
 
 ⏳ Proposta válida por ${validadeDias} dias.
-🤝 Harmony Clube de Benefícios — Proteção Veicular`;
+🤝 Proteq — Proteção Veicular`;
 
     const whatsappUrl = `https://wa.me/${numeroFormatado}?text=${encodeURIComponent(mensagem)}`;
     const opened = window.open(whatsappUrl, "_blank", "noopener,noreferrer");

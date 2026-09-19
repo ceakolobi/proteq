@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+﻿import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
@@ -514,7 +514,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Footer */}
       <div className="px-3 py-3 border-t border-sidebar-border/50">
         <p className="text-[10px] text-muted-foreground/60 text-center">
-          © {new Date().getFullYear()} Harmony Clube de Benefícios
+          © {new Date().getFullYear()} Proteq
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -149,7 +149,7 @@ export function DadosPessoaisForm({ initialData, onSubmit, onBack }: DadosPessoa
               >
                 Política de Privacidade
               </a>{' '}
-              e autorizo o contato da Harmony sobre esta cotação.
+              e autorizo o contato da Proteq sobre esta cotação.
             </span>
           </label>
 
